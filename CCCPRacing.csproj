@@ -1,0 +1,14 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>CCCPRacing</RootNamespace>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="native/export-window/linux-x86_64.so" LogicalName="CCCPRacing.Export.HiddenWindow.x64" />
+    <!-- Build artifacts may include archived diagnostic source files. -->
+    <Compile Remove="build/**/*.cs" />
+    <Compile Remove="media/**/*.cs" />
+  </ItemGroup>
+</Project>

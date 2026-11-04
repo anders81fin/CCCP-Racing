@@ -1,0 +1,174 @@
+{
+  // SIBERIA IN WINTER - track 2 of the five-year plan (2026-10-06 layout draft for the map review).
+  // Driven anticlockwise, unlike Ilyich and the bonus track: left-handers rule. The start is in the
+  // south valley; the start straight crosses the frozen river at once, a fast left sweep climbs to
+  // the east hill, switchbacks go up it, over the top to the airbase, west along the runway, down
+  // the west side, onto the frozen river for a long fast slide downstream, a hairpin back onto the
+  // bank and through the gulag camp gate, a last left onto the start straight.
+  // Packed snow on the road, deep snow off it, glare ice on the frozen river and black ice patches
+  // on the snow road; the runway is ploughed concrete.
+  "id": "siberia",
+  // Siberia: short middle gears for snowy climbs; about 39/57/78/102/138 km/h.
+  "gearbox": { "gears": [4.15, 2.85, 2.1, 1.6, 1.18], "finalDrive": 5.5, "shiftDown": 3500 },
+  "name": "SIBLAG NO.2 FIVE YEARS IN FOUR",
+  // The rally's norms: 1:35 down to 1:10 (the user's choice, 2026-10-13; even 3 s / 2.5 s steps; the
+  // autopilot laps the empty road in ~96 s, ~1:55 in traffic). Bronze for 4 norms beaten, silver for 7, gold for the plan.
+  "norms": { "ladder": [95, 92, 89.5, 86.5, 84, 81, 78.5, 75.5, 73, 70], "bronze": 4, "silver": 7, "diesel": 1.02, "rocket": 0.97, "rocketLadder": [81.5, 79, 76.5, 74, 72, 69, 67, 64.5, 62, 59.5] },
+  "size": 160,
+  "tileSize": 2.0,
+  "seed": 1937,
+  "hillAmp": 3.0,
+  "hillScale": 90.0,
+  "birches": 160,
+  "ground": "deepsnow",
+  "edgeRim": 8,
+  // The land rises from the river valley in the south to the airbase plateau in the north; the
+  // east slope (a ridge reaching south from the plateau) carries the switchbacks, climbing all the way.
+  "hills": [
+    { "x": 50, "z": 30, "x1": 270, "z1": 30, "height": 9, "radius": 110, "calm": 0.8 },
+    { "x": 268, "z": 50, "x1": 268, "z1": 135, "height": 9, "radius": 75, "calm": 0.8 },
+    { "x": 240, "z": 305, "x1": 60, "z1": 305, "height": -3, "radius": 45, "calm": 0.9 }
+  ],
+  "points": [
+    // 1 the start straight in the south valley (the frozen river is crossed at ~120 m)
+    { "x": 95,  "z": 290, "width": 12, "surface": "snow" },
+    { "x": 150, "z": 292, "width": 12, "surface": "snow" },
+    { "x": 205, "z": 288, "width": 12, "surface": "snow" },
+    { "x": 255, "z": 280, "width": 11, "surface": "snow" },
+    // 2 the fast left sweep up to the east hill
+    { "x": 290, "z": 255, "width": 11, "surface": "snow" },
+    { "x": 300, "z": 222, "width": 10, "surface": "snow" },
+    // 3 the switchbacks up the hill
+    { "x": 258, "z": 212, "width": 9,  "surface": "snow" },
+    { "x": 226, "z": 200, "width": 9,  "surface": "snow" },
+    { "x": 244, "z": 184, "width": 9,  "surface": "snow" },
+    { "x": 292, "z": 172, "width": 9,  "surface": "snow" },
+    { "x": 302, "z": 152, "width": 9,  "surface": "snow" },
+    { "x": 272, "z": 138, "width": 9,  "surface": "snow" },
+    // 4 over the top
+    { "x": 232, "z": 128, "width": 9,  "surface": "snow" },
+    { "x": 224, "z": 108, "width": 9,  "surface": "snow" },
+    { "x": 258, "z": 92,  "width": 10, "surface": "snow" },
+    { "x": 276, "z": 70,  "width": 10, "surface": "snow" },
+    { "x": 248, "z": 48,  "width": 12, "surface": "runway" },
+    // 5 the airbase runway
+    { "x": 190, "z": 42,  "width": 14, "surface": "runway" },
+    { "x": 130, "z": 42,  "width": 14, "surface": "runway" },
+    { "x": 75,  "z": 46,  "width": 12, "surface": "runway" },
+    // 6 down the west side
+    { "x": 42,  "z": 70,  "width": 10, "surface": "snow" },
+    { "x": 34,  "z": 105, "width": 10, "surface": "snow" },
+    { "x": 50,  "z": 130, "width": 11, "surface": "snow" },
+    // 7 the frozen river, downstream (ice)
+    { "x": 85,  "z": 140, "width": 13, "surface": "ice" },
+    { "x": 125, "z": 158, "width": 13, "surface": "ice" },
+    { "x": 160, "z": 180, "width": 13, "surface": "ice" },
+    { "x": 190, "z": 205, "width": 13, "surface": "ice" },
+    { "x": 205, "z": 228, "width": 12, "surface": "ice" },
+    // 8 the river hairpin, back onto the bank
+    { "x": 195, "z": 250, "width": 10, "surface": "snow" },
+    { "x": 172, "z": 248, "width": 9,  "surface": "snow" },
+    // 9 the bank and the gulag camp gate
+    { "x": 150, "z": 228, "width": 9,  "surface": "snow" },
+    { "x": 120, "z": 212, "width": 8,  "surface": "snow" },
+    { "x": 92,  "z": 205, "width": 9,  "surface": "snow" },
+    // 10 the last left onto the start straight
+    { "x": 62,  "z": 215, "width": 10, "surface": "snow" },
+    { "x": 45,  "z": 245, "width": 11, "surface": "snow" },
+    { "x": 52,  "z": 275, "width": 12, "surface": "snow" }
+  ],
+  "roadSmoothing": 10,
+  // The valley gives the lap its long rise/fall; these broad snow-road shapes add suspension rhythm.
+  "features": [
+    { "type": "dip", "at": 205, "length": 52, "height": 0.65 },
+    { "type": "crest", "at": 570, "length": 54, "height": 0.8 },
+    { "type": "crest", "at": 825, "length": 50, "height": 0.65 },
+    { "type": "dip", "at": 905, "length": 50, "height": 0.5 }
+  ],
+  // Ploughed snow piled high on both sides: run into it square and it stops the car, brush it and
+  // it turns the car back onto the road.
+  // An opening round the start line: the gate's posts and the KGB officers stand on swept ground.
+  // ...and along the runway's north side the apron is open, so the MiKs can taxi onto it.
+  "snowbanks": { "height": 1.3, "gap": 0.5, "except": [ { "from": 1352, "to": 14 }, { "from": 615, "to": 810, "side": "right" },
+    // ...and through the labour camp, gate to gate: the yard is open.
+    { "from": 1172, "to": 1243 },
+    // ...and where the timber lorry went through it on the outside of the river hairpin.
+    { "from": 1117, "to": 1133, "side": "left" },
+    // Radar service spur on the south/left shoulder of the upper serpentine.
+    { "from": 438, "to": 457, "side": "left" } ],
+    // Along the runway's south side the plough pushed the bank out, clear of the edge lights.
+    "widen": [ { "from": 626, "to": 794, "side": "left", "by": 3.5 } ] },
+  // The highway strip on the plateau: markings, numbers and edge lights; the MiKs taxi out of the
+  // east hangar, line up at the east end and take off westwards, downhill.
+  // A MiK holds on the apron beside the strip while a snowplough is on it or within clearBehind metres of either end.
+  // The fuel depot at the runway's west end, north of it on the flat by the west hangar.
+  "depot": { "at": 790, "side": "right", "off": 11 },
+  "runway": { "from": 630, "to": 790, "numbers": ["27", "09"], "clearBehind": 110 },
+  // The GAI post at the far end of the runway, on the south side (the hangars, the Kozlik's guard
+  // spot and the taxiway are on the north side): the posted limit is 90.
+  "speedTrap": { "at": 770, "side": "left", "limit": 90 },
+  // Two snowploughs on the lap: one ahead of the start going the race's way, one coming the other way.
+  "ploughs": [ { "start": 420 }, { "start": 900, "against": true } ],
+  // A labour detail marched out of the camp, trudging round with the race along the right-hand edge.
+  "column": { "start": 1262, "prisoners": 8 },
+  // Logs felled and stacked by the road for the timber lorry, and in the camp's yard.
+  "logPiles": [
+    { "at": 70,   "side": "left" },
+    { "at": 200,  "side": "right" },
+    { "at": 335,  "side": "left" },
+    { "at": 520,  "side": "right" },
+    { "at": 880,  "side": "right" },
+    { "at": 1196, "side": "right", "out": 4 },
+    { "at": 1222, "side": "left",  "out": 4 },
+    { "at": 1290, "side": "left" },
+    { "at": 1330, "side": "right" }
+  ],
+  // The bank road runs through the labour camp: a gate at each end, barracks either side, the wire.
+  "gulag": { "from": 1172, "to": 1243 },
+  // The airbase on the plateau north of the runway: a ploughed apron, two hangars, a MiK-21,
+  // the windsock, the flag and the airmen's barracks; the taxiway runs along the apron's south
+  // edge, clear of them.
+  "pads": [ { "x0": 88, "z0": 6, "x1": 242, "z1": 30, "surface": "concrete" },
+    // Radar on the eastern shoulder above the switchbacks: a modest raised foundation on the hill shoulder.
+    { "x0": 265, "z0": 151, "x1": 275, "z1": 161, "surface": "concrete", "height": 9.5 } ],
+  "props": [
+    { "type": "hangar",    "x": 100, "z": 17, "rot": 0 },
+    { "type": "hangar",    "x": 124, "z": 17, "rot": 0 },
+    { "type": "balalaika", "x": 152, "z": 14, "rot": 200 },
+    { "type": "windsock",  "x": 176, "z": 10 },
+    { "type": "flagpole",  "x": 196, "z": 10 },
+    { "type": "barracks",  "x": 224, "z": 16, "rot": 0 },
+    { "type": "radar",     "x": 270, "z": 156, "rot": 180 },
+    // The track's name on the start straight, south of the road (as KOLKHOZ NO.3 has its billboard).
+    { "type": "billboard", "x": 140, "z": 303, "rot": 0, "text": "SIBLAG NO.2 FIVE YEARS IN FOUR" },
+    // A timber lorry that ran wide in the river hairpin, ploughed through the bank and lies on its
+    // side in the ditch just off the outside of the bend, still smoking (an obstacle).
+    { "type": "lorrywreck", "x": 190, "z": 259.5, "rot": 110 }
+  ],
+  "babushkas": 6,
+  "bushes": 250,
+  "tufts": 600,
+  // The frozen river from the north-west down to the south edge: the ice leg runs on it, the start
+  // straight crosses it. The ice falls downstream; the road on it is the ice.
+  "water": {
+    "frozen": true,
+    // A real river valley: broad snowy banks and eased road crossings, rather than an ice lip.
+    "valleyDepth": 2.6,
+    "valleyBankWidth": 30,
+    "rivers": [ { "points": [ [0, 96], [50, 122], [90, 142], [130, 162], [165, 186], [195, 214], [212, 245], [218, 280], [222, 322] ], "width": 16 } ]
+  },
+  // Not built yet: drawn on the review map only.
+  "plan": {
+    "labels": [
+      { "x": 100, "z": 306, "text": "START: SOUTH VALLEY" },
+      { "x": 228, "z": 300, "text": "ICE ON THE START STRAIGHT" },
+      { "x": 306, "z": 238, "text": "FAST LEFT" },
+      { "x": 300, "z": 190, "text": "SWITCHBACKS" },
+      { "x": 120, "z": 22,  "text": "AIRBASE RUNWAY" },
+      { "x": 6,   "z": 88,  "text": "DESCENT" },
+      { "x": 112, "z": 128, "text": "FROZEN RIVER (ice)" },
+      { "x": 212, "z": 262, "text": "RIVER HAIRPIN" },
+      { "x": 86,  "z": 238, "text": "GULAG GATE" }
+    ]
+  }
+}

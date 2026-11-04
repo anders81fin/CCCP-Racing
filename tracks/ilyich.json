@@ -1,0 +1,213 @@
+{
+  // KOLKHOZ NO.3 "ILYICH'S LAMP" - track 1 of the five-year plan (2026-10-05 draft for the map review).
+  // Sand, gravel and mud only. The start and finish are inside a barn open at both ends (the
+  // village in the north-west), the east ridge has two broad rollers and a jump down towards the
+  // river, the river (out of the fish pond) is crossed at a ford (a shallow gravel bar round the
+  // outside of the bend, longer but faster than the short, deep line on the inside), the meadow after it is mud, and the
+  // way home is a sandy lane
+  // through the village. Sand is "dirt" until the game has a sand surface of its own.
+  // "plan" holds what the map review draws but the game does not build yet (river, ford, barn...).
+  "id": "ilyich",
+  // Ilyich: compact dirt/gravel rally box; limiter speeds about 40/62/86/113/149 km/h.
+  "gearbox": { "gears": [4.4, 2.85, 2.05, 1.55, 1.18], "finalDrive": 5.1, "shiftDown": 3200 },
+  "name": "KOLKHOZ NO.3 ILYICH'S LAMP",
+  // The rally's norms: 1:10 down to 0:47, the bronze norm (the 4th) 1:00, the silver one (the 7th)
+  // 0:54 (the autopilot laps the empty road in ~63 s). Bronze for 4 norms beaten, silver for 7, gold
+  // for the whole plan.
+  // No fuel on the first track: the tank, the cans and the depot come in from SIBERIA on.
+  "fuel": false,
+  "norms": { "ladder": [70, 66.5, 63, 60, 58, 56, 54, 52, 49.5, 47], "bronze": 4, "silver": 7, "diesel": 1.02, "rocket": 0.97, "rocketLadder": [60, 57, 54, 51.5, 49.5, 48, 46, 44.5, 42, 40] },
+  "size": 160,
+  "tileSize": 2.0,
+  "seed": 1922,
+  "hillAmp": 5.0,
+  "hillScale": 80.0,
+  "meadow": { "baseHeight": 4, "amplitude": 5, "scale": 55, "seed": 1922 },
+  // Main straight, ridge jump and ford retain their full original width.
+  // Village lane, church approach and homeward lane breathe through three broad pinches.
+  "roadCharacter": {
+    "from": 445, "to": 1005, "edgeInset": 0.45, "seed": 1922,
+    "pinches": [
+      { "from": 565, "to": 630, "reduction": 0.16, "taper": 20 },
+      { "from": 775, "to": 835, "reduction": 0.18, "taper": 18 },
+      { "from": 940, "to": 990, "reduction": 0.14, "taper": 18 }
+    ]
+  },
+  "birches": 140,
+  "edgeRim": 8,
+  // The east ridge: a long north-south crest the road runs along (the rollers sit on top), its
+  // back dropping to the map edge; the river valley in the south is low ground.
+  "hills": [
+    { "x": 290, "z": 100, "x1": 290, "z1": 205, "height": 6, "radius": 60, "backRadius": 26, "calm": 0.85 },
+    { "x": 230, "z": 300, "x1": 120, "z1": 300, "height": -2.5, "radius": 50, "calm": 0.9 },
+    // The churchyard crowns its own knoll; the hairpin follows its lower slopes.
+    { "x": 57, "z": 192, "height": 3.4, "radius": 25, "calm": 0.9 }
+  ],
+  // A level foundation and small yard, softly blended into the knoll. The road keeps its grade.
+  "pads": [
+    { "x0": 47, "z0": 187, "x1": 67, "z1": 197, "surface": "grass", "ground": true }
+  ],
+  "points": [
+    { "x": 95,  "z": 59,  "width": 12, "surface": "dirt" },
+    { "x": 140, "z": 55,  "width": 12, "surface": "dirt" },
+    { "x": 180, "z": 50,  "width": 11, "surface": "dirt" },
+    { "x": 215, "z": 48,  "width": 10, "surface": "gravel" },
+    { "x": 248, "z": 52,  "width": 10, "surface": "gravel" },
+    { "x": 280, "z": 74,  "width": 9,  "surface": "gravel" },
+    { "x": 290, "z": 108, "width": 9,  "surface": "gravel" },
+    { "x": 290, "z": 140, "width": 9,  "surface": "gravel" },
+    { "x": 290, "z": 172, "width": 9,  "surface": "gravel" },
+    { "x": 286, "z": 204, "width": 9,  "surface": "gravel" },
+    { "x": 272, "z": 230, "width": 10, "surface": "gravel" },
+    { "x": 250, "z": 250, "width": 14, "surface": "gravel" },
+    { "x": 226, "z": 262, "width": 12, "surface": "mud" },
+    { "x": 198, "z": 262, "width": 10, "surface": "mud" },
+    { "x": 178, "z": 240, "width": 9,  "surface": "dirt" },
+    { "x": 168, "z": 210, "width": 9,  "surface": "dirt" },
+    { "x": 146, "z": 190, "width": 9,  "surface": "dirt" },
+    { "x": 120, "z": 192, "width": 9,  "surface": "dirt" },
+    { "x": 106, "z": 214, "width": 9,  "surface": "dirt" },
+    { "x": 108, "z": 246, "width": 9,  "surface": "dirt" },
+    { "x": 94,  "z": 276, "width": 9,  "surface": "gravel" },
+    { "x": 62,  "z": 286, "width": 9,  "surface": "gravel" },
+    { "x": 38,  "z": 264, "width": 9,  "surface": "dirt" },
+    { "x": 34,  "z": 232, "width": 9,  "surface": "dirt" },
+    // The church square: a tight hairpin right round the old church (now the grain store).
+    { "x": 42,  "z": 212, "width": 9,  "surface": "dirt" },
+    { "x": 58,  "z": 206, "width": 9,  "surface": "dirt" },
+    { "x": 72,  "z": 202, "width": 9,  "surface": "dirt" },
+    { "x": 78,  "z": 192, "width": 9,  "surface": "dirt" },
+    { "x": 72,  "z": 182, "width": 9,  "surface": "dirt" },
+    { "x": 58,  "z": 178, "width": 9,  "surface": "dirt" },
+    { "x": 42,  "z": 172, "width": 9,  "surface": "dirt" },
+    { "x": 36,  "z": 150, "width": 9,  "surface": "dirt" },
+    { "x": 38,  "z": 104, "width": 10, "surface": "dirt" },
+    { "x": 50,  "z": 72,  "width": 11, "surface": "dirt" },
+    { "x": 66,  "z": 62,  "width": 12, "surface": "dirt" }
+  ],
+  "roadSmoothing": 10,
+  // Distances in metres from the start line along the road (estimates for the review: the
+  // main ridge takeoff at ~251 m, receiving crest at ~277 m, small river knoll ~335 m, ford ~385-415 m).
+  "features": [
+    // Main rally leap: a real broad landform, with a second downslope to receive the landing.
+    { "type": "jump", "at": 251, "length": 36, "height": 4.0, "drop": 20, "terrainWidth": 28 },
+    { "type": "crest", "at": 277, "length": 46, "height": 1.7, "terrainWidth": 28 },
+    // Lower the former river jump substantially, leaving a small, rounded knoll before the bend.
+    { "type": "dip", "at": 335, "length": 64, "height": 1.8, "terrainWidth": 28 },
+    { "type": "crest", "at": 335, "length": 24, "height": 0.25, "terrainWidth": 28 },
+    { "type": "dip",   "at": 560, "length": 30, "height": 1.0 },
+    // The sandy homeward lane breathes through a long hollow and a gentle crest.
+    { "type": "dip",   "at": 910, "length": 44, "height": 0.8 },
+    { "type": "crest", "at": 960, "length": 48, "height": 1.1 }
+  ],
+  "fences": [
+    // The wall hugs the road edge, closer still past the grain store's east corners (790-846 m);
+    // the opening at 853-858 m faces the grain store's northwest corner.
+    { "type": "stone", "from": 732, "to": 853, "side": "left", "offset": 3.8, "nearFrom": 790, "nearTo": 846, "nearOffset": 2.3 },
+    { "type": "stone", "from": 858, "to": 875, "side": "left", "offset": 3.8 },
+    { "type": "stonepost", "x": 50, "z": 185 },
+    { "type": "stonepost", "x": 42, "z": 182 },
+    { "type": "wood", "from": 930, "to": 990, "side": "left" },
+    { "type": "wood", "from": 720, "to": 770, "side": "right" }
+  ],
+  // The GAI post at the end of the north straight, before the ridge: the posted limit is 90.
+  "speedTrap": { "at": 150, "side": "right", "limit": 90 },
+  "babushkas": 10,
+  "busStops": [ { "at": 905, "side": "right", "drunks": 3 } ],
+  "bushes": 420,
+  "tufts": 1200,
+  "fields": [
+    // Bare earth inside the big barn and just beyond its road-facing doors.
+    { "surface": "dirt",  "x0": 164, "z0": 21, "x1": 174, "z1": 38 },
+    { "surface": "dirt",  "x0": 166, "z0": 38, "x1": 172, "z1": 47 },   // the barn yard: the same earth as inside, to the road
+    { "surface": "field", "x0": 120, "z0": 90,  "x1": 250, "z1": 160 },
+    // Harvested and growing parcels are split into clearings with a broad grass verge
+    // between the crops and the road; none surrounds a village house.
+    { "surface": "field", "x0": 145, "z0": 230, "x1": 158, "z1": 260 },
+    { "surface": "field", "x0": 156, "z0": 265, "x1": 184, "z1": 292 },
+    { "surface": "field", "x0": 298, "z0": 211, "x1": 316, "z1": 230 },
+    { "surface": "field", "x0": 108, "z0": 272, "x1": 132, "z1": 296 }
+  ],
+  "props": [
+    { "type": "barn",  "x": 142, "z": 36,  "rot": 0 },
+    { "type": "silo",  "x": 153, "z": 38 },
+    // The big red kolkhoz barn right of the silo (seen from the start straight), gable and doors to the road.
+    { "type": "bigbarn", "x": 169, "z": 29, "rot": 0 },
+    // The dormitory starts at the barn ridge: perpendicular gables join with two roof valleys.
+    { "type": "dormitory", "x": 169, "z": 27.5, "rot": 0, "text": "93" },
+    // The kolkhoz fields are harvested: rolls gathered in loose rows, not isolated showpieces.
+    { "type": "hay",   "x": 132, "z": 99,  "rot": 12 },
+    { "type": "hay",   "x": 156, "z": 99,  "rot": -8 },
+    { "type": "hay",   "x": 180, "z": 99,  "rot": 18 },
+    { "type": "hay",   "x": 204, "z": 99,  "rot": -15 },
+    { "type": "hay",   "x": 228, "z": 99,  "rot": 7 },
+    { "type": "hay",   "x": 132, "z": 123, "rot": -12 },
+    { "type": "hay",   "x": 180, "z": 123, "rot": 9 },
+    { "type": "hay",   "x": 204, "z": 123, "rot": -4 },
+    { "type": "hay",   "x": 228, "z": 123, "rot": 14 },
+    { "type": "hay",   "x": 132, "z": 147, "rot": 5 },
+    { "type": "hay",   "x": 156, "z": 147, "rot": -18 },
+    { "type": "hay",   "x": 180, "z": 147, "rot": 11 },
+    { "type": "hay",   "x": 204, "z": 147, "rot": -9 },
+    { "type": "hay",   "x": 228, "z": 147, "rot": 16 },
+    { "type": "hay",   "x": 150, "z": 120 },
+    { "type": "hay",   "x": 180, "z": 135 },
+    { "type": "hay",   "x": 215, "z": 115 },
+    { "type": "hay",   "x": 153, "z": 235, "rot": 13 },
+    { "type": "hay",   "x": 153, "z": 250, "rot": -7 },
+    { "type": "hay",   "x": 165, "z": 260 },
+    { "type": "wheatfield", "x": 170, "z": 278.5, "text": "28;27" },
+    { "type": "wheatfield", "x": 307, "z": 220.5, "text": "18;19" },
+    { "type": "wheatfield", "x": 120, "z": 284, "text": "24;24" },
+    // The monument's square stands north of the church hairpin, outside its stone wall.
+    { "type": "statue",    "x": 61,  "z": 163, "rot": 180 },
+    { "type": "flagpole",  "x": 55,  "z": 160, "rot": 180 },
+    { "type": "flagpole",  "x": 67,  "z": 160, "rot": 180 },
+    { "type": "billboard", "x": 128, "z": 72,  "rot": 0,   "text": "KOLKHOZ NO.3 ILYICH'S LAMP" },
+    { "type": "billboard", "x": 262, "z": 128, "rot": 90,  "text": "GLORY TO THE HARVEST!" },
+    { "type": "drunktractor", "x": 142, "z": 36, "rot": 180 },
+    // The village: the old church in the hairpin (tower and door towards the lane), log houses
+    // either side of the lane, their windows to the street.
+    { "type": "church", "x": 57, "z": 192, "rot": -90 },
+    { "type": "izba", "x": 15, "z": 118, "rot": 90 },
+    { "type": "izba", "x": 15, "z": 150, "rot": 90 },
+    { "type": "izba", "x": 15, "z": 186, "rot": 90 },
+    { "type": "izba", "x": 13, "z": 214, "rot": 90 },
+    { "type": "izba", "x": 15, "z": 240, "rot": 90 },
+    { "type": "izba", "x": 60, "z": 120, "rot": -90 },
+    { "type": "izba", "x": 61, "z": 142, "rot": -90 },
+    { "type": "izba", "x": 63, "z": 240, "rot": -90 }
+  ],
+  // The fish pond inside the lap and the river out of it across the road: the ford (the water
+  // lies at the road's height there; a river from edge to edge would cross the lap twice).
+  "water": {
+    "ponds": [ { "x": 220, "z": 205, "r": 18, "depth": 1.2 } ],
+    // The river winds from the pond's outlet (a narrow brook) through the ford and meanders down the
+    // valley to the map edge. The ford itself has an irregular approach and exit too:
+    // narrow necks, offset banks and a wider crossing pool, not a straight-sided canal.
+    "rivers": [ { "points": [
+      [228, 218, 7], [231, 221, 6.5], [232, 225, 6], [235, 228, 7, 0, 0.4],
+      [239, 229, 8, 0, 1.3], [241, 231, 10, 0, 3.0], [244, 233, 8, 1.1, 1.5], [245, 236, 9, 1.3, 2.3], [249, 238, 7.5, 1.1, 1.0], [253, 240.5, 6.5, 0.9],
+      [255, 244, 7.5, 0.7, 0.7], [256, 247, 8, 0.7, 1.0], [257.5, 250.5, 6.5, 0.9, 0.2], [261, 253, 8, 1.3, 1.3],
+      [265.5, 256, 10, 1.4, 2.2], [270, 259.5, 12.5, 1.4, 2.6], [273, 264, 10, 1.2, 1.0],
+      [278, 269, 9, 1.5], [283, 279, 8, 1.2], [290, 285, 7, 0.6], [298, 283, 7.5], [305, 286, 6.5], [310, 294, 7], [315, 299, 8], [320, 297, 8]
+    ], "width": 12, "depth": 1.0 } ],
+    "fordShallow": 0.1,
+    "fordDeep": 0.5
+  },
+  // The start/finish barn over the line (Village.StartBarn): 22 m long, the line 17 m in.
+  "startBarn": { "length": 22, "before": 17, "room": 3.2 },
+  // Not built yet: drawn on the review map only.
+  "plan": {
+    "depot": { "x": 112, "z": 76, "label": "FUEL DEPOT" },
+    "labels": [
+      { "x": 300, "z": 92,  "text": "RIDGE: 4 rollers" },
+      { "x": 300, "z": 216, "text": "JUMP" },
+      { "x": 150, "z": 205, "text": "FIELD S-BENDS" },
+      { "x": 196, "z": 290, "text": "RIVER MEADOW (mud)" },
+      { "x": 196, "z": 182, "text": "FISH POND" },
+      { "x": 6,   "z": 270, "text": "VILLAGE LANE (sand)" },
+      { "x": 84,  "z": 160, "text": "CHURCH HAIRPIN" }
+    ]
+  }
+}

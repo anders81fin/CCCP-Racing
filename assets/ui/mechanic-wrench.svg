@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 64 64">
+  <!-- Broad open jaw and plain shaft stay legible at ten HUD pixels. -->
+  <path transform="rotate(-45 32 32)"
+        d="M22 5 L27 7 L27 17 L32 20 L37 17 L37 7 L42 5 L46 13 L45 22 L37 29 L37 54
+           C37 62 27 62 27 54 L27 29 L19 22 L18 13 Z"
+        fill="#f4ce61" stroke="#381b23" stroke-width="3" stroke-linejoin="round"/>
+</svg>

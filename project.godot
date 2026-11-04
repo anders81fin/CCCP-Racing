@@ -1,0 +1,40 @@
+; Engine configuration file.
+
+config_version=5
+
+[application]
+
+config/name="CCCP Racing"
+config/version="0.853"
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
+boot_splash/show_image=false
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/mode=4
+
+[dotnet]
+
+project/assembly_name="CCCPRacing"
+
+[physics]
+
+common/physics_ticks_per_second=120
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+rendering_device/driver.windows="vulkan"
+rendering_device/driver.linuxbsd="vulkan"
+rendering_device/fallback_to_opengl3=true
+textures/vram_compression/import_etc2_astc=true
+textures/canvas_textures/default_texture_filter=0
+anti_aliasing/quality/msaa_3d=0
+
+[filesystem]
+
+import/blender/enabled=false

@@ -1,0 +1,514 @@
+{
+  "kolkhoz": {
+    "card_big": [
+      "KOLKHOZ NO.3",
+      "ILYICH´S LAMP"
+    ],
+    "card_small": [
+      "ILYICH IS LENIN: VLADIMIR ILYICH ULYANOV.",
+      "AFTER THE REVOLUTION HE PLANNED TO ELECTRIFY THE WHOLE COUNTRY,",
+      "AND VILLAGERS CALLED THE FIRST ELECTRIC BULBS \"ILYICH´S LAMPS\".",
+      "THIS COLLECTIVE FARM (KOLKHOZ) IS NAMED AFTER THAT LAMP."
+    ],
+    "captions": [
+      [
+        "statue",
+        5.0,
+        10.0,
+        "THE GREATEST DEED OF COMRADE ILYICH: ELECTRICITY"
+      ],
+      [
+        "statue",
+        15.4,
+        10.0,
+        "NIGHT HAS BEEN ABOLISHED BY ILYICH´S LAMP"
+      ],
+      [
+        "transformer",
+        1.0,
+        5.2,
+        "SO THE KOLKHOZ NEVER SLEEPS"
+      ],
+      [
+        "barns",
+        2.6,
+        5.0,
+        "THE NIGHT SHIFT HEADS OUT TO WORK"
+      ],
+      [
+        "fields",
+        -1.9,
+        10.0,
+        "WORKING HARD OR HARDLY WORKING - SAME PAY"
+      ],
+      [
+        "pond",
+        -5.0,
+        5.2,
+        "THE HARVEST BUILT THE PARTY A DACHA"
+      ],
+      [
+        "pond",
+        0.8,
+        5.6,
+        "FRIENDLY GUESTS COME TO HUNT DUCKS"
+      ],
+      [
+        "fishermen",
+        2.0,
+        5.4,
+        "BUT KALEV THE DUCK IS UNTOUCHABLE"
+      ],
+      [
+        "orbit_end",
+        0.5,
+        6.0,
+        "EVERYONE IS EQUAL - THE DACHA ONLY HAS MORE ROOM"
+      ],
+      [
+        "orbit_end",
+        7.4,
+        6.2,
+        "BE HAPPY OR DISAPPEAR - EVERYONE CHOOSES FREELY"
+      ],
+      [
+        "homeward",
+        1.0,
+        3.2,
+        "WELCOME TO THE KOLKHOZ"
+      ],
+      [
+        "homeward",
+        4.4,
+        3.9,
+        "OUR SHIFT STARTS NOW"
+      ]
+    ],
+    "card_hold": 13.5,
+    "film_delay": 13.5,
+    "lap_captions": [
+      [
+        100,
+        170,
+        "THE FIRST BEND TURNS RIGHT"
+      ],
+      [
+        170,
+        215,
+        "THEN UP ONTO THE EAST RIDGE"
+      ],
+      [
+        215,
+        285,
+        "ROLLERS: FLAT OUT FROM THE BEND"
+      ],
+      [
+        285,
+        345,
+        "THE FASTER, THE SMOOTHER"
+      ],
+      [
+        350,
+        400,
+        "STREAM: KEEP LEFT ON THE BAR"
+      ],
+      [
+        400,
+        445,
+        "THE DEEP INSIDE LINE IS SLOW"
+      ],
+      [
+        455,
+        525,
+        "LONG BENDS: A CLUTCH KICK,"
+      ],
+      [
+        525,
+        640,
+        "THEN HOLD THE SLIDE ON THE GAS"
+      ],
+      [
+        744,
+        800,
+        "THE GRAIN STORE HAIRPIN:"
+      ],
+      [
+        800,
+        850,
+        "STEER AND PULL THE HANDBRAKE"
+      ],
+      [
+        850,
+        930,
+        "UP THE HILL: A TIGHT LINE"
+      ],
+      [
+        930,
+        1010,
+        "RUN WIDE AND YOU MISS THE BARN!"
+      ]
+    ]
+  },
+  "siberia": {
+    "card_hold": 13.5,
+    "film_delay": 13.5,
+    "card_big": [
+      "SIBLAG NO.2",
+      "FIVE YEARS IN FOUR"
+    ],
+    "card_small": [
+      "FIVE YEARS IN FOUR: THE SLOGAN OF 1930. THE FIRST FIVE-YEAR",
+      "PLAN HAD TO BE FINISHED A YEAR EARLY. SIBLAG IS THE SIBERIAN",
+      "CAMP ADMINISTRATION.",
+      "",
+      "BY PURE COINCIDENCE A CROWD OF VOLUNTEERS HAS GATHERED HERE",
+      "TO DO HARD FORESTRY WORK FOR THE STATE, WITHOUT PAY.",
+      "SO THAT THE VOLUNTEERS REMEMBER THAT THEY ARE HERE ONLY BY",
+      "FREE WILL, THEY ARE WATCHED FROM THE AIR BY THE RADAR STATION",
+      "AND THE AIRBASE. ALL IS WELL WHEN EVERYONE REMEMBERS THAT."
+    ],
+    "captions": [
+      [
+        "camp_day",
+        0.8,
+        4.6,
+        "EVERYONE HERE CAME VOLUNTARILY."
+      ],
+      [
+        "gate2",
+        -0.6,
+        5.0,
+        "THE VOLUNTEERS LEAVE FOR THEIR UNPAID SHIFT."
+      ],
+      [
+        "start_gate",
+        -4.0,
+        5.2,
+        "THE WORK IS HARD, THE PAY IS ZERO, THE SPIRIT IS HIGH."
+      ],
+      [
+        "sawyers",
+        -3.4,
+        5.4,
+        "THE FOREST IS HARVESTED FOR THE STATE. IT WAS NOT CONSULTED."
+      ],
+      [
+        "radar",
+        -2.0,
+        5.2,
+        "THE RADAR HELPS EVERYONE REMEMBER THEIR FREE WILL."
+      ],
+      [
+        "north",
+        1.0,
+        5.0,
+        "VOLUNTEERS ARE WATCHED FROM THE AIR. FOR THEIR OWN GOOD."
+      ],
+      [
+        "airbase",
+        0.4,
+        4.0,
+        "THE AIR FORCE IS READY."
+      ],
+      [
+        "runway",
+        2.1,
+        5.0,
+        "FULL AFTERBURNER. FOR THE PARTY."
+      ],
+      [
+        "west",
+        0.0,
+        5.4,
+        "NOBODY IS FORGOTTEN. ESPECIALLY NOT BY THE PARTY."
+      ],
+      [
+        "camp_in",
+        -1.7,
+        4.6,
+        "ALL IS WELL WHEN EVERYONE REMEMBERS WHY THEY ARE HERE."
+      ],
+      [
+        "camp_in",
+        3.2,
+        4.8,
+        "LEAVING REQUIRES AUTHORISATION."
+      ]
+    ]
+  },
+  "atomgrad": {
+    "card_big": [
+      "ATOMGRAD-4"
+    ],
+    "card_small": [
+      "A CITY BUILT FOR THE PEOPLE WHO RUN THE ATOM.",
+      "THE POWER PLANT IS FINE. THE CITY IS FINE.",
+      "THE FOREST IS RED, BUT THAT IS ONLY AUTUMN.",
+      "EVERYTHING HERE IS FINE, AND THE DOSIMETER AGREES."
+    ],
+    "card_hold": 13.5,
+    "film_delay": 13.5,
+    "captions": [
+      [
+        "checkpoint",
+        2.0,
+        6.0,
+        "WELCOME TO THE ZONE - ALL IS UNDER CONTROL"
+      ],
+      [
+        "crossing",
+        0.0,
+        6.0,
+        "THE TRAIN IS ON TIME - BY DEFINITION"
+      ],
+      [
+        "forest",
+        -3.0,
+        6.0,
+        "THE FOREST CHANGED ITS COLOUR FOR AUTUMN"
+      ],
+      [
+        "graveyard",
+        0.0,
+        6.0,
+        "THE VEHICLES RETIRED WITH FULL HONOURS"
+      ],
+      [
+        "robot",
+        0.5,
+        6.0,
+        "THE ROBOT WORKS ON THE ROAD - NOBODY ASKED WHY"
+      ],
+      [
+        "sarcophagus",
+        0.0,
+        6.0,
+        "BLOCK 4 IS JUST RESTING"
+      ],
+      [
+        "reactors",
+        -0.5,
+        5.5,
+        "THE LIGHTNING IS PART OF THE PLAN"
+      ],
+      [
+        "billboard",
+        0.5,
+        6.0,
+        "OFFICIAL INFORMATION IS ON THE BILLBOARD"
+      ],
+      [
+        "channel",
+        0.5,
+        6.0,
+        "THE CATFISH HAS BEEN INFORMED"
+      ],
+      [
+        "channel",
+        7.5,
+        6.0,
+        "THE WATER IS WARM - FOR SCIENTIFIC REASONS"
+      ],
+      [
+        "ferris",
+        0.0,
+        7.0,
+        "THE FERRIS WHEEL OPENS TOMORROW"
+      ],
+      [
+        "wash",
+        0.5,
+        6.0,
+        "EVERYONE IS WASHED AND EQUAL"
+      ],
+      [
+        "lap_start",
+        -6.0,
+        3.2,
+        "WELCOME TO ATOMGRAD-4"
+      ],
+      [
+        "lap_start",
+        -2.6,
+        2.4,
+        "THE DOSIMETER IS READY"
+      ]
+    ],
+    "lap_captions": [
+      [
+        160,
+        260,
+        "IN THE ZONE THE CAR GETS A DOSE"
+      ],
+      [
+        280,
+        360,
+        "OFF THE ROAD THE DOSE IS TRIPLE"
+      ],
+      [
+        440,
+        525,
+        "GAI ON THE CHANNEL STRAIGHT - LIMIT 90"
+      ],
+      [
+        560,
+        640,
+        "CONCRETE MIXERS AHEAD - STAY BEHIND THEM"
+      ],
+      [
+        840,
+        915,
+        "WASH IT OFF AT THE STATION"
+      ],
+      [
+        915,
+        960,
+        "OVER THE NORM? THE DOSIMETRIST"
+      ],
+      [
+        960,
+        1010,
+        "STOPS YOU AT THE LINE"
+      ]
+    ]
+  },
+  "bonus": {
+    "card_big": [
+      "POLIGON 17"
+    ],
+    "card_small": [
+      "A POLIGON IS A MILITARY EXERCISE GROUND.",
+      "THE OLD KOLKHOZ NOW TRAINS A DIFFERENT BRIGADE.",
+      "THREE HINDS, TWO TANKS AND A MISSILE BATTERY.",
+      "THE ROAD IS OPEN. THE EXERCISE IS LIVE."
+    ],
+    "card_hold": 13.5,
+    "film_delay": 13.5,
+    "captions": [
+      [
+        "camp",
+        1.0,
+        4.0,
+        "WELCOME TO POLIGON 17 - THE ROAD IS OPEN"
+      ],
+      [
+        "kitchen",
+        0.0,
+        5.5,
+        "THE COOK HAS NOT BEEN INFORMED OF THE EXERCISE"
+      ],
+      [
+        "helipads",
+        0.0,
+        5.5,
+        "THREE HINDS - NO PASSENGER SERVICE"
+      ],
+      [
+        "battery",
+        0.0,
+        6.0,
+        "THE BUK BATTERY KEEPS AN EYE ON THE SKY"
+      ],
+      [
+        "ridge",
+        0.0,
+        6.0,
+        "THE EAST RIDGE - GRAVEL ABOVE THE OLD FIELDS"
+      ],
+      [
+        "fields",
+        0.0,
+        6.0,
+        "THE FARM RETIRED. ITS MUD DID NOT"
+      ],
+      [
+        "tanks",
+        0.0,
+        6.0,
+        "THE TANKS PRACTISE ACROSS THE ROAD"
+      ],
+      [
+        "crossing",
+        0.0,
+        5.5,
+        "GROUND AND AIR ATTACKS TAKE TURNS"
+      ],
+      [
+        "hall",
+        -1.0,
+        6.0,
+        "THE MAINTENANCE HALL IS PART OF THE LAP"
+      ],
+      [
+        "service",
+        0.0,
+        5.5,
+        "HONK FOR THE MECHANIC - STOP FOR FUEL"
+      ],
+      [
+        "home",
+        0.0,
+        3.0,
+        "CONCRETE, GRAVEL AND MUD - ONE LAP"
+      ],
+      [
+        "lap_start",
+        -4.0,
+        3.5,
+        "THE START IS BESIDE THE FIELD TRACK SIGN"
+      ]
+    ],
+    "lap_captions": [
+      [
+        20,
+        120,
+        "WESTERN START STRAIGHT - GAI LIMIT 100"
+      ],
+      [
+        130,
+        215,
+        "BRAKE FOR THE CLIMBING HAIRPIN"
+      ],
+      [
+        230,
+        290,
+        "WATCH FOR CROSSING TANKS"
+      ],
+      [
+        330,
+        405,
+        "THE INNER LOOP TURNS ON CONCRETE"
+      ],
+      [
+        435,
+        525,
+        "THROUGH THE HALL - WATCH FOR OIL"
+      ],
+      [
+        555,
+        635,
+        "THE OLD FIELDS STILL HOLD THEIR MUD"
+      ],
+      [
+        660,
+        750,
+        "GRAVEL ON THE EAST RIDGE"
+      ],
+      [
+        780,
+        860,
+        "OVER THE CRESTS - BRAKE BEFORE THE BENDS"
+      ],
+      [
+        875,
+        955,
+        "THE FIELD CAMP AND ITS THREE HINDS"
+      ],
+      [
+        990,
+        1060,
+        "BACK TO THE FIELD TRACK SIGN"
+      ]
+    ]
+  }
+}

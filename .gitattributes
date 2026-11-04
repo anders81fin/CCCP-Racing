@@ -1,0 +1,25 @@
+# Exclude separately licensed music recordings from source snapshots.
+# This affects git archive, not git push: never push the private development
+# history to the public repository. Keep the music permission notice included.
+assets/music/*.mp3 export-ignore
+assets/music/*.mp3.import export-ignore
+assets/music/radio/*.mp3 export-ignore
+assets/music/radio/*.mp3.import export-ignore
+
+# Private development and production material is never a public source archive.
+AGENTS.md export-ignore
+CLAUDE.md export-ignore
+skills/** export-ignore
+assets/marketing/** export-ignore
+docs/** export-ignore
+tools/art/README.md export-ignore
+tools/art/*.prompt.txt export-ignore
+tools/art/*.prompts.txt export-ignore
+tools/video/README.md export-ignore
+# The Blender builder and GLB are public; this working BLEND contains local metadata.
+assets/cars/pyatyorka2105.blend export-ignore
+
+# Only the reviewed public documentation is eligible; the exporter additionally
+# requires each individual file to be listed in public-source-files.txt.
+docs/public -export-ignore
+docs/public/** -export-ignore

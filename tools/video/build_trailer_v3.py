@@ -1,0 +1,225 @@
+#!/usr/bin/env python3
+"""Build the source-preserving third trailer from a JSON edit decision list.
+
+As v2, plus a mastered sound: the game sound is compressed (no single moment, e.g. the jet, jumps
+above the rest), the music bed fades out for the resignation and returns as a short sting on the
+end card, and the mix is normalised in two passes to -14 LUFS with true peaks at or below -1.5 dBTP.
+Extra EDL keys: "music_intro_until"/"music_intro_gain" (a louder music bed for the soundless opening), "game_compress" (bool, default true), "sting_duration" (s of the song's ending under
+the end card, default the card's length), "sting_gain" (default music_gain * 1.6).
+
+EDL: {"shots": [{"title": "...", "source": "source/lap.avi",
+"source_start": 0, "duration": 10, "gain": 1, "kind": "gameplay"}],
+"end_card_duration": 4, "music_fade_start": 45, "music_fade_duration": 1}.
+Duration is timeline seconds. Optional speed is allowed only for kind=ui.
+Sources are never modified. Paths in the EDL are relative to its directory.
+"""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+
+from PIL import Image, ImageDraw
+from build_trailer import end_card
+
+ROOT = Path(__file__).resolve().parents[2]
+DEFAULT = ROOT / 'media/trailer-v3/edit-decisions.json'
+MUSIC = ROOT / 'assets/music/radio/Soita sitä haitaria, Dmitri!.mp3'
+
+
+def probe(path):
+    return json.loads(subprocess.check_output([
+        'ffprobe', '-v', 'error', '-show_format', '-show_streams', '-of', 'json', str(path)]))
+
+
+def run(args, log):
+    with log.open('w') as stream:
+        result = subprocess.run(args, stdout=stream, stderr=subprocess.STDOUT)
+    if result.returncode:
+        raise RuntimeError(f'{log}: {log.read_text()[-2500:]}')
+
+
+def load_edl(path):
+    data = json.loads(path.read_text())
+    if isinstance(data, list):
+        data = {'shots': data}
+    shots = data.get('shots', [])
+    if not shots:
+        raise ValueError('EDL must contain shots')
+    timeline = 0.0
+    for original in shots:
+        original.setdefault('source_start', 0)
+        original.setdefault('gain', 1)
+        original.setdefault('speed', 1)
+        original.setdefault('kind', 'gameplay')
+        if original['duration'] <= 0 or original['source_start'] < 0 or original['speed'] <= 0 or original['gain'] < 0:
+            raise ValueError(f'Invalid shot values: {original}')
+        if original['speed'] != 1 and original['kind'] != 'ui':
+            raise ValueError('Only UI shots may change playback speed; gameplay stays real time')
+        source = (path.parent / original['source']).resolve()
+        if not source.is_file():
+            raise FileNotFoundError(source)
+        metadata = probe(source)
+        if not any(s['codec_type'] == 'video' for s in metadata['streams']):
+            raise ValueError(f'No video in {source}')
+        needed = original['source_start'] + original['duration'] * original['speed']
+        if needed > float(metadata['format']['duration']) + 0.05:
+            raise ValueError(f'Shot extends past source end: {source}: {needed}')
+        original['_path'] = str(source)
+        original['_audio'] = any(s['codec_type'] == 'audio' for s in metadata['streams'])
+        original['timeline_start'] = round(timeline, 6)
+        timeline += original['duration']
+    data.setdefault('end_card_duration', 4)
+    if data['end_card_duration'] < 3:
+        raise ValueError('End card needs at least three seconds')
+    data.setdefault('music_gain', .23)
+    data.setdefault('music_fade_start', max(0, timeline - 10))
+    data.setdefault('music_fade_duration', 1)
+    data.setdefault('fps', 30)
+    if data['fps'] not in (30, 60):
+        raise ValueError('fps must be 30 or 60')
+    if data['music_gain'] < 0 or data['music_fade_start'] < 0 or data['music_fade_duration'] <= 0:
+        raise ValueError('Invalid music gain or fade timing')
+    data['_footage_duration'] = timeline
+    data['_duration'] = timeline + data['end_card_duration']
+    return data
+
+
+def atempo(speed):
+    values = []
+    while speed > 2:
+        values.append(2)
+        speed /= 2
+    while speed < .5:
+        values.append(.5)
+        speed /= .5
+    values.append(speed)
+    return ','.join(f'atempo={v}' for v in values)
+
+
+def encode_shot(shot, work, fps):
+    source = Path(shot['_path'])
+    fingerprint = dict(shot, size=source.stat().st_size, mtime=source.stat().st_mtime_ns, fps=fps, version=1)
+    key = hashlib.sha256(json.dumps(fingerprint, sort_keys=True).encode()).hexdigest()[:20]
+    output = work / 'clips' / f'{key}.mkv'
+    if output.exists():
+        return output
+    duration, speed = shot['duration'], shot['speed']
+    args = ['ffmpeg', '-hide_banner', '-nostdin', '-y', '-threads', '2', '-ss', str(shot['source_start']), '-i', str(source)]
+    if not shot['_audio']:
+        args += ['-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo']
+    vf = f'setpts=(PTS-STARTPTS)/{speed},fps={fps},scale=1280:720:flags=neighbor:out_range=tv,setsar=1,format=yuv420p'
+    af = f'asetpts=PTS-STARTPTS,{atempo(speed)},volume={shot["gain"]},afade=t=in:d=0.015,afade=t=out:st={duration-.015}:d=0.015'
+    args += ['-map', '0:v:0', '-map', '0:a:0' if shot['_audio'] else '1:a:0', '-t', str(duration),
+             '-vf', vf, '-af', af, '-filter_threads', '1', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '16',
+             '-threads', '2', '-color_range', 'tv', '-c:a', 'pcm_s16le', '-ar', '48000', '-ac', '2', str(output)]
+    run(args, work / f'clip-{key}.log')
+    return output
+
+
+def build(edl, data, viewing_copies=False):
+    work = edl.parent
+    (work / 'clips').mkdir(exist_ok=True)
+    fps = data['fps']
+    clips = []
+    for shot in data['shots']:
+        print(f'Preparing {shot.get("title", shot["source"])}', flush=True)
+        clips.append(encode_shot(shot, work, fps))
+    card_image = work / 'end-card.png'
+    card = Image.new('RGBA', (480, 270), (0, 0, 0, 255))
+    end_card(ImageDraw.Draw(card))
+    card.convert('RGB').resize((1280, 720), Image.Resampling.NEAREST).save(card_image)
+    card_clip = work / 'clips/end-card.mkv'
+    run(['ffmpeg', '-hide_banner', '-nostdin', '-y', '-loop', '1', '-i', str(card_image),
+         '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo', '-t', str(data['end_card_duration']),
+         '-r', str(fps), '-vf', 'format=yuv420p,setsar=1', '-filter_threads', '1', '-c:v', 'libx264',
+         '-preset', 'veryfast', '-crf', '16', '-threads', '2', '-color_range', 'tv', '-c:a', 'pcm_s16le', str(card_clip)], work / 'end-card.log')
+    clips.append(card_clip)
+    listing = work / 'concat.txt'
+    listing.write_text(''.join("file '" + str(p.resolve()).replace("'", "'\\''") + "'\n" for p in clips))
+    assembly = work / 'assembly.mkv'
+    run(['ffmpeg', '-hide_banner', '-nostdin', '-y', '-f', 'concat', '-safe', '0', '-i', str(listing), '-c', 'copy', str(assembly)], work / 'assembly.log')
+    output = work / 'CCCP-Racing-Trailer-V3-1080p.mp4'
+    duration = data['_duration']
+    music = (edl.parent / data['music']).resolve() if data.get('music') else MUSIC
+    song = float(probe(music)['format']['duration'])
+    sting = min(float(data.get('sting_duration', data['end_card_duration'])), data['end_card_duration'])
+    sting_gain = float(data.get('sting_gain', data['music_gain'] * 1.6))
+    # The opening has no game sound of its own (the startup): the music carries it louder.
+    intro_until = float(data.get('music_intro_until', 0))
+    intro_gain = float(data.get('music_intro_gain', data['music_gain']))
+    game = '[0:a]asetpts=PTS-STARTPTS'
+    if data.get('game_compress', True):
+        # Tame the loudest moments (jet, crashes) so the engine and tyres sit evenly under the music.
+        game += ',acompressor=threshold=0.18:ratio=4:attack=8:release=250:makeup=1.6'
+    game += '[game];'
+    filters = (
+        '[0:v]scale=1920:1080:flags=neighbor,setsar=1[v];' + game +
+        f'[1:a]asetpts=PTS-STARTPTS,volume=eval=frame:volume=\'if(lt(t,{intro_until}),{intro_gain},{data["music_gain"]})\',afade=t=in:d=0.15,'
+        f'afade=t=out:st={data["music_fade_start"]}:d={data["music_fade_duration"]}[music];'
+        f'[2:a]asetpts=PTS-STARTPTS,volume={sting_gain},afade=t=in:d=0.25,adelay={int((duration - sting) * 1000)}:all=1[sting];'
+        '[game][music][sting]amix=inputs=3:duration=first:normalize=0,aresample=48000[mixed]'
+    )
+    premix = work / 'premix.wav'
+    run(['ffmpeg', '-hide_banner', '-nostdin', '-y', '-threads', '2', '-i', str(assembly), '-stream_loop', '-1', '-i', str(music),
+         '-ss', str(max(0.0, song - sting)), '-i', str(music),
+         '-filter_complex', filters.replace('[0:v]scale=1920:1080:flags=neighbor,setsar=1[v];', ''), '-filter_complex_threads', '1',
+         '-map', '[mixed]', '-t', str(duration), '-c:a', 'pcm_s24le', str(premix)], work / 'premix.log')
+    # Two-pass loudness normalisation: measure, then apply with the measured values (linear when possible).
+    target = 'I=-14:TP=-1.5:LRA=11'
+    measure = subprocess.run(['ffmpeg', '-hide_banner', '-nostdin', '-i', str(premix), '-af', f'loudnorm={target}:print_format=json',
+                              '-f', 'null', '-'], capture_output=True, text=True).stderr
+    m = json.loads(measure[measure.rindex('{'):measure.rindex('}') + 1])
+    norm = (f"loudnorm={target}:measured_I={m['input_i']}:measured_TP={m['input_tp']}:measured_LRA={m['input_lra']}"
+            f":measured_thresh={m['input_thresh']}:offset={m['target_offset']}:linear=true,aresample=48000,"
+            "lowpass=f=15000,alimiter=limit=0.5:level=false:attack=1:release=60:latency=1")      # AAC adds ~3 dB inter-sample overshoot on bright transients: trim the top and limit at -6 dB
+    run(['ffmpeg', '-hide_banner', '-nostdin', '-y', '-threads', '2', '-i', str(assembly), '-i', str(premix),
+         '-filter_complex', f'[0:v]scale=1920:1080:flags=neighbor,setsar=1[v];[1:a]{norm}[a]', '-filter_complex_threads', '1',
+         '-map', '[v]', '-map', '[a]', '-t', str(duration),
+         '-c:v', 'libx264', '-preset', 'fast', '-crf', '19', '-threads', '2', '-pix_fmt', 'yuv420p',
+         '-color_range', 'tv', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart',
+         '-metadata', 'title=CCCP Racing — Trailer', '-metadata', 'comment=In-engine game footage. Music: Juha Koskikuru.', str(output)], work / 'master.log')
+    shared = work / 'CCCP-Racing-Trailer-V3-720p.mp4'
+    run(['ffmpeg', '-hide_banner', '-nostdin', '-y', '-threads', '2', '-i', str(output), '-vf', 'scale=1280:720:flags=neighbor',
+         '-filter_threads', '1', '-c:v', 'libx264', '-preset', 'fast', '-crf', '24', '-threads', '2',
+         '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', str(shared)], work / 'share.log')
+    run(['ffmpeg', '-hide_banner', '-nostdin', '-y', '-i', str(output), '-vf', f'fps=12/{duration},scale=384:216,tile=4x3',
+         '-filter_threads', '1', '-frames:v', '1', '-threads', '2', str(work / 'contact-sheet.jpg')], work / 'contact.log')
+    run(['ffmpeg', '-hide_banner', '-nostdin', '-y', '-ss', str(min(12, data['_footage_duration']/2)), '-i', str(output),
+         '-frames:v', '1', '-threads', '2', str(work / 'poster.jpg')], work / 'poster.log')
+    if viewing_copies:
+        folder = work / 'full-takes'
+        folder.mkdir(exist_ok=True)
+        for name in sorted({s['_path'] for s in data['shots']}):
+            source = Path(name)
+            target = folder / (source.stem + '-' + hashlib.sha256(name.encode()).hexdigest()[:8] + '.mp4')
+            if target.exists():
+                continue
+            run(['ffmpeg', '-hide_banner', '-nostdin', '-y', '-threads', '2', '-i', name, '-c:v', 'libx264',
+                 '-preset', 'fast', '-crf', '19', '-threads', '2', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k',
+                 '-movflags', '+faststart', str(target)], folder / (target.stem + '.log'))
+    report = {'duration': duration, 'sources': [{k:v for k,v in s.items() if not k.startswith('_')} for s in data['shots']], 'outputs': {}}
+    for path in (output, shared):
+        info = probe(path)
+        if abs(float(info['format']['duration']) - duration) > .15:
+            raise RuntimeError(f'Output duration mismatch: {path}')
+        report['outputs'][path.name] = info
+    (work / 'render-report.json').write_text(json.dumps(report, indent=2) + '\n')
+    print(f'Ready: {output}\nSharing: {shared}', flush=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--edl', type=Path, default=DEFAULT)
+    parser.add_argument('--validate-only', action='store_true', help='Probe source bounds and validate timing without rendering')
+    parser.add_argument('--viewing-copies', action='store_true', help='Encode complete uncut takes as separate review MP4s')
+    args = parser.parse_args()
+    edl = args.edl.resolve()
+    data = load_edl(edl)
+    print(f'{len(data["shots"])} shots + end card; {data["_duration"]:.3f}s total')
+    if not args.validate_only:
+        build(edl, data, args.viewing_copies)
+
+
+if __name__ == '__main__':
+    main()

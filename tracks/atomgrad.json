@@ -1,0 +1,213 @@
+{
+  // ATOMGRAD-4 - track 3 of the five-year plan (2026-10-06 layout draft, step 1: the road and the land).
+  // A rainy autumn in the zone round the power plant. Driven anticlockwise. The start is at the
+  // zone checkpoint in the south; east over the level crossing, through the red forest (sand and
+  // mud), past the vehicle graveyard, round the plant's turbine hall, flat out west along the
+  // cooling channel on wet concrete, into Atomgrad-4: square 90-degree corners between the blocks
+  // round the square and its ferris wheel, then the birch avenue back to the checkpoint.
+  "id": "atomgrad",
+  // Atomgrad: close city gears and an earlier fifth for the cooling-channel straight; about 39/59/80/101/147 km/h.
+  "gearbox": { "gears": [4.5, 3.0, 2.2, 1.75, 1.2], "finalDrive": 5.1, "shiftDown": 3700 },
+  "name": "ATOMGRAD-4",
+  // The rally's norms: 1:07 down to 0:48.50, tuned 2026-10-07 to the first rally laps driven here
+  // (the best without OKTAN 98 48.1 s at night): track 3 is harder, the plan's gold is about the
+  // best lap, as on Ilyich's Lamp. Bronze for 4 norms beaten, silver for 7, gold for the plan.
+  "norms": { "ladder": [67, 64.5, 62, 60, 58, 56, 54, 52, 50, 48.5], "bronze": 4, "silver": 7, "diesel": 1.02, "rocket": 0.96, "rocketLadder": [57.5, 55, 53, 51.5, 49.5, 48, 46, 44.5, 42.5, 41.5] },
+  "size": 160,
+  "tileSize": 2.0,
+  "seed": 1986,
+  // The flat river plain of the marshes: low, gentle swells.
+  "hillAmp": 1.5,
+  "hillScale": 120.0,
+  "birches": 220,
+  "ground": "grass",
+  "season": "autumn",
+  // The zone's rainy autumn round the day: drizzle, rain, a downpour, a dry dusk, the night's
+  // thunderstorm, the dawn's fog (Race.Weather). The road is never quite dry.
+  "weather": "rain",
+  "edgeRim": 8,
+  // The town occupies one raised terrace; its streets and square share a level district.
+  "plateaus": [
+    { "x0": 15, "z0": 95, "x1": 150, "z1": 199, "height": 1.8, "blend": 30 }
+  ],
+  "hills": [
+    // A rolling forest approach, a deep hollow and the climb over the graveyard ridge.
+    { "x": 215, "z": 272, "height": 3.2, "radius": 48, "calm": 0.8 },
+    { "x": 262, "z": 225, "height": -1.5, "radius": 38, "calm": 0.8 },
+    { "x": 288, "z": 180, "x1": 286, "z1": 153, "height": 5.0, "radius": 70, "calm": 0.85 }
+  ],
+  "points": [
+    // 1 the start: the zone checkpoint, east over the level crossing (~65 m)
+    { "x": 70,  "z": 285, "width": 12, "surface": "concrete" },
+    { "x": 125, "z": 287, "width": 12, "surface": "concrete" },
+    { "x": 175, "z": 284, "width": 11, "surface": "concrete" },
+    // 2 the red forest: sand and mud between the rusty pines
+    { "x": 215, "z": 272, "width": 9,  "surface": "dirt" },
+    { "x": 245, "z": 250, "width": 9,  "surface": "dirt" },
+    { "x": 262, "z": 222, "width": 9,  "surface": "mud" },
+    // 3 past the vehicle graveyard
+    { "x": 282, "z": 192, "width": 10, "surface": "gravel" },
+    { "x": 290, "z": 160, "width": 10, "surface": "gravel" },
+    // 4 the plant: round the turbine hall, a chicane between the buildings
+    { "x": 282, "z": 128, "width": 10, "surface": "concrete" },
+    { "x": 262, "z": 104, "width": 10, "surface": "concrete" },
+    { "x": 270, "z": 82,  "width": 10, "surface": "concrete" },
+    { "x": 248, "z": 64,  "width": 11, "surface": "concrete" },
+    // 5 the cooling channel: wet concrete, flat out
+    { "x": 205, "z": 58,  "width": 12, "surface": "concrete" },
+    { "x": 150, "z": 56,  "width": 12, "surface": "concrete" },
+    { "x": 95,  "z": 57,  "width": 12, "surface": "concrete" },
+    // 6 the bridge into town
+    { "x": 58,  "z": 64,  "width": 11, "surface": "concrete" },
+    { "x": 44,  "z": 90,  "width": 10, "surface": "concrete" },
+    // 7 Atomgrad-4: square corners between the blocks (dense points keep them tight)
+    { "x": 44,  "z": 116, "width": 10, "surface": "concrete" },
+    { "x": 45,  "z": 123, "width": 10, "surface": "concrete" },
+    { "x": 48,  "z": 126, "width": 10, "surface": "concrete" },
+    { "x": 55,  "z": 127, "width": 10, "surface": "concrete" },
+    { "x": 100, "z": 127, "width": 10, "surface": "concrete" },
+    { "x": 107, "z": 128, "width": 10, "surface": "concrete" },
+    { "x": 111, "z": 132, "width": 10, "surface": "concrete" },
+    { "x": 112, "z": 139, "width": 10, "surface": "concrete" },
+    { "x": 112, "z": 168, "width": 10, "surface": "concrete" },
+    { "x": 111, "z": 175, "width": 10, "surface": "concrete" },
+    { "x": 107, "z": 179, "width": 10, "surface": "concrete" },
+    { "x": 100, "z": 180, "width": 10, "surface": "concrete" },
+    // 8 along the square's south side, then down out of town
+    { "x": 62,  "z": 180, "width": 10, "surface": "concrete" },
+    { "x": 55,  "z": 181, "width": 10, "surface": "concrete" },
+    { "x": 51,  "z": 185, "width": 10, "surface": "concrete" },
+    { "x": 50,  "z": 192, "width": 10, "surface": "concrete" },
+    // 9 the birch avenue back to the checkpoint
+    { "x": 50,  "z": 226, "width": 11, "surface": "concrete" },
+    { "x": 42,  "z": 252, "width": 11, "surface": "concrete" },
+    { "x": 48,  "z": 275, "width": 12, "surface": "concrete" }
+  ],
+  "roadSmoothing": 9,
+  "features": [
+    { "type": "crest", "at": 145, "length": 48, "height": 1.25 },
+    { "type": "dip", "at": 208, "length": 48, "height": 1.0 },
+    { "type": "crest", "at": 280, "length": 52, "height": 1.25 }
+  ],
+  // Standing water across the road where the concrete has sunk: on the channel straight and in town.
+  "surfaceSpans": [
+    { "from": 470, "to": 476, "surface": "shallow" },
+    { "from": 532, "to": 538, "surface": "shallow" },
+    { "from": 712, "to": 716, "surface": "shallow" },
+    { "from": 868, "to": 873, "surface": "shallow" }
+  ],
+  // The cooling channel: straight, beside the long straight, from the west edge to the plant's intake.
+  "water": {
+    "rivers": [ { "points": [ [0, 38], [60, 38], [120, 38], [180, 38], [196, 38] ], "width": 14 } ]
+  },
+  // The red forest: rust-red pines killed by the fallout, round the road through the sand.
+  "redForest": { "x": 240, "z": 240, "r": 34, "count": 70 },
+  // The zone's radiation (mSv/s): a background everywhere, the red forest and block 4 hot, three
+  // times as much off the hard road; the dosimetrist stops a car over 20 mSv at the checkpoint; the
+  // decontamination station's paved drive-through before the checkpoint washes it off.
+  "radiation": {
+    "background": 0.02, "offRoad": 3, "limit": 20,
+    "hotSpots": [
+      { "x": 240, "z": 240, "r": 45, "rate": 0.7 },
+      { "x": 233, "z": 118, "r": 55, "rate": 0.9 },
+      { "x": 303, "z": 168, "r": 22, "rate": 0.35 }
+    ],
+    "washX": 68, "washZ": 231
+  },
+  "props": [
+    // The zone checkpoint at the start: the booth, the boom up, the ZONE sign; the warnings along the road.
+    { "type": "checkpoint", "x": 62,  "z": 299, "rot": 180 },
+    { "type": "radsign", "x": 100, "z": 297, "rot": 180, "text": "ЗОНА" },
+    { "type": "radsign", "x": 205, "z": 289, "rot": 200 },
+    { "type": "radsign", "x": 262, "z": 255, "rot": 220 },
+    { "type": "radsign", "x": 252, "z": 210, "rot": 60 },
+    { "type": "radsign", "x": 58,  "z": 80,  "rot": 60, "text": "ATOMGRAD-4" },
+    // Plant service railway: from off-map south, over the crossing, into the fenced freight yard.
+    { "type": "rails", "x": 135, "z": 264, "rot": 0, "text": "112" },
+    { "type": "crossing", "x": 128, "z": 273, "rot": 180 },
+    { "type": "crossing", "x": 142, "z": 300, "rot": 0 },
+    { "type": "railyard", "x": 135, "z": 238, "rot": 0 },
+    // The vehicle graveyard: rows of rusting lorries, buses and carriers that served the clean-up.
+    { "type": "wreck", "x": 299, "z": 140, "rot": 8,   "text": "0" },
+    { "type": "wreck", "x": 307, "z": 141, "rot": -6,  "text": "2" },
+    { "type": "wreck", "x": 299, "z": 153, "rot": -4,  "text": "1" },
+    { "type": "wreck", "x": 307, "z": 155, "rot": 10,  "text": "0" },
+    { "type": "wreck", "x": 299, "z": 167, "rot": 6,   "text": "2" },
+    { "type": "wreck", "x": 307, "z": 168, "rot": -12, "text": "1" },
+    { "type": "wreck", "x": 299, "z": 181, "rot": -8,  "text": "0" },
+    { "type": "wreck", "x": 307, "z": 182, "rot": 4,   "text": "2" },
+    { "type": "wreck", "x": 299, "z": 194, "rot": 12,  "text": "1" },
+    { "type": "wreck", "x": 307, "z": 196, "rot": -4,  "text": "0" },
+    // The plant inside the lap: the turbine hall, three blocks and block 4 under the sarcophagus, the stack.
+    { "type": "turbinehall", "x": 205, "z": 90,  "rot": 0 },
+    { "type": "reactor",     "x": 160, "z": 118, "rot": 180, "text": "1" },
+    { "type": "reactor",     "x": 184, "z": 118, "rot": 180, "text": "2" },
+    { "type": "reactor",     "x": 208, "z": 118, "rot": 180, "text": "3" },
+    { "type": "sarcophagus", "x": 233, "z": 118, "rot": 180 },
+    { "type": "stack",       "x": 220, "z": 146, "rot": 0 },
+    // Pipe bridges over the road: from the channel's intake over the straight, and over the chicane.
+    { "type": "pipebridge", "x": 200, "z": 57,  "rot": 90, "text": "20" },
+    { "type": "pipebridge", "x": 264, "z": 96,  "rot": 0,  "text": "24" },
+    { "type": "billboard",  "x": 150, "z": 70,  "rot": 0,  "text": "THE REACTOR IS FINE. THE PLAN IS FINE." },
+    // Atomgrad-4: prefab blocks round the streets (floors; a slogan on the roof).
+    { "type": "apartments", "x": 76,  "z": 110, "rot": 0,  "text": "5;АТОМ - РАБОЧИЙ, НЕ СОЛДАТ!" },
+    { "type": "apartments", "x": 24,  "z": 100, "rot": 90, "text": "9" },
+    { "type": "apartments", "x": 130, "z": 155, "rot": 90, "text": "9;СЛАВА СОВЕТСКИМ ЭНЕРГЕТИКАМ" },
+    { "type": "apartments", "x": 85,  "z": 198, "rot": 0,  "text": "5" },
+    { "type": "apartments", "x": 25,  "z": 205, "rot": 90, "text": "9" },
+    // The square inside the town's U: the ferris wheel, the palace of culture, the bumper cars.
+    { "type": "ferriswheel", "x": 86, "z": 150, "rot": 0 },
+    { "type": "culture",     "x": 66, "z": 163, "rot": 0 },
+    { "type": "bumpercars",  "x": 70, "z": 140, "rot": 0 },
+    // Drive-through decontamination station on its own paved loop before the checkpoint.
+    { "type": "wash", "x": 68, "z": 231, "rot": 0 }
+  ],
+  // The GAI post on the cooling channel straight, on the south side (the channel is on the north): the limit is 90.
+  "speedTrap": { "at": 515, "side": "left", "limit": 90 },
+  // Fuel on the inner side of the industrial straight, after the red forest and before the plant.
+  "depot": { "at": 259, "side": "left", "off": 11.5 },
+  // Town arrival street: the counter-running bus stops on its own kerb, with the mechanic nearby.
+  "busStops": [ { "at": 630, "side": "left", "drunks": 3 } ],
+  "pads": [
+    // The two long western apartment blocks need level foundations across the terrace slopes.
+    { "x0": 18, "z0": 75, "x1": 30, "z1": 125, "surface": "grass", "ground": true },
+    { "x0": 19, "z0": 180, "x1": 31, "z1": 230, "surface": "grass", "ground": true },
+    { "x0": 60, "z0": 192, "x1": 110, "z1": 204, "surface": "grass", "ground": true },
+    // Wash forecourt, north entrance and south exit: a paved loop through the open-ended bay.
+    { "x0": 57, "z0": 213, "x1": 81, "z1": 253, "surface": "concrete", "connectRoad": true },
+    { "x0": 45, "z0": 213, "x1": 71, "z1": 222, "surface": "concrete", "connectRoad": true },
+    { "x0": 38, "z0": 243, "x1": 71, "z1": 253, "surface": "concrete", "connectRoad": true },
+    // Fuel forecourt reaches the road; the depot's generated pad covers the tank itself.
+    { "x0": 266, "z0": 172, "x1": 286, "z1": 199, "surface": "concrete", "connectRoad": true },
+    // Paved shelter approach on the town street, clear of the apartment block to the south.
+    { "x0": 47, "z0": 84, "x1": 57, "z1": 101, "surface": "concrete", "connectRoad": true }
+  ],
+  // A convoy of three concrete mixers round the lap with the race, bound for the sarcophagus.
+  "ploughs": [ { "start": 640, "kind": "mixer" }, { "start": 622, "kind": "mixer" }, { "start": 604, "kind": "mixer" } ],
+  // The zone's life: the catfish in the cooling channel, a herd of Przewalski's horses by the start
+  // straight, the lunokhod crossing the road at the plant, the goods train over the level crossing.
+  "zone": {
+    "catfish": { "x0": 20, "x1": 180, "z": 38 },
+    "horses": { "x": 165, "z": 262, "count": 5 },
+    "robot": { "x0": 297, "z0": 123, "x1": 268, "z1": 133 },
+    // Stop short of the buffer at z=211; the last wagon clears the road crossing.
+    "train": { "x": 135, "end": 214, "cross": 287 }
+  },
+  "babushkas": 6,
+  "bushes": 300,
+  "tufts": 900,
+  // Not built yet: drawn on the review map only.
+  "plan": {
+    "labels": [
+      { "x": 70,  "z": 306, "text": "START: ZONE CHECKPOINT" },
+      { "x": 132, "z": 300, "text": "LEVEL CROSSING" },
+      { "x": 236, "z": 236, "text": "RED FOREST" },
+      { "x": 296, "z": 176, "text": "VEHICLE GRAVEYARD" },
+      { "x": 238, "z": 30,  "text": "POWER PLANT, BLOCK 4" },
+      { "x": 130, "z": 30,  "text": "COOLING CHANNEL" },
+      { "x": 82,  "z": 152, "text": "SQUARE, FERRIS WHEEL" },
+      { "x": 6,   "z": 150, "text": "ATOMGRAD-4" },
+      { "x": 82,  "z": 231, "text": "DECONTAMINATION" }
+    ]
+  }
+}

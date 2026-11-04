@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Broad pump and separate hose remain readable on the minimap. -->
+  <path d="M43 15 L52 24 L52 44 Q52 51 46 51 Q40 51 40 44 L40 35"
+        fill="none" stroke="#381b23" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M43 15 L52 24 L52 44 Q52 51 46 51 Q40 51 40 44 L40 35"
+        fill="none" stroke="#f4ce61" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M10 8 H36 V54 H40 V59 H6 V54 H10 Z" fill="#f4ce61" stroke="#381b23" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M16 15 H30 V29 H16 Z" fill="#381b23"/>
+  <path d="M17 36 H29 M17 42 H26" fill="none" stroke="#a97b2b" stroke-width="3"/>
+  <path d="M14 11 H33" stroke="#ffe39a" stroke-width="2"/>
+</svg>

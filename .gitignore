@@ -1,0 +1,25 @@
+.godot/
+bin/
+obj/
+*.user
+shots/
+*.blend1
+docs/map/kolkhoz_render.png
+docs/map/kolkhoz_data.json
+build/
+media/
+.claude/worktrees/
+docs/map/*_render.png
+docs/map/*_data.json
+
+# Public snapshot: private working material must not be added here.
+/AGENTS.md
+/CLAUDE.md
+/skills/
+/assets/marketing/
+/docs/*
+!/docs/public/
+assets/music/*.mp3
+assets/music/*.mp3.import
+assets/music/radio/*.mp3
+assets/music/radio/*.mp3.import

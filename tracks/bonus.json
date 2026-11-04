@@ -1,0 +1,112 @@
+{
+  // BONUS - concrete slabs, a gravel crest, the famous mud of the east fields
+  // and a concrete jump the chairman calls "the cosmodrome".
+  "id": "bonus",
+  // Bonus: keep the engine working on steep climbs and downshift for the mixed-surface bends; about 41/59/80/104/145 km/h.
+  "gearbox": { "gears": [4.15, 2.9, 2.15, 1.65, 1.18], "finalDrive": 5.25, "shiftDown": 4300 },
+  "name": "POLIGON 17",
+  // The plan: a lap under this time (seconds) within the lap budget clears the bonus track.
+  "targetLap": 50.0,
+  // Inland service bay, separate from the forward helicopter post.
+  "depot": {"at": 632, "side": "left", "off": 7.5},
+  // The rally's norms: the default ladder (1:15 down to 0:52.50, bronze at 4 norms and silver at 7), and the rocket fuel's own, set by hand.
+  "norms": { "ladder": [75, 72.5, 70, 67.5, 65, 62.5, 60, 57.5, 55, 52.5], "bronze": 4, "silver": 7, "rocketLadder": [64.5, 62, 60, 58, 55.5, 53.5, 51, 49, 47, 44.5] },
+  "size": 160,
+  "tileSize": 2.0,
+  "seed": 1917,
+  "reverseFrom": 1000,
+  "maintenanceHall": {"x": 144, "z": 210, "width": 18, "length": 26},
+  "widthSpans": [
+    {"from": 190, "to": 265, "width": 11.5, "taper": 18},
+    {"from": 925, "to": 985, "width": 11.5, "taper": 14}
+  ],
+  "hillAmp": 11.52,
+  "hillScale": 70.0,
+  "birches": 170,
+  // The big landforms on top of the noise hills (x right, z down; height at the crest, smoothly
+  // gone at radius). Bottom-left: the massif, the highest ground on the bonus track, which the west
+  // hairpin climbs over and the tanks exercise on. Right: a long north-south ridge crest with
+  // the east road; its back (backRadius) drops steeply to the map
+  // edge so the crest reads. "calm" smooths the noise hills away under them (road grades), and
+  // the edge rim (edgeRim, metres) gives way under the hills so the massif is the highest ground.
+  "edgeRim": 13,
+  "hills": [
+    { "x": 45, "z": 298, "height": 17, "radius": 220, "calm": 0.7 },
+    { "x": 298, "z": 140, "x1": 298, "z1": 300, "height": 12, "radius": 120, "backRadius": 32, "calm": 0.8 }
+  ],
+  "points": [
+    {"x": 100, "z": 78, "width": 8, "surface": "concrete"},
+    {"x": 145, "z": 60, "width": 7, "surface": "dirt"},
+    {"x": 190, "z": 82, "width": 8, "surface": "concrete"},
+    {"x": 235, "z": 68, "width": 8, "surface": "gravel"},
+    {"x": 265, "z": 95, "width": 8, "surface": "gravel"},
+    {"x": 268, "z": 135, "width": 8, "surface": "gravel"},
+    {"x": 250, "z": 168, "width": 8, "surface": "gravel"},
+    {"x": 262, "z": 205, "width": 8, "surface": "gravel"},
+    {"x": 245, "z": 240, "width": 9, "surface": "mud"},
+    {"x": 205, "z": 262, "width": 9, "surface": "mud"},
+    {"x": 162, "z": 255, "width": 9, "surface": "mud"},
+    {"x": 137, "z": 228, "width": 8, "surface": "gravel"},
+    {"x": 150, "z": 193, "width": 8, "surface": "gravel"},
+    {"x": 185, "z": 182, "width": 8, "surface": "concrete"},
+    {"x": 192, "z": 150, "width": 8, "surface": "concrete"},
+    {"x": 162, "z": 128, "width": 8, "surface": "concrete"},
+    {"x": 122, "z": 138, "width": 8, "surface": "concrete"},
+    {"x": 96, "z": 172, "width": 8, "surface": "dirt"},
+    {"x": 100, "z": 212, "width": 8, "surface": "dirt"},
+    {"x": 80, "z": 255, "width": 8, "surface": "gravel"},
+    {"x": 48, "z": 250, "width": 8, "surface": "gravel"},
+    {"x": 40, "z": 205, "width": 8, "surface": "concrete"},
+    {"x": 56, "z": 155, "width": 8, "surface": "concrete"},
+    {"x": 42, "z": 108, "width": 8, "surface": "concrete"},
+    {"x": 60, "z": 59, "width": 8, "surface": "dirt"}
+  ],
+  // The shortened southern mud stretch keeps gravel approaches; metres follow the new northern bends.
+  "surfaceSpans": [
+    {"from": 348, "to": 374, "surface": "gravel"},
+    {"from": 449, "to": 476, "surface": "gravel"}
+  ],
+  // Road shape: distances are metres from the start line along the road.
+  // Crests/dips are long enough (40+ m) that only flat-out driving gets light over them;
+  // the jump is the one place meant for flying.
+  "roadSmoothing": 10,
+  "features": [
+    {"type": "dip", "at": 207, "length": 40, "height": 1.73},
+    {"type": "crest", "at": 240, "length": 46, "height": 2.16},
+    {"type": "dip", "at": 412, "length": 36, "height": 1.15},
+    {"type": "crest", "at": 627, "length": 40, "height": 1.73},
+    {"type": "dip", "at": 734, "length": 30, "height": 1.3},
+    {"type": "crest", "at": 764, "length": 34, "height": 1.44},
+    {"type": "jump", "at": 897, "length": 14, "height": 1.15, "drop": 6}
+  ],
+  // Farm fences, remapped to the revised road; the temporary camp has no runway fence.
+  "fences": [
+    {"type": "stone", "from": 146, "to": 227, "side": "right"},
+    {"type": "wood", "from": 277, "to": 347, "side": "right"},
+    {"type": "wood", "from": 362, "to": 432, "side": "right"}
+  ],
+  // GAI at the southern end of the western start straight, before the hairpin; metres precede reorientation.
+  "speedTrap": {"at": 855, "side": "right", "limit": 100},
+  "babushkas": 8,
+  "busStops": [],
+  // Bottom-left: tank exercise area round the road's U bend. Two T-72s shoot (badly) at each other
+  // across the road from firing positions: A inside the bend (flat spots among the birches, 14+ m
+  // beyond the road edge), B on the open slope south of it; 85-115 m apart.
+  "tankRange": { "x0": 28, "z0": 180, "x1": 134, "z1": 300, "tanks": 2,
+                 "positionsA": [ [72, 189], [63, 204], [75, 201], [60, 216] ],
+                 "positionsB": [ [66, 294], [90, 294], [110, 291], [128, 288] ] },
+  "bushes": 380,
+  "tufts": 1000,
+  // The shared BonusCampLayout owns the landing pads, yards and field-camp props.
+  "fields": [
+    { "surface": "field", "x0": 195, "z0": 196, "x1": 228, "z1": 228 }
+  ],
+  "props": [
+    {"type": "buk21", "x": 281, "z": 155, "rot": 0},
+    {"type": "ruinbarn", "x": 78, "z": 154, "rot": 20},
+    {"type": "ruinbarn", "x": 228, "z": 150, "rot": -15},
+    {"type": "ruinbarn", "x": 182, "z": 214, "rot": 80},
+    {"type": "silo", "x": 234, "z": 106},
+    {"type": "silo", "x": 240, "z": 118}
+  ]
+}
