@@ -78,7 +78,7 @@ public partial class RaceScene
         }
         void CaptureFreeMouse()
         {
-            if (_freeMouse || !FreeCameraActive || _motionOpen) return;
+            if (_freeMouse || !FreeCameraActive || _motionOpen || FreeCameraUiBlocked) return;
             _freePriorMouse = Input.MouseMode; _freeMouse = true;
             Input.MouseMode = Input.MouseModeEnum.Captured;
         }
@@ -86,19 +86,86 @@ public partial class RaceScene
         Window _freeWindow;
         public bool FreeCameraActive => UiReady && _scene.ViewerFreeCameraControlled;
 
-        void OpenFreeCamera()
+        // ---------------------------------------------------------------- direct entry: W/A/S/D or an ordinary mouse motion in the plain viewer
+        // The plain viewer has no other use for these, so the camera in view becomes the free camera at once (same pose and lens) and the initiating key or motion
+        // already flies or turns it. Nothing is keyed, dirtied or saved by flying. Mouse entry is held off for a moment after anything that moves the pointer by
+        // itself (capture release on R/ESC, focus coming back, a card or prompt closing, the viewer starting to play), so a warp is never taken for the player's hand.
+        const ulong DirectMouseQuietMs = 350;
+        const float DirectMouseMinTravel = 3f;      // pixels of motion within a short burst: one real nudge, not a sub-pixel jitter
+        ViewerCameraMode _freeReturnCamera = ViewerCameraMode.TopDown;
+        bool _freeReturnKeyed;      // (taken over from a saved free-camera key in view: R gives the keys' camera back, not a follow mode)
+        ulong _directMouseQuietUntil, _directMouseLast;
+        float _directMouseTravel;
+        bool _directBlockedBefore = true;
+        bool _exportChild;
+        /// <summary>The camera R/ESC returns to: the one in view when the free camera was entered.</summary>
+        public ViewerCameraMode FreeReturnCamera => _freeReturnCamera;
+        /// <summary>How many times W/A/S/D or the mouse entered the free camera directly (tests read it).</summary>
+        public int DirectFreeEntries { get; private set; }
+        public bool DirectMouseQuiet => Time.GetTicksMsec() < _directMouseQuietUntil;
+
+        /// <summary>Test seam: stands in for the window's focus (a test cannot take the real focus away from its own window reliably).</summary>
+        internal bool? FocusOverrideForTest;
+        bool WindowFocused() => FocusOverrideForTest ?? (IsInstanceValid(_live) && _live.GetWindow() is { } w && w.HasFocus());
+        /// <summary>The pose and lens the free camera took over at its last entry (tests compare them with the camera that was in view).</summary>
+        internal Transform3D FreeEntryPose { get; private set; }
+        internal float FreeEntryFov { get; private set; }
+
+        /// <summary>True while something else owns the input: the viewer not playing, a card, panel, prompt or name field, a save/keep/export, an unfocused window.</summary>
+        bool DirectFreeEntryBlocked() => !UiReady || FreeCameraActive || _exportChild || _editOpen || _prompt != EditPrompt.None || ExportOpen
+            || _viewerKeepOpen || KeepBusy || SaveBusy || _motionOpen || !WindowFocused();
+
+        void QuietDirectMouse() { _directMouseQuietUntil = Time.GetTicksMsec() + DirectMouseQuietMs; _directMouseTravel = 0; }
+
+        /// <summary>Per frame: any change from blocked to free (focus back, a card closed, the free camera left) starts the quiet time again.</summary>
+        void DirectFreeFrame()
+        {
+            bool blocked = DirectFreeEntryBlocked();
+            if (_directBlockedBefore && !blocked) QuietDirectMouse();
+            _directBlockedBefore = blocked;
+        }
+
+        bool DirectFreeCameraInput(InputEvent e)
+        {
+            if (e is InputEventKey { Pressed: true, Echo: false } k && k.PhysicalKeycode is Key.W or Key.A or Key.S or Key.D)
+            {
+                if (k.CtrlPressed || k.AltPressed || k.MetaPressed || DirectFreeEntryBlocked()) return false;      // (CTRL+S is the direct SAVE; a busy viewer answers the key itself)
+                _view.PadMode = false;
+                OpenFreeCamera(direct: true);
+                return FreeCameraActive;      // (the key is held: FreeCameraFrame moves the camera from this frame on)
+            }
+            if (e is not InputEventMouseMotion m) return false;
+            ulong now = Time.GetTicksMsec();
+            if (DirectFreeEntryBlocked() || now < _directMouseQuietUntil || Input.MouseMode == Input.MouseModeEnum.Captured || !m.Relative.IsFinite())
+            { _directMouseTravel = 0; return false; }
+            if (now - _directMouseLast > 150) _directMouseTravel = 0;
+            _directMouseLast = now; _directMouseTravel += m.Relative.Length();
+            if (_directMouseTravel < DirectMouseMinTravel) return true;
+            _directMouseTravel = 0;
+            _view.PadMode = false;
+            OpenFreeCamera(direct: true);
+            if (FreeCameraActive) _scene.ViewerFreeRig.Turn(m.Relative);      // (the motion that entered also turns: no dead first move)
+            return true;
+        }
+
+        void OpenFreeCamera(bool direct = false)
         {
             if (!UiReady || SaveBusy || KeepBusy) return;
             _editOpen = false; _prompt = EditPrompt.None;
             _freeMotion = _scene._viewerSavedFree?.Motion;
+            _freeReturnCamera = _scene.ViewerCamera;
+            _freeReturnKeyed = _scene._viewerSavedFree != null && !_scene.ViewerFreeCameraControlled;
             _scene.ViewerBeginFreeCamera();
+            if (!_scene.ViewerFreeCameraControlled) return;
+            if (direct) DirectFreeEntries++;
+            FreeEntryPose = _scene.ViewerCameraPose; FreeEntryFov = _scene.ViewerCameraFov;
             _motionFov = _scene.ViewerCameraFov; _motionOpen = false;
             _freeWindow = _live.GetWindow();
             _freeWindow.FocusExited += ReleaseFreeMouse;
             _freeWindow.FocusEntered += CaptureFreeMouse;
             if (_freeWindow.HasFocus()) CaptureFreeMouse();
             _holdAwaitRelease = true;
-            SetNotice("K ADD CAMERA KEY - TAB STEP KEYS - DEL REMOVE KEY", 4f);
+            SetNotice(direct ? "FREE CAMERA - R BACK TO " + CameraName(_freeReturnCamera) : "K ADD CAMERA KEY - TAB STEP KEYS - DEL REMOVE KEY", 4f);
         }
         void ReleaseFreeMouse()
         {
@@ -111,12 +178,23 @@ public partial class RaceScene
             if (IsInstanceValid(_freeWindow))
             { _freeWindow.FocusExited -= ReleaseFreeMouse; _freeWindow.FocusEntered -= CaptureFreeMouse; }
             _freeWindow = null;
-            if (IsInstanceValid(_scene)) _scene.ViewerEndFreeCamera();
+            if (IsInstanceValid(_scene)) _scene.ViewerEndFreeCamera(_freeReturnCamera);
             _holdAwaitRelease = true;
+            QuietDirectMouse();      // (releasing the capture can warp the pointer: that motion must not fly straight back in)
         }
+        void LeaveFreeCamera()
+        {
+            EndFreeCamera();
+            if (_freeReturnKeyed && _scene.ViewerEdits.Keys.Count > 0) { _scene.ViewerReviewCameraKeys(); SetNotice("CAMERA KEYS"); }      // (the keyed shot at this clock, as playback shows it)
+            else SetNotice(CameraName(_scene.ViewerCamera) + " CAMERA");
+        }
+        /// <summary>True when the last entry took over a saved free-camera key that was in view.</summary>
+        public bool FreeReturnKeyed => _freeReturnKeyed;
+        bool FreeCameraUiBlocked => _editOpen || _prompt != EditPrompt.None || ExportOpen || KeepOpen || KeepBusy;
+
         bool FreeCameraInput(InputEvent e)
         {
-            if (!FreeCameraActive) return false;
+            if (!FreeCameraActive || FreeCameraUiBlocked) return false;
             if (e is InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.F12 }) { SaveViewerScreenshot(); return true; }
             if (MotionInput(e)) return true;
             if (e is InputEventMouseMotion motion && _freeMouse) _scene.ViewerFreeRig.Turn(motion.Relative);
@@ -125,7 +203,8 @@ public partial class RaceScene
                 _view.PadMode = false;
                 switch (k.PhysicalKeycode)
                 {
-                    case Key.Escape or Key.R: EndFreeCamera(); SetNotice("TOP-DOWN CAMERA"); break;
+                    case Key.V: OpenEdit(); break;
+                    case Key.Escape or Key.R: LeaveFreeCamera(); break;
                     case Key.B: ReleaseFreeMouse(); _motionRow = 0; _motionOpen = true; break;
                     case Key.K: AddCameraKeyHere(); break;
                     case Key.Tab: StepCameraKey(k.ShiftPressed ? -1 : 1); break;
@@ -143,7 +222,7 @@ public partial class RaceScene
                 _view.PadMode = true;
                 switch (b.ButtonIndex)
                 {
-                    case JoyButton.B or JoyButton.Back: EndFreeCamera(); SetNotice("TOP-DOWN CAMERA"); break;
+                    case JoyButton.B or JoyButton.Back: LeaveFreeCamera(); break;
                     case JoyButton.A: UiTogglePlay(); break;
                     case JoyButton.X: AddCameraKeyHere(); break;
                     case JoyButton.Y: FreeToggleFollow(); break;
@@ -163,6 +242,8 @@ public partial class RaceScene
         void FreeCameraFrame(float dt)
         {
             if (!FreeCameraActive || _motionOpen) return;
+            if (FreeCameraUiBlocked) { ReleaseFreeMouse(); return; }
+            if (IsInstanceValid(_freeWindow) && _freeWindow.HasFocus()) CaptureFreeMouse();
             float Axis(Key plus, Key minus) => (Input.IsPhysicalKeyPressed(plus) ? 1 : 0) - (Input.IsPhysicalKeyPressed(minus) ? 1 : 0);
             // The pad: left stick flies, triggers lower and raise, right stick looks (not while the camera aims at the car), L3 is fast.
             int dev = _live._driver.Device;

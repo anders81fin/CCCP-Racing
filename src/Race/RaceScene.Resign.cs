@@ -35,7 +35,7 @@ public partial class RaceScene
         _resignOut += dt;
         if (before == 0f) { _radio?.Stop(); AudioMix.MuteSfx(true); }
         if (before < ResignClick && _resignOut >= ResignClick) AddChild(new HammerSound());
-        if (_resignOut >= ResignQuit) GetTree().Quit();
+        if (_resignOut >= ResignQuit) CCCPRacing.Audio.AudioMix.Quit(this);
         ResignHud();
     }
 

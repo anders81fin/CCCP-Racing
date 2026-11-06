@@ -32,6 +32,14 @@ public partial class RaceScene
         _vwDrv.SetControl(false);
     }
 
+    IEnumerable VrTapCtrl(Key k, int hold = 2)
+    {
+        _vwDrv.SetControl(true);
+        var down = VwKey(k, true, 0); down.CtrlPressed = true; Input.ParseInputEvent(down); for (int i = 0; i < hold; i++) yield return null;
+        var up = VwKey(k, false, 0); up.CtrlPressed = true; Input.ParseInputEvent(up); yield return null; yield return null;
+        _vwDrv.SetControl(false);
+    }
+
     IEnumerable VrPad(JoyButton b, int hold = 2)
     {
         _vwDrv.SetControl(true);
@@ -361,7 +369,7 @@ public partial class RaceScene
         for (int i = 0; i < 8; i++) yield return null;
         VwCheck(_hud.VisualOpen && _hud.SettingsOpen, "VISUALS opens over SETTINGS");
         VwLog("visual-rows", ("ids", string.Join(",", _hud.VisualRowIds)), ("camera", _hud.VisualCameraName));
-        VwCheck(_hud.VisualRowIds.Where(id => id != VisualRowId.NormsCard).SequenceEqual(new[] { VisualRowId.Comments, VisualRowId.LapInfo, VisualRowId.Map, VisualRowId.CarInstruments, VisualRowId.Camera, VisualRowId.Edges, VisualRowId.Softening, VisualRowId.Back }), "VISUALS rows: COMMENTS, LAP INFO, MAP, CAR INSTRUMENTS, CAMERA, EDGES, SOFTENING, BACK, no luxuries submenu");
+        VwCheck(_hud.VisualRowIds.Where(id => id != VisualRowId.NormsCard).SequenceEqual(new[] { VisualRowId.Comments, VisualRowId.LapInfo, VisualRowId.Map, VisualRowId.CarInstruments, VisualRowId.Camera, VisualRowId.Rendering, VisualRowId.Edges, VisualRowId.Softening, VisualRowId.Back }), "VISUALS rows: COMMENTS, LAP INFO, MAP, CAR INSTRUMENTS, CAMERA, RENDERING, EDGES, SOFTENING, BACK, no luxuries submenu");
         foreach (var x in VrShot("menu-visuals")) yield return x;
         bool map0 = _hud.MapOn, com0 = _hud.Comments; int aa0 = _aaMode, soft0 = _softLevel;
         foreach (var x in VwVisualTo(VisualRowId.Map)) yield return x;

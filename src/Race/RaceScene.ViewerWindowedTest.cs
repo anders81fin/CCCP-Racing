@@ -38,7 +38,15 @@ public partial class ViewerWindowedDriver : Node
     {
         // Last in the root's child order, so first to see every event (before PixelFrame can handle it).
         bool pad = e is InputEventKey { Device: 0x5AD };
-        if (e is InputEventMouseMotion or InputEventScreenDrag) { if (e.Device != Sentinel) ForeignMotion++; return; }
+        if (e is InputEventMouseMotion or InputEventScreenDrag)
+        {
+            if (e.Device == Sentinel) return;
+            ForeignMotion++;
+            // A real pointer over the test window (or a warp) would now take the replay viewer into the free camera: it is kept away from the game unless a probe asks for it.
+            if (!PassForeignMotion) GetViewport().SetInputAsHandled();
+            else ForeignMotionPassed++;
+            return;
+        }
         string what = e switch
         {
             InputEventKey k => $"key:{k.Keycode}:{k.Pressed}",
@@ -53,6 +61,8 @@ public partial class ViewerWindowedDriver : Node
     }
 
     bool _control;
+    public bool PassForeignMotion;
+    public int ForeignMotionPassed;
     public void SetControl(bool on) => _control = on;      // (events injected as the real device 0: not foreign)
 
     public override void _Process(double delta)
@@ -139,13 +149,16 @@ public partial class RaceScene
             "gpu-particle" => live.VwGpuParticle(),
             "hind-audio" => live.VwHindAudio(),
             "replay-ui" => live.VwReplayUi(),
+            "lap-order" => live.VwLapOrder(),
             "session-best" => live.VwSessionBest(),
             "hud-toggles" => live.VwHudToggles(),
+            "native-render" => live.VwNativeRender(),
             "export-ui" => live.VwExportUi(),
             "recording-delete" => live.VwRecordingDelete(),
             "viewer-keep" => live.VwViewerKeep(),
             "free-camera" => live.VwFreeCamera(),
             "leaderboard-replay" => live.VwLeaderboardReplay(),
+            "lan-board-import" => live.VwLanBoardImport(),
             "free-camera-keys" => live.VwFreeCameraKeys(),
             "edits-bonus" => live.VwEditsBonus(),
             "edits-keep" => live.VwEditsKeep(),

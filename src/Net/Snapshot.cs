@@ -240,6 +240,7 @@ public class SnapshotBuffer
         car.Brake = fn.Brake;
         car.Handbrake = fn.Handbrake;
         car.Rpm = Mathf.Lerp(fa.Rpm, fb.Rpm, u);
+        car.RestoreBoost(Mathf.Lerp(CarSim.NetworkBoost(a.State), CarSim.NetworkBoost(b.State), u));
         car.Gear = fn.Gear;
         car.Slide = Mathf.Lerp(fa.Slide, fb.Slide, u);
         car.BodyScrape = Mathf.Lerp(fa.Scrape, fb.Scrape, u);

@@ -18,9 +18,11 @@ public class LanPlayer
     public float FinishTime = -1, BestLap = -1;
     /// <summary>He drove the race with a game pad (sent with his finish).</summary>
     public bool Pad;
+    /// <summary>SHARE BOARDS: this comrade said YES in this session (the host's lobby says so); Busy: board sync work in hand.</summary>
+    public bool BoardShare, BoardBusy;
     // Host only: the secret ballot and the clock sync samples (rtt, the peer's clock minus the host's).
     internal int Vote;
-    internal bool DamageVote = true, FuelVote;
+    internal bool DamageVote = true, FuelVote, ObstaclesVote = true;
     internal string TrackVote;
     internal double Offset;
     internal readonly List<(double rtt, double offset)> Sync = new();
@@ -37,8 +39,12 @@ public class LanReveal
     public List<int> Tied = new();
     public List<(long id, string name, int slot, int pct)> Ballots = new();
     public List<long> Grid = new();
-    public bool Damage = true, Fuel;
-    public List<(bool damage, bool fuel)> RuleVotes = new();
+    public bool Damage = true, Fuel, Obstacles = true;
+    public List<bool?> ObstacleVotes = new();
+    /// <summary>One per ballot row; null: NOT VOTED (the ballot's pct is LanBallot.Abstain).</summary>
+    public List<(bool? damage, bool? fuel)> RuleVotes = new();
+    /// <summary>No comrade submitted a ballot: track, fuel and all rules were drawn by lot.</summary>
+    public bool NoVotes => Ballots.All(b => !LanBallot.Voted(b.pct));
     public int Power => Tied[Math.Clamp(WinnerIndex, 0, Tied.Count - 1)];
     public bool Drum => Tied.Count > 1;
     public LanBallot.Timeline Timeline => new(Ballots.Count, Drum);
@@ -63,13 +69,14 @@ public class LanResult
 public partial class LanSession : Node
 {
     public const int Port = 24105, MaxPlayers = 6;
-    public const float BallotTime = 20f, DnfAfter = 60f;
-    const int SnapChannel = 1, Channels = 5;
-    public const int Protocol = 11; // six player slots and effect capacity; reject older four-slot clients
+    public const float BallotTime = 60f, DnfAfter = 60f;
+    const int SnapChannel = 1, Channels = 6;      // 0 lobby, 1 snapshots, 2 inputs, 3 world, 4 meshes, 5 board sync (LanSession.Boards.cs)
+    public const int Protocol = 15; // 15: SHARE BOARDS in the lobby (consent flags, offers, chunked recordings on channel 5); 14: shared moving-obstacles vote; 13: NOT VOTED ballots (pct 0, rule byte 2) are real abstentions; 12: four fuel-specific engines/bodies
     const float PingEvery = 0.25f, PingEveryRacing = 1f, LobbyEvery = 0.5f, HelloTimeout = 5f;
 
     public enum Phase : byte { Lobby, Ballot, Race, Results, Loading, SessionFinished }
-    enum Msg : byte { Hello = 1, Reject, Lobby, Ping, Pong, Ballot, Vote, Reveal, Snap, Finish, Winner, Results, Left, Broke, Input, World, WorldMesh, Rescue, Effect, Countdown, TrackRequired, LoadTrack, Loaded, LoadFailed, SessionEnd }
+    enum Msg : byte { Hello = 1, Reject, Lobby, Ping, Pong, Ballot, Vote, Reveal, Snap, Finish, Winner, Results, Left, Broke, Input, World, WorldMesh, Rescue, Effect, Countdown, TrackRequired, LoadTrack, Loaded, LoadFailed, SessionEnd,
+        BoardConsent, BoardOffer, BoardStatus, BoardWant, BoardChunk, BoardAck, BoardAbort }
 
     /// <summary>This machine's clock, seconds (monotonic).</summary>
     public static double Now => Time.GetTicksUsec() / 1e6;
@@ -91,7 +98,7 @@ public partial class LanSession : Node
     uint _worldFrame, _worldApplied;
     readonly Dictionary<uint, byte[][]> _worldParts=new();
 
-    public bool Active => _peer != null;
+    public bool Active => _peer != null || TestWire != null;
     public bool IsHost { get; private set; }
     /// <summary>Client: the host has let us in (the first lobby message came).</summary>
     public bool InLobby { get; private set; }
@@ -210,6 +217,7 @@ public partial class LanSession : Node
         _peer = null;
         ResetTrackSession();
         ResetScores();
+        ResetBoards();
         IsHost = InLobby = false;
         Players.Clear();
         _testPackets.Clear();_worldParts.Clear();_worldFrame=_worldApplied=0;
@@ -274,6 +282,7 @@ public partial class LanSession : Node
         if(State==Phase.Loading) Reveal?.Grid.Remove(id);
         if (!Players.Remove(id, out var p)) return;
         DisconnectScore(id);
+        BoardPeerGone(id);
         Log($"{p.Name} left (peer {id})");
         Broadcast(Msg.Left, w => { w.Write(id); w.Write(p.Name); });
         PlayerLeft?.Invoke(id, p.Name);
@@ -287,13 +296,16 @@ public partial class LanSession : Node
 
     void Send(long to, Msg type, Action<BinaryWriter> body, MultiplayerPeer.TransferModeEnum mode = MultiplayerPeer.TransferModeEnum.Reliable, int channel = 0)
     {
-        if (_peer == null) return;
+        if (_peer == null && TestWire == null) return;
         using var ms = new MemoryStream();
         using var w = new BinaryWriter(ms);
         w.Write((byte)type);
         body?.Invoke(w);
         w.Flush();
         var bytes=ms.ToArray();
+        if(TestWire!=null) {TestWire(to,bytes,channel);return;}      // transport-free fixtures (src/Tests/LanSession.BoardFixture.cs)
+        // A comrade whose disconnect is still to be reported (two leaving in the same poll) has no channels left: nothing to send to.
+        if(IsHost && to>1 && _peer.GetPeer((int)to) is {} enet && enet.GetState()!=ENetPacketPeer.PeerState.Connected) return;
         if(mode!=MultiplayerPeer.TransferModeEnum.Reliable && (_testDrop>0 || _testDelay>0)) {
             if(_testRandom.NextDouble()<_testDrop) return;
             _testPackets.Add((Now+_testDelay,bytes,(int)to,mode,channel));
@@ -311,6 +323,7 @@ public partial class LanSession : Node
 
     public override void _Process(double delta)
     {
+        BoardFrame();      // LanSession.Boards.cs (also finishes a closed session's worker jobs)
         if(!Active) return;
         for(int k=0;k<_testPackets.Count;) {
             var p=_testPackets[k];if(p.at>Now) {k++;continue;}
@@ -330,7 +343,7 @@ public partial class LanSession : Node
             foreach (var id in Players.Keys)
                 if (id != 1) Send(id, Msg.Ping, w => w.Write(Now));
         }
-        if (State == Phase.Ballot && now >= BallotEndsHost) Tally();
+        BallotDeadline(now);
         if(State==Phase.Loading && now-_loadStarted>90) AbortTrackLoad("TRACK LOAD TIMEOUT");
         if (State == Phase.Race && _dnfAt > 0 && now >= _dnfAt)
         {
@@ -367,7 +380,7 @@ public partial class LanSession : Node
                     w.Write(p.Name);
                     w.Write((byte)p.Slot);
                     w.Write((short)Math.Clamp(p.PingMs, -1, 9999));
-                    w.Write((byte)((p.Voted ? 1 : 0) | (p.Finished ? 2 : 0) | (p.Dnf ? 4 : 0)));
+                    w.Write((byte)((p.Voted ? 1 : 0) | (p.Finished ? 2 : 0) | (p.Dnf ? 4 : 0) | (p.BoardShare ? 8 : 0) | (p.BoardBusy ? 16 : 0)));
                 }
                 WriteTrackOptions(w);
                 w.Write((byte)LoadedCount);
@@ -407,6 +420,7 @@ public partial class LanSession : Node
             return;
         }
         if (!Players.TryGetValue(from, out var p)) return;
+        if (type >= Msg.BoardConsent) { HostBoardPacket(from, type, r); return; }      // LanSession.Boards.cs
         switch (type)
         {
             case Msg.Pong:
@@ -420,7 +434,7 @@ public partial class LanSession : Node
                 break;
             }
             case Msg.Vote:
-                CastVote(p, r.ReadUInt16(), r.ReadBoolean(), r.ReadBoolean(), r.ReadString());
+                CastVote(p, r.ReadUInt16(), r.ReadBoolean(), r.ReadBoolean(), r.ReadString(), r.ReadBoolean());
                 break;
             case Msg.Input:
                 if (Reveal == null || r.ReadInt32()!=Reveal.Seed || State!=Phase.Race) break;
@@ -439,12 +453,14 @@ public partial class LanSession : Node
     void ClientPacket(long from, Msg type, BinaryReader r)
     {
         if(from!=1) return;
+        if (type >= Msg.BoardConsent) { ClientBoardPacket(type, r); return; }      // LanSession.Boards.cs
         switch (type)
         {
             case Msg.LoadTrack:
             {
                 var rv=ReadReveal(r);
                 if(rv.Round<=RoundNumber) break;
+                BoardLeftLobby();
                 RoundNumber=rv.Round;Reveal=rv;State=Phase.Loading;_loaded.Clear();_loadedWire=0;LastLoadError=null;_testPackets.Clear();
                 LoadRequested?.Invoke();break;
             }
@@ -472,6 +488,7 @@ public partial class LanSession : Node
                 break;
             case Msg.Ballot:
                 BallotEndsHost = r.ReadDouble();
+                BoardLeftLobby();
                 State = Phase.Ballot;
                 foreach (var p in Players.Values) p.Voted = false;
                 Log("ballot opened");
@@ -536,6 +553,7 @@ public partial class LanSession : Node
                 long id = r.ReadInt64();
                 string name = r.ReadString();
                 Players.Remove(id);
+                BoardPeerGone(id);
                 PlayerLeft?.Invoke(id, name);
                 Changed?.Invoke();
                 break;
@@ -567,6 +585,7 @@ public partial class LanSession : Node
             p.Voted = (f & 1) != 0;
             p.Finished = (f & 2) != 0;
             p.Dnf = (f & 4) != 0;
+            p.BoardShare = (f & 8) != 0; p.BoardBusy = (f & 16) != 0;
             seen.Add(id);
         }
         foreach (var id in Players.Keys.Where(k => !seen.Contains(k)).ToList()) Players.Remove(id);
@@ -629,12 +648,16 @@ public partial class LanSession : Node
     }
 
     /// <summary>Host: open the ballot box (two comrades or more, from the lobby).</summary>
+    double _ballotWaitLogged = -10;
     public bool StartBallot()
     {
         if (!IsHost || State != Phase.Lobby || Players.Count < 2) return false;
+        // SHARE BOARDS: the ballot waits until no comrade has board work in hand (cancel or NO quiesces it).
+        if (BoardSyncPending) { if (Now - _ballotWaitLogged > 2) { _ballotWaitLogged = Now; BoardLog("the ballot waits for board sync: " + BoardPendingNames); } return false; }
+        BoardLeftLobby();
         State = Phase.Ballot;
         BallotEndsHost = Now + BallotTime;
-        foreach (var p in Players.Values) { p.Voted = false; p.Vote = 0; p.DamageVote = true; p.FuelVote = false; p.Finished = p.Dnf = p.Pad = false; p.FinishTime = p.BestLap = -1; }
+        foreach (var p in Players.Values) { p.Voted = false; p.Vote = 0; p.DamageVote = true; p.FuelVote = false; p.ObstaclesVote = true; p.Finished = p.Dnf = p.Pad = false; p.FinishTime = p.BestLap = -1; }
         Results.Clear();
         WinnerId = 0;
         DnfAtHost = _dnfAt = -1;
@@ -646,41 +669,55 @@ public partial class LanSession : Node
     }
 
     /// <summary>The own ballot (power in percent): to the host only.</summary>
-    public void Vote(int pct, bool damage = true, bool fuel = false, string track = null)
+    public void Vote(int pct, bool damage = true, bool fuel = false, string track = null, bool obstacles = true)
     {
         if (State != Phase.Ballot) return;
         track ??= TrackOptions[0];
-        if (IsHost) CastVote(Players[1], pct, damage, fuel, track);
-        else Send(1, Msg.Vote, w => { w.Write((ushort)pct); w.Write(damage); w.Write(fuel); w.Write(track); });
+        if (IsHost) CastVote(Players[1], pct, damage, fuel, track, obstacles);
+        else Send(1, Msg.Vote, w => { w.Write((ushort)pct); w.Write(damage); w.Write(fuel); w.Write(track); w.Write(obstacles); });
     }
 
-    void CastVote(LanPlayer p, int pct, bool damage, bool fuel, string track)
+    void CastVote(LanPlayer p, int pct, bool damage, bool fuel, string track, bool obstacles)
     {
-        if (State != Phase.Ballot || p.Voted || !Race.Training.Valid(pct) || !TrackOptions.Contains(track)) return;
+        if (State != Phase.Ballot || p.Voted || !LanRace.ValidFuel(pct) || !TrackOptions.Contains(track)) return;
         p.Voted = true;
         p.Vote = pct;
-        p.DamageVote = damage; p.FuelVote = fuel; p.TrackVote=track;
+        p.DamageVote = damage; p.FuelVote = fuel; p.TrackVote=track; p.ObstaclesVote=obstacles;
         Log($"{p.Name} voted");
         _dirty = true;
         if (Players.Values.All(x => x.Voted)) Tally();
     }
 
-    /// <summary>Host: count the ballots, draw the drum and the grid, fix GO; everyone gets the same count.</summary>
+    /// <summary>Host: the 60 s are up; whoever has not submitted is NOT VOTED (no default ballot).</summary>
+    internal void BallotDeadline(double now)
+    {
+        if (!IsHost || State != Phase.Ballot || now < BallotEndsHost) return;
+        Log($"ballot deadline: {Players.Values.Count(p => !p.Voted)} of {Players.Count} NOT VOTED");
+        Tally();
+    }
+
+    /// <summary>
+    /// Host: count the ballots, draw the drum and the grid, fix GO; everyone gets the same count.
+    /// Only submitted ballots count; the unsubmitted keep their grid place and show NOT VOTED.
+    /// With no ballot at all the drum draws among every fuel, both rules and every host track.
+    /// </summary>
     void Tally()
     {
-        var ballots = Players.Values.OrderBy(p => p.Slot).Select(p => (p.Id, p.Name, p.Slot, p.Voted ? p.Vote : LanBallot.NoVote)).ToList();
+        var ballots = Players.Values.OrderBy(p => p.Slot).Select(p => (p.Id, p.Name, p.Slot, p.Voted ? p.Vote : LanBallot.Abstain)).ToList();
         var tied = LanBallot.Tally(ballots.Select(b => b.Item4), out var counts);
-        int seed = (int)(GD.Randi() & 0x7fffffff);
+        int seed = TestSeed ?? (int)(GD.Randi() & 0x7fffffff);
         var rv = new LanReveal
         {
             Laps = Laps, Seed = seed, Tied = tied, WinnerIndex = LanBallot.Draw(tied.Count, seed), Ballots = ballots,
             Grid = LanBallot.Shuffle(ballots.Select(b => b.Id), seed),
             StartHost = Now + 0.15,
         };
-        rv.RuleVotes = Players.Values.OrderBy(p => p.Slot).Select(p => (p.Voted ? p.DamageVote : true, p.Voted ? p.FuelVote : false)).ToList();
+        rv.RuleVotes = Players.Values.OrderBy(p => p.Slot).Select(p => p.Voted ? ((bool?)p.DamageVote, (bool?)p.FuelVote) : ((bool?)null, (bool?)null)).ToList();
+        rv.ObstacleVotes = Players.Values.OrderBy(p => p.Slot).Select(p => p.Voted ? (bool?)p.ObstaclesVote : null).ToList();
+        rv.Obstacles = LanBallot.Rule(rv.ObstacleVotes, seed, 0x4f4253);
         rv.Damage = LanBallot.Rule(rv.RuleVotes.Select(v => v.damage), seed, 0x44414d);
         rv.Fuel = LanBallot.Rule(rv.RuleVotes.Select(v => v.fuel), seed, 0x465545);
-        Log($"rules: damage {rv.Damage}, fuel consumption {rv.Fuel}");
+        Log($"rules: damage {rv.Damage}, fuel consumption {rv.Fuel}, moving obstacles {rv.Obstacles}");
         rv.GoHost = 0; // the grid waits until every connected driver's clutch is down
         BeginTrackLoad(rv);
     }
@@ -698,7 +735,9 @@ public partial class LanSession : Node
             w.Write((byte)rv.Grid.Count);
             foreach (long g in rv.Grid) w.Write(g);
             w.Write(rv.Damage); w.Write(rv.Fuel);
-            foreach (var v in rv.RuleVotes) { w.Write(v.damage); w.Write(v.fuel); }
+            foreach (var v in rv.RuleVotes) { w.Write(RuleByte(v.damage)); w.Write(RuleByte(v.fuel)); }
+            w.Write(rv.Obstacles);
+            for (int i=0;i<rv.Ballots.Count;i++) w.Write(RuleByte(i<rv.ObstacleVotes.Count ? rv.ObstacleVotes[i] : LanBallot.Voted(rv.Ballots[i].pct) ? rv.Obstacles : null));
     }
 
     LanReveal ReadReveal(BinaryReader r)
@@ -711,16 +750,38 @@ public partial class LanSession : Node
         int n = r.ReadByte();
         for (int i = 0; i < n; i++) rv.Tied.Add(r.ReadUInt16());
         n = r.ReadByte();
-        for (int i = 0; i < n; i++) rv.Ballots.Add((r.ReadInt64(), r.ReadString(), r.ReadByte(), r.ReadUInt16()));
+        for (int i = 0; i < n; i++)
+        {
+            var b = (r.ReadInt64(), r.ReadString(), r.ReadByte(), (int)r.ReadUInt16());
+            if (LanBallot.Voted(b.Item4) && !LanRace.ValidFuel(b.Item4)) throw new InvalidDataException("ballot fuel");
+            rv.Ballots.Add(b);
+        }
         n = r.ReadByte();
         for (int i = 0; i < n; i++) rv.Grid.Add(r.ReadInt64());
         rv.Damage = r.ReadBoolean(); rv.Fuel = r.ReadBoolean();
-        for (int i = 0; i < rv.Ballots.Count; i++) rv.RuleVotes.Add((r.ReadBoolean(), r.ReadBoolean()));
-        if (rv.Tied.Count == 0) throw new InvalidDataException("empty tally");
+        for (int i = 0; i < rv.Ballots.Count; i++)
+        {
+            bool? d = ReadRule(r), f = ReadRule(r);
+            // NOT VOTED is one ballot: the fuel marker and both rule markers agree, or the count is forged.
+            if (LanBallot.Voted(rv.Ballots[i].pct) == (d == null) || (d == null) != (f == null)) throw new InvalidDataException("ballot abstention");
+            rv.RuleVotes.Add((d, f));
+        }
+        rv.Obstacles = r.ReadBoolean();
+        for (int i=0;i<rv.Ballots.Count;i++) {
+            bool? o=ReadRule(r);
+            if (LanBallot.Voted(rv.Ballots[i].pct)==(o==null)) throw new InvalidDataException("obstacle abstention");
+            rv.ObstacleVotes.Add(o);
+        }
+        if (rv.Tied.Count == 0 || rv.Tied.Any(t => !LanRace.ValidFuel(t)) || rv.WinnerIndex >= rv.Tied.Count) throw new InvalidDataException("empty tally");
         Laps = rv.Laps;
         Log($"the count: tied [{string.Join(",", rv.Tied)}], winner {rv.Power}%, GO at host time {rv.GoHost:F3} (local {rv.GoHost + _offset:F3}, offset {_offset * 1000:F2} ms)");
         return rv;
     }
+
+    /// <summary>Rule vote on the wire: 0 NO, 1 YES, 2 NOT VOTED.</summary>
+    const byte RuleAbstain = 2;
+    static byte RuleByte(bool? v) => v is bool b ? (byte)(b ? 1 : 0) : RuleAbstain;
+    static bool? ReadRule(BinaryReader r) => r.ReadByte() switch { 0 => false, 1 => true, RuleAbstain => null, _ => throw new InvalidDataException("rule vote") };
 
     // ------------------------------------------------------------ the race
 

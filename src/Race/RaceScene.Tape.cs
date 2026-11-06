@@ -356,7 +356,7 @@ public partial class RaceScene
         }
         if (_tapeTitleAfter > 0 && _tapeLaps >= _tapeTitleAfter) { _tapeTitleAfter = 0; _tapeTitleNow = true; }
         if (_tapeLaps < _tapeLapSpeeds.Length && _ap != null) _ap.Aggression = _tapeLapSpeeds[_tapeLaps];
-        if (_tapeQuitLaps > 0 && _tapeLaps >= _tapeQuitLaps) { TapeSummary("laps done"); GetTree().Quit(); }
+        if (_tapeQuitLaps > 0 && _tapeLaps >= _tapeQuitLaps) { TapeSummary("laps done"); CCCPRacing.Audio.AudioMix.Quit(this); }
     }
 
     /// <summary>The pair's file operations: the real ones, or (a test) a tape or ghost replacement that fails.</summary>
@@ -658,7 +658,7 @@ public partial class RaceScene
         ViewerTestTick(dt);
         ViewerLifecycleTick(dt);
         ViewerFidelityTick(dt);
-        if (_tapeQuitAt >= 0 && _state == State.Racing && _lapClock >= _tapeQuitAt) { _tapeQuitAt = -1; TapeLog($"quit at lap clock {_lapClock:F2}"); TapeSummary("quit"); GetTree().Quit(); return; }
+        if (_tapeQuitAt >= 0 && _state == State.Racing && _lapClock >= _tapeQuitAt) { _tapeQuitAt = -1; TapeLog($"quit at lap clock {_lapClock:F2}"); TapeSummary("quit"); CCCPRacing.Audio.AudioMix.Quit(this); return; }
         if (_tapeTitleNow && _tapeSaves.Pending != null && !_tapeTitleNoPoll) { }      // test: the title waits for the worker (it polls, so the finish line does not wait)
         else if (_tapeTitleNow)      // test: the lap is saved (its pair is in _tapes); leave the race for the title without reloading the scene
         {
@@ -669,7 +669,7 @@ public partial class RaceScene
         if (_tapeReplayQuit < 0 && _tapeTripA < 0) return;
         _tapeT += dt;
         if (Replaying) _tapeReplayT += dt;
-        if (_tapeReplayQuit >= 0 && _tapeReplayT >= _tapeReplayQuit) { TapeSummary("replay done"); GetTree().Quit(); return; }
+        if (_tapeReplayQuit >= 0 && _tapeReplayT >= _tapeReplayQuit) { TapeSummary("replay done"); CCCPRacing.Audio.AudioMix.Quit(this); return; }
         if (_tapeTripA >= 0 && !_tapeTripGone && _tapeReplayT >= _tapeTripA)
         {
             _tapeTripGone = true; TapeSummary("before the trip");

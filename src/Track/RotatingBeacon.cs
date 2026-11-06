@@ -27,6 +27,17 @@ public partial class RotatingBeacon : Node3D
 
     RotatingBeacon(float phase) => _phase = phase;
 
+    /// <summary>The sweep's phase offset (radians), so a LAN client can rebuild this beacon locally.</summary>
+    public float Phase => _phase;
+    /// <summary>A LAN client's own copy of a host beacon (no beeper): the beam shader, pulse and halo depend on this viewer's camera and
+    /// night level, so they are made here rather than replicated as frozen meshes. The caller poses it.</summary>
+    public static RotatingBeacon Replica(float phase)
+    {
+        var b = new RotatingBeacon(phase) { Name = "LanBeacon" };
+        b.Build();
+        return b;
+    }
+
     /// <summary>Puts a beacon on <paramref name="model"/> with its dome <see cref="Mast"/> m over the old beacon spot.</summary>
     public static void Add(Node3D model, Vector3 oldSpot, float phase, Func<bool> moving = null)
     {

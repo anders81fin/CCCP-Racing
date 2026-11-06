@@ -49,7 +49,7 @@ public partial class RaceScene
         int size = WorldTapeCodec.Encode(tape).Length;
         GD.Print($"tapemeasure: {_tmRec.Samples} samples in {_tmClock:F1} s, {_tmIndex.Count} parts, changed per sample avg {(double)_tmRec.Entries / Math.Max(1, _tmRec.Samples):F1}, record avg {avg:F3} ms, p99 {_tmMs[(int)(_tmMs.Count * 0.99)]:F3} ms, max {_tmMs[^1]:F3} ms, allocated {_tmAlloc} bytes, unregistered spin {_tmRec.UnregisteredSpinners}, finish {finishMs} ms, encoded {size / 1024} KB");
         _tmClock = -1;
-        GetTree().Quit();
+        CCCPRacing.Audio.AudioMix.Quit(this);
     }
 
     static void TapeMeasureMarkAll(Node3D actor, Node n, string path)

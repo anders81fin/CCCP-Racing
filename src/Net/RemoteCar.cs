@@ -35,7 +35,7 @@ public class RemoteCar
     {
         byte broken=Buffer.Latest?.BrokenHeadlights ?? 0;
         Lights.Level=level;
-        Lights.Tick(dt,Puppet.Brake,(broken&1)==0,(broken&2)==0);
+        Lights.Tick(dt,Puppet.Brake,(broken&1)==0,(broken&2)==0,Vis.Damage?.KitWorn ?? false);
     }
 
     public RemoteCar(long id, string name, int slot, int fxSlot, CarParams p, TrackData track, Node parent, TyreEffects fx)
@@ -55,6 +55,17 @@ public class RemoteCar
         Vis.AddChild(Lights);
         Sound = new EngineSound { Volume = 0f, Name = "RemoteEngine" + id };
         parent.AddChild(Sound);
+    }
+
+    public void ConfigureFuel(int id)
+    {
+        var grade = LanRace.Grade(id);
+        LanRace.ConfigureCar(Puppet, id);
+        LanRace.ConfigureCar(ContactProxy, id);
+        Race.FuelGrades.ApplyVisual(Vis, grade);
+        Sound.Grade = grade == Race.FuelGrade.Sputnik ? (int)Race.FuelGrade.Rocket : (int)grade;
+        Sound.FiveCylinder = grade == Race.FuelGrade.Sputnik;
+        Sound.TurboSpool = Puppet.P.TurboSpool;
     }
 
     public void TickEngine(float dt)
@@ -77,6 +88,8 @@ public class RemoteCar
         float k = Math.Clamp(1f - d / FarAway, 0f, 1f);
         Sound.Volume = paused ? 0f : MaxVolume * ownVolume * k * k;
         Sound.EngineLevel=Health.Dead || Buffer.Latest is { FuelLitres: 0 }?0:1;Sound.Misfire=Health.Smoking?.5f:0;
+        Vis.Shudder = Sound.FiveCylinder && !paused ? Math.Clamp(1f - (Puppet.Rpm - Puppet.P.IdleRpm) / 2500f, 0f, 1f) * (Puppet.Throttle < 0.4f ? 1f : 0.35f) : 0f;
+        Vis.PipeGlow(Sound.FiveCylinder && !paused ? Math.Clamp(Puppet.Boost * 0.9f, 0f, 1f) : 0f);
         Sound.Rpm = Puppet.Rpm;
         Sound.Throttle = Puppet.Throttle;
         Sound.Slide = Puppet.Slide;

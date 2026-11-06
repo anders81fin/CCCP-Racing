@@ -173,13 +173,13 @@ public partial class RaceScene
 
         void Build()
         {
-            var size = (Vector2I)_live.GetViewport().GetVisibleRect().Size;
             _viewport = new SubViewport
             {
-                Size = size, OwnWorld3D = true, HandleInputLocally = false, AudioListenerEnable3D = true,
+                OwnWorld3D = true, HandleInputLocally = false, AudioListenerEnable3D = true,
                 RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
                 CanvasItemDefaultTextureFilter = Viewport.DefaultCanvasItemTextureFilter.Nearest,
             };
+            PixelFrame.Mirror(_viewport, _live.GetViewport());      // (PIXEL: the visible rect's size, as before; NATIVE: the parent's framebuffer, 2D in logical pixels)
             ApplyAntialiasing(_viewport);
             _live.GetParent().AddChild(_viewport);
             _image = new TextureRect { Texture = _viewport.GetTexture(), Size = _viewport.Size, MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -199,6 +199,8 @@ public partial class RaceScene
 
         public override void _Process(double delta)
         {
+            // RENDERING switched or the window resized while the viewer is open (its scene's own refit stops when it is paused)
+            if (IsInstanceValid(_viewport) && IsInstanceValid(_live)) PixelFrame.Mirror(_viewport, _live.GetViewport());
             if (_state is ReplayViewerState.Building or ReplayViewerState.Playing) UiFrame((float)delta);
             switch (_state)
             {

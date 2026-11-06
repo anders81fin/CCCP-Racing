@@ -183,6 +183,8 @@ public partial class PhysicsTest : Node
             try { ReplayDetailTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; }
             GetTree().Quit(_failures == 0 ? 0 : 1); return;
         }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--audio-lifecycle-tests"))
+        { GetTree().Root.CallDeferred(Node.MethodName.AddChild, new AudioGeneratorLifecycleTest()); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--idle-scene-tests"))
         { GetTree().Root.CallDeferred(Node.MethodName.AddChild, new IdleAudioSceneTest()); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--pad-tests"))
@@ -247,13 +249,29 @@ public partial class PhysicsTest : Node
         { BonusSoldierContactTest();GetTree().Quit(_failures==0?0:1);return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--bonus-polish-tests"))
         { BonusPolishTest();GetTree().Quit(_failures==0?0:1);return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--windows-export-tests"))
+        {try{WindowsExportTests();}catch(Exception e){GD.PrintErr(e);_failures++;}GetTree().Quit(_failures==0?0:1);return;}
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--lap-order-tests"))
+        {LapOrderTest();GetTree().Quit(_failures==0?0:1);return;}
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--lan-obstacle-tests"))
+        {LanObstaclesTest();GetTree().Quit(_failures==0?0:1);return;}
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--lan-authority-tests"))
         {
-            LanBallotTest(); LanAuthorityTest(); LanSnapshotTest(); LanGridLapsTest();
+            LanBallotTest(); LanFuelTest(); LanAuthorityTest(); LanSnapshotTest(); LanGridLapsTest();
             GetTree().Quit(_failures==0?0:1);return;
         }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--lan-replay-access-tests"))
         {LanReplayAccessTest();GetTree().Quit(_failures==0?0:1);return;}
+        if (Array.Find(OS.GetCmdlineUserArgs(), a => a.StartsWith("--lan-board-seed=")) is string seedArg)
+        {try{LanBoardSeed(seedArg["--lan-board-seed=".Length..]);}catch(Exception e){GD.PrintErr(e);_failures++;}GetTree().Quit(_failures==0?0:1);return;}
+        if (Array.Find(OS.GetCmdlineUserArgs(), a => a.StartsWith("--lan-board-verify=")) is string verifyArg)
+        {try{LanBoardVerify(verifyArg["--lan-board-verify=".Length..]);}catch(Exception e){GD.PrintErr(e);_failures++;}GetTree().Quit(_failures==0?0:1);return;}
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--lan-board-review-tests"))
+        {try{LanBoardReviewTests();}catch(Exception e){GD.PrintErr(e);_failures++;}GetTree().Quit(_failures==0?0:1);return;}
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--lan-board-tests"))
+        {try{LanBoardTests();}catch(Exception e){GD.PrintErr(e);_failures++;}GetTree().Quit(_failures==0?0:1);return;}
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--lan-keep-tests"))
+        {LanKeepTest();GetTree().Quit(_failures==0?0:1);return;}
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--hind-exercise-tests"))
         { HindExerciseTest();GetTree().Quit(_failures==0?0:1);return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--hind-tests"))

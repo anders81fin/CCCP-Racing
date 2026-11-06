@@ -27,13 +27,32 @@ public class RecordStore
     public readonly string Signature;
 
     /// <summary>A store that only knows its paths: no directory is made, nothing is migrated or cleaned. For the replay viewer, which never touches a file.</summary>
-    public static RecordStore Inert(string trackId, string signature) => new(trackId, signature);
+    public static RecordStore Inert(string trackId, string signature) => new(trackId, signature, "user://", true);
 
-    RecordStore(string trackId, string signature)
+    RecordStore(string trackId, string signature, string dir, bool inert)
     {
-        Dir = "user://";
+        Dir = string.IsNullOrEmpty(dir) ? "user://" : dir.EndsWith('/') ? dir : dir + "/";
         TrackId = trackId;
         Signature = signature;
+    }
+
+    /// <summary>The paths of another track's records in this directory, with no side effects (no directory made, nothing migrated or cleaned). For LAN board sharing.</summary>
+    public static RecordStore PathsOnly(string dir, string trackId) => new(trackId, null, dir, true);
+
+    /// <summary>The signature file's text when it exists and looks like a signature; null when it is missing or not one (never the legacy default).</summary>
+    public string SavedSignatureOrNull()
+    {
+        if (!FileAccess.FileExists(SignaturePath)) return null;
+        string s = FileAccess.GetFileAsString(SignaturePath).StripEdges();
+        return Track.TrackSignature.LooksValid(s) ? s : null;
+    }
+
+    /// <summary>Any record file of this track (ghost, board or tape of any set, or the signature).</summary>
+    public bool HasAnyRecordFile()
+    {
+        for (int set = 0; set < Sets; set++)
+            if (FileAccess.FileExists(GhostForSet(set)) || FileAccess.FileExists(BoardForSet(set)) || FileAccess.FileExists(TapeForSet(set))) return true;
+        return FileAccess.FileExists(SignaturePath);
     }
 
     /// <param name="dir">Data directory: "user://" normally, or a test directory (--data-dir).</param>
@@ -96,7 +115,14 @@ public class RecordStore
     /// </summary>
     public List<string> ArchiveIfChanged()
     {
-        var files = Existing(GhostPath, BoardPath, StakhanovGhostPath, StakhanovBoardPath, DieselGhostPath, DieselBoardPath, RocketGhostPath, RocketBoardPath, TapeForSet(0), TapeForSet(1), TapeForSet(2), TapeForSet(3));
+        var paths = new List<string>(Sets * 3);
+        for (int set = 0; set < Sets; set++)
+        {
+            paths.Add(GhostForSet(set));
+            paths.Add(BoardForSet(set));
+            paths.Add(TapeForSet(set));
+        }
+        var files = paths.FindAll(FileAccess.FileExists);
         if (files.Count == 0) return new List<string>();
         string stored = StoredSignature();
         if (stored == Signature) return new List<string>();

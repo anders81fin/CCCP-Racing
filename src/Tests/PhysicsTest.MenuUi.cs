@@ -129,8 +129,8 @@ public partial class PhysicsTest
             // --- visuals ---
             var visualSets = new[]
             {
-                new[] { VisualRowId.Comments, VisualRowId.LapInfo, VisualRowId.NormsCard, VisualRowId.Map, VisualRowId.CarInstruments, VisualRowId.Edges, VisualRowId.Softening, VisualRowId.Back },
-                new[] { VisualRowId.Comments, VisualRowId.LapInfo, VisualRowId.NormsCard, VisualRowId.Map, VisualRowId.CarInstruments, VisualRowId.Camera, VisualRowId.Edges, VisualRowId.Softening, VisualRowId.Back },
+                new[] { VisualRowId.Comments, VisualRowId.LapInfo, VisualRowId.NormsCard, VisualRowId.Map, VisualRowId.CarInstruments, VisualRowId.Rendering, VisualRowId.Edges, VisualRowId.Softening, VisualRowId.Back },
+                new[] { VisualRowId.Comments, VisualRowId.LapInfo, VisualRowId.NormsCard, VisualRowId.Map, VisualRowId.CarInstruments, VisualRowId.Camera, VisualRowId.Rendering, VisualRowId.Edges, VisualRowId.Softening, VisualRowId.Back },
             };
             hud.AntialiasingName = "MSAA 4X + FXAA"; hud.SofteningName = "STRONG";
             foreach (var set in visualSets)
@@ -163,6 +163,8 @@ public partial class PhysicsTest
             Check(mv != mv2, $"{sz}: the map row shows its state");
             hud.VisualRowTexts(VisualRowId.Edges, out string el, out string ev); hud.VisualRowTexts(VisualRowId.Softening, out string sl, out string sv);
             Check(el == "EDGES" && ev.Contains("FXAA") && sl == "SOFTENING" && sv.Contains("STRONG"), $"{sz}: edges and softening rows show their values");
+            hud.RenderingName = "NATIVE"; hud.VisualRowTexts(VisualRowId.Rendering, out string rl, out string rv); hud.RenderingName = "PIXEL"; hud.VisualRowTexts(VisualRowId.Rendering, out _, out string rv2);
+            Check(rl == "RENDERING" && rv == "< NATIVE >" && rv2 == "< PIXEL >", $"{sz}: the rendering row shows PIXEL / NATIVE");
 
             // --- sounds: 7 and 9 rows ---
             foreach (bool radio in new[] { false, true })

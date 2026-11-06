@@ -46,7 +46,7 @@ public partial class LanSession
     {
         rv.Round=++RoundNumber;rv.StartHost=0;
         _roundRoster.Clear();foreach(var p in Players.Values)_roundRoster[p.Id]=p;
-        rv.TrackVotes=Players.Values.OrderBy(p=>p.Slot).Select(p=>p.Voted?p.TrackVote:TrackOptions[0]).ToList();
+        rv.TrackVotes=Players.Values.OrderBy(p=>p.Slot).Select(p=>p.Voted?p.TrackVote:null).ToList(); // null: NOT VOTED, not the first track
         rv.Track=LanBallot.Track(rv.TrackVotes,TrackOptions,rv.Seed,out var tied);
         rv.TrackTied=tied;
         if(rv.Track=="ilyich") rv.Fuel=false;

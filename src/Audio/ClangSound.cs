@@ -23,9 +23,11 @@ public partial class ClangSound : AudioStreamPlayer
 
     public override void _ExitTree()
     {
+        using var driverLock = AudioMix.LockDriver();
+        using var generator = Stream as AudioStreamGenerator;
         // Release the managed reference before Godot tears down the audio server.
-        Stop();
-        _pb?.Dispose();
+        StreamPaused = false; Stop();
+        if (GodotObject.IsInstanceValid(_pb)) _pb.Stop(); _pb?.Dispose();
         _pb = null;
         Stream = null;
     }

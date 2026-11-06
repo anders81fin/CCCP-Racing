@@ -25,7 +25,7 @@ public partial class RaceScene
         // the owner's row order, and every row's hit test lands on its own row
         var want = new List<VisualRowId> { VisualRowId.Comments, VisualRowId.LapInfo, VisualRowId.NormsCard, VisualRowId.Map, VisualRowId.CarInstruments };
         if (_hud.GameplayCameraName != null) want.Add(VisualRowId.Camera);
-        want.AddRange(new[] { VisualRowId.Edges, VisualRowId.Softening, VisualRowId.Back });
+        want.AddRange(new[] { VisualRowId.Rendering, VisualRowId.Edges, VisualRowId.Softening, VisualRowId.Back });
         VwCheck(_hud.VisualRowIds.SequenceEqual(want), "VISUALS order: " + string.Join(", ", _hud.VisualRowIds));
         // the real way in: pause, SETTINGS, VISUALS (own-viewport shots; the pad shot shows the pad's hints, not a physical pad)
         foreach (var x in VrTap(Key.Escape)) yield return x;

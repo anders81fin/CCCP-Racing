@@ -26,7 +26,7 @@ public partial class RaceScene
         s.SetEditContext(a, info); s.SetTitle("VIEWER KEEP TEST");
         foreach (var x in VrUntil(() => s.State == ReplayViewerState.Playing, 7200, "viewer ready")) yield return x;
         var v = s.Scene; v.ViewerSetPaused(true); v.ViewerSeek(5f);
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         int keep = Array.FindIndex(s.EditRowTexts, t => t.StartsWith("KEEP RECORDING"));
         VwCheck(keep >= 0 && !s.Editable, "unkept viewer has KEEP RECORDING");
         foreach (var x in ToExportRow(s, keep)) yield return x;
@@ -40,7 +40,7 @@ public partial class RaceScene
         foreach (var x in VrTap(Key.Escape)) yield return x;
         VwCheck(!s.KeepOpen && !a.List().Single().Retained && s.State == ReplayViewerState.Playing && v.ViewerClock == t,
             "cancel leaves recording unkept and viewer at same paused frame");
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         foreach (var x in ToExportRow(s, keep)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
         ReplayViewerSession.ViewerKeepFailForTest = "test disk refusal";
@@ -63,13 +63,13 @@ public partial class RaceScene
         VwCheck(kept.Retained && kept.Meta.Name == "A" && a.Open(sub.Id).Sha256() == hash, "pad name and complete source persist unchanged under original lap id");
         foreach (var x in VrTap(Key.I)) yield return x;
         v.ViewerSeek(8f); foreach (var x in VrTap(Key.O)) yield return x;
-        foreach (var x in VrTap(Key.S)) yield return x;
+        foreach (var x in VrTapCtrl(Key.S)) yield return x;
         foreach (var x in VrUntil(() => !s.SaveBusy, 1800, "edits saved after KEEP")) yield return x;
         var edits = a.LoadEdits(sub.Id).Result;
         VwCheck(edits.Edits?.In == 5f && edits.Edits.Out == 8f && !s.Dirty, "newly kept viewer can save edits without reopening");
         foreach (var x in VrTap(Key.P)) yield return x;
         VwCheck(s.Dirty, "unsaved pin before rename");
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         int rename = Array.FindIndex(s.EditRowTexts, r => r.StartsWith("RENAME RECORDING"));
         VwCheck(rename >= 0, "kept viewer offers RENAME RECORDING");
         foreach (var x in ToExportRow(s, rename)) yield return x;
@@ -81,10 +81,10 @@ public partial class RaceScene
             "empty rename uses default name and preserves source plus saved edits");
         VwCheck(s.Dirty && s.OverlayView.Pinned && v.ViewerEdits.In == 5f && v.ViewerEdits.Out == 8f,
             "rename preserves unsaved pin and current working trim");
-        foreach (var x in VrTap(Key.S)) yield return x;
+        foreach (var x in VrTapCtrl(Key.S)) yield return x;
         foreach (var x in VrUntil(() => !s.SaveBusy, 1800, "pin saved")) yield return x;
         v.ViewerSeek(6f); v.ViewerSetPaused(false);
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         foreach (var x in ToExportRow(s, rename)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
         float playingClock = v.ViewerClock;

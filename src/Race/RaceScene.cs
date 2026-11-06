@@ -213,10 +213,12 @@ public partial class RaceScene : Node3D
     // phases, and start the next slice after the frame so rendering/waiting is not build work.
     async Task LoadingFrame([System.Runtime.CompilerServices.CallerLineNumber] int profLine = 0)
     {
+        if (AudioMix.Closing) throw new OperationCanceledException("Application shutdown");
         if (_booting) LoadStep();      // RaceScene.LoadProgress.cs: one more checkpoint for the loading card's bar
         if (!_booting || _loadingWorkSlice.ElapsedMilliseconds < LoadingWorkSliceMs) { LoadProf.Checkpoint(profLine, false); return; }   // LOADPROF
         LoadProf.Checkpoint(profLine, true);   // LOADPROF
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        if (AudioMix.Closing) throw new OperationCanceledException("Application shutdown");
         LoadProf.Resume();   // LOADPROF
         if(LanPlaybackSource!=null && !_lanPlaybackExternallyDriven && !LanPlaybackCheckAccess()) throw new OperationCanceledException("LAN replay access ended");
         if (ViewerMode) ViewerBuildCheckpoint();      // RaceScene.Viewer.cs: a cancelled viewer stops building here
@@ -227,8 +229,9 @@ public partial class RaceScene : Node3D
     {
         if (!ViewerMode && LanPlaybackSource == null && InstructionTrack == null && CCCPRacing.Race.ExportChild.Active) CCCPRacing.Race.ExportChild.Begin(this);      // the MP4 exporter child (ExportChild.cs)
         try { await BuildWorld(); }
-        catch (OperationCanceledException) when (LanPlaybackSource!=null && _lanPlaybackClosing) {GetTree().Quit();}
-        catch (Exception e) when (LanPlaybackSource!=null) {GD.PushError("LAN replay build failed: "+e.Message);GetTree().Quit(2);}
+        catch (OperationCanceledException) when (AudioMix.Closing) { }
+        catch (OperationCanceledException) when (LanPlaybackSource!=null && _lanPlaybackClosing) {CCCPRacing.Audio.AudioMix.Quit(this);}
+        catch (Exception e) when (LanPlaybackSource!=null) {GD.PushError("LAN replay build failed: "+e.Message);CCCPRacing.Audio.AudioMix.Quit(this, 2);}
         catch (Exception e) when (ViewerMode && e is ObjectDisposedException) { }      // a viewer freed under its own build (RaceScene.Viewer.cs)
         catch (Exception e) when (ViewerMode) { ViewerError = "the viewer world could not be built: " + e.Message; GD.PushError(ViewerError); }
         finally { if (ViewerMode) ViewerBuildDone = true; }
@@ -760,7 +763,7 @@ public partial class RaceScene : Node3D
         InitMinimap();    // RaceScene.Minimap.cs
         if (_state == State.Countdown) LabRunStarts();      // (a --start run began its countdown before the lab existed)
         LoadProf.Mark("InitMinimap");
-        if (_booting && LoadProf.On) { LoadProf.Report(_track.Id); if (LoadProf.Quit) GetTree().Quit(); }   // LOADPROF
+        if (_booting && LoadProf.On) { LoadProf.Report(_track.Id); if (LoadProf.Quit) CCCPRacing.Audio.AudioMix.Quit(this); }   // LOADPROF
         LoadStepsEnd();      // RaceScene.LoadProgress.cs
         _booting = false;
         if (LanPlaybackSource!=null) { LanPlaybackEnter();return; }
@@ -794,7 +797,7 @@ public partial class RaceScene : Node3D
         PrepareReplayCamera();
         _wrongWay = 0;
         _hud.WrongWay = false;
-        ApplyWorld(_state == State.Countdown && StakhanovRules && !InLanRace);     // Stakhanov laps: an empty road
+        ApplyWorld(_state == State.Countdown && StakhanovRules && (!InLanRace || !_lanReveal.Obstacles));     // Stakhanov laps: an empty road
         LoadProf.Mark("PlaceAtStart: after ApplyWorld");
         _scenery.Reset();                                        // before --crash picks its target
         LoadProf.Mark("PlaceAtStart: after scenery.Reset");
@@ -877,7 +880,7 @@ public partial class RaceScene : Node3D
             if (!Replaying || _tapePlayer == null)
             {
                 GD.PushError("Tape shoot requires a compatible saved ghost and world tape for this track");
-                GetTree().Quit(1);
+                CCCPRacing.Audio.AudioMix.Quit(this, 1);
             }
             else if ((_tapeShootIlyichPlan || _tapeShootIlyichPlanV2 || _tapeShootIlyichPlanV3)
                 && (_trackId != "ilyich" || _tapeCameraMarks.Length != (_tapeShootIlyichPlanV3 ? 8 : 6)
@@ -885,7 +888,7 @@ public partial class RaceScene : Node3D
                 || Enumerable.Range(1, _tapeCameraMarks.Length - 1).Any(i => _tapeCameraMarks[i] - _tapeCameraMarks[i - 1] < 1f)))
             {
                 GD.PushError("Ilyich tape camera plan needs increasing marks inside this lap");
-                GetTree().Quit(1);
+                CCCPRacing.Audio.AudioMix.Quit(this, 1);
             }
             else GD.Print($"tape shoot: replay begins at movie frame {Engine.GetProcessFrames()}, tape clock {_replayClock:F3}");
         }
@@ -995,7 +998,7 @@ public partial class RaceScene : Node3D
         if (DroneCardInput(e)) return;                 // RaceScene.DroneTour.cs: any key starts the tour's flight
         if (CarTourRawInput(e)) return;                // RaceScene.CarTour.cs: any key starts a car's tour from its black card
         if (CheatCodeInput(e)) return;                 // RaceScene.Cheat.cs: the Konami code opens every fuel and track
-        if (CardInput(e) || PadRawInput(e) || GulagInput(e) || PlanInput(e) || LanRawInput(e)) return;
+        if (CardInput(e) || PadRawInput(e) || GulagInput(e) || PlanInput(e) || LanKeepRawInput(e) || LanRawInput(e)) return;      // LanKeep: the KEEP question after a LAN race (RaceScene.LanKeep.cs)
         if (e is InputEventKey labKey && LabKeyInput(labKey)) return;      // RaceScene.Lab.cs
         if (RecordingsRawInput(e)) return;             // RaceScene.Recordings.cs: the RECORDINGS list, KEEP and its name field
         if (SchoolChapterInput(e)) return;
@@ -1087,7 +1090,7 @@ public partial class RaceScene : Node3D
 
     void EnterCountdown()
     {
-        _sessionLapArchives.Clear();
+        _sessionLapArchives.Clear(); _sessionLapOrder.Clear(); _sessionLapSequence = 0;
         _replayListTask = null; _replayInfos.Clear(); _replayKnownLaps = -1;
         _sessionBest = -1f;      // a run's start or a restart opens a new session; a norm advancing, a pause or a viewer visit never reaches here
         _state = State.Countdown;
@@ -1122,7 +1125,7 @@ public partial class RaceScene : Node3D
         { _timer.BestLap = _bestLaps[RecordSet]; return; }
         // Stakhanov: the chosen power; the rally: the fuel's (50, 100 or 200 %), or OCTANE BOOSTER's 3.5 times that while a golden can lasts.
         bool boost = !StakhanovRules && _boostLeft > 0;
-        FuelGrade? tg = _run == RunMode.Training ? Training.GradeOf(_power) : null;      // Stakhanov laps: the four powers are the four fuels
+        FuelGrade? tg = _run is RunMode.Training or RunMode.Lan ? Training.GradeOf(_power) : null;      // Stakhanov laps: the four powers are the four fuels
         _hud.PowerLabel = tg is FuelGrade g0 ? FuelGrades.Names[(int)g0] : "";
         int pct = tg is FuelGrade g1 ? FuelGrades.PhysicsPercent(g1) : StakhanovRules ? _power : boost ? BoostPercent : RallyPercent;
         _car.PowerScale = pct / 100f * EnginePower;
@@ -1136,7 +1139,7 @@ public partial class RaceScene : Node3D
     FuelGrade? _engineFuelApplied;
 
     /// <summary>The fuel whose engine the car has now: the rally's, or (in a replay, the title's demonstration) the one the recorded lap was driven on; petrol otherwise.</summary>
-    FuelGrade EngineFuel => CarTourActive ? _carTourFuel : _run == RunMode.Training && !Replaying && !ViewerMode ? Training.GradeOf(_power) ?? FuelGrade.Petrol : Replaying || ViewerMode ? ViewerFuelNow() ?? TitleSet switch { 2 => FuelGrade.Diesel, 3 => FuelGrade.Rocket, 4 => FuelGrade.Sputnik, _ => FuelGrade.Petrol } : _run == RunMode.Rally ? _rallyFuel : FuelGrade.Petrol;
+    FuelGrade EngineFuel => CarTourActive ? _carTourFuel : (_run is RunMode.Training or RunMode.Lan) && !Replaying && !ViewerMode ? Training.GradeOf(_power) ?? FuelGrade.Petrol : Replaying || ViewerMode ? ViewerFuelNow() ?? TitleSet switch { 2 => FuelGrade.Diesel, 3 => FuelGrade.Rocket, 4 => FuelGrade.Sputnik, _ => FuelGrade.Petrol } : _run == RunMode.Rally ? _rallyFuel : FuelGrade.Petrol;
 
     /// <summary>The car's engine for the fuel (the diesel's, FuelGrades.ApplyEngine); a lab run's sliders are the owner's, a lab diesel's come from the LAB preset.</summary>
     static readonly Color FuelOlive = new(0.33f, 0.37f, 0.2f), FuelRed = new(0.78f, 0.05f, 0.05f), FuelWhite = new(0.93f, 0.94f, 0.95f);      // diesel: the duty officer's UAZ olive (KozlikPatrol)
@@ -1145,10 +1148,9 @@ public partial class RaceScene : Node3D
     {
         _engineFuelApplied = EngineFuel;
         int wing = EngineFuel switch { FuelGrade.Diesel => 3, FuelGrade.Rocket => 1, FuelGrade.Sputnik => 2, _ => 0 };      // the rear wing: the duck-tail lip, low, middle, high
-        if (_carVis != null) _carVis.Wing = wing;
-        _carVis?.Equip(bumpers: EngineFuel is FuelGrade.Diesel or FuelGrade.Petrol, roofRack: EngineFuel != FuelGrade.Sputnik, kit: EngineFuel == FuelGrade.Sputnik);      // the JET FUEL and the SPUTNIK run without bumpers (as the rally cars did, for the weight); the SPUTNIK has no roof rack either, but a kit
+        if (_carVis != null) FuelGrades.ApplyVisual(_carVis, EngineFuel);
         if (_ghostVis != null) _ghostVis.Wing = wing;
-        if (_carVis != null) _carVis.FuelPaint = EngineFuel switch { FuelGrade.Diesel => FuelOlive, FuelGrade.Rocket => FuelRed, FuelGrade.Sputnik => FuelWhite, _ => null };
+        if (_carVis != null) _carVis.FuelPaint = _run == RunMode.Lan ? null : EngineFuel switch { FuelGrade.Diesel => FuelOlive, FuelGrade.Rocket => FuelRed, FuelGrade.Sputnik => FuelWhite, _ => null };
         if (_params != null && !_labRun) FuelGrades.ApplyEngine(_params, EngineFuel);
     }
 
@@ -2264,7 +2266,7 @@ public partial class RaceScene : Node3D
         if (_booting) return;
         if (InstructionTrack != null && GetParent() is SubViewport lessonViewport
             && lessonViewport.GetParent() is Viewport raceViewport)
-            lessonViewport.Size = (Vector2I)raceViewport.GetVisibleRect().Size;
+            PixelFrame.Mirror(lessonViewport, raceViewport);      // (the window's size and VISUALS > RENDERING: the parent's framebuffer and logical size)
         float dt = (float)delta;
         if (OS.HasEnvironment("FPSDBG") && (int)(_clock / 5f) != (int)((_clock + dt) / 5f))
             GD.Print($"fps {Engine.GetFramesPerSecond():0} at {_clock + dt:F0} s, {RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} draw calls, car ({_car.Pos.X:F0},{_car.Pos.Z:F0}) {_car.Speed * 3.6f:F0} km/h, road m {_timer.Progress}");
@@ -2274,7 +2276,7 @@ public partial class RaceScene : Node3D
         
         TapeMeasureFrame(dt);
         for (int i = _keyQueue.Count - 1; i >= 0; i--)
-            if (_clock >= _keyQueue[i].at)
+            if (_clock >= _keyQueue[i].at && !_lanKeep.OwnsInput)      // (scripted keys wait while the KEEP question is answered by its probe)
             {
                 var (_, key, pressed) = _keyQueue[i];
                 _keyQueue.RemoveAt(i);
@@ -2396,7 +2398,7 @@ public partial class RaceScene : Node3D
     {
         // Replay focus, the leaderboard, the key card and the name entry listen to raw input only; the
         // press that ended them is swallowed here (Enter/Esc would otherwise start, pause or quit).
-        if (_watching || _showBoard || _showLog || _showFiles || _showLessons || _showKeys || CardShown || _gulag || _planScreen || _askName || _resignOut >= 0 || _recordingsOpen || _keepNameOpen) return;
+        if (_watching || _showBoard || _showLog || _showFiles || _showLessons || _showKeys || CardShown || _gulag || _planScreen || _askName || _resignOut >= 0 || _recordingsOpen || _keepNameOpen || _lanKeep.OwnsInput) return;      // (LAN KEEP: Esc, R, M, C... are its keys, not the race's)
         if (Engine.GetProcessFrames() <= _overlayExitFrame + 1) return;
         if(LanSession.Current?.LeavePrompt is {ConsumedFrame:>0} leave && Engine.GetProcessFrames()<=leave.ConsumedFrame+1) return;
         if (LanInput() || TitleCardInput() || SchoolInput()) return;
@@ -2525,7 +2527,7 @@ public partial class RaceScene : Node3D
         _hud.GameplayCameraName = GameplayCameraAllowed ? GameplayCameraName : null;
         _hud.CameraUnlocksMissing = GameplayCameraAllowed && HasUndiscoveredCameras;
         _hud.CameraSomeFound = HasDiscoveredCamera;
-        _hud.CapitalistLuxuriesEnabled = _aaMode != 0 || _softLevel != 0;      // (the camera is not a luxury: it moved to VISUAL SETTINGS)
+        _hud.CapitalistLuxuriesEnabled = PixelFrame.NativeActive || _aaMode != 0 || _softLevel != 0;
         if (_state != State.Paused) _padLost = false;
         _hud.PadLost = _padLost;
         // The record holder: the board's top name when it holds the record time.
@@ -2561,7 +2563,7 @@ public partial class RaceScene : Node3D
             l.Clear();
             Vector2I vs = (Vector2I)GetViewport().GetVisibleRect().Size;
             var frame = GetParent()?.GetParent() as PixelFrame;
-            l.Add($"FPS {Engine.GetFramesPerSecond():0}  RES {vs.X}X{vs.Y} X{frame?.PixelScale ?? 1}");
+            l.Add($"FPS {Engine.GetFramesPerSecond():0}  RES {vs.X}X{vs.Y} X{frame?.PixelScale ?? 1}{((frame?.RenderScale ?? 1) > 1 ? " NATIVE" : "")}");
             l.Add($"RPM {_car.Rpm:0}  THR {_car.Throttle:0.00}  GEAR {_car.Gear}");
             l.Add($"CLUTCH {(_car.Clutch ? "IN" : _car.Neutral ? "NEUTRAL" : _car.ClutchKick > 0 ? "DUMP" : "OUT")}");
             l.Add($"ROLL {Mathf.RadToDeg(MathF.Asin(Math.Clamp(_car.Right.Y, -1, 1))):0}  PITCH {Mathf.RadToDeg(MathF.Asin(Math.Clamp(_car.Forward.Y, -1, 1))):0}");
@@ -2645,13 +2647,13 @@ public partial class RaceScene : Node3D
             wav?.SaveToWav(_recordPath);
             GD.Print(wav == null ? "No audio recorded" : $"Audio saved to {_recordPath}");
             _recordPath = null;
-            if (_shotPath == null) GetTree().Quit();
+            if (_shotPath == null) CCCPRacing.Audio.AudioMix.Quit(this);
         }
         if (_shotPath == null || _clock < _shotAt) return;
         GetViewport().GetTexture().GetImage().SavePng(_shotPath);
         GetTree().Root.GetTexture().GetImage().SavePng(_shotPath.Replace(".png", "_full.png"));
         GD.Print($"Screenshot saved to {_shotPath}");
         _shotPath = null;
-        GetTree().Quit();
+        CCCPRacing.Audio.AudioMix.Quit(this);
     }
 }

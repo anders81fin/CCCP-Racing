@@ -139,6 +139,8 @@ public partial class RaceScene
     {
         if (_resignOut >= 0) return PadCtx.Any;      // the resignation is on its way: nothing to press
         if (_lanLeaveAsk) return PadCtx.Ask;
+        if (_lanKeep.State == CCCPRacing.Net.LanKeepPrompt.Phase.Name) return PadCtx.Wheel;      // the KEEP question's name (RaceScene.LanKeep.cs)
+        if (_lanKeep.OwnsInput) return PadCtx.Ask;
         if (_gulag || _planScreen || _showKeys || CardShown) return PadCtx.Any;
         if (_keepNameOpen || _askName || _lanPage is LanPage.Name or LanPage.Ip) return PadCtx.Wheel;
         if (_recordingsOpen) return PadCtx.Menu;
@@ -195,7 +197,7 @@ public partial class RaceScene
         if (x) _stickX = now; else _stickY = now;
         JoyButton Dir(int s) => x ? (s < 0 ? JoyButton.DpadLeft : JoyButton.DpadRight) : (s < 0 ? JoyButton.DpadUp : JoyButton.DpadDown);
         if (was != 0) PadButton(Dir(was), false, false);
-        if (now != 0 && (PadContext() is not (PadCtx.Race or PadCtx.Ask or PadCtx.Any) || _lanLeaveAsk)) PadButton(Dir(now), true, false);
+        if (now != 0 && (PadContext() is not (PadCtx.Race or PadCtx.Ask or PadCtx.Any) || _lanLeaveAsk || _lanKeep.OwnsInput)) PadButton(Dir(now), true, false);
     }
 
     /// <summary>A pad button in the current context: a key, a direct action, or (false) a raw "any key" press.</summary>
@@ -238,7 +240,7 @@ public partial class RaceScene
                 key = SchoolPadKey(b);
                 break;
             case PadCtx.Ask:
-                key = b switch { JoyButton.A => Key.Enter, JoyButton.B or JoyButton.Start => Key.Escape, _ => _lanLeaveAsk ? DpadKey(b) : Key.None };
+                key = b switch { JoyButton.A => Key.Enter, JoyButton.B or JoyButton.Start => Key.Escape, _ => _lanLeaveAsk || _lanKeep.OwnsInput ? DpadKey(b) : Key.None };
                 break;
             case PadCtx.Pause:
                 if (_labOpen) { key = LabPadKey(b, false); break; }      // RaceScene.Lab.cs
@@ -278,7 +280,8 @@ public partial class RaceScene
                 if (b == JoyButton.B && _menuParent != null) key = Key.Escape;       // back to the top row (there Esc would quit the game)
                 break;
             case PadCtx.Menu:
-                key = b switch { JoyButton.A or JoyButton.Start => Key.Enter, JoyButton.B => Key.Escape, JoyButton.X when _recordingsOpen => Key.Delete, JoyButton.Y when _recordingsOpen => Key.K, _ => DpadKey(b) };
+                key = b switch { JoyButton.A or JoyButton.Start => Key.Enter, JoyButton.B => Key.Escape, JoyButton.X when _recordingsOpen => Key.Delete, JoyButton.Y when _recordingsOpen => Key.K,
+                    JoyButton.Y when _lanPage == LanPage.Lobby => Key.B, JoyButton.X when _lanPage == LanPage.Lobby => Key.R, _ => DpadKey(b) };      // (lobby: SHARE BOARDS, RaceScene.LanBoards.cs)
                 if (key == Key.None && _recordingsOpen) return true;                            // RECORDINGS: other buttons do nothing
                 if (key == Key.None && _lanPage == LanPage.Message) key = Key.Enter;          // "any key" there wants a key
                 else if (key == Key.None && _lanPage == LanPage.None) return false;           // any other button closes the board or the changelog
@@ -316,10 +319,11 @@ public partial class RaceScene
     /// </summary>
     Key PadWheel(JoyButton b)
     {
-        bool keep = _keepNameOpen, entry = _askName, ip = !entry && !keep && _lanPage == LanPage.Ip;
+        bool lanKeep = !_lanLeaveAsk && _lanKeep.State == CCCPRacing.Net.LanKeepPrompt.Phase.Name;
+        bool keep = _keepNameOpen || lanKeep, entry = !lanKeep && _askName, ip = !entry && !keep && _lanPage == LanPage.Ip;
         string chars = ip ? IpChars : NameChars;
         int max = ip ? 15 : keep ? KeepNameMax : Leaderboard.MaxName;
-        string t = keep ? _keepName : entry ? _entryName : _lanText;
+        string t = lanKeep ? _lanKeep.Name : keep ? _keepName : entry ? _entryName : _lanText;
         switch (b)
         {
             case JoyButton.DpadUp or JoyButton.DpadDown:
@@ -341,7 +345,8 @@ public partial class RaceScene
             case JoyButton.Start:
                 return Key.Enter;
         }
-        if (keep) _keepName = t;
+        if (lanKeep) _lanKeep.SetName(t);
+        else if (keep) _keepName = t;
         else if (entry) _entryName = t;
         else _lanText = t;
         return Key.None;

@@ -13,7 +13,7 @@ namespace CCCPRacing.Race;
 public partial class RaceScene
 {
     static readonly int[] LanLapChoices = { 3, 5, 10 };
-    static readonly string[] LanMenuItems = { "HOST GAME", "JOIN GAME", "CHANGE NAME" };
+    static readonly string[] LanMenuItems = { "HOST GAME", "JOIN GAME", "CHANGE NAME", "" };     // [3]: RECORD LAN RACES (RaceScene.LanRecord.cs)
     static bool? _lanTrackHosting;
     static (string track, string ip, string name)? _lanJoinResume;
 
@@ -24,8 +24,9 @@ public partial class RaceScene
     string _lanGoAlert;
     string _lanName = "", _lanText = "", _lanMsgTitle = "", _lanMsg = "", _lanIp = "";
     int _lanSel, _lanChoice = 2, _lanBallotRow;
-    bool _lanDamageVote = true, _lanFuelVote;
-    bool? _lanTestDamage, _lanTestFuel;
+    bool _lanDamageVote = true, _lanFuelVote, _lanObstaclesVote = true;
+    string _lanObstacleSequence;
+    bool? _lanTestDamage, _lanTestFuel, _lanTestObstacles;
     bool _lanVoted, _lanDone, _lanDnf, _lanGo;
     double _lanConnectAt = -1, _lanAutoVoteAt = -1, _lanAutoStartAt = -1, _lanQuitAt = -1, _lanStatAt;
     LanReveal _lanReveal;
@@ -81,6 +82,7 @@ public partial class RaceScene
         _wood.SpanBroken += (i,v)=> {if(InLanRace && _net.IsHost) _net.SendBroke(-1-i,1,v,Vector3.Zero);};
         _scenery.Broken += (i,v,p)=> {if(InLanRace && _net.IsHost) _net.SendBroke(i,24,v,p);};
         _lanName = _rallyBoard.LastName;      // the last name typed on the board (never written back from here)
+        LoadLanRecord();                      // RaceScene.LanRecord.cs: does this machine record its LAN races
 
         bool host = false;
         string join = null;
@@ -90,8 +92,10 @@ public partial class RaceScene
             if (a == "--lan-host") host = true;                                      // test: host a LAN game at once
             else if (a.StartsWith("--lan-join=")) join = a["--lan-join=".Length..];   // test: join the LAN game at this IP at once
             else if (a.StartsWith("--lan-name=")) _lanName = Leaderboard.CleanName(a["--lan-name=".Length..]);  // test: the name in LAN games
-            else if (a.StartsWith("--lan-vote=")) _lanVoteKey = Math.Clamp(int.Parse(a["--lan-vote=".Length..]), 1, Training.Count);  // test: vote this fuel key (1-3) when the ballot opens
+            else if (a.StartsWith("--lan-vote=")) _lanVoteKey = Math.Clamp(int.Parse(a["--lan-vote=".Length..]), 1, LanRace.FuelCount);  // test: vote this fuel key (1-4) when the ballot opens
             else if (a.StartsWith("--lan-damage=")) _lanTestDamage = a.EndsWith("=1");
+            else if (a.StartsWith("--lan-obstacles-sequence=")) _lanObstacleSequence = a["--lan-obstacles-sequence=".Length..];
+            else if (a.StartsWith("--lan-obstacles=")) _lanTestObstacles = a.EndsWith("=1");
             else if (a.StartsWith("--lan-fuel=")) _lanTestFuel = a.EndsWith("=1");
             else if (a.StartsWith("--lan-laps=")) laps = int.Parse(a["--lan-laps=".Length..]);  // test: laps of the LAN race (host)
             else if (a.StartsWith("--lan-autostart=")) _lanAutostart = int.Parse(a["--lan-autostart=".Length..]);  // test: the host opens the ballot once this many are in
@@ -101,6 +105,9 @@ public partial class RaceScene
             else if (a.StartsWith("--lan-ap-delay=")) _lanApDelay = F(a["--lan-ap-delay=".Length..]);  // test: --autodrive waits this long after GO
             else if (a=="--lan-contact-probe") _lanContactProbe=true;
             else if (a=="--lan-leave-probe") _lanLeaveProbe=true;
+            else if (a.StartsWith("--lan-board-")) LanBoardsArgs(a);           // test: SHARE BOARDS (RaceScene.LanBoards.cs)
+            else if (a == "--lan-record-probe") _lanRecordProbe = true;           // test: the RECORD LAN RACES? question and menu row (RaceScene.LanRecordTest.cs)
+            else if (a.StartsWith("--lan-keep-probe")) _lanKeepProbe=a.Contains('=')?a[(a.IndexOf('=')+1)..]:"keep";  // test: answer and check the KEEP question (RaceScene.LanKeepTest.cs)
             else if(a.StartsWith("--lan-test-tracks=")) _lanTestTracks=a["--lan-test-tracks=".Length..].Split(',');
             else if(a.StartsWith("--lan-track-vote=")) _lanTrackVoteFlag=a["--lan-track-vote=".Length..];
             else if(a.StartsWith("--lan-track-sequence=")) _lanTrackSequence=a["--lan-track-sequence=".Length..].Split(',');
@@ -293,7 +300,7 @@ public partial class RaceScene
         if (InLanRace) { LanCleanup(); MenuPlayed(MenuItem.Lan); EnterTitle(); OpenMenu(MenuItem.Multi, MenuItem.Lan); }
         _lanVoted = false;
         _lanChoice = 2;
-        _lanBallotRow = 0; _lanDamageVote = true; _lanFuelVote = false;
+        _lanBallotRow = LanBallotOrder[0]; _lanDamageVote = true; _lanFuelVote = false; _lanObstaclesVote = true;
         _lanTrackChoice=0;
         string pick=_lanTrackSequence.Length>0?_lanTrackSequence[Math.Min(_net.RoundNumber,_lanTrackSequence.Length-1)]:_lanTrackVoteFlag;
         if(pick!=null && _net.TrackOptions.Contains(pick)) _lanTrackChoice=_net.TrackOptions.IndexOf(pick);
@@ -308,10 +315,11 @@ public partial class RaceScene
         // Reliable mesh definitions may precede the reveal on another channel.
         // Keep them until LanAuthorityInit consumes them.
         var rv = _lanReveal = _net.Reveal;
-        var show = _lanShow = new Hud.LanBallotShow { Winner = rv.WinnerIndex, Seed = rv.Seed, Power = rv.Power, Damage = rv.Damage, Fuel = rv.Fuel, Times = rv.Timeline,Track=TrackIds.Label(rv.Track),TrackDraw=rv.TrackTied.Count>1,FuelAvailable=rv.Track!="ilyich" };
+        var show = _lanShow = new Hud.LanBallotShow { Winner = rv.WinnerIndex, Seed = rv.Seed, Power = rv.Power, Damage = rv.Damage, Fuel = rv.Fuel, Times = rv.Timeline,Track=TrackIds.Label(rv.Track),TrackDraw=rv.TrackTied.Count>1,FuelAvailable=rv.Track!="ilyich",NoVotes=rv.NoVotes };
         show.RuleVotes.AddRange(rv.RuleVotes);
+        show.ObstacleVotes.AddRange(rv.ObstacleVotes); show.Obstacles=rv.Obstacles;
         foreach (var b in rv.Ballots) show.Ballots.Add((b.name, LanRace.TagFor(b.slot), b.pct));
-        LanBallot.Tally(rv.Ballots.Select(b => b.pct), out var counts);
+        LanBallot.Tally(rv.Ballots.Select(b => b.pct), out var counts);      // NOT VOTED ballots are skipped, never Petrol
         foreach (var (k, n) in counts) show.Counts[k] = n;
         show.Tied.AddRange(rv.Tied);
         foreach (long id in rv.Grid)
@@ -328,7 +336,7 @@ public partial class RaceScene
         if (rv.Drum) { LanShotIn(at + tl.Drum + 1.3, "drum_spin"); LanShotIn(at + tl.Drum + LanBallot.DrumSpin + 0.4, "drum_stop"); }
         LanShotIn(at + tl.Announce + 1.6, "chosen");
         LanShotIn(at + tl.Grid + 2f, "grid");
-        LanLog($"reveal: {string.Join(", ", rv.Ballots.Select(b => $"{b.name} {b.pct}%"))} -> {rv.Power}%{(rv.Drum ? $" by the drum among [{string.Join(",", rv.Tied)}]" : "")}; grid {string.Join(" ", show.Grid.Select(g => g.name))}");
+        LanLog($"reveal: {string.Join(", ", rv.Ballots.Select(b => LanBallot.Voted(b.pct) ? $"{b.name} {b.pct}%" : $"{b.name} NOT VOTED"))} -> {rv.Power}%{(rv.NoVotes ? " (NO VOTES: ALL DRAWN BY LOT)" : "")}{(rv.Drum ? $" by the drum among [{string.Join(",", rv.Tied)}]" : "")}; grid {string.Join(" ", show.Grid.Select(g => g.name))}");
     }
 
     void OnLanWinner(long id, float time)
@@ -344,6 +352,7 @@ public partial class RaceScene
     {
         LanReplayEnd();
         if (!InLanRace) return;
+        LanKeepOfferIn(0.5);      // KEEP at the results at the latest (a DNF's only moment; RaceScene.LanKeep.cs)
         _lanResultsAt = LanSession.Now;
         var ownResult=_net.Results.Find(r=>r.Id==_net.MyId);
         _lanDnf=ownResult==null || ownResult.Time<0;
@@ -398,7 +407,6 @@ public partial class RaceScene
     /// <summary>Raw input for the LAN pages (typing, menus) and, in the race, the power keys. True: taken.</summary>
     bool LanRawInput(InputEvent e)
     {
-        if(LanReplayAvailable && !_lanLeaveAsk && e is InputEventKey {Pressed:true,Echo:false,Keycode:Key.R}) {LanReplayOpen();return true;}
         if (InLanRace && _lanPage == LanPage.None)
         {
             if (e is InputEventKey { Pressed: true, Echo: false } pk && PowerKey(pk) > 0 && _state is State.Countdown or State.Racing)
@@ -409,6 +417,8 @@ public partial class RaceScene
             return false;
         }
         if (_lanPage == LanPage.None) return false;
+        if (_lanPage == LanPage.Record && LanRecordMouse(e)) return true;
+        if (_lanPage is LanPage.Lobby or LanPage.Boards && LanBoardsMouse(e)) return true;      // RaceScene.LanBoards.cs
         if (e is not InputEventKey { Pressed: true } k || k.AltPressed) return true;
         bool first = !k.Echo;
         Key key = k.Keycode;
@@ -423,13 +433,18 @@ public partial class RaceScene
             case LanPage.Menu:
                 if (esc) { _lanWasIn = false; SetLanPage(LanPage.None); }
                 else if (up || down) _lanSel = (_lanSel + (up ? -1 : 1) + LanMenuItems.Length) % LanMenuItems.Length;
+                else if (_lanSel == LanRecordMenuRow && (left || right)) SetLanRecord(left);      // YES is on the left
                 else if (enter)
                 {
                     int sel = _lanSel;
-                    if (sel == 0) LanHost();
-                    else if (sel == 1) LanChooseTrack(false);
+                    if (sel == 0) { if (!LanRecordAskFirst(LanRecordNext.Host)) LanHost(); }
+                    else if (sel == 1) { if (!LanRecordAskFirst(LanRecordNext.Join)) LanChooseTrack(false); }
+                    else if (sel == LanRecordMenuRow) OpenLanRecord(LanRecordNext.Menu);
                     else { _lanText = _lanName; SetLanPage(LanPage.Name); }
                 }
+                break;
+            case LanPage.Record:
+                LanRecordKey(up || left, down || right, enter, esc);
                 break;
             case LanPage.Name:
                 if (enter)
@@ -464,7 +479,11 @@ public partial class RaceScene
             case LanPage.Message:
                 if (first) SetLanPage(_lanBack);
                 break;
+            case LanPage.Boards:
+                LanBoardsAskKey(up || left, down || right, enter, esc);
+                break;
             case LanPage.Lobby:
+                if (LanBoardsLobbyKey(key, first)) break;      // B / R: SHARE BOARDS (RaceScene.LanBoards.cs)
                 if (esc) AskLanLeave();
                 else if (_net.IsHost && (left || right))
                 {
@@ -472,19 +491,20 @@ public partial class RaceScene
                     i = i < 0 ? 1 : Math.Clamp(i + (left ? -1 : 1), 0, LanLapChoices.Length - 1);
                     _net.SetLaps(LanLapChoices[i]);
                 }
-                else if (enter && _net.IsHost) _net.StartBallot();
+                else if (enter && _net.IsHost) LanBoardsStartBallot();
                 break;
             case LanPage.Ballot:
                 if (esc) AskLanLeave();
                 else if (_lanVoted) break;
-                else if (up || down) _lanBallotRow = (_lanBallotRow + (up ? LanBallotRows-1 : 1)) % LanBallotRows;
-                else if (_lanBallotRow == 0 && PowerKey(k) is > 0 and var pn && pn <= Training.Count && first) _lanChoice = pn;
+                else if (up || down) StepLanBallotRow(up);
+                else if (PowerKey(k) is > 0 and var pn && pn <= LanRace.FuelCount && first) { _lanChoice = pn; _lanBallotRow = 0; }
                 else if (left || right)
                 {
                     if(_lanBallotRow==3) _lanTrackChoice=(_lanTrackChoice+(left?-1:1)+_net.TrackOptions.Count)%_net.TrackOptions.Count;
-                    else if (_lanBallotRow == 0) _lanChoice = Math.Clamp(_lanChoice + (left ? -1 : 1), 1, Training.Count);
-                    else if (_lanBallotRow == 1) _lanDamageVote = right;
-                    else _lanFuelVote = right && _net.TrackOptions.Any(t=>t!="ilyich");
+                    else if (_lanBallotRow == 0) _lanChoice = Math.Clamp(_lanChoice + (left ? -1 : 1), 1, LanRace.FuelCount);
+                    else if (_lanBallotRow == 1) _lanDamageVote = left;  // YES is on the left
+                    else if (_lanBallotRow == 4) _lanObstaclesVote = left;
+                    else _lanFuelVote = left && _net.TrackOptions.Any(t=>t!="ilyich");
                 }
                 else if (enter) LanVote();
                 break;
@@ -526,7 +546,7 @@ public partial class RaceScene
     {
         if (_lanVoted || _net.State != LanSession.Phase.Ballot) return;
         _lanVoted = true;
-        _net.Vote(Training.PercentForKey(_lanChoice), _lanDamageVote, _lanFuelVote && _net.TrackOptions.Any(t=>t!="ilyich"),_net.TrackOptions[_lanTrackChoice]);
+        _net.Vote(Training.PercentForKey(_lanChoice), _lanDamageVote, _lanFuelVote && _net.TrackOptions.Any(t=>t!="ilyich"),_net.TrackOptions[_lanTrackChoice], _lanObstaclesVote);
         LanLog($"voted (key {_lanChoice})");
     }
 
@@ -569,6 +589,7 @@ public partial class RaceScene
         _health.Reset(rv.Damage);
         if (_carVis.Damage != null) _carVis.Damage.Enabled = rv.Damage;
         _tank.Enabled = rv.Fuel;
+        _tank.Rate = _fuelRate * FuelGrades.Burn[(int)LanRace.Grade(rv.Power)];
         _tank.Refill(_fuelStart);
         _hud.ClearMessages();
         _carVis.Repaint(LanRace.Paint[_net.Me?.Slot ?? 0]);
@@ -577,6 +598,7 @@ public partial class RaceScene
         {
             if (id == _net.MyId || !_net.Players.TryGetValue(id, out var p)) continue;
             var rc = new RemoteCar(id, p.Name, p.Slot, fx++, _params, _track, this, _fx);
+            rc.ConfigureFuel(rv.Power);
             LanRace.GridPose(_track, rv.Grid.IndexOf(id), out var pos, out float yaw);
             if (rc.Vis.Damage != null) rc.Vis.Damage.Enabled = rv.Damage;
             rc.Buffer.Add(Snapshot.Standing(pos, yaw, LanPoseClock, _params.IdleRpm));
@@ -585,8 +607,10 @@ public partial class RaceScene
         LanReplayBegin();
         LanAuthorityInit();
         MinimapHud();
+        LanWorldCheck();
         bool mechanicSign=FindChildren("*","",true,false).OfType<MechanicMarker>().Any(m=>m.IsVisibleInTree());
         LanLog($"services: mechanic marker {mechanicSign}, fuel marker {_lanFuelMarker?.IsVisibleInTree() ?? false}, minimap mechanic {_hud.MinimapMechanic.HasValue}, fuel {_hud.MinimapFuel.HasValue}, canisters {_babushkasAll.Canisters}");
+        LanLog($"fuel car: {EngineFuel}, redline {_params.Redline}, torque {_params.MaxTorque}, front {_params.DriveFront}, turbo {_car.TurboGain}, wing {_carVis.Wing}, kit {_carVis.Damage?.KitWorn}");
         LanLog($"to the grid: slot {_lanGrid + 1}, {rv.Laps} laps at {rv.Power}%, {_remote.Count} comrades");
         LanShotIn(1.2, "countdown");
     }
@@ -678,7 +702,7 @@ public partial class RaceScene
     bool LanDrive(float dt)
     {
         if (!InLanRace) return false;
-        if (_lanQuitRace >= 0 && LanRaceClock >= _lanQuitRace) { LanLog("quitting mid-race (test)"); _net.Leave(); GetTree().Quit(); _lanQuitRace = -1; }
+        if (_lanQuitRace >= 0 && LanRaceClock >= _lanQuitRace) { LanLog("quitting mid-race (test)"); _net.Leave(); CCCPRacing.Audio.AudioMix.Quit(this); _lanQuitRace = -1; }
         if (_lanDone)
         {
             _car.Clutch = false;
@@ -709,6 +733,8 @@ public partial class RaceScene
     void LanFrame(float dt)
     {
         LanLeaveProbeTick();
+        LanRecordProbeTick();      // --lan-record-probe (RaceScene.LanRecordTest.cs)
+        LanBoardsFrame();          // SHARE BOARDS (RaceScene.LanBoards.cs)
         if(_lanReadyAt>0 && LanSession.Now>=_lanReadyAt) {_lanReadyAt=-1;ReportLanWorldReady();}
         if(InLanRace && !_net.IsHost) _lanWorld?.Frame(dt);
         double now = LanSession.Now;
@@ -726,16 +752,18 @@ public partial class RaceScene
                 _lanAutoStartAt = now + 1.5;       // a few pings first, for the clock sync
                 LanShotIn(1.0, "lobby");
             }
-            else if (now >= _lanAutoStartAt && _net.StartBallot()) _lanAutoDone = true;
+            else if (now >= _lanAutoStartAt && LanBoardsReadyForAutostart && _net.StartBallot()) _lanAutoDone = true;
         }
         if (_lanAutoVoteAt > 0 && now >= _lanAutoVoteAt && _lanPage == LanPage.Ballot)
         {
             _lanAutoVoteAt = -1;
             _lanChoice = _lanVoteKey;
             _lanDamageVote = _lanTestDamage ?? _lanDamageVote; _lanFuelVote = _lanTestFuel ?? _lanFuelVote;
+            _lanObstaclesVote = _lanTestObstacles ?? _lanObstaclesVote;
+            if (_lanObstacleSequence != null) { var seq=_lanObstacleSequence.Split(','); _lanObstaclesVote=seq[_net.RoundNumber%seq.Length]=="1"; }
             LanVote();
         }
-        if (_lanQuitAt > 0 && now >= _lanQuitAt) { _net.Leave(); GetTree().Quit(); }
+        if (_lanQuitAt > 0 && now >= _lanQuitAt) { _net.Leave(); CCCPRacing.Audio.AudioMix.Quit(this); }
         if (_lanPage == LanPage.Reveal && _lanReveal != null && LanNow >= _lanReveal.StartHost + _lanReveal.Timeline.End)
         {
             SetLanPage(LanPage.None);
@@ -755,7 +783,7 @@ public partial class RaceScene
             {
                 var near = _remote.Values.OrderBy(r => r.Puppet.Pos.DistanceTo(_car.Pos)).FirstOrDefault();
                 string engine = near == null ? "" : $", nearest comrade {near.Puppet.Pos.DistanceTo(_car.Pos):0} m, his engine at {near.Sound.Volume / Math.Max(_snd.Volume, 1e-3f) * 100:0} % of ours";
-                LanLog($"authority: inputs {_lanInputCount}, contacts {_lanContactCount}, predicted {_lanPredictedContacts}, replay {_lanInputs.Count}, correction {_lanCorrectionError:F3} m, world {_lanWorld?.ReplicaCount ?? 0} meshes, {_net.WorldFramesIn/5f:F1} updates/s; " + $"stats: {Engine.GetFramesPerSecond():0} fps, snapshots sent {_net.SnapsSent / 5f:0.0}/s ({_net.SnapBytes} B), in {_net.SnapsIn / 5f:0.0}/s, {_remote.Count} puppets, pos {_hud.LanPos}/{_hud.LanCount}{engine}; rules damage {_lanReveal.Damage}, fuel {_lanReveal.Fuel}, tank {_tank.Litres:F3} l, health {_health.Health:F3}, light {_dayNight.Clock:F3}, shared lead {_lanSharedLightProgress:F3}");
+                LanLog($"authority: inputs {_lanInputCount}, contacts {_lanContactCount}, predicted {_lanPredictedContacts}, replay {_lanInputs.Count}, correction {_lanCorrectionError:F3} m, world {_lanWorld?.ReplicaCount ?? 0} meshes, {_lanWorld?.ReplicaBeaconCount ?? 0} beacons, {_net.WorldFramesIn/5f:F1} updates/s; " + $"stats: {Engine.GetFramesPerSecond():0} fps, snapshots sent {_net.SnapsSent / 5f:0.0}/s ({_net.SnapBytes} B), in {_net.SnapsIn / 5f:0.0}/s, {_remote.Count} puppets, pos {_hud.LanPos}/{_hud.LanCount}{engine}; rules damage {_lanReveal.Damage}, fuel {_lanReveal.Fuel}, tank {_tank.Litres:F3} l, health {_health.Health:F3}, light {_dayNight.Clock:F3}, shared lead {_lanSharedLightProgress:F3}");
             }
             _net.SnapsSent = _net.SnapsIn = _net.WorldFramesIn = 0;_lanCorrectionError=0;
             _lanStatAt = now + 5;
@@ -797,6 +825,7 @@ public partial class RaceScene
 
     void ExitLanToTitle(string notice)
     {
+        _lanKeep.Close();            // the question goes with the session; a save in flight still lands
         LanCleanup();
         _find.Stop();
         SetLanPage(LanPage.None);
@@ -813,7 +842,7 @@ public partial class RaceScene
         _babushkasAll.Canisters=false;
         _lanWorld?.Free();_lanWorld=null;_lanWorldPending.Clear();_lanDrivers.Clear();_lanInputs.Clear();_lanCorrection=null;
         _lanCars.Clear();
-        foreach(var a in _actors) if(a.Node!=null) {a.Node.Visible=InWorld(a.Who); foreach(var child in a.Node.FindChildren("*","",true,false)) {if(child is AudioStreamPlayer3D p3) p3.StreamPaused=false;else if(child is AudioStreamPlayer p) p.StreamPaused=false;}}
+        foreach(var a in _actors) if(a.Node!=null) {a.Node.Visible=a.Show!=null || InWorld(a.Who); foreach(var child in a.Node.FindChildren("*","",true,false)) {if(child is AudioStreamPlayer3D p3) p3.StreamPaused=false;else if(child is AudioStreamPlayer p) p.StreamPaused=false;}}
         foreach (var rc in _remote.Values) rc.Free();
         _remote.Clear();
         if (_breakSolo != null) { _car.BreakObstacle = _breakSolo; _breakSolo = null; }
@@ -849,6 +878,10 @@ public partial class RaceScene
                 v.Text = _lanName;
                 v.Items.Clear();
                 v.Items.AddRange(LanMenuItems);
+                v.Items[LanRecordMenuRow] = LanRecordRowLabel;
+                break;
+            case LanPage.Record:
+                v.Sel = _lanRecordSel ? 0 : 1;
                 break;
             case LanPage.Name or LanPage.Ip:
                 v.Text = _lanText;
@@ -874,11 +907,12 @@ public partial class RaceScene
                 v.Laps = _net.Laps;
                 v.Players.Clear();
                 foreach (var p in _net.Players.Values.OrderBy(p => p.Slot))
-                    v.Players.Add(new Hud.LanRow { Name = p.Name, Color = LanRace.TagFor(p.Slot), Ping = p.PingMs, Host = p.Id == 1, You = p.Id == _net.MyId, Voted = p.Voted, Note = p.Id == 1 ? "HOST" : null });
+                    v.Players.Add(new Hud.LanRow { Name = p.Name, Color = LanRace.TagFor(p.Slot), Ping = p.PingMs, Host = p.Id == 1, You = p.Id == _net.MyId, Voted = p.Voted, Note = p.Id == 1 ? "HOST" : null,
+                        Boards = _net.State == LanSession.Phase.Lobby && p.BoardShare ? (p.BoardBusy ? 2 : 1) : 0 });
                 v.Address = _net.IsHost ? LocalAddress() : null;
                 v.Sub = $"HOST: {_net.Players.GetValueOrDefault(1)?.Name ?? "?"}";
                 v.Choice = _lanChoice;
-                v.Sel = _lanBallotRow; v.Damage = _lanDamageVote; v.Fuel = _lanFuelVote;
+                v.Sel = _lanBallotRow; v.Damage = _lanDamageVote; v.Fuel = _lanFuelVote; v.Obstacles = _lanObstaclesVote;
                 v.Voted = _lanVoted;
                 v.BallotLeft = _net.State == LanSession.Phase.Ballot ? (float)Math.Max(0, _net.BallotEndsHost - LanNow) : -1;
                 break;
@@ -912,6 +946,7 @@ public partial class RaceScene
                 break;
         }
 
+        LanBoardsHud();      // RaceScene.LanBoards.cs
         _hud.LanLaps = InLanRace ? _lanReveal.Laps : 0;
         LanLeaveHud();
         _hud.LanTags.Clear();

@@ -7,6 +7,19 @@ namespace CCCPRacing.Net;
 /// <summary>Standings of a LAN race and the comrades' colours.</summary>
 public static class LanRace
 {
+    // Stable ballot IDs; 201 distinguishes Sputnik from jet fuel's legacy 200.
+    public const int FuelCount = Race.FuelGrades.Count;
+    public static bool ValidFuel(int id) => Race.Training.GradeOf(id).HasValue;
+    public static Race.FuelGrade Grade(int id) => Race.Training.GradeOf(id) ?? throw new ArgumentOutOfRangeException(nameof(id));
+    public static void ConfigureCar(Car.CarSim car, int id)
+    {
+        var grade = Grade(id);
+        Race.FuelGrades.ApplyEngine(car.P, grade);
+        car.PowerScale = Race.FuelGrades.PhysicsPercent(grade) / 100f;
+        car.TurboGain = Race.FuelGrades.TurboGainFor(grade);
+        car.Overdrive = 0;
+    }
+
     /// <summary>Authoritative LAN fuel: normal consumption, depot filling and timed emergency supply.</summary>
     public static void TickFuel(Car.FuelTank tank, Car.CarSim car, bool pad, bool atDepot, float dt, ref float dryWait)
     {

@@ -21,7 +21,14 @@ public partial class PaceBlip : Node
 
     public override void _ExitTree()
     {
-        _pb?.Dispose();
+        using var driverLock = AudioMix.LockDriver();
+        using var generator = GodotObject.IsInstanceValid(_player) ? _player.Stream as AudioStreamGenerator : null;
+        if (GodotObject.IsInstanceValid(_player))
+        {
+            _player.StreamPaused = false; _player.Stop();
+            _player.Stream = null;
+        }
+        if (GodotObject.IsInstanceValid(_pb)) _pb.Stop(); _pb?.Dispose();
         _pb = null;
     }
 

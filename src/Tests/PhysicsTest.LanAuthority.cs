@@ -8,11 +8,49 @@ using Godot;
 namespace CCCPRacing.Tests;
 public partial class PhysicsTest
 {
+    void LanFuelTest()
+    {
+        var track=TrackBuilder.Build(TrackDef.Load("res://tracks/ilyich.json"));
+        var fx=new TyreEffects();AddChild(fx);
+        foreach (int key in Enumerable.Range(1, LanRace.FuelCount))
+        {
+            int fuel=CCCPRacing.Race.Training.PercentForKey(key);
+            var grade=(CCCPRacing.Race.FuelGrade)(key-1);
+            var host=LanSession.BallotFixture("ilyich");host.StartBallot();
+            host.Vote(fuel);host.CapacityVote(2,fuel);
+            var client=new LanSession();client.OnPacket(1,host.RevealFixturePacket(true));
+            Check(host.Reveal.Power==fuel && client.Reveal.Power==fuel && client.Reveal.Ballots.All(b=>b.pct==fuel), $"LAN fuel {grade}: actual ballot and reveal preserve the distinct fuel ID");
+            var p=new CarParams();var car=new CarSim(p,track);LanRace.ConfigureCar(car,client.Reveal.Power);
+            var solo=new CarParams();CCCPRacing.Race.FuelGrades.ApplyEngine(solo,grade);
+            Check(p.Redline==solo.Redline && p.MaxTorque==solo.MaxTorque && p.FinalDrive==solo.FinalDrive && p.DriveFront==solo.DriveFront && p.CenterLock==solo.CenterLock && p.TurboKick==solo.TurboKick && car.PowerScale==CCCPRacing.Race.FuelGrades.PhysicsPercent(grade)/100f && car.TurboGain==CCCPRacing.Race.FuelGrades.TurboGainFor(grade), $"LAN fuel {grade}: authority and prediction use solo engine, turbo and drivetrain");
+            var remote=new RemoteCar(2,"FUEL",1,1,p,track,this,fx);remote.ConfigureFuel(fuel);
+            var visual=CarVisual.Create(solo,new Color(.7f,.2f,.1f));CCCPRacing.Race.FuelGrades.ApplyVisual(visual,grade);
+            Check(remote.Vis.Wing==visual.Wing && remote.Vis.Damage.KitWorn==visual.Damage.KitWorn && remote.Sound.FiveCylinder==(grade==CCCPRacing.Race.FuelGrade.Sputnik) && remote.Sound.Grade==(int)(grade==CCCPRacing.Race.FuelGrade.Sputnik?CCCPRacing.Race.FuelGrade.Rocket:grade), $"LAN fuel {grade}: remote body and engine voice match the fuel");
+            car.Reset(track.StartPos,track.StartYaw);
+            for(int i=0;i<480;i++) {car.SetControls(1,0,0,false,true);car.Step(Dt);}
+            if (car.TurboGain > 0) car.RestoreBoost(.72f); // exercise a loaded turbo, not an idle zero
+            var corrected=new CarSim(p,track);LanRace.ConfigureCar(corrected,fuel);corrected.RestoreNetwork(car.NetworkState());
+            bool exact=car.Boost==corrected.Boost;
+            for(int i=0;i<120;i++) {
+                car.SetControls(.7f,0,.1f,false,true);corrected.SetControls(.7f,0,.1f,false,true);
+                car.Step(Dt);corrected.Step(Dt);exact &= car.NetworkState().SequenceEqual(corrected.NetworkState());
+            }
+            Check(exact,$"LAN fuel {grade}: turbo/integrator correction resumes without drift");
+            var buffer=new SnapshotBuffer();var snap=Snapshot.Of(car,1,0,0,1,0,false);snap.State=car.NetworkState();buffer.Add(snap);
+            float applied=-1;buffer.Apply(1,remote.Puppet,0,ref applied);
+            Check(remote.Puppet.Boost==car.Boost,$"LAN fuel {grade}: recorded snapshot restores turbo presentation without live simulation");
+            visual.Free();remote.Free();client.Free();host.Free();
+        }
+        Check(!LanRace.ValidFuel(175) && !LanRace.ValidFuel(0),"LAN fuel: arbitrary power values cannot enter a ballot");
+        fx.QueueFree();
+    }
+
     void LanAuthorityTest()
     {
         LanRulesTest();
         LanCanisterTest();
         LanWorldRoundtripTest();
+        LanVisualsTest();
         LanPacketRecoveryTest();
         LanWreckVisualTest();
         LanIdleNeutralTest();
@@ -20,6 +58,7 @@ public partial class PhysicsTest
         LanContactPredictionTest();
         LanLeavePromptTest();
         LanTrackBallotTest();
+        LanObstaclesTest();
         LanSessionScoresTest();
         LanCapacityTest();
         LanReplayAccessTest();

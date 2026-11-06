@@ -50,8 +50,12 @@ public partial class DieselSound : AudioStreamPlayer3D
 
     public override void _ExitTree()
     {
-        // Release the managed reference before Godot tears down the audio server.
-        _pb?.Dispose();
+        using var driverLock = AudioMix.LockDriver();
+        using var generator = Stream as AudioStreamGenerator;
+        // Drop the player's native playback ownership before the managed wrapper.
+        StreamPaused = false; Stop();
+        Stream = null;
+        if (GodotObject.IsInstanceValid(_pb)) _pb.Stop(); _pb?.Dispose();
         _pb = null;
     }
 
@@ -118,6 +122,7 @@ public partial class DieselSound : AudioStreamPlayer3D
                     EngineVoice.Armoured=>thump*.68f+_lp*.9f+fundamental*.18f+firing*.20f+n*.035f,
                     _=>thump*.65f+_lp*.35f+fundamental*.10f+firing*.15f+n*.025f };
                 engine=MathF.Tanh(engine*1.3f)*.80f;
+                if (Voice == EngineVoice.Tank) engine *= 0.5f; // half the tank's rumble; other vehicle voices retain their level
             }
 
             float cough = 0;
@@ -158,7 +163,7 @@ public partial class DieselSound : AudioStreamPlayer3D
                 _rumbleLoad += (Math.Clamp(Speed * 0.35f, 0f, 1f) - _rumbleLoad) * 0.0003f;
                 _rumbleA += (n - _rumbleA) * 0.03f;
                 _rumbleB += (_rumbleA - _rumbleB) * 0.06f;
-                rumble = MathF.Tanh(_rumbleB * 10f) * (0.6f + 0.2f * (float)Math.Sin(_phase * Math.Tau)) * _rumbleLoad;
+                rumble = MathF.Tanh(_rumbleB * 10f) * (0.6f + 0.2f * (float)Math.Sin(_phase * Math.Tau)) * _rumbleLoad * 0.5f; // half the blade rumble, with the engine and horn unchanged
             }
 
             _fade += (f - _fade) * fk;

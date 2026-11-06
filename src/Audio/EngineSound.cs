@@ -125,8 +125,16 @@ public partial class EngineSound : Node
 
     public override void _ExitTree()
     {
-        // Release the managed reference before Godot tears down the audio server.
-        _pb?.Dispose();
+        using var driverLock = AudioMix.LockDriver();
+        using var generator = GodotObject.IsInstanceValid(_player) ? _player.Stream as AudioStreamGenerator : null;
+        // The player/mixer also owns the generator playback. Release that ownership
+        // before disposing our managed reference, including shutdown in a test's first frame.
+        if (GodotObject.IsInstanceValid(_player))
+        {
+            _player.StreamPaused = false; _player.Stop();
+            _player.Stream = null;
+        }
+        if (GodotObject.IsInstanceValid(_pb)) _pb.Stop(); _pb?.Dispose();
         _pb = null;
     }
 
@@ -135,6 +143,7 @@ public partial class EngineSound : Node
         var gen = new AudioStreamGenerator { MixRate = MixRate, BufferLength = 0.08f };
         _player = new AudioStreamPlayer { Stream = gen, VolumeDb = GainDb, Bus = AudioMix.BusFor(AudioMix.Engine) };
         AddChild(_player);
+        _player.TreeExiting += _ExitTree;
         _player.Play();
         _pb = _player.GetStreamPlayback() as AudioStreamGeneratorPlayback;
     }
@@ -142,10 +151,10 @@ public partial class EngineSound : Node
     /// <summary>Drop queued PCM on an isolated replay seek, then fill a fresh playback from the new pose.</summary>
     public void ResetPlaybackBuffer()
     {
-        if(_player==null) return;
-        _player.Stop();_pb?.Dispose();_pb=null;
-        _player.Play();_pb=_player.GetStreamPlayback() as AudioStreamGeneratorPlayback;
-        _player.StreamPaused=true;
+        if(AudioMix.Closing || _player==null) return;
+        using var driverLock = AudioMix.LockDriver();
+        _player.StreamPaused = true;
+        _pb.Stop(); _pb.ClearBuffer(); _pb.Start();
     }
 
     public void Impact(float strength)

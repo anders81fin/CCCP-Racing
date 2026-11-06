@@ -4,13 +4,18 @@ Completed single-player Socialist Rally and Stakhanov laps are recorded
 automatically. Recent session recordings are temporary; use **KEEP** to retain
 a recording on disk. PARTY OFFICE > RECORDINGS opens the recording library.
 PARTY MEETING > REPLAY lists recordings from the current run. A single available
-lap opens directly; multiple laps present a selection.
+lap opens directly; multiple laps present a selection. Current-run rows show
+their lap number and follow driving order across recording folders. Pinned
+recordings always appear first; the other sorting rules apply within each group.
 
 Qualifying leaderboard laps are retained separately and can be opened from
 their result row. Legacy or missing recordings are reported instead of being
 replaced with a different lap.
 
 ## Watching and editing
+
+V opens EDIT / EXPORT, including while using the free camera. E still raises
+the free camera. Camera movement pauses while the edit panel owns input.
 
 The viewer supports pause, seek, playback speed, single steps and available
 cameras. KEEP can name a recording; EDIT provides IN/OUT boundaries, looping,
@@ -31,11 +36,14 @@ exported videos are not deleted by this action.
 
 ## MP4 export
 
-The Linux viewer's EDIT menu offers EXPORT MP4 for the whole recording or its
+The Linux x86_64 and Windows 64-bit viewer's EDIT menu offers EXPORT MP4 for the whole recording or its
 cut. It needs FFmpeg with libx264 and AAC installed; FFmpeg is not bundled.
 Export uses GPU rendering even when its renderer window is hidden. Progress
 and cancellation stay in the game, and the source recording remains unchanged.
-Windows and macOS export are not supported by the current implementation.
+On Windows, put ffmpeg.exe and any DLLs supplied with it beside the game, or
+make FFmpeg available on PATH. The renderer preserves the package graphics
+backend. macOS MP4 export is not supported. Windows packages cross-build on
+Linux; native Windows export and window visibility still need runtime validation.
 
 ## Recording fidelity
 

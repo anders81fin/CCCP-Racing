@@ -5,6 +5,15 @@ namespace CCCPRacing.Car;
 public partial class CarSim
 {
     const uint HandbrakeStateTag = 0x31424843; // CHB1: optional tail after the legacy integrator state
+    const uint FuelStateTag = 0x314c5546; // FUL1: turbo and smoothed centre-lock split, after CHB1
+    internal static float NetworkBoost(byte[] bytes)
+    {
+        if (bytes.Length < 12 || System.BitConverter.ToUInt32(bytes, bytes.Length-12) != FuelStateTag) return 0;
+        float value=System.BitConverter.ToSingle(bytes, bytes.Length-8);
+        if (!float.IsFinite(value) || value < 0 || value > 1) throw new InvalidDataException("Invalid turbo state");
+        return value;
+    }
+    internal void RestoreBoost(float value) => _turbo=value;
     public bool PadSteering => _padSteer;
     /// <summary>Explicit start/service hold, excluding the gearbox's automatically released idle N.</summary>
     public bool ExplicitNeutral => _neutral;
@@ -68,6 +77,7 @@ public partial class CarSim
         for (int i = 0; i < Wheels.Length; i++)
             if (Wheels[i].HandbrakeHeld) held |= (byte)(1 << i);
         w.Write(HandbrakeStateTag); w.Write(held);
+        if (TurboGain > 0 || P.DriveFront > 0) { w.Write(FuelStateTag); w.Write(_turbo); w.Write(_frontShare); }
         return m.ToArray();
     }
     public void RestoreNetwork(byte[] bytes)
@@ -127,14 +137,22 @@ public partial class CarSim
         }
         // Existing snapshots end here. Keep their prefix and framing readable; new peers additionally
         // preserve the brake's hysteresis even at rest, where the visual Locked flag is false.
+        _turbo=0;_frontShare=Mathf.Clamp(P.DriveFront,0,1);
         if (r.BaseStream.Position < r.BaseStream.Length)
         {
-            if (r.BaseStream.Length-r.BaseStream.Position != 5 || r.ReadUInt32()!=HandbrakeStateTag)
+            if (r.BaseStream.Length-r.BaseStream.Position is not (5 or 17) || r.ReadUInt32()!=HandbrakeStateTag)
                 throw new InvalidDataException("Unknown car integrator state extension");
             byte held=r.ReadByte();
             if ((held & ~((1 << Wheels.Length)-1)) != 0)
                 throw new InvalidDataException("Invalid handbrake state mask");
             for (int i=0;i<Wheels.Length;i++) Wheels[i].HandbrakeHeld=(held & (1 << i))!=0;
+            if (r.BaseStream.Position < r.BaseStream.Length)
+            {
+                if (r.ReadUInt32()!=FuelStateTag) throw new InvalidDataException("Unknown fuel extension");
+                _turbo=NetworkBoost(bytes);r.ReadSingle();_frontShare=r.ReadSingle();
+                if (!float.IsFinite(_frontShare) || _frontShare < 0 || _frontShare > 1)
+                    throw new InvalidDataException("Invalid centre-lock split");
+            }
         }
     }
     public void NetworkImpact(float speed, Vector3 point, Vector3 normal) => NoteImpact(speed, point-Pos, normal, false, false);

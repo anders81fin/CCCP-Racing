@@ -140,14 +140,14 @@ public sealed partial class LapArchive
             lock (_lock)
             {
                 string id;
-                do id = $"lap-{c.RecordedUtc:yyyyMMddHHmmss}-{Clean(c.TrackId)}-s{c.Set}-{Rng.Next(0x10000):x4}"; while (Find(id) != null);
+                do id = $"lap-{c.RecordedUtc:yyyyMMddHHmmss}-{Clean(c.TrackId)}-s{c.Set}{(c.LapNumber > 0 ? $"-lap{c.LapNumber:D4}" : "")}-{Rng.Next(0x10000):x4}"; while (Find(id) != null);
                 e = new Entry
                 {
                     Seq = Interlocked.Increment(ref _seq), Making = c.Recording != null || deferred,
                     Ghost = c.GhostBytes, GhostSrc = deferred ? c.OwnedGhost : null, Rec = c.Recording, State = c.Recording != null || deferred ? LapEntryState.Pending : LapEntryState.Ready, Size = raw,
                     Meta = new LapMeta
                     {
-                        Id = id, TrackId = c.TrackId, Set = c.Set, Mode = c.Mode, LapSeconds = c.LapSeconds, Kind = c.Kind, Ranked = c.Ranked, RecordedUtc = c.RecordedUtc,
+                        Id = id, TrackId = c.TrackId, Set = c.Set, Mode = c.Mode, LapSeconds = c.LapSeconds, LapNumber = Math.Max(0,c.LapNumber), Kind = c.Kind, Ranked = c.Ranked, RecordedUtc = c.RecordedUtc,
                         DayClock = c.DayClock, HasTape = c.Recording != null, GhostFingerprint = c.GhostFingerprint, Profile = c.Profile, TrackSignature = c.TrackSignature,
                         Layout = c.Layout, TotalBytes = raw, Fuels = c.Fuels ?? "",
                     },

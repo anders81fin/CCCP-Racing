@@ -64,8 +64,9 @@ public partial class RaceScene
         else
         {
             // Only laps captured in this run belong to the meeting, including its record laps.
-            _replayInfos = t.Result.Where(i => _replayOrigin == ReplayOrigin.Office || _sessionLapArchives.ContainsKey(i.Id))
-                .OrderByDescending(i => i.Pinned).ToList();
+            var rows = t.Result.Where(i => _replayOrigin == ReplayOrigin.Office || _sessionLapArchives.ContainsKey(i.Id));
+            _replayInfos = _replayOrigin == ReplayOrigin.Office ? rows.OrderByDescending(i => i.Pinned).ToList()
+                : LapListOrder.CurrentRun(rows, _sessionLapOrder).ToList();
             _replayKnownLaps = _replayInfos.Count;
         }
         if (_hud.ReplayListOpen)
@@ -117,7 +118,7 @@ public partial class RaceScene
         else if (i.State == LapEntryState.Failed && !i.Openable) { flag = "DAMAGED"; selectable = false; }
         else if (i.State == LapEntryState.Pending && !i.Openable) { flag = "PREPARING"; selectable = false; }
         else if (!m.HasTape) flag = "CAR ONLY";
-        return new ReplayRowView { Title = $"{m.TrackId.ToUpperInvariant()} {mode}  {LapTimeText(m.LapSeconds)}", Detail = detail, Flag = flag, Selectable = selectable };
+        return new ReplayRowView { Title = m.LapNumber > 0 ? $"LAP {m.LapNumber}  {LapTimeText(m.LapSeconds)}  {m.TrackId.ToUpperInvariant()} {mode}" : $"{m.TrackId.ToUpperInvariant()} {mode}  {LapTimeText(m.LapSeconds)}", Detail = detail, Flag = flag, Selectable = selectable };
     }
 
     void BuildReplayRows(bool keepSelection)

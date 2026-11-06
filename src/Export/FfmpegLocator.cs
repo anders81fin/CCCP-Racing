@@ -27,7 +27,7 @@ public static class FfmpegLocator
             if (why == null) return c;
             error = why;
         }
-        error ??= MissingText;
+        error ??= OperatingSystem.IsWindows() ? "FFMPEG.EXE NOT FOUND - PUT IT BESIDE THE GAME" : MissingText;
         return null;
     }
 

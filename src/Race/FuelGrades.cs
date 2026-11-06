@@ -14,7 +14,7 @@ public static class FuelGrades
     public static readonly string[] Names = { "DIESEL", "PETROL", "JET FUEL", "SPUTNIK" };
     public static readonly string[] Ids = { "diesel", "petrol", "rocket", "sputnik" };
     /// <summary>The engine's power in percent of the factory's. 100 is the game as it has always been.</summary>
-    public static readonly int[] Percent = { 50, 100, 200, 200 };      // (the Sputnik has the jet fuel's power; Stakhanov laps and the LAN keep the first three)
+    public static readonly int[] Percent = { 50, 100, 200, 200 };      // Sputnik shares jet fuel power; the ballot uses a separate stable ID.
     /// <summary>The tank's consumption against the tuned one: the diesel sips, the rocket fuel drinks.</summary>
     public static readonly float[] Burn = { 0.6f, 1f, 1.7f, 1.9f };
     /// <summary>The line on the FUEL card.</summary>
@@ -60,6 +60,13 @@ public static class FuelGrades
         p.CenterLock = g == FuelGrade.Sputnik ? SputnikCenterLock : 0f;
         p.TurboSpool = g == FuelGrade.Sputnik ? SputnikTurboSpool : defaults.TurboSpool;
         p.TurboKick = g == FuelGrade.Sputnik ? SputnikTurboKick : 0f;
+    }
+
+    /// <summary>The same body equipment for solo, LAN and recorded cars; paint belongs to the caller.</summary>
+    public static void ApplyVisual(CarVisual visual, FuelGrade grade)
+    {
+        visual.Wing = grade switch { FuelGrade.Diesel => 3, FuelGrade.Rocket => 1, FuelGrade.Sputnik => 2, _ => 0 };
+        visual.Equip(bumpers: grade is FuelGrade.Diesel or FuelGrade.Petrol, roofRack: grade != FuelGrade.Sputnik, kit: grade == FuelGrade.Sputnik);
     }
 
     /// <summary>The SPUTNIK is a Group B Quattro: a viscous centre lock (up to 35 points of the engine move to the axle that grips), a turbo that spools in 0.4 s but holds its power back and then surges.</summary>

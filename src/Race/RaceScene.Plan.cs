@@ -57,7 +57,7 @@ public partial class RaceScene
     /// phase at the lap start; the line check runs before the next frame moves it on, so a night lap
     /// is judged with the night allowance). The check, the alerts and the HUD all use ladder + this.
     /// </summary>
-    float ClimateAllowance() => StakhanovRules ? 0f : (_dayNight?.ClimateAllowance ?? 0f) * NormPlan.Factor;
+    float ClimateAllowance() => StakhanovRules ? 0f : (_dayNight?.ClimateAllowance ?? 0f) * (_rallyFuel == FuelGrade.Diesel ? 2f / 3.5f : NormPlan.Factor);
 
     /// <summary>A norm for the texts.</summary>
     static string NormText(float t) => LapTimer.Format(t);

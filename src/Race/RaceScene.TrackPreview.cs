@@ -71,7 +71,7 @@ public partial class RaceScene
         if (!HasTour(_trackId))
         {
             GD.PushError("--tour-movie requires a track with a tour (ilyich, siberia, atomgrad, bonus)");
-            GetTree().Quit(1);
+            CCCPRacing.Audio.AudioMix.Quit(this, 1);
             return;
         }
         _previewMovie = true;
@@ -205,7 +205,7 @@ public partial class RaceScene
             case SchoolRunner.PreviewMove.End when _previewMovie:
                 _previewMovieDone = true;
                 GD.Print($"Tour movie complete: {_trackId}, {_sc.Total:F3} seconds");
-                GetTree().Quit();
+                CCCPRacing.Audio.AudioMix.Quit(this);
                 return;
             case SchoolRunner.PreviewMove.End:
                 CloseTour();      // over: back to the track card

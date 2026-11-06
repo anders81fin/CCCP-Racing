@@ -156,7 +156,7 @@ public partial class RaceScene
         if (_autodrive && _tapeQuitLaps > 0)
         {
             GD.Print($"AUTODRIVE FAILED: {reason} at lap clock {_timer.LapTime:F2}, lap {_timer.LapsDone + 1}");
-            GetTree().Quit(3);
+            CCCPRacing.Audio.AudioMix.Quit(this, 3);
         }
         if (OS.HasEnvironment("ENGINEDBG")) GD.Print($"mission failed: {reason} at {_clock:F2} s, lap {_timer.LapsDone + 1}, clock {_timer.LapTime:F2}");
     }

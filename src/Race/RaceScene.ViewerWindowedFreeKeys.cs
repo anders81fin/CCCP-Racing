@@ -37,7 +37,7 @@ public partial class RaceScene
         VwCheck(v.ViewerEdits.Keys.Count == 1 && v.ViewerEdits.FreeKeys.Count == 0, "preset camera points coexist with free-camera points");
         v.ViewerSeek(10);
         for (int i = 0; i < 4; i++) yield return null;
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         int freeRow = Array.FindIndex(s.EditRowTexts, r => r.StartsWith("FREE CAMERA"));
         foreach (var x in ToExportRow(s, freeRow)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
@@ -59,7 +59,7 @@ public partial class RaceScene
         VwCheck(FreeShotMatches(v, shotA), "follow+look key evaluates at sought car pose");
         var pose15 = v.ViewerCameraPose;
         v.ViewerSeek(20f);
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         foreach (var x in ToExportRow(s, freeRow)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
         foreach (var x in VrTap(Key.F)) yield return x;
@@ -98,7 +98,7 @@ public partial class RaceScene
         foreach (var x in VrTapShift(Key.Tab)) yield return x;
         VwCheck(Mathf.Abs(v.ViewerClock - 10f) < .01f && FreeShotMatches(v, shotA), "Shift+Tab goes to the previous key");
         // in the free camera a free key puts the rig there and flying goes on; a preset key leaves the free camera
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         foreach (var x in ToExportRow(s, freeRow)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
         foreach (var x in VrTap(Key.W, 15)) yield return x;
@@ -120,11 +120,11 @@ public partial class RaceScene
         RenderingServer.FramePostDraw -= Sample;
         VwCheck(v.ViewerWraps > 0 && v.ViewerClock >= 10 && v.ViewerClock < 20 && samples > 10 && wrong == 0,
             $"loop and continuous playback use exact selected key on every sampled frame (samples {samples}, wrong {wrong})");
-        foreach (var x in VrTap(Key.S)) yield return x;
+        foreach (var x in VrTapCtrl(Key.S)) yield return x;
         foreach (var x in VrUntil(() => !s.SaveBusy, 1800, "saved")) yield return x;
         VwCheck(!s.Dirty && archive.LoadEdits(info.Id).Result.Edits.CameraKeys.Count == 3, "SAVE persists both camera poses and clears dirty state");
         foreach (var x in VrShot("saved-free-keys")) yield return x;
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         int exportRow = Array.FindIndex(s.EditRowTexts, r => r.StartsWith("EXPORT"));
         foreach (var x in ToExportRow(s, exportRow)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
@@ -161,7 +161,7 @@ public partial class RaceScene
         VwCheck(sawStart && wrongStart == 0, $"full-lap wrap restores default before the first key, without a stale free-camera frame (wrong {wrongStart})");
         v2.ViewerSeek(21f); for (int i = 0; i < 3; i++) yield return null;
         VwCheck(v2.ViewerFreeCameraActive, "saved shot active before clearing its points");
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         int clearRow = Array.FindIndex(s2.EditRowTexts, r => r.StartsWith("CLEAR CAMERA KEYS"));
         foreach (var x in ToExportRow(s2, clearRow)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
@@ -173,7 +173,7 @@ public partial class RaceScene
         foreach (var x in VrTap(Key.Escape)) yield return x;
         v2.ViewerSeek(v2.ViewerClock); for (int i = 0; i < 3; i++) yield return null;
         VwCheck(v2.ViewerFreeCameraActive && s2.Dirty, "another working free key is active before reset");
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         int resetRow = Array.FindIndex(s2.EditRowTexts, r => r.StartsWith("RESET EDITS"));
         foreach (var x in ToExportRow(s2, resetRow)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;

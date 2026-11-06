@@ -52,7 +52,7 @@ public partial class TrackLoadingScreen
         if(answer==LanLeavePrompt.Result.Leave)
         {
             bool quit=prompt.QuitApplication;_lan.LeaveLoading();
-            if(quit) GetTree().Quit();
+            if(quit) CCCPRacing.Audio.AudioMix.Quit(this);
         }
         return true;
     }

@@ -23,10 +23,12 @@ public partial class RotorSound : AudioStreamPlayer3D
     {
         Level = 0; _level = _phase = _whine = _whine2 = _noise = _turbineNoise = 0;
         _doppler = default;
-        // (the generator refuses ClearBuffer while its playback is active: stop the player, start a new playback with an empty buffer, keep the pause)
-        if (!IsInsideTree()) { _playback = null; return; }      // (the next _Ready starts a clean playback)
+        // Clear the generator under the audio-driver lock, retaining its native voice and pause state.
+        if (AudioMix.Closing || !IsInsideTree()) { if (GodotObject.IsInstanceValid(_playback)) _playback.Stop(); _playback?.Dispose(); _playback = null; return; }      // (the next _Ready starts a clean playback)
+        using var driverLock = AudioMix.LockDriver();
         bool paused = StreamPaused;
-        Stop(); Play(); _playback = GetStreamPlayback() as AudioStreamGeneratorPlayback;
+        StreamPaused = true;
+        _playback.Stop(); _playback.ClearBuffer(); _playback.Start();
         StreamPaused = paused;
     }
     public override void _Process(double delta)
@@ -56,5 +58,12 @@ public partial class RotorSound : AudioStreamPlayer3D
             _playback.PushFrame(new Vector2(sample,sample));
         }
     }
-    public override void _ExitTree() { _playback?.Dispose(); _playback=null; }
+    public override void _ExitTree()
+    {
+        using var driverLock = AudioMix.LockDriver();
+        using var generator = Stream as AudioStreamGenerator;
+        StreamPaused = false; Stop();
+        Stream = null;
+        if (GodotObject.IsInstanceValid(_playback)) _playback.Stop(); _playback?.Dispose(); _playback=null;
+    }
 }

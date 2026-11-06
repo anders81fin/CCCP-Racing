@@ -219,6 +219,7 @@ public partial class Hud : Control
         if (ReplayDeleteOpen && ReplayListOpen) DrawReplayDelete();
         if (Mode == HudMode.Lessons) DrawLessons();
         DrawCapitalistLuxuriesNotice();
+        DrawLanKeep();                    // HudLanKeep.cs: KEEP after a LAN race, under the leave question
         DrawLanLeave();
         DrawResign();                     // HudResign.cs: over everything, the black screen too
     }

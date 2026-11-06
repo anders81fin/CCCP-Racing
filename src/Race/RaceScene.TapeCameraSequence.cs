@@ -86,7 +86,7 @@ public partial class RaceScene
                 _tapeCameraSequence = sequence;
             }
             catch (Exception e) when (e is IOException or InvalidDataException or JsonException or ArgumentException or NotSupportedException)
-            { GD.PushError("Tape camera sequence: " + e.Message); GetTree().Quit(1); return true; }
+            { GD.PushError("Tape camera sequence: " + e.Message); CCCPRacing.Audio.AudioMix.Quit(this, 1); return true; }
         }
         int index = 0;
         while (index + 1 < _tapeCameraSequence.Shots.Length && _replayClock >= _tapeCameraSequence.Shots[index].End - .0001f) index++;

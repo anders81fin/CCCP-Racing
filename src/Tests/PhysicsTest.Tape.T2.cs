@@ -130,7 +130,8 @@ public partial class PhysicsTest
             TapeCheck(rs.TapeForSet(0) == dir + "tape_ilyich.bin" && rs.TapeForSet(1) == dir + "tape_ilyich_stakhanov.bin" && rs.TapeForSet(2) == dir + "tape_ilyich_diesel.bin" && rs.TapeForSet(3) == dir + "tape_ilyich_rocket.bin", "tape T2b: TapeForSet is GhostForSet with tape_ for ghost_ in every set");
             for (int set = 0; set < RecordStore.Sets; set++)
                 TapeCheck(TapeSeams.SavePair(rs.GhostForSet(set), rs.TapeForSet(set), f.G1, f.T1, TapeSeams.RealOps()).Whole, $"tape T2b: set {set} saves a pair into the record directory");
-            rs.WriteSignature(); File.WriteAllText(rs.BoardPath, "board");
+            rs.WriteSignature();
+            for (int set = 0; set < RecordStore.Sets; set++) File.WriteAllText(rs.BoardForSet(set), $"board {set}");
             var g = T2Ghost(rs.GhostForSet(1));
             TapeCheck(g != null && T2SameTape(TapeSeams.LoadTape(rs.TapeForSet(1), g), f.T1), "tape T2b: the saved pair of a set re-loads from the record directory");
 
@@ -142,10 +143,21 @@ public partial class PhysicsTest
 
             // a changed road: the tape is archived with its ghost
             var moved = new RecordStore(dir, "ilyich", "sigB").ArchiveIfChanged();
-            bool allThere = Enumerable.Range(0, RecordStore.Sets).All(s => !File.Exists(rs.TapeForSet(s)) && !File.Exists(rs.GhostForSet(s)));
-            TapeCheck(allThere && File.Exists(dir + "tape_ilyich_v02.bin") && File.Exists(dir + "ghost_ilyich_v02.bin") && File.Exists(dir + "tape_ilyich_stakhanov_v02.bin") && File.Exists(dir + "tape_ilyich_rocket_v02.bin") && moved.Count == 4 + 4 + 1 + 1, $"tape T2b: a changed signature archives each tape with its ghost ({moved.Count} files moved)");
+            bool allThere = Enumerable.Range(0, RecordStore.Sets).All(s => !File.Exists(rs.TapeForSet(s)) && !File.Exists(rs.GhostForSet(s)) && !File.Exists(rs.BoardForSet(s)));
+            TapeCheck(allThere && File.Exists(dir + "tape_ilyich_v02.bin") && File.Exists(dir + "ghost_ilyich_v02.bin") && File.Exists(dir + "tape_ilyich_stakhanov_v02.bin") && File.Exists(dir + "tape_ilyich_rocket_v02.bin") && moved.Count == RecordStore.Sets * 3 + 1, $"tape T2b: a changed signature archives every fuel's ghost, tape and board ({moved.Count} files moved)");
             var ag = T2Ghost(dir + "ghost_ilyich_v02.bin");
             TapeCheck(ag != null && T2SameTape(TapeSeams.LoadTape(dir + "tape_ilyich_v02.bin", ag), f.T1), "tape T2b: the archived tape still pairs with the archived ghost");
+            var sg = T2Ghost(dir + "ghost_ilyich_sputnik_v02.bin");
+            TapeCheck(sg != null && T2SameTape(TapeSeams.LoadTape(dir + "tape_ilyich_sputnik_v02.bin", sg), f.T1)
+                && File.ReadAllText(dir + "leaderboard_ilyich_sputnik_v02.cfg") == "board 4", "tape T2b: Sputnik's actual archived ghost/tape reload together and its leaderboard survives");
+            // A later change must keep the first archive and choose one new suffix for the whole pair/board.
+            TapeCheck(TapeSeams.SavePair(rs.SputnikGhostPath, rs.TapeForSet(4), f.G1, f.T1, TapeSeams.RealOps()).Whole, "tape T2b: a new Sputnik pair is saved after the first archive");
+            File.WriteAllText(rs.SputnikBoardPath, "second Sputnik board"); rs.WriteSignature();
+            var again = new RecordStore(dir, "ilyich", "sigC").ArchiveIfChanged();
+            var sg2 = T2Ghost(dir + "ghost_ilyich_sputnik_v02_2.bin");
+            TapeCheck(again.Count == 4 && sg2 != null && T2SameTape(TapeSeams.LoadTape(dir + "tape_ilyich_sputnik_v02_2.bin", sg2), f.T1)
+                && File.ReadAllText(dir + "leaderboard_ilyich_sputnik_v02_2.cfg") == "second Sputnik board"
+                && File.ReadAllText(dir + "leaderboard_ilyich_sputnik_v02.cfg") == "board 4", "tape T2b: a Sputnik-only store archives safely with a shared collision suffix, preserving the first archive");
 
             // records from before the two record sets: ghost, board and tape go to _v03
             var dir2 = TapeTmpDir() + "/";

@@ -16,6 +16,14 @@ public static class TrackSignature
     /// <summary>The v0.2 bonus map (seed 1917, hillAmp 11.52, no hill shapes) that saved records without a signature.</summary>
     public const string LegacyBonus = "42ef2c90d964bb36";
 
+    /// <summary>What <see cref="Compute"/> writes: sixteen lower-case hex digits.</summary>
+    public static bool LooksValid(string s)
+    {
+        if (s == null || s.Length != 16) return false;
+        foreach (char c in s) if (!(c is >= '0' and <= '9' or >= 'a' and <= 'f')) return false;
+        return true;
+    }
+
     public static string Compute(TrackData t)
     {
         ulong h = 14695981039346656037UL;

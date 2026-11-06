@@ -272,9 +272,9 @@ public partial class PhysicsTest
             }
             if (On("exportui"))
             {
-                string exDir = Path.Combine(TapeProjectDir, "media", "replay-export-20261028", "ui");
+                string exDir = VwOpt("--vw-export-dir") ?? Path.Combine(TapeProjectDir, "media", "replay-export-20261028", "ui");
                 Directory.CreateDirectory(exDir);
-                var (cx, _) = VwChild("export-ui", false, new[] { "--viewer-windowed=export-ui", "--no-intro", "--vw-fx=/tmp/cccp-lc-fx", "--export-input-only=" + (VwOpt("--export-input-only") ?? "0"), "--export-dir=" + exDir, "--export-jobs-dir=" + Path.Combine(exDir, "jobs") }.Concat(fxArgs).ToArray(), 900);
+                var (cx, _) = VwChild("export-ui", false, new[] { "--viewer-windowed=export-ui", "--no-intro", "--vw-fx=/tmp/cccp-lc-fx", "--vw-native=" + (VwOpt("--vw-native") ?? "0"), "--export-input-only=" + (VwOpt("--export-input-only") ?? "0"), "--export-dir=" + exDir, "--export-jobs-dir=" + Path.Combine(exDir, "jobs") }.Concat(fxArgs).ToArray(), 900);
                 VwJudge("export-ui", cx);
             }
             if (On("editsbonus"))
@@ -344,6 +344,11 @@ public partial class PhysicsTest
             {
                 var (c, _) = VwChild("stakhanov-start-ilyich", false, new[] { "--viewer-windowed=stakhanov-start", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 300);
                 VwJudge("stakhanov-start-ilyich", c);
+            }
+            if (On("native"))
+            {
+                var (c, _) = VwChild("native-render-ilyich", false, new[] { "--viewer-windowed=native-render", "--start", "--autodrive", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 500);
+                VwJudge("native-render-ilyich", c);
             }
             if (On("hudtoggles"))
             {

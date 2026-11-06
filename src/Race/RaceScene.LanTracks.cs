@@ -11,7 +11,18 @@ public partial class RaceScene
 {
     static bool _lanWorldRebuild;
     int _lanTrackChoice;
-    int LanBallotRows => _net.TrackOptions.Count>1?4:3;
+    // Ballot row ids: 0 fuel, 1 damage, 2 fuel consumption, 3 track, 4 moving obstacles. Navigation follows the
+    // card from top to bottom; a single track is shown but not chosen, and an Ilyich-only
+    // ballot has no fuel-consumption choice.
+    int[] LanBallotOrder => _net.TrackOptions.Count>1
+        ? new[]{3,0,1,2,4}
+        : _net.TrackOptions.Any(t=>t!="ilyich") ? new[]{0,1,2,4} : new[]{0,1,4};
+    void StepLanBallotRow(bool up)
+    {
+        var order=LanBallotOrder;
+        int i=Math.Max(0,Array.IndexOf(order,_lanBallotRow));
+        _lanBallotRow=order[(i+(up?order.Length-1:1))%order.Length];
+    }
     string[] _lanTestTracks, _lanTrackSequence=Array.Empty<string>();
     string _lanTrackVoteFlag;
     float _lanLoadDelay;
@@ -29,6 +40,7 @@ public partial class RaceScene
     void DetachLan()
     {
         if(_net==null) return;
+        LanBoardsDetach();      // RaceScene.LanBoards.cs: this scene's records stop being the session's
         _net.Closed-=OnLanClosed;_net.TrackRequired-=OnLanTrackRequired;
         _net.LoadRequested-=OnLanLoadTrack;_net.LoadFailed-=OnLanLoadFailed;
         _net.Changed-=OnLanChanged;_net.BallotOpened-=OnLanBallot;

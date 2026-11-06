@@ -61,7 +61,13 @@ public partial class PhysicsTest
             var diesel = NormPlan.LadderFor(def, FuelGrade.Diesel);
             var rocket = NormPlan.LadderFor(def, FuelGrade.Rocket);
             Check(petrol.Length == diesel.Length && petrol.Length == rocket.Length, $"{id}: every fuel has the same number of norms");
-            Check(Enumerable.Range(0, petrol.Length).All(i => diesel[i] > petrol[i] && petrol[i] > rocket[i]), $"{id}: diesel norms are slower, rocket fuel's faster");
+            Check(Enumerable.Range(0, petrol.Length).All(i => petrol[i] > rocket[i]), $"{id}: rocket fuel norms are faster than petrol");
+            if (id is "ilyich" or "bonus")
+                Check(diesel.SequenceEqual(id == "ilyich"
+                    ? new[] { 69f, 66f, 63.5f, 59f, 57f, 54f, 51f, 48f, 46f, 44f }
+                    : new[] { 76.5f, 74f, 71.5f, 69f, 66.5f, 64f, 61f, 58f, 55f, 53f }), $"{id}: tuned diesel ladder");
+            else
+                Check(Enumerable.Range(0, petrol.Length).All(i => diesel[i] > petrol[i]), $"{id}: default diesel norms are slower");
             Check(diesel.Zip(diesel.Skip(1)).All(p => p.First > p.Second) && rocket.Zip(rocket.Skip(1)).All(p => p.First > p.Second), $"{id}: the ladders still descend");
             Check(diesel.Concat(rocket).All(t => System.MathF.Abs(t * 2f - System.MathF.Round(t * 2f)) < 1e-4f), $"{id}: norms are in half seconds");
         }

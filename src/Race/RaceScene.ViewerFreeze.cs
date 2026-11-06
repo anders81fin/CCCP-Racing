@@ -44,7 +44,7 @@ public partial class RaceScene
         GetParent().CallDeferred(Node.MethodName.AddChild, _vfDriver);
         IEnumerable script = _vfMode switch { "freeze" => VfFreezeRun(), "hooks" => VfHooksRun(), "repeat" => VfRepeatRun(), _ => VfFail("unknown mode " + _vfMode) };
         _vfDriver.Start(script);
-        _vfDriver.OnDone = () => { VfLog("script done"); GetTree().Quit(); };
+        _vfDriver.OnDone = () => { VfLog("script done"); CCCPRacing.Audio.AudioMix.Quit(this); };
     }
 
     static IEnumerable VfFail(string why) { GD.Print("VIEWERFREEZE: FAIL " + why); yield break; }

@@ -55,6 +55,24 @@ Uses the Windows system Direct3D runtime (no bundled Agility SDK).
 Runtime on Windows has not been tested on this Linux machine.
 EOF
     fi
+    case "$p" in
+        windows|windows-d3d12)
+            cat > "$dir/VIDEO-EXPORT.txt" <<EOF
+CCCP Racing $V - replay video export
+
+Open a saved replay, press V for EDIT / EXPORT, then choose EXPORT.
+Video export requires FFmpeg with the libx264 video and AAC audio encoders.
+Put ffmpeg.exe beside CCCPRacing.exe, or make it available on PATH.
+If your FFmpeg distribution includes DLLs, keep those beside ffmpeg.exe too.
+FFmpeg is not included in this game package.
+
+The renderer runs as a separate hidden process and uses this package's
+graphics backend. Keep the entire extracted game folder together.
+The export panel reports progress and the destination of the MP4 file.
+Windows runtime validation is still required; these packages were built on Linux.
+EOF
+            ;;
+    esac
     zipfile="$PWD/build/CCCPRacing-$V-$zip.zip"
     rm -f "$zipfile"
     if [ "$p" = macos ]; then

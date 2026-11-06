@@ -7,7 +7,9 @@ public partial class Hud
     /// <summary>VISUALS of the Party Meeting: map, comments, the camera, edges, softening, back.</summary>
     public bool VisualOpen;
     public int VisualSelection;
-    public VisualRowId[] VisualRowIds = { VisualRowId.Comments, VisualRowId.LapInfo, VisualRowId.Map, VisualRowId.CarInstruments, VisualRowId.Edges, VisualRowId.Softening, VisualRowId.Back };
+    public VisualRowId[] VisualRowIds = { VisualRowId.Comments, VisualRowId.LapInfo, VisualRowId.Map, VisualRowId.CarInstruments, VisualRowId.Rendering, VisualRowId.Edges, VisualRowId.Softening, VisualRowId.Back };
+    /// <summary>RENDERING: PIXEL (the low-res picture blown up, the default) or NATIVE (the 3D at the window's own resolution, PixelFrame.Native).</summary>
+    public string RenderingName = "PIXEL";
     /// <summary>The chosen gameplay camera's name (null or empty: no camera row).</summary>
     public string VisualCameraName;
     /// <summary>HUD visibility choices (VISUALS): visibility only, all on by default; the warnings, prompts, pause menu and map never depend on them.</summary>
@@ -46,6 +48,7 @@ public partial class Hud
             case VisualRowId.Map: label = "MAP"; value = MapOn ? "ON" : "OFF"; break;
             case VisualRowId.Comments: label = "COMMENTS"; value = Comments ? "ON" : "OFF"; break;
             case VisualRowId.Camera: label = "CAMERA"; value = "< " + VisualCameraName + " >"; break;
+            case VisualRowId.Rendering: label = "RENDERING"; value = "< " + RenderingName + " >"; break;
             case VisualRowId.Edges: label = "EDGES"; value = "< " + AntialiasingName + " >"; break;
             case VisualRowId.Softening: label = "SOFTENING"; value = "< " + SofteningName + " >"; break;
             case VisualRowId.CarInstruments: label = "CAR INSTRUMENTS"; value = CarInstrumentsOn ? "ON" : "OFF"; break;

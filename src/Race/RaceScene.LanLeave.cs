@@ -47,7 +47,7 @@ public partial class RaceScene
                 bool quit=_lanLeave.QuitApplication;
                 CancelLanLeave();
                 if(InLanRace) LeaveLan(); else LanLeavePage();
-                if(quit) GetTree().Quit();
+                if(quit) CCCPRacing.Audio.AudioMix.Quit(this);
             }
             else if(result==LanLeavePrompt.Result.Stay) CancelLanLeave();
             LanLeaveHud();

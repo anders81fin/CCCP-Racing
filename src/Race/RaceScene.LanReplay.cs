@@ -24,19 +24,21 @@ public partial class RaceScene
         LanReplayEnd();
         _lanReplayRound++;
         _lanReplayReady=null;
-        _lanReplayButton?.Hide();
-        if(OS.GetCmdlineUserArgs().Contains("--lan-replay-disable")) {GD.Print("LAN replay: disabled for baseline test");return;}
+        LanKeepBeginRound();
+        if(OS.GetCmdlineUserArgs().Contains("--lan-replay-disable")) {GD.Print("LAN replay: disabled for baseline test");_lanKeep.SourceFailed(_lanReplayRoundToken,"disabled");return;}
+        // RECORD LAN RACES? NO (or never answered): no capture, journal or original-car ghost, and no KEEP (RaceScene.LanRecord.cs).
+        if(!LanRecordOn) {_lanReplayOwn=null;_lanKeep.NotRecording(_lanReplayRoundToken);GD.Print($"LAN replay: off on this machine ({LanRecordWhy}); round {_lanReplayRound} not recorded");return;}
         _lanReplayStopAt=-1;
         _lanReplayAutoCheck=OS.GetCmdlineUserArgs().Contains("--lan-replay-auto-check");
         foreach(string arg in OS.GetCmdlineUserArgs()) if(arg.StartsWith("--lan-replay-capture-at="))
             _lanReplayStopAt=float.Parse(arg["--lan-replay-capture-at=".Length..],System.Globalization.CultureInfo.InvariantCulture);
         try {
-            string root=string.IsNullOrEmpty(_dataDir)?ProjectSettings.GlobalizePath("user://recordings/lan"):Path.Combine(_dataDir,"lan-recordings");
+            string root=_lanReplayRoot=LanRecordingsRoot;
             string path=Path.Combine(root,$"lan-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.lanreplay");
             var roster=_lanReveal.Grid.Where(_net.Players.ContainsKey).Select(id=>{
                 var p=_net.Players[id];return new LanReplayFile.Player(id,p.Name,p.Slot);
             }).ToArray();
-            var header=new LanReplayFile.Header(_track.Id,Track.TrackSignature.Compute(_track),LanSession.GameVersion,LanSession.Protocol,_lanReveal.Seed,_net.MyId,roster);
+            var header=new LanReplayFile.Header(_track.Id,Track.TrackSignature.Compute(_track),LanSession.GameVersion,LanSession.Protocol,_lanReveal.Seed,_net.MyId,roster,_lanReveal.Power,_lanReveal.Obstacles);
             _lanReplayOwn=new Ghost();
             _lanReplayOwn.Record(0,_car,0,0,0,_dayNight.Clock,damage:_carVis.Damage);
             _lanReplayCapture=new(_net,()=>LanPoseClock,path,header,()=>{
@@ -45,7 +47,7 @@ public partial class RaceScene
             });
             foreach(var (bytes,mesh) in _lanWorldPending) _lanReplayCapture.WorldOut(bytes,mesh);
             GD.Print("LAN replay: recording "+path);
-        } catch(Exception e) {GD.PushWarning("LAN replay unavailable: "+e.Message);_lanReplayCapture=null;}
+        } catch(Exception e) {GD.PushWarning("LAN replay unavailable: "+e.Message);_lanReplayCapture=null;_lanKeep.SourceFailed(_lanReplayRoundToken,e.Message);}
     }
     void LanReplaySample()
     {
@@ -65,9 +67,10 @@ public partial class RaceScene
     }
     bool LanReplayAvailable=>_lanReplayReady!=null && _net!=null && LanReplayAccess.For(_net.Active,_net.State)!=LanReplayAccess.Permission.Closed;
     string _lanReplayReady;
-    Button _lanReplayButton;
     static int _lanReplayViewerPid;
     static bool _lanReplayMuted,_lanReplayOldMute;
+    /// <summary>The independent viewer over the live session: only the --lan-replay-auto-check diagnostic probe opens it now.
+    /// Players keep a LAN recording (RaceScene.LanKeep.cs) and watch kept files offline (--lan-replay=FILE).</summary>
     void LanReplayOpen()
     {
         if(_lanReplayReady==null || _lanLeaveAsk || !LanReplayAvailable) return;
@@ -84,12 +87,13 @@ public partial class RaceScene
             args.Add("--");args.Add("--lan-replay="+_lanReplayReady);
             args.Add("--lan-replay-access="+LanReplayAccess.PathFor(_lanReplayLease.Token));
             args.Add("--lan-replay-sounds="+string.Join(",",SoundBalance.Levels));
-            args.Add($"--lan-replay-video={_aaMode},{_softLevel}");
+            args.Add($"--lan-replay-video={_aaMode},{_softLevel},{(PixelFrame.Native ? 1 : 0)}");
             if(AudioServer.IsBusMute(0)) args.Add("--lan-replay-muted");
             if(exportProbe) args.Add("--lan-export-ui-run="+_lanReplayReady+".export-ui.png");
             else if(probe) args.Add("--lan-replay-check");
             _lanReplayViewerPid=OS.CreateInstance(args.ToArray());
             if(_lanReplayViewerPid<=0) throw new IOException("Could not start replay window");
+            LanReplayViewerLaunches++;
             _lanReplayAutoOpenedRound=_lanReplayRound;
             _lanReplayOldMute=AudioServer.IsBusMute(0);AudioServer.SetBusMute(0,true);_lanReplayMuted=true;
             GD.Print("LAN replay: independent viewer process "+_lanReplayViewerPid+"; transport continues");
@@ -137,24 +141,16 @@ public partial class RaceScene
             if(round==_lanReplayRound && _lanReplayCapture==null) _lanReplayOwn=null;
             if(path==null) {
                 GD.PushWarning(c.Error??"LAN replay save failed");
+                if(round==_lanReplayRound) _lanKeep.SourceFailed(_lanReplayRoundToken,c.Error??"save failed");
                 _hud?.Alert("REPLAY NOT SAVED",c.Error?.Contains("limit")==true?"RECORDING LIMIT REACHED":"RECORDING STORAGE IS UNAVAILABLE",4f,UI.Hud.Red);
                 continue;
             }
             GD.Print("LAN replay: saved "+path);
             if(round!=_lanReplayRound) continue;
             _lanReplayReady=path;
-            if(_lanReplayButton==null) {
-                var layer=new CanvasLayer {Layer=25};AddChild(layer);
-                _lanReplayButton=new Button {Text="R  REPLAY",Position=new Vector2(8,GetViewport().GetVisibleRect().Size.Y-30)};
-                _lanReplayButton.AddThemeFontSizeOverride("font_size",11);layer.AddChild(_lanReplayButton);
-                _lanReplayButton.Pressed+=LanReplayOpen;
-            }
+            _lanKeep.SourceReady(_lanReplayRoundToken,path);
         }
-        if(_lanReplayButton!=null) {
-            _lanReplayButton.Visible=_lanReplayReady!=null && _net is {Active:true} && (_lanDone || _lanDnf || LanReplayAvailable);
-            _lanReplayButton.Disabled=_lanLeaveAsk || !LanReplayAvailable;
-            _lanReplayButton.Text=LanReplayAvailable?"R  REPLAY":"REPLAY AVAILABLE AFTER THE RACE";
-        }
+        LanKeepTick(GetProcessDeltaTime());
         if(_lanReplayAutoCheck && _lanReplayAutoOpenedRound!=_lanReplayRound && LanReplayAvailable) LanReplayOpen();
     }
 }

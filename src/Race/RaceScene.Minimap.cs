@@ -45,7 +45,7 @@ public partial class RaceScene
         for (int i = 0; i < c.Length; i += 4) pts.Add(MapPoint(c[i]));
         _hud.MinimapPath = pts.ToArray();
         _hud.MinimapAspect = _mapSpan.X / _mapSpan.Y;
-        _hud.MinimapMechanic = _drunksAll?.MechanicPostPosition is Vector2 post ? MapPoint(post) : null;
+        _hud.MinimapMechanic = (InLanRace && !InWorld(Actors.Drunks) ? null : _drunksAll)?.MechanicPostPosition is Vector2 post ? MapPoint(post) : null;
         _hud.MinimapStart = MapPoint(c[0]);
         _hud.MinimapStartDir = _track.CenterDir(0);
         var cfg = new ConfigFile();
@@ -89,9 +89,10 @@ public partial class RaceScene
         _hud.Minimap = _minimapOn && !InSchool && !_gulag && !_planScreen && !Replaying
                        && _state is State.Countdown or State.Racing or State.Paused or State.Failed or State.Finished;
         if (!_hud.Minimap) return;
+        _hud.MinimapMechanic = (InLanRace && !InWorld(Actors.Drunks) ? null : _drunksAll)?.MechanicPostPosition is Vector2 post ? MapPoint(post) : null;
         _hud.MinimapWash = _rad != null ? MapPoint(new Vector2(_rad.WashX, _rad.WashZ)) : null;
         _hud.MinimapFuel = _fuelOnTrack && _depot != null
-            && (InLanRace ? _lanReveal?.Fuel == true : _depot.Visible) ? MapPoint(_depot.Zone) : null;
+            && (InLanRace ? _lanReveal?.Fuel == true && InWorld(Actors.Depot) : _depot.Visible) ? MapPoint(_depot.Zone) : null;
         _hud.MinimapCar = MapPoint(new Vector2(_car.Pos.X, _car.Pos.Z));
         _hud.MinimapCarColor = InLanRace ? CCCPRacing.Net.LanRace.TagFor(_net.Me?.Slot ?? 0) : Hud.Gold;
         _hud.MinimapCarDir = new Vector2(_car.Forward.X, _car.Forward.Z);

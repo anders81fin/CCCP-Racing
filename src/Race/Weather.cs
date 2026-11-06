@@ -181,10 +181,13 @@ public partial class Weather : Node3D
 
     public override void _ExitTree()
     {
+        using var driverLock = AudioMix.LockDriver();
+        using var generator = GodotObject.IsInstanceValid(_hiss) ? _hiss.Stream as AudioStreamGenerator : null;
         InTree.Remove(this);
         // The next track is dry; a weather that is still there (the live one, while a viewer's ends) keeps the road as it left it.
         Surfaces.Wetness = InTree.Count > 0 ? InTree[^1]._wet : 0;
-        _pb?.Dispose();
+        if (GodotObject.IsInstanceValid(_hiss)) { _hiss.StreamPaused = false; _hiss.Stop(); _hiss.Stream = null; }
+        if (GodotObject.IsInstanceValid(_pb)) _pb.Stop(); _pb?.Dispose();
         _pb = null;
     }
 }

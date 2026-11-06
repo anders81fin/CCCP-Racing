@@ -51,6 +51,7 @@ public static partial class ExportChild
     public static void Begin(RaceScene live)
     {
         Live = live;
+        ExportWindowHider.EnsureCurrentProcessHidden();
         ApplyViewportScale(live.GetTree().Root);
         ExportViewerFactories.ByKind["sp-pair"] = plan => new SpExportViewer(plan);
         RegisterExtraKinds(live);
@@ -76,9 +77,18 @@ public partial class ExportDriver : Node
         _script = Script().GetEnumerator();
     }
 
-    void Fail(string text) { _markers.WriteLine("ERROR " + text.Replace('\n', ' ')); GD.PushError("export: " + text); GetTree().Quit(2); _script = null; }
+    void Fail(string text) { _markers.WriteLine("ERROR " + text.Replace('\n', ' ')); GD.PushError("export: " + text); CCCPRacing.Audio.AudioMix.Quit(this, 2); _script = null; }
 
-    bool ParentGone() => _plan.ParentPid > 0 && !Directory.Exists("/proc/" + _plan.ParentPid.ToString(CultureInfo.InvariantCulture));
+    bool ParentGone() => !ParentAlive(_plan.ParentPid);
+
+    internal static bool ParentAlive(int pid)
+    {
+        if (pid <= 0) return true;
+        try { using var parent = System.Diagnostics.Process.GetProcessById(pid); return !parent.HasExited; }
+        catch (ArgumentException) { return false; }
+        catch (InvalidOperationException) { return false; }
+        catch (System.ComponentModel.Win32Exception) { return true; } // inaccessible is not proof of exit
+    }
 
     int Outstanding()
     {
@@ -87,18 +97,19 @@ public partial class ExportDriver : Node
 
     public override void _Process(double delta)
     {
+        ExportWindowHider.EnsureCurrentProcessHidden();
         if (_script == null) return;
         // backpressure BEFORE advancing another movie frame: wait while the parent's consumer is behind (bounded; the parent's liveness and the cancel file are checked while waiting)
         long t0 = (long)Time.GetTicksMsec();
         while (Outstanding() > ExportJob.MaxOutstanding)
         {
             OS.DelayMsec(2);
-            if (File.Exists(_cancel)) { GetTree().Quit(3); _script = null; return; }
-            if (ParentGone()) { GetTree().Quit(4); _script = null; return; }
+            if (File.Exists(_cancel)) { CCCPRacing.Audio.AudioMix.Quit(this, 3); _script = null; return; }
+            if (ParentGone()) { CCCPRacing.Audio.AudioMix.Quit(this, 4); _script = null; return; }
             if ((long)Time.GetTicksMsec() - t0 > 120_000) { Fail("the export queue stalled"); return; }
         }
-        if (File.Exists(_cancel)) { GetTree().Quit(3); _script = null; return; }
-        if ((Engine.GetProcessFrames() & 31) == 0 && ParentGone()) { GetTree().Quit(4); _script = null; return; }
+        if (File.Exists(_cancel)) { CCCPRacing.Audio.AudioMix.Quit(this, 3); _script = null; return; }
+        if ((Engine.GetProcessFrames() & 31) == 0 && ParentGone()) { CCCPRacing.Audio.AudioMix.Quit(this, 4); _script = null; return; }
         try { if (!_script.MoveNext()) _script = null; }
         catch (Exception e) { Fail("the exporter failed: " + e.Message); }
     }
@@ -135,7 +146,7 @@ public partial class ExportDriver : Node
         }
         yield return null;                                       // (the last included image is _start + total - 1: it is rendered after this frame's _process)
         _markers.WriteLine("END " + (_start + total));
-        GetTree().Quit();
+        CCCPRacing.Audio.AudioMix.Quit(this);
     }
 
     void LogFrame(IExportViewer v) =>

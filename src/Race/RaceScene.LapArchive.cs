@@ -25,6 +25,8 @@ public partial class RaceScene
     string LapArchiveDir => WorldTapeFile.Real(FileDir + "laps");
 
     readonly System.Collections.Generic.Dictionary<string, LapArchive> _sessionLapArchives = new();
+    readonly System.Collections.Generic.Dictionary<string, int> _sessionLapOrder = new();
+    int _sessionLapSequence;
     LapArchive ReplayArchiveFor(string id) => _replayOrigin == ReplayOrigin.PartyMeeting
         && id != null && _sessionLapArchives.TryGetValue(id, out var archive) ? archive : LapArchiveBox;
 
@@ -40,15 +42,16 @@ public partial class RaceScene
         var cap = LapCapture.FromGhostCopy(copy, _tapeOn ? _tapeRec : null, _track.Id, RecordSet, _run == RunMode.Rally ? "rally" : "stakhanov", kind, ranked,
             copy.HasDayClock ? copy.DayClockAt(0) : -1, _file.ToString(), _records.Signature);
         cap.Fuels = LapFuelsText();
+        cap.LapNumber = System.Math.Max(1, _timer.LapsDone);
         bool board = ranked && !_autodrive && _board.Qualifies(time);
         var archive = board ? LeaderboardLapArchive : LapArchiveBox;
         if (board) _boardLapArchiveUsed = archive; else _lapArchiveUsed = archive;
         var res = archive.Submit(cap);
-        if (res.Accepted) _sessionLapArchives[res.Id] = archive;
+        if (res.Accepted) { _sessionLapArchives[res.Id] = archive; _sessionLapOrder[res.Id] = ++_sessionLapSequence; }
         if (board && res.Accepted)
         {
             _lastBoardRecordingId = res.Id;
-            _boardRetains.Add((res.Id, archive.Retain(res.Id, DriverName + " " + LapTimer.Format(time))));
+            _boardRetains.Add((res.Id, archive.Retain(res.Id, $"LAP {cap.LapNumber} {DriverName} {LapTimer.Format(time)}")));
         }
         if (board && !res.Accepted) _hud?.Show("LEADERBOARD RECORDING NOT SAVED", res.Reason.ToUpperInvariant(), 5f, Hud.Red);
         GD.Print($"lap archive: {_track.Id} set {RecordSet} {kind} {time:F2} s: {(res.Accepted ? "kept " + res.Id : "refused: " + res.Reason)}, main thread {sw.Elapsed.TotalMilliseconds:F2} ms, tape {(_tapeOn ? "yes" : "no")}");

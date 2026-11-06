@@ -5,7 +5,7 @@ using Godot;
 namespace CCCPRacing.UI;
 
 /// <summary>The LAN RACE pages (menu, join, lobby, the secret ballot and its count, results) and the LAN race HUD.</summary>
-public enum LanPage { None, Menu, Name, Join, Ip, Connecting, Message, Lobby, Ballot, Reveal, Results, Loading, SessionResults, SessionDecision, SessionFinal }
+public enum LanPage { None, Menu, Name, Join, Ip, Connecting, Message, Lobby, Ballot, Reveal, Results, Loading, SessionResults, SessionDecision, SessionFinal, Record, Boards }
 
 public partial class Hud
 {
@@ -17,6 +17,8 @@ public partial class Hud
         public Color Color;
         public int Ping = -1;
         public bool Host, You, Voted;
+        /// <summary>SHARE BOARDS: 0 not sharing, 1 sharing, 2 syncing now (HudLanBoards.cs).</summary>
+        public int Boards;
     }
 
     public readonly record struct LanStandingRow(int Rank, string Name, Color Color, bool You, bool Finished, bool Dnf, int Lap);
@@ -30,7 +32,7 @@ public partial class Hud
         public bool FuelAvailable = true;
         public readonly List<string> Items = new();
         public readonly List<LanRow> Players = new();
-        public bool IsHost, Voted, Damage = true, Fuel;
+        public bool IsHost, Voted, Damage = true, Fuel, Obstacles = true;
         public int Laps, Power, Choice;
         public float BallotLeft = -1;
         public string Address;
@@ -57,13 +59,16 @@ public partial class Hud
         public string Track;
         public bool TrackDraw;
         public bool FuelAvailable=true;
-        public bool Damage, Fuel;
-        public readonly List<(bool damage, bool fuel)> RuleVotes = new();
+        public bool Damage, Fuel, Obstacles = true;
+        public readonly List<bool?> ObstacleVotes = new();
+        /// <summary>Nobody submitted a ballot: everything was drawn by lot, no majority to claim.</summary>
+        public bool NoVotes;
+        /// <summary>One per ballot row; null: NOT VOTED (the row's pct is LanBallot.Abstain).</summary>
+        public readonly List<(bool? damage, bool? fuel)> RuleVotes = new();
         public Net.LanBallot.Timeline Times;
     }
 
     public readonly LanView Lan = new();
-    public static readonly int[] LanPowers = { 50, 100, 200 };
 
     // The LAN race HUD: LAP n/m, POS p/n, race time, name tags and arrows, the leave question.
     public int LanLaps, LanLap, LanPos, LanCount;
@@ -109,6 +114,8 @@ public partial class Hud
         switch (v.Page)
         {
             case LanPage.Menu: DrawLanMenu(); break;
+            case LanPage.Record: DrawLanRecord(); break;
+            case LanPage.Boards: DrawLanBoardsAsk(); break;
             case LanPage.Name: DrawLanField("YOUR NAME, TOVARISH?", "FOR THE COMRADES ON THE NETWORK", Race.Leaderboard.MaxName, P("ENTER OK  ESC BACK", WheelKeys)); break;
             case LanPage.Ip: DrawLanField("ENTER IP ADDRESS", "OF THE HOST'S MACHINE", 15, P("ENTER CONNECT  ESC BACK", WheelKeys)); break;
             case LanPage.Join: DrawLanJoin(); break;
@@ -124,10 +131,22 @@ public partial class Hud
     void DrawLanMenu()
     {
         var v = Lan;
-        var r = LanPanel(250, 40 + v.Items.Count * 13 + 22);
+        var r = LanPanel(250, 40 + v.Items.Count * 13 + 22 + 75);
         LanHeading(r, LanLabel, "COMRADE: " + v.Text + " / " + v.Track);
         float cx = r.Position.X + r.Size.X / 2;
         for (int i = 0; i < v.Items.Count; i++) MenuItem(v.Items[i], v.Sel == i, cx, r.Position.Y + 42 + i * 13);
+        float y = r.Position.Y + 48 + v.Items.Count * 13;
+        PixelFont.DrawCentered(this, "PLAY OVER THE INTERNET", cx, y, Gold);
+        string[] help = {
+            "TRY LAN VIA ZEROTIER.",
+            "JOIN THE SAME VIRTUAL NETWORK,",
+            "THEN HOST OR JOIN A LAN GAME.",
+            "IF NEEDED, ENTER THE HOST'S",
+            "ZEROTIER IP IN JOIN GAME.",
+            "PLAYTESTED - STUTTER MAY OCCUR."
+        };
+        for (int i = 0; i < help.Length; i++)
+            PixelFont.DrawCentered(this, help[i], cx, y + 13 + i * 9, Grey);
         LanFooter(r, P("ENTER SELECT  ESC BACK", "A SELECT  B BACK"));
     }
 
@@ -182,7 +201,8 @@ public partial class Hud
             DrawRect(new Rect2(x0, y, 9, 7), new Color(0, 0, 0, 0.6f), false, 1f);
             string right = ballot ? (p.Voted ? "VOTED" : "THINKING...") : p.Note ?? (p.Ping < 0 ? "-" : $"{p.Ping} MS");
             string suffix=p.You?" - YOU":"", name=p.Name;
-            float room=x1-PixelFont.Measure(right)-6-(x0+15);
+            float tagW = ballot ? 0 : LanBoardsTag(p, x1 - PixelFont.Measure(right) - 6, y);      // SHARE / SYNC (HudLanBoards.cs)
+            float room=x1-PixelFont.Measure(right)-6-tagW-(x0+15);
             while(name.Length>0 && PixelFont.Measure(name+suffix)>room) name=name[..^1];
             PixelFont.Draw(this,name+suffix,new Vector2(x0+15,y),p.You?Gold:Paper);
             PixelFont.Draw(this, right, new Vector2(x1 - PixelFont.Measure(right), y), ballot ? (p.Voted ? Green : Grey) : Grey);
@@ -193,7 +213,7 @@ public partial class Hud
     void DrawLanLobby()
     {
         var v = Lan;
-        var r = LanPanel(Math.Min(290,Screen.X-8), 44 + Math.Max(4,v.Players.Count) * 11 + 50);
+        var r = LanPanel(Math.Min(290,Screen.X-8), 44 + Math.Max(4,v.Players.Count) * 11 + 50 + LanBoardsLobbyHeight);
         LanHeading(r, "THE LOBBY", v.Track);
         PixelFont.DrawCentered(this,v.Address!=null?"IP: "+v.Address:v.Sub,r.GetCenter().X,r.Position.Y+33,Grey);
         LanPlayerRows(r, r.Position.Y + 44, false);
@@ -203,47 +223,90 @@ public partial class Hud
         string go = v.IsHost ?  (v.Players.Count >= 2 ? P("ENTER", "A") + " - TO THE BALLOT BOX" : "WAITING FOR COMRADES...") : "WAITING FOR THE HOST...";
         if (v.IsHost && v.Players.Count >= 2 || (int)(_clock * 2) % 2 == 0)
             PixelFont.DrawCentered(this, go, cx, y + 14, v.IsHost && v.Players.Count >= 2 ? Gold : Grey);
+        DrawLanLobbyBoards(r, y + 28);      // SHARE BOARDS (HudLanBoards.cs)
         LanFooter(r, v.IsHost ? "< > LAPS  " + P("ESC", "B") + " CLOSE THE GAME" : P("ESC", "B") + " LEAVE");
+    }
+
+    const float ChoicePitch = 14;
+
+    /// <summary>
+    /// One ballot row: every option visible in cells across [x0, x0+width), wrapping to
+    /// <paramref name="columns"/> per line (a short last line is centred). The chosen cell is boxed:
+    /// gold when this row has the cursor, grey when not, green once the ballot is in. Returns the height used.
+    /// </summary>
+    float DrawLanChoices(string[] options, int chosen, bool focus, float x0, float width, int columns, float y)
+    {
+        var v = Lan;
+        columns = Math.Max(1, columns);
+        float cell = Math.Min(width / columns, 90);  // two tracks keep fuel-sized cells, not half the card
+        for (int i = 0; i < options.Length; i++)
+        {
+            int line = i / columns, inLine = Math.Min(columns, options.Length - line * columns);
+            float x = x0 + (width - cell * inLine) / 2 + cell * (i % columns), fy = y + line * ChoicePitch;
+            bool sel = i == chosen;
+            if (sel)
+            {
+                var b = new Rect2(Mathf.Floor(x + 1), fy - 3, Mathf.Floor(cell - 2), 12);
+                DrawRect(b, new Color(v.Voted ? Green : Gold, 0.25f));
+                DrawRect(b, v.Voted ? Green : focus ? Gold : Grey, false, 1f);
+            }
+            Color c = !sel ? Grey : v.Voted ? Green : focus ? Gold : Paper;
+            PixelFont.DrawCentered(this, options[i], x + cell / 2, fy, c);
+        }
+        return (options.Length + columns - 1) / columns * ChoicePitch;
     }
 
     void DrawLanBallot()
     {
         var v = Lan;
-        var r = LanPanel(Math.Min(370,Screen.X-8), 44 + 64 + Math.Max(4,v.Players.Count) * 11 + 34 + (v.TrackOptions.Length>1?15:0));
+        bool narrow = Screen.X < 300;
+        float w = Math.Min(370, Screen.X - 8), inner = w - 16;
+        // Rows top to bottom: track, fuel, damage, fuel consumption, moving obstacles. Row ids in v.Sel: 3 track, 0 fuel, 1 damage, 2 fuel consumption, 4 moving obstacles.
+        int tracks = v.TrackOptions.Length;
+        int trackCols = narrow ? Math.Min(2, tracks) : Math.Max(1, tracks);
+        int fuelCols = narrow ? 2 : Net.LanRace.FuelCount;
+        int trackLines = tracks > 1 ? (tracks + trackCols - 1) / trackCols : tracks == 1 ? 1 : 0;
+        int fuelLines = (Net.LanRace.FuelCount + fuelCols - 1) / fuelCols;
+        float choices = (trackLines + fuelLines + 3) * ChoicePitch + (trackLines > 0 ? 4 : 0) + 4;
+        var r = LanPanel(w, 42 + choices + 13 + Math.Max(4, v.Players.Count) * 11 + 34);
         LanHeading(r, "SECRET BALLOT", Screen.X<330?"VOTE TOGETHER":"CHOOSE THE TRACK AND RULES FOR ALL");
-        float cx = r.Position.X + r.Size.X / 2, y = r.Position.Y + 42;
-        // The three fuel powers in a row; the choice boxed (gold, green once cast).
-        float cell = Math.Min(102,(r.Size.X-16)/3), x = cx - cell * 1.5f;
-        for (int i = 0; i < Race.Training.Count; i++, x += cell)
+        float cx = r.Position.X + r.Size.X / 2, x0 = r.Position.X + 8, y = r.Position.Y + 42;
+        if (tracks > 1)
         {
-            string t = cell<85?new[]{"DIESEL","PETROL","ROCKET"}[i]:Race.FuelGrades.Names[i];
-            bool sel = v.Choice == i + 1;
-            if (sel)
-            {
-                var b = new Rect2(Mathf.Floor(x + 1), y - 3, cell - 2, 22);
-                DrawRect(b, new Color(v.Voted ? Green : Gold, 0.25f));
-                DrawRect(b, v.Voted ? Green : v.Sel == 0 ? Gold : Grey, false, 1f);
-            }
-            PixelFont.DrawCentered(this, $"{i + 1}  {LanPowers[i]}%", x + cell / 2, y, sel ? Paper : Grey);
-            PixelFont.DrawCentered(this, t, x + cell / 2, y + 9, sel ? (v.Voted ? Green : Gold) : Grey);
+            y += DrawLanChoices(v.TrackOptions, Math.Clamp(v.TrackChoice, 0, tracks - 1), v.Sel == 3, x0, inner, trackCols, y) + 4;
         }
-        y += 25;
-        for (int row = 1; row <= 2; row++, y += 13)
+        else if (tracks == 1)
         {
-            bool on = row == 1 ? v.Damage : v.Fuel;
-            string label = row == 1 ? "DAMAGE" : "FUEL CONSUMPTION";
-            if (row == 2 && !v.FuelAvailable) { PixelFont.DrawCentered(this,"NO FUEL ON THIS TRACK",cx,y,Grey); continue; }
-            PixelFont.DrawCentered(this, $"{(v.Sel == row ? "> " : "")}{label}: {(on ? "ON" : "OFF")}", cx, y, v.Sel == row ? Gold : Paper);
+            PixelFont.DrawCentered(this, "TRACK: " + v.TrackOptions[0], cx, y, Paper);
+            y += ChoicePitch + 4;
         }
-        if(v.TrackOptions.Length>1)
+        var fuels = new string[Net.LanRace.FuelCount];
+        for (int i = 0; i < fuels.Length; i++) fuels[i] = $"{i + 1} {Race.FuelGrades.Names[i]}";
+        y += DrawLanChoices(fuels, v.Choice - 1, v.Sel == 0, x0, inner, fuelCols, y) + 4;
+        // DAMAGE and FUEL CONSUMPTION: a right-aligned label, then YES / NO in the same cells.
+        const float yesNo = 34, gap = 8;
+        float labelW = PixelFont.Measure("FUEL CONSUMPTION"), gx = Mathf.Floor(cx - (labelW + gap + 2 * yesNo) / 2);
+        string[] yn = { "YES", "NO" };
+        foreach (int row in new[]{1,2,4})
         {
-            PixelFont.DrawCentered(this,$"{(v.Sel==3?"> ":"")}TRACK: < {v.TrackOptions[Math.Clamp(v.TrackChoice,0,v.TrackOptions.Length-1)]} >",cx,y,v.Sel==3?Gold:Paper);
-            y+=15;
+            if (row == 2 && !v.FuelAvailable) { PixelFont.DrawCentered(this,"NO FUEL ON THIS TRACK",cx,y,Grey); y += ChoicePitch; continue; }
+            bool on = row == 1 ? v.Damage : row == 4 ? v.Obstacles : v.Fuel, focus = v.Sel == row && !v.Voted;
+            string label = row == 1 ? "DAMAGE" : row == 4 ? "MOVING OBSTACLES" : "FUEL CONSUMPTION";
+            PixelFont.Draw(this, label, new Vector2(gx + labelW - PixelFont.Measure(label), y), focus ? Gold : Paper);
+            DrawLanChoices(yn, on ? 0 : 1, v.Sel == row, gx + labelW + gap, 2 * yesNo, 2, y);
+            y += ChoicePitch;
         }
         PixelFont.DrawCentered(this, v.Voted ? "YOUR BALLOT IS IN THE BOX" : P(Screen.X<330?"ARROWS CHANGE  ENTER VOTE":"UP/DOWN ROW  < > CHANGE  ENTER VOTE", "D-PAD CHANGE  A VOTE"), cx, y, v.Voted ? Green : Paper);
         LanPlayerRows(r, y + 13, true);
         if (v.BallotLeft >= 0)
-            LanFooter(r, Screen.X<330?$"{(int)MathF.Ceiling(v.BallotLeft)} S / DEFAULT: FIRST,100%":$"{(int)MathF.Ceiling(v.BallotLeft)} S - DEFAULT: FIRST / 100% D:ON F:OFF");
+            LanFooter(r, BallotFooter(v.BallotLeft, Screen.X<330));
+    }
+
+    /// <summary>The deadline: an unsubmitted ballot is NOT VOTED, there are no default votes.</summary>
+    internal static string BallotFooter(float left, bool compact)
+    {
+        int s = (int)MathF.Ceiling(left);
+        return compact ? $"{s} S - NO BALLOT = NOT VOTED" : $"{s} S - NO BALLOT BY THE DEADLINE = NOT VOTED";
     }
 
     /// <summary>
@@ -260,7 +323,7 @@ public partial class Hud
         var r = LanPanel(Math.Min(370,Screen.X-8), 238);
         bool compact=r.Size.X<300;
         float cx = r.Position.X + r.Size.X / 2;
-        LanHeading(r, "THE COUNT", (c.TrackDraw?"TRACK DRAW: ":"TRACK: ")+c.Track);
+        LanHeading(r, "THE COUNT", t >= tl.Announce && t < tl.Grid ? null : (c.TrackDraw?"TRACK DRAW: ":"TRACK: ")+c.Track);
         float y = r.Position.Y + 40;
         if (t < tl.Announce)
         {
@@ -270,20 +333,30 @@ public partial class Hud
                 var (name, col, pct) = c.Ballots[i];
                 DrawRect(new Rect2(r.Position.X + (compact?12:40), y, 9, 7), col);
                 var rules = c.RuleVotes[i];
-                string p = compact?$"{pct}% D{(rules.damage?"+":"-")} F{(rules.fuel?"+":"-")}":$"{pct}% D:{(rules.damage ? "ON" : "OFF")} F:{(rules.fuel ? "ON" : "OFF")}";
+                bool voted = Net.LanBallot.Voted(pct) && rules.damage is bool && rules.fuel is bool;
+                string p = !voted ? "NOT VOTED" : compact?$"{Race.Training.FuelShort(pct)} D{(rules.damage==true?"+":"-")} F{(rules.fuel==true?"+":"-")}":$"{Race.Training.FuelShort(pct)} D:{(rules.damage==true ? "ON" : "OFF")} F:{(rules.fuel==true ? "ON" : "OFF")}";
+                string obstacle = i<c.ObstacleVotes.Count && c.ObstacleVotes[i] is bool o ? (compact ? (o?" O+":" O-") : (o?" O:ON":" O:OFF")) : "";
+                if (voted) p += obstacle;
                 float nx=r.Position.X+(compact?27:55),px=r.End.X-(compact?12:40)-PixelFont.Measure(p);
                 while(name.Length>0 && PixelFont.Measure(name)>px-nx-6)name=name[..^1];
                 PixelFont.Draw(this,name,new Vector2(nx,y),Paper);
-                PixelFont.Draw(this, p, new Vector2(px, y), Gold);
+                PixelFont.Draw(this, p, new Vector2(px, y), voted ? Gold : Grey);
             }
             y = r.Position.Y + 40 + Math.Max(4,c.Ballots.Count) * 11 + 6;
             if (t >= tl.Tally)
             {
                 var parts = new List<string>();
-                foreach (var (pct, n) in c.Counts) parts.Add($"{pct}%: {n}");
-                PixelFont.DrawCentered(this, "TALLY  " + string.Join("   ", parts), cx, y, Paper);
-                y += 12;
-                if (c.Tied.Count > 1)
+                foreach (var (pct, n) in c.Counts) parts.Add($"{Race.Training.FuelShort(pct)}: {n}");
+                int notVoted = c.Ballots.FindAll(b => !Net.LanBallot.Voted(b.pct)).Count;
+                if (notVoted > 0) parts.Add($"NOT VOTED: {notVoted}");
+                for (int i = 0; i < parts.Count; i += 2)
+                {
+                    PixelFont.DrawCentered(this, string.Join("   ", parts.GetRange(i, Math.Min(2, parts.Count-i))), cx, y, Paper);
+                    y += 10;
+                }
+                if (c.NoVotes)
+                    PixelFont.DrawCentered(this, compact ? "NO VOTES! THE DRUM DECIDES" : "NO VOTES CAST! THE LOTTERY DRUM DECIDES", cx, y, Red);
+                else if (c.Tied.Count > 1)
                     PixelFont.DrawCentered(this, "A TIE! THE LOTTERY DRUM DECIDES", cx, y, Red);
             }
             if (c.Tied.Count > 1 && t >= tl.Drum) DrawDrum(c, t - tl.Drum, cx, y + 16);
@@ -293,11 +366,15 @@ public partial class Hud
             float a = t - tl.Announce;
             if (a > 0.1f || (int)(a * 20) % 2 == 0)
             {
-                PixelFont.DrawCentered(this, "THE PEOPLE HAVE CHOSEN", cx, y + 20, Paper, compact?1:2, new Color(0.35f, 0, 0));
-                PixelFont.DrawCentered(this, c.Power + " %", cx, y + 44, Gold, 4, new Color(0.35f, 0, 0));
-                if (a > 0.8f) PixelFont.DrawCentered(this, "99.8 % APPROVE", cx, y + 84, Green, 2);
-                if (a > 1.4f) PixelFont.DrawCentered(this, Race.Training.FuelName(c.Power), cx, y + 108, Grey);
+                // No ballot at all: no majority to announce, the lot chose.
+                PixelFont.DrawCentered(this, c.NoVotes ? "NO VOTES CAST" : "THE PEOPLE HAVE CHOSEN", cx, y + 20, Paper, compact?1:2, new Color(0.35f, 0, 0));
+                string choice = Race.Training.FuelName(c.Power) + " IN " + c.Track;
+                int choiceScale = compact ? 1 : 2;
+                PixelFont.DrawCentered(this, choice, cx, y + 44, Gold, choiceScale, new Color(0.35f, 0, 0));
+                if (a > 0.8f) PixelFont.DrawCentered(this, c.NoVotes ? "ALL DRAWN BY LOT" : "99.8 % APPROVAL RATE", cx, y + 84, c.NoVotes ? Paper : Green, compact?1:2);
+                if (a > 1.4f) PixelFont.DrawCentered(this, Race.FuelGrades.CardLine((int)Net.LanRace.Grade(c.Power)), cx, y + 108, Grey);
                 PixelFont.DrawCentered(this, RuleSummary(c,compact), cx, y + 126, Gold);
+                PixelFont.DrawCentered(this, ObstacleSummary(c,compact), cx, y + 138, Gold);
             }
         }
         else
@@ -316,16 +393,29 @@ public partial class Hud
                 PixelFont.Draw(this, name, new Vector2(nx, y), Paper);
                 PixelFont.Draw(this, row, new Vector2(rx, y), Grey);
             }
-            PixelFont.DrawCentered(this, $"{Laps(v.Laps)} AT {c.Power} %", cx, r.End.Y - 39, Paper);
-            PixelFont.DrawCentered(this, RuleSummary(c,compact), cx, r.End.Y - 26, Gold);
+            PixelFont.DrawCentered(this, $"{Laps(v.Laps)} / {Race.Training.FuelName(c.Power)}", cx, r.End.Y - 49, Paper);
+            PixelFont.DrawCentered(this, RuleSummary(c,compact), cx, r.End.Y - 36, Gold);
+            PixelFont.DrawCentered(this, ObstacleSummary(c,compact), cx, r.End.Y - 25, Gold);
         }
         LanFooter(r, P("ESC", "B") + " LEAVE");
     }
 
+    /// <summary>The rule results; a tie among the submitted votes is a (DRAW), NOT VOTED rows never count as NO.</summary>
+    static string ObstacleSummary(LanBallotShow c,bool compact)
+    {
+        int yes=c.ObstacleVotes.FindAll(v=>v==true).Count, no=c.ObstacleVotes.FindAll(v=>v==false).Count;
+        return (compact?"OBSTACLES ":"MOVING OBSTACLES ")+(c.Obstacles?"ON":"OFF")+(!c.NoVotes && yes==no && c.ObstacleVotes.Count>0?" (DRAW)":"");
+    }
+
     static string RuleSummary(LanBallotShow c,bool compact=false)
     {
-        string Rule(string label, bool result, int on) => $"{label} {(result ? "ON" : "OFF")}{(on * 2 == c.RuleVotes.Count ? " (DRAW)" : "")}";
-        return Rule(compact?"DMG":"DAMAGE", c.Damage, c.RuleVotes.FindAll(v => v.damage).Count) + " / " + (c.FuelAvailable?Rule("FUEL", c.Fuel, c.RuleVotes.FindAll(v => v.fuel).Count):compact?"NO FUEL":"NO FUEL ON THIS TRACK");
+        string Rule(string label, bool result, Func<(bool? damage, bool? fuel), bool?> pick)
+        {
+            int on = c.RuleVotes.FindAll(v => pick(v) == true).Count, off = c.RuleVotes.FindAll(v => pick(v) == false).Count;
+            return $"{label} {(result ? "ON" : "OFF")}{(!c.NoVotes && on == off ? " (DRAW)" : "")}";
+        }
+        string s = Rule(compact?"DMG":"DAMAGE", c.Damage, v => v.damage) + " / " + (c.FuelAvailable?Rule("FUEL", c.Fuel, v => v.fuel):compact?"NO FUEL":"NO FUEL ON THIS TRACK");
+        return c.NoVotes ? s + (compact ? " - DRAWN" : " - DRAWN BY LOT") : s;
     }
 
     /// <summary>The lottery drum: a reel of the tied powers spinning down onto the winner.</summary>
@@ -345,7 +435,7 @@ public partial class Hud
             if (yy < box.Position.Y + 1 || yy > box.End.Y - 15) continue;
             int idx = Net.LanBallot.DrumIndex(n, MathF.Floor(p) + k);
             bool done = t >= Net.LanBallot.DrumSpin;
-            PixelFont.DrawCentered(this, c.Tied[idx] + " %", cx, Mathf.Floor(yy), done ? Gold : Paper, 2);
+            PixelFont.DrawCentered(this, Race.Training.FuelName(c.Tied[idx]), cx, Mathf.Floor(yy), done ? Gold : Paper, 2);
         }
         DrawRect(box, Gold, false, 1f);
         DrawRect(new Rect2(box.Position.X - 6, mid + 3, 4, 7), Red);
@@ -358,7 +448,7 @@ public partial class Hud
         if (v.WinnerName != null) DrawLanResultsConfetti(v.ResultsAge);
         var r = LanPanel(Math.Min(344,Screen.X-8), 172 + Math.Max(0,v.Results.Count-4)*12);
         bool compact=r.Size.X<300;
-        LanHeading(r, "RACE RESULTS", compact?$"{Laps(v.Laps)} AT {v.Power}%":$"THE PEOPLE'S RACE - {Laps(v.Laps)} AT {v.Power} %");
+        LanHeading(r, "RACE RESULTS", $"{Laps(v.Laps)} / {Race.Training.FuelName(v.Power)}");
         if (v.WinnerName != null)
         {
             var band = new Rect2(r.Position.X + 8, r.Position.Y + 38, r.Size.X - 16, 40);
@@ -390,7 +480,7 @@ public partial class Hud
         PixelFont.Draw(this, "NAME", new Vector2(x0 + 34, y), Grey);
         PixelFont.Draw(this, "TIME", new Vector2(x0 + 150, y), Grey);
         PixelFont.Draw(this, "BEST LAP", new Vector2(x0 + 210, y), Grey);
-        PixelFont.Draw(this, "POWER", new Vector2(r.End.X - 14 - PixelFont.Measure("POWER"), y), Grey);
+        PixelFont.Draw(this, "CAR", new Vector2(r.End.X - 14 - PixelFont.Measure("CAR"), y), Grey);
         y += 12;
         foreach (var (rank, name, col, time, best, pad) in v.Results)
         {
@@ -401,7 +491,7 @@ public partial class Hud
             PixelFont.Draw(this, dnf ? "DNF" : Race.LapTimer.Format(time), new Vector2(x0 + 150, y), dnf ? Red : Paper);
             PixelFont.Draw(this, Race.LapTimer.Format(best), new Vector2(x0 + 210, y), Grey);
             if (!dnf) DrawInputMark(new Vector2(x0 + 260, y), pad, pad ? new Color(Paper, 0.8f) : new Color(Grey, 0.7f));
-            string pw = v.Power + "%";
+            string pw = Race.Training.FuelShort(v.Power);
             PixelFont.Draw(this, pw, new Vector2(r.End.X - 14 - PixelFont.Measure(pw), y), Grey);
             y += 12;
         }

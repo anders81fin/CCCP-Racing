@@ -32,8 +32,11 @@ public partial class JetSound : AudioStreamPlayer3D
 
     public override void _ExitTree()
     {
-        // Release the managed reference before Godot tears down the audio server.
-        _pb?.Dispose();
+        using var driverLock = AudioMix.LockDriver();
+        using var generator = Stream as AudioStreamGenerator;
+        StreamPaused = false; Stop();
+        Stream = null;
+        if (GodotObject.IsInstanceValid(_pb)) _pb.Stop(); _pb?.Dispose();
         _pb = null;
     }
 
@@ -167,8 +170,11 @@ public partial class ExplosionSound : AudioStreamPlayer3D
 
     public override void _ExitTree()
     {
-        // Release the managed reference before Godot tears down the audio server.
-        _pb?.Dispose();
+        using var driverLock = AudioMix.LockDriver();
+        using var generator = Stream as AudioStreamGenerator;
+        StreamPaused = false; Stop();
+        Stream = null;
+        if (GodotObject.IsInstanceValid(_pb)) _pb.Stop(); _pb?.Dispose();
         _pb = null;
     }
 

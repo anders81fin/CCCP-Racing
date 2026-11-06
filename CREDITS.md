@@ -3,7 +3,7 @@
 - Game by Antti Korsumäki
 - GitHub: github.com/anders81fin
 - Source code: github.com/anders81fin/CCCP-Racing
-- Source for version 0.853: github.com/anders81fin/CCCP-Racing/tree/v0.853
+- Source for version 0.854: github.com/anders81fin/CCCP-Racing/tree/v0.854
 - Music copyright Juha Koskikuru, used with his permission. Music is excluded from the GPL and CC BY-SA licenses. No additional music rights are granted
 - Made with the Godot Engine 4.7.2 (https://godotengine.org), (c) Godot Engine contributors, MIT license
 - Original 2105 car model by Antti Korsumäki. After the original Blender files were lost, the model was reconstructed for the game with generative AI using images of his original model as references

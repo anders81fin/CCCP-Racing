@@ -74,7 +74,7 @@ public partial class RaceScene
         if (backup != null) System.IO.File.WriteAllBytes(path, backup); else if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
         _cheatSaved = null;
         GD.Print($"CHEATTEST: settings restored, unlock={CheatUnlock}");
-        GetTree().Quit();
+        CCCPRacing.Audio.AudioMix.Quit(this);
     }
 
     /// <summary>The code's keys, watched on the title only (not in a card, a name field, the recordings or the viewer). True: the event is swallowed (the pad's last A must not also open a menu row).</summary>

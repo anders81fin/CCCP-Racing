@@ -145,7 +145,7 @@ public partial class RaceScene
             GD.Print($"CARTOURENTER: waitCleared={!_ctWait} tourOpen={_carTourOpen} card={_card} rallyFuel={_rallyFuel}");
             Input.ActionRelease("start");
             CloseCarTour();
-            GetTree().Quit();
+            CCCPRacing.Audio.AudioMix.Quit(this);
             return;
         }
         if (_ctWait)
@@ -279,7 +279,7 @@ public partial class RaceScene
         GD.Print($"CARTOURCHECK: fuel={_carTourFuel} locked={locked} enterRefused={refused} rallyFuel={_rallyFuel} savedFuel={savedFuel} card={_card} state={_state} archive={archive} "
             + $"damaged={_carVis.Damage?.IsDamaged} powerScale={_car.PowerScale:F2} turboGain={_car.TurboGain:F2} boost={_car.Boost:F2} volume={_snd.Volume:F2}");
         if (!locked || refused) { CloseCarTour(); GD.Print($"CARTOURCHECK: closed, replaying={Replaying} turboGain={_car.TurboGain:F2} powerScale={_car.PowerScale:F2} damageEnabled={_carVis.Damage?.Enabled} engineFuel={EngineFuel} volume={_snd.Volume:F2}"); }
-        GetTree().Quit();
+        CCCPRacing.Audio.AudioMix.Quit(this);
     }
 
     /// <summary>Test hook: --car-tour=diesel|petrol|rocket|sputnik opens that car's tour at once on the title (a still or a check, no card).</summary>

@@ -160,7 +160,7 @@ public sealed class ExportJob
             if (!ExportBootstrap.Supported(out string unsup)) throw new ExportFailure(unsup);
             string bad = Validate(_req, _source); if (bad != null) throw new ExportFailure(bad);
             Directory.CreateDirectory(dest); Directory.CreateDirectory(_env.JobsRoot);
-            long copy = ExportBootstrap.CopyBytes(_env.ExePath, _env.ProjectDir != null);
+            long copy = ExportBootstrap.CopyBytes(_env.ExePath, _env.ProjectDir != null, _env.ProjectDir);
             var (needJobs, needDest) = Estimate(_req, copy);
             long freeJobs = Free(_env.JobsRoot), freeDest = Free(dest);
             bool sameVolume = Path.GetPathRoot(Path.GetFullPath(dest)) == Path.GetPathRoot(Path.GetFullPath(_env.JobsRoot)) && SameDevice(dest, _env.JobsRoot);
@@ -224,21 +224,22 @@ public sealed class ExportJob
                         if (!ExportWindowHider.Ready(hiddenReady))
                             throw new ExportFailure("BACKGROUND VIDEO RENDERER DID NOT INITIALIZE");
                         hiddenVerified = true;
-                        Log("renderer window mapping suppressed (native audit ready)");
+                        Log("renderer window hidden (platform helper ready)");
                     }
                     if (startIdx < 0 && alive && !File.Exists(Png(next + 1))) { Thread.Sleep(2); continue; }
                     if (startIdx >= 0 && next >= startIdx && next < startIdx + total)
                     {
                         if (ffIn == null)
                         {
-                            if (_req.HasFreeCameraKeys && !File.ReadAllLines(markers).Contains("CAMERA_KEYS 2"))
+                            string capabilities = ReadSharedText(markers);
+                            if (_req.HasFreeCameraKeys && !capabilities.Split('\n').Any(l => l.TrimEnd('\r') == "CAMERA_KEYS 2"))
                                 throw new ExportFailure("THE EXPORT RENDERER DOES NOT SUPPORT FREE CAMERA KEYS - UPDATE THE GAME");
-                            if (_req.HasCameraMotion && !File.ReadAllLines(markers).Contains("CAMERA_MOTION 3"))
+                            if (_req.HasCameraMotion && !capabilities.Split('\n').Any(l => l.TrimEnd('\r') == "CAMERA_MOTION 3"))
                                 throw new ExportFailure("THE EXPORT RENDERER DOES NOT SUPPORT CAMERA MOTION - UPDATE THE GAME");
                             Set(ExportPhase.Rendering, "RENDERING");
                             ff1 = _ff1 = StartFfmpeg(ffmpeg, Video(fps, _req, videoPart), Path.Combine(owned.JobDir, "ffmpeg-video.log"), out ffIn); _ffIn = ffIn; disposables.AddRange(Dispose); Dispose.Clear();
                         }
-                        byte[] bytes = File.ReadAllBytes(Png(next));
+                        byte[] bytes = RetryIo(() => File.ReadAllBytes(Png(next)));
                         try { ffIn.Write(bytes, 0, bytes.Length); ffIn.Flush(); }
                         catch (Exception ex) when (ex is IOException or ObjectDisposedException)
                         {
@@ -249,7 +250,7 @@ public sealed class ExportJob
                         double fpsNow = sent / Math.Max(0.1, sw.Elapsed.TotalSeconds);
                         Set(ExportPhase.Rendering, $"EXPORTING {sent}/{total}  ETA {(int)((total - sent) / Math.Max(0.1, fpsNow))} S", sent);
                     }
-                    File.Delete(Png(next)); next++; lastActivity = Environment.TickCount64;
+                    RetryIo(() => { File.Delete(Png(next)); return true; }); next++; lastActivity = Environment.TickCount64;
                     continue;
                 }
                 if (!alive) break;
@@ -297,7 +298,7 @@ public sealed class ExportJob
             if (_req.KeepDiagnostics)
             {
                 string diag = Path.Combine(dest, Path.GetFileNameWithoutExtension(finalPath) + ".diag"); Directory.CreateDirectory(diag);
-                foreach (var f in new[] { "markers.txt", "frames.jsonl", "window-hidden.ready", "free-camera-poses.jsonl", "export.log", "child.log", "plan.json", "ffmpeg-video.log", "ffmpeg-mux.log" })
+                foreach (var f in new[] { "markers.txt", "frames.jsonl", "window-hidden.ready", "free-camera-poses.jsonl", "export.log", "child.log", "godot.log", "plan.json", "ffmpeg-video.log", "ffmpeg-mux.log" })
                     if (File.Exists(Path.Combine(owned.JobDir, f))) File.Copy(Path.Combine(owned.JobDir, f), Path.Combine(diag, f), true);
                 if (_req.DebugKeepAudio)
                     foreach (var f in new[] { Path.Combine("movie", "m.wav"), "audio.raw" })
@@ -318,7 +319,12 @@ public sealed class ExportJob
             try { watchdog.Wait(1000); } catch { }
             bool ok = _terminal?.Phase == ExportPhase.Done;
             if (!ok) foreach (var f in owned.Files) TryDelete(f);
-            if (owned.JobDir != null) DeleteJobDir(owned.JobDir, _env.JobsRoot, JobId);
+            if (owned.JobDir != null && DeleteJobDir(owned.JobDir, _env.JobsRoot, JobId) is string cleanupError)
+            {
+                string cleanupLog = Path.Combine(dest, $"export-cleanup-{JobId}.log");
+                try { File.WriteAllText(cleanupLog, $"Temporary export files remain at {owned.JobDir}\n{cleanupError}\n"); } catch { cleanupLog = null; }
+                if (_terminal != null) _terminal = _terminal with { Message = _terminal.Message + " - TEMPORARY FILES REMAIN", LogPath = cleanupLog ?? _terminal.LogPath };
+            }
             _progress = _terminal ?? new ExportProgress(ExportPhase.Failed, _progress.FramesDone, _req.FrameCount, "THE EXPORT ENDED UNEXPECTEDLY", _clock.Elapsed.TotalSeconds, null, null, true);      // (published last)
         }
     }
@@ -334,7 +340,9 @@ public sealed class ExportJob
                 keep = Path.Combine(dest, $"export-failed-{JobId}.log");
                 using var o = File.Create(keep); using var w = new StreamWriter(o);
                 w.WriteLine("EXPORT FAILED: " + message); w.WriteLine(File.ReadAllText(log));
-                if (File.Exists(childLog)) { w.WriteLine("--- child ---"); w.WriteLine(string.Join('\n', File.ReadLines(childLog).TakeLast(120))); }
+                if (File.Exists(childLog)) { w.WriteLine("--- child ---"); w.WriteLine(string.Join('\n', ReadSharedText(childLog).Split('\n').TakeLast(120))); }
+                string godotLog = Path.Combine(owned.JobDir, "godot.log");
+                if (File.Exists(godotLog)) { w.WriteLine("--- Godot ---"); w.WriteLine(string.Join('\n', ReadSharedText(godotLog).Split('\n').TakeLast(120))); }
             }
         }
         catch { keep = null; }
@@ -359,6 +367,21 @@ public sealed class ExportJob
         return p;
     }
 
+    internal static T RetryIo<T>(Func<T> operation)
+    {
+        for (int attempt = 0; ; attempt++) {
+            try { return operation(); }
+            catch (IOException) when (attempt < 4) { Thread.Sleep(25 << attempt); }
+        }
+    }
+
+    internal static string ReadSharedText(string path)
+    {
+        using var f = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var r = new StreamReader(f);
+        return r.ReadToEnd();
+    }
+
     static void ReadMarkers(string path, ref int start, ref string error)
     {
         try
@@ -375,7 +398,7 @@ public sealed class ExportJob
         catch (IOException) { }
     }
 
-    static string Tail(string path) { try { return string.Join(" ", File.ReadLines(path).TakeLast(3)); } catch { return ""; } }
+    static string Tail(string path) { try { return string.Join(" ", ReadSharedText(path).Split('\n').TakeLast(3)); } catch { return ""; } }
     static long Free(string dir) { if (FreeSpaceOverride != null) return FreeSpaceOverride(dir); try { return new DriveInfo(Path.GetFullPath(dir)).AvailableFreeSpace; } catch { return long.MaxValue; } }
     static bool SameDevice(string a, string b)
     {
@@ -385,14 +408,14 @@ public sealed class ExportJob
     static void TryDelete(string f) { try { if (File.Exists(f)) File.Delete(f); } catch { } }
 
     /// <summary>Deletes the job folder only when it is a direct child of the jobs root and carries this job's ownership marker.</summary>
-    public static void DeleteJobDir(string jobDir, string jobsRoot, string jobId)
+    public static string DeleteJobDir(string jobDir, string jobsRoot, string jobId)
     {
         try
         {
             string full = Path.GetFullPath(jobDir), root = Path.GetFullPath(jobsRoot);
-            if (Path.GetDirectoryName(full) != root || Path.GetFileName(full) != jobId) return;
+            if (Path.GetDirectoryName(full) != root || Path.GetFileName(full) != jobId) return null;
             string marker = Path.Combine(full, ".cccp-export-job");
-            if (!File.Exists(marker) || File.ReadAllText(marker).Trim() != jobId) return;
+            if (!File.Exists(marker) || File.ReadAllText(marker).Trim() != jobId) return null;
             // symlinks inside (the bootstrap's) are removed as links, never followed
             foreach (var entry in Directory.EnumerateFileSystemEntries(full, "*", SearchOption.TopDirectoryOnly))
             {
@@ -402,9 +425,16 @@ public sealed class ExportJob
             string game = Path.Combine(full, "game");
             if (Directory.Exists(game))
                 foreach (var entry in Directory.EnumerateFileSystemEntries(game)) { var fi = new FileInfo(entry); if (fi.LinkTarget != null) { if (Directory.Exists(entry)) Directory.Delete(entry); else File.Delete(entry); } }
-            Directory.Delete(full, true);
+            RetryIo(() => {
+                if (!Directory.Exists(full)) return true;
+                if (OperatingSystem.IsWindows())
+                    foreach (var file in Directory.EnumerateFiles(full, "*", SearchOption.AllDirectories))
+                        File.SetAttributes(file, File.GetAttributes(file) & ~FileAttributes.ReadOnly);
+                Directory.Delete(full, true); return true;
+            });
+            return null;
         }
-        catch { }
+        catch (Exception e) { return e.Message; }
     }
 
     sealed class ExportFailure : Exception { public ExportFailure(string m) : base(m) { } }

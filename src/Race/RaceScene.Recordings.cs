@@ -178,10 +178,11 @@ public partial class RaceScene
         return r.Length > KeepNameMax ? r[..KeepNameMax].TrimEnd() : r;
     }
 
-    /// <summary>An empty name is the lap's own words: "ILYICH RALLY 1:23.45". A name already used by another kept lap is allowed (every recording has its own id); the list shows the time beside it.</summary>
+    /// <summary>An empty name identifies the numbered lap, track and time ("LAP 3 ILYICH 1-23-45"); legacy laps keep the earlier track/mode/time label. A name already used by another kept lap is allowed (every recording has its own id); the list shows the time beside it.</summary>
     string DefaultKeepName(LapEntryInfo info)
     {
         int cs = (int)MathF.Round(info.Meta.LapSeconds * 100);      // ("1:23.45" would lose its punctuation in a name: 1-23-45)
+        if (info.Meta.LapNumber > 0) return CleanKeepName($"LAP {info.Meta.LapNumber} {info.Meta.TrackId} {cs / 6000}-{cs / 100 % 60:00}-{cs % 100:00}");
         return CleanKeepName($"{info.Meta.TrackId} {(info.Meta.Mode == "stakhanov" ? "STAK" : "RALLY")} {cs / 6000}-{cs / 100 % 60:00}-{cs % 100:00}");
     }
 

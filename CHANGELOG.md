@@ -3,6 +3,18 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.854
+
+- LAN SECRET BALLOT gives 60 seconds to choose the track, fuel, damage, fuel use and moving obstacles. Missing ballots say NOT VOTED. With no votes, every choice is drawn at random
+- LAN offers a local choice to record races in the background. After the finish, KEEP saves a copy instead of opening a replay during the session. Recording adds no extra network traffic
+- SHARE BOARDS exchanges leaderboard results and their attached recordings only between players who agree. Lobby only: the ballot waits for transfers and disk work to finish. Resync does not duplicate results
+- Fixes to joined players seeing the Siberia crash site as a black slab and to rotating beacon beams on moving vehicles. Moving obstacles can be switched off for a quieter LAN race
+- Single-player replays show their lap number and follow lap order across recording folders. Pinned recordings always come first, with lap order kept inside each group
+- Replay EDIT / EXPORT moves from E to V and works in free camera. E still raises the camera. Camera motion and audio cleanup are more reliable
+- VISUALS offers PIXEL or NATIVE rendering. NATIVE renders the 3D at the window resolution and enables CAPITALIST LUXURIES. The Godot startup splash is restored
+- MP4 export is available on Windows 64-bit as well as Linux x86_64. Windows needs ffmpeg.exe with H.264 and AAC beside the game or on PATH. Vulkan and Direct3D 12 remain separate downloads
+- Diesel norms on Ilyich and the bonus track are adjusted, with a limit on the climate allowance
+
 ## 0.853
 
 - Source code is available at github.com/anders81fin/CCCP-Racing under GNU GPL version 3 or later, to the extent of rights held by the licensor

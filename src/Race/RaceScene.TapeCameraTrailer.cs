@@ -78,7 +78,7 @@ public partial class RaceScene
             if (subject == null || _tapePlayer?.Covers(actor) != true)
             {
                 GD.PushError("Tape camera sequence: tractor pass requires a compatible recorded tractor");
-                GetTree().Quit(1);
+                CCCPRacing.Audio.AudioMix.Quit(this, 1);
                 return true;
             }
             Vector3 tractor = subject.GlobalPosition + Vector3.Up;
@@ -96,7 +96,7 @@ public partial class RaceScene
             if (_kozlikAll?.Body == null || _tapePlayer?.Covers("Kozlik:Kozlik") != true)
             {
                 GD.PushError("Tape camera sequence: Kozlik camera requires a compatible recorded Kozlik");
-                GetTree().Quit(1);
+                CCCPRacing.Audio.AudioMix.Quit(this, 1);
                 return true;
             }
             // Passenger-side windscreen mount clears the opaque glazing and bear.
@@ -113,7 +113,7 @@ public partial class RaceScene
             if (_slurryAll?.Model == null || _tapePlayer?.Covers("Slurry:SlurryTractor") != true)
             {
                 GD.PushError("Tape camera sequence: slurry cab requires a compatible recorded tractor");
-                GetTree().Quit(1);
+                CCCPRacing.Audio.AudioMix.Quit(this, 1);
                 return true;
             }
             // The model's transform is restored by the world tape. Never use the
@@ -150,7 +150,7 @@ public partial class RaceScene
             if (jet == null)
             {
                 GD.PushError("Tape camera sequence: wing camera requires its recorded MiG instance");
-                GetTree().Quit(1);
+                CCCPRacing.Audio.AudioMix.Quit(this, 1);
                 return true;
             }
             if (_tapeWingJetId < 0)
@@ -185,7 +185,7 @@ public partial class RaceScene
                     : "<absent>";
                 string tapeLive = _tapePlayer == null ? "<no player>" : string.Join(",", _tapePlayer.LiveInstances.OrderBy(p => p.Key).Select(p => $"{p.Key}@{p.Value:F3}"));
                 GD.PushError($"Tape camera sequence: BUK wing camera requires recorded buk-missile instance {_tapeWingMissileId}; sink live [{live}], requested kind {requestedKind}, tape live [{tapeLive}]");
-                GetTree().Quit(1);
+                CCCPRacing.Audio.AudioMix.Quit(this, 1);
                 return true;
             }
             // Local X/Y place the camera clear of the missile body; local Z keeps
@@ -211,7 +211,7 @@ public partial class RaceScene
             if (cameraHind == null || targetHind == null)
             {
                 GD.PushError($"Tape camera sequence: mounted Hind view requires recorded Hind instances {_tapeWingHindId} and {_tapeHindTargetId}");
-                GetTree().Quit(1);
+                CCCPRacing.Audio.AudioMix.Quit(this, 1);
                 return true;
             }
             // This outboard, elevated local mount clears the 8.5 m rotor disk.
@@ -237,7 +237,7 @@ public partial class RaceScene
                 || _tapeHindDetachTime is not float detach || _tapeHindCollisionPoint is not Vector3 collisionPoint)
             {
                 GD.PushError($"Tape camera sequence: Hind collision flythrough requires taped Hinds {_tapeWingHindId}/{_tapeHindTargetId} and its recorded collision path");
-                GetTree().Quit(1);
+                CCCPRacing.Audio.AudioMix.Quit(this, 1);
                 return true;
             }
 
@@ -352,7 +352,7 @@ public partial class RaceScene
             if (_tapeTrailerEye is not Vector3 fixedEye)
             {
                 GD.PushError("Tape camera sequence: fixed mounted camera requires an explicit eye");
-                GetTree().Quit(1);
+                CCCPRacing.Audio.AudioMix.Quit(this, 1);
                 return true;
             }
             // Fixed world-space security/landscape mount: never follow, lerp or

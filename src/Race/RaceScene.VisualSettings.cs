@@ -6,7 +6,7 @@ using Godot;
 namespace CCCPRacing.Race;
 
 /// <summary>
-/// VISUALS (under SETTINGS): the map, the comments, the camera (where there is one to choose; found cameras only, as before), edges and softening. Edges and softening alone stand behind the
+/// VISUALS (under SETTINGS): the map, the comments, the camera (where there is one to choose; found cameras only, as before), rendering (PIXEL/NATIVE), edges and softening. Native rendering, edges and softening stand behind the
 /// CAPITALIST LUXURIES ENABLED notice (RaceScene.cs sets the flag from them); the map, the comments and the camera never do. It opens over SETTINGS and gives it back at the same row. Rows are found by id (VisualRowId).
 /// </summary>
 public partial class RaceScene
@@ -19,7 +19,7 @@ public partial class RaceScene
             if (_run == RunMode.Rally && _norms.Enabled && !InLanRace) l.Add(VisualRowId.NormsCard);
             l.Add(VisualRowId.Map); l.Add(VisualRowId.CarInstruments);
             if (_hud.GameplayCameraName != null) l.Add(VisualRowId.Camera);
-            l.Add(VisualRowId.Edges); l.Add(VisualRowId.Softening); l.Add(VisualRowId.Back);
+            l.Add(VisualRowId.Rendering); l.Add(VisualRowId.Edges); l.Add(VisualRowId.Softening); l.Add(VisualRowId.Back);
             return l;
         }
     }
@@ -76,6 +76,7 @@ public partial class RaceScene
             case VisualRowId.Map: ToggleMinimap(); break;
             case VisualRowId.Comments: _hud.SetComments(!_hud.Comments, confirm: true); break;
             case VisualRowId.Camera: ChooseCamera(step); break;
+            case VisualRowId.Rendering: StepRendering(); break;
             case VisualRowId.Edges: StepAntialiasing(step); _hud.AntialiasingName = AaNames[_aaMode]; break;
             case VisualRowId.Softening: StepSoftening(step); _hud.SofteningName = SoftNames[_softLevel]; break;
             case VisualRowId.CarInstruments: SetHudChoice("car", _hud.CarInstrumentsOn = !_hud.CarInstrumentsOn); break;

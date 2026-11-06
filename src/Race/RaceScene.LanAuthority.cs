@@ -96,6 +96,7 @@ public partial class RaceScene
             foreach(Node child in actor.FindChildren("*","",true,false))
             {
                 if(child is not ServiceMarker marker || !marker.Visible) continue;
+                if ((actor==_drunksAll && !InWorld(Actors.Drunks)) || (actor==_depot && !InWorld(Actors.Depot))) continue;
                 _lanServiceMarkers.Add((marker,marker.GetParent()));
                 marker.Reparent(this,true); // fixed service signs stay visible when client actor roots are hidden
             }
@@ -140,7 +141,7 @@ public partial class RaceScene
         _lanPredictedContacts=0;
         _lanWorld?.Free();_lanWorld=new LanWorld(this);
         _lanReadyCount=0;
-        LanServiceMarkers(_lanReveal.Fuel);
+        LanServiceMarkers(_lanReveal.Fuel && InWorld(Actors.Depot));
         LanExtraWorld();
         if(_net.IsHost)
         {
@@ -148,12 +149,12 @@ public partial class RaceScene
             {
                 var car=id==_net.MyId?_car:new CarSim(_params,_track) {Obstacles=_track.Obstacles,Banks=_track.Banks,WorldMax=_car.WorldMax,BreakObstacle=LanBreak};
                 if(id!=_net.MyId) { LanRace.GridPose(_track,_lanReveal.Grid.IndexOf(id),out var p,out float yaw); car.Reset(p,yaw); }
-                car.PowerScale=_power/100f;car.Overdrive=Training.Overdrive(_power);
+                LanRace.ConfigureCar(car, _power);
                 var driver=new LanDriver {Car=car,Timer=new LapTimer(_track),LastInput=LanSession.Now};
                 driver.Health.Reset(_lanReveal.Damage);
                 driver.Tank = id == _net.MyId ? _tank : new FuelTank(_params);
                 driver.Tank.Enabled = _lanReveal.Fuel;
-                driver.Tank.Rate = _fuelRate * FuelGrades.Burn[Array.IndexOf(FuelGrades.Percent, _power)];
+                driver.Tank.Rate = _fuelRate * FuelGrades.Burn[(int)LanRace.Grade(_power)];
                 driver.Tank.Refill(_fuelStart);
                 driver.Timer.LapCompleted+=(time,_)=>LanAuthorityLap(id,driver,time);
                 _lanDrivers[id]=driver;
@@ -234,7 +235,7 @@ public partial class RaceScene
     /// <summary>The host assigns the single field mechanic to the driver who honks nearest the post.</summary>
     void LanMechanicTick(float dt)
     {
-        if(!_net.IsHost || _drunksAll==null || _state!=State.Racing || _net.State!=LanSession.Phase.Race) return;
+        if(!_net.IsHost || _drunks==null || _state!=State.Racing || _net.State!=LanSession.Phase.Race) return;
         if(_lanMechanicTarget!=null && !_lanDrivers.Values.Contains(_lanMechanicTarget))
         {
             _drunksAll.ResetMechanic();
@@ -299,7 +300,7 @@ public partial class RaceScene
                 if(d.Health.Dead || d.Finished || _net.State is LanSession.Phase.Results or LanSession.Phase.SessionFinished) {d.Car.ThrottleTarget=0;d.Car.Brake=.6f;}
                 // Ignore queued reports from the car replaced before this command was sent.
                 d.BrokenHeadlights=d.Last.HeadlightsAfter(d.BrokenHeadlights,d.RepairSerial,_lanReveal.Damage);
-                d.Car.PowerScale=d.Tank.Empty ? 0 : _power/100f*d.Health.PowerFactor;
+                d.Car.PowerScale=d.Tank.Empty ? 0 : FuelGrades.PhysicsPercent(LanRace.Grade(_power))/100f*d.Health.PowerFactor;
                 if (d.Tank.Empty) d.Car.ThrottleTarget = d.Car.Throttle = 0;
                 if(racing && !d.Timer.Running && !d.Finished) d.Timer.Start();
                 d.Impact=0;d.Material=ImpactMaterial.Unknown;d.ImpactBroke=false;
@@ -466,14 +467,14 @@ public partial class RaceScene
     }
 
     bool LanRefuelling(LanDriver d) => _state == State.Racing && !d.Finished && !d.Health.Dead && d.Tank.Enabled && d.Tank.Fraction < .999f
-        && _depot.FillsCar(new Vector2(d.Car.Pos.X,d.Car.Pos.Z),d.Car.Speed);
+        && InWorld(Actors.Depot) && _depot.FillsCar(new Vector2(d.Car.Pos.X,d.Car.Pos.Z),d.Car.Speed);
 
     // Host owns every tank. Depot refuelling keeps the race clock running; a dry,
     // stationary car receives emergency fuel after ten seconds to avoid a permanent DNF.
     void LanFuelTick(LanDriver d, float dt)
     {
         LanRace.TickFuel(d.Tank, d.Car, d.Last.Pad,
-            _depot.FillsCar(new Vector2(d.Car.Pos.X,d.Car.Pos.Z),d.Car.Speed), dt, ref d.DryWait);
+            InWorld(Actors.Depot) && _depot.FillsCar(new Vector2(d.Car.Pos.X,d.Car.Pos.Z),d.Car.Speed), dt, ref d.DryWait);
     }
 
     IEnumerable<CarSim> HindCannonTargets()

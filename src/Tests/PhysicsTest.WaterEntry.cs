@@ -29,7 +29,7 @@ public partial class PhysicsTest
         car.Reset(new Vector3(0, 0.8f + airHeight, startZ), 0);    
         car.Vel = new Vector3(0, 0, -speed);
         float minSpeed = speed, entry = 0, exit = 0, rebound = 0; bool inside = false;
-        float maxBedY = float.MinValue, lastVy = 0; int bounces = 0;
+        float lastVy = 0; int bounces = 0;
         for (float t = 0; t < 4f; t += Dt)
         {
             car.SetControls(true, false, 0, false);

@@ -24,7 +24,7 @@ public partial class RaceScene
                 || take is not ("kolkhoz" or "farm" or "siberia"))
             {
                 GD.PushError("--trailer-v2=kolkhoz|farm|siberia needs the corresponding --track=ilyich|siberia");
-                GetTree().Quit(1);
+                CCCPRacing.Audio.AudioMix.Quit(this, 1);
                 return;
             }
             shots = "--trailer-shots=" + (take == "siberia" ? "snow_hairpin" : "hairpin");
@@ -32,13 +32,13 @@ public partial class RaceScene
         bool drone = Array.Exists(args, a => a == "--drone-tour");
         if (drone)
         {
-            if (_trackId is not ("ilyich" or "siberia" or "atomgrad" or "bonus")) { GD.PushError("--drone-tour needs --track=ilyich, siberia, atomgrad or bonus"); GetTree().Quit(1); return; }
+            if (_trackId is not ("ilyich" or "siberia" or "atomgrad" or "bonus")) { GD.PushError("--drone-tour needs --track=ilyich, siberia, atomgrad or bonus"); CCCPRacing.Audio.AudioMix.Quit(this, 1); return; }
             shots = "--trailer-shots=" + (_trackId == "siberia" ? "snow_hairpin" : "hairpin");
         }
         if (Array.Exists(args, a => a == "--cinematic-tour"))
         {
             var tour = TrackTour.For(_trackId, _track.Center.Length);
-            if (tour == null) { GD.PushError("--cinematic-tour needs ilyich or siberia"); GetTree().Quit(1); return; }
+            if (tour == null) { GD.PushError("--cinematic-tour needs ilyich or siberia"); CCCPRacing.Audio.AudioMix.Quit(this, 1); return; }
             _cinematicTour = true;
             shots = "--trailer-shots=" + string.Join(',', tour.Parts.Select(p => p.Id));
         }
@@ -50,7 +50,7 @@ public partial class RaceScene
             if (names.Length == 0 || names.Any(id => !available.Any(x => x.step.Id == id)))
             {
                 GD.PushError("Unknown or empty --trailer-shots selection");
-                GetTree().Quit(1);
+                CCCPRacing.Audio.AudioMix.Quit(this, 1);
                 return;
             }
             _trailerCapture = true;
@@ -136,7 +136,7 @@ public partial class RaceScene
         if (_sc.Step + 1 == _sc.Steps.Length)
         {
             _sc.Course = null;
-            GetTree().Quit();
+            CCCPRacing.Audio.AudioMix.Quit(this);
             return;
         }
         _sc.Step++;

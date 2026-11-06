@@ -24,4 +24,15 @@ func run():
 	check(voices[1]>=2 and voices[2]==2 and voices[3]==1,"actual race creates tank, BTR and bear-jeep engine voices")
 	check(not AudioServer.is_bus_mute(AudioServer.get_bus_index("Sfx")) and not AudioServer.is_bus_mute(0),"race Sfx and Master are unmuted")
 	Input.action_release("clutch")
-	quit(1 if failed else 0)
+	if "--audio-lifecycle-census" in OS.get_cmdline_user_args(): dump_playbacks(current_scene)
+	current_scene.call("RequestQuit",1 if failed else 0)
+
+# Map native leak IDs to production player owners without retaining playback references.
+func dump_playbacks(node: Node):
+	if node is AudioStreamPlayer or node is AudioStreamPlayer3D:
+		if node.playing:
+			var playback=node.get_stream_playback()
+			if playback is AudioStreamGeneratorPlayback:
+				var script=node.get_script()
+				print("AUDIO OWNER id=",playback.get_instance_id()," path=",node.get_path()," script=",script.resource_path if script!=null else "native child")
+	for child in node.get_children(): dump_playbacks(child)

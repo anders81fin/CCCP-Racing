@@ -50,14 +50,17 @@ public partial class RaceScene
         _cam.Snap(_car.Pos);
         _viewerCamDirty = true;
     }
-    public void ViewerEndFreeCamera()
+    /// <summary>Leaves the free camera for a following camera: <paramref name="back"/> (the one in view when the player took the free camera), top-down by default. Its own lens comes back with it.</summary>
+    public void ViewerEndFreeCamera(ViewerCameraMode? back = null)
     {
         if (!ViewerFreeCameraActive) return;
         ClearFreeCamera();
-        ViewerCamera = ViewerCameraMode.TopDown;
-        _gameplayView = GameplayView.TopDown;
+        var mode = back ?? ViewerCameraMode.TopDown;
+        _viewerCamera = mode;
+        _gameplayView = mode switch { ViewerCameraMode.Bonnet => GameplayView.Bonnet, ViewerCameraMode.Cinematic => GameplayView.Cinematic, _ => GameplayView.TopDown };
+        _replayCamera.Reset(); _gameplayCamera.Reset();
         _cam.Snap(_car.Pos); _viewerCamDirty = true;
-        ViewerGameplayCameraFrame(1f / 60f);
+        if (mode != ViewerCameraMode.Auto) ViewerGameplayCameraFrame(1f / 60f);      // (Auto's director takes its first step in the next ViewerFrame, paused or not)
     }
     public LapFreeCamera ViewerCaptureFreeCamera()
     {

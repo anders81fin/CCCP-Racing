@@ -14,25 +14,35 @@ public static class LanBallot
     public static string Track(IEnumerable<string> votes,IReadOnlyList<string> options,int seed,out List<string> tied)
     {
         if(options.Count==0) throw new ArgumentException("no host tracks");
+        // Only submitted votes for an offered track count; with none, every option ties and the drum picks one.
         var counts=options.ToDictionary(x=>x,_=>0);
-        foreach(string vote in votes) counts[counts.ContainsKey(vote??"")?vote:options[0]]++;
+        foreach(string vote in votes) if(vote!=null && counts.ContainsKey(vote)) counts[vote]++;
         int max=counts.Values.Max();tied=options.Where(x=>counts[x]==max).ToList();
         return tied[Draw(tied.Count,unchecked((int)Mix((uint)seed^0x54524143u)))];
     }
-    /// <summary>What a comrade who did not vote in time counts as.</summary>
-    public const int NoVote = 100;
+    /// <summary>
+    /// The explicit NOT VOTED marker in a ballot's fuel field (on the wire too): a comrade who did not submit
+    /// by the deadline abstains from every choice. Never a valid fuel ID, never counted.
+    /// </summary>
+    public const int Abstain = 0;
+    public static bool Voted(int pct) => pct != Abstain;
+    /// <summary>The fuels a ballot offers; when nobody voted the drum draws among all of them.</summary>
+    public static IReadOnlyList<int> AllFuels => Enumerable.Range(1, LanRace.FuelCount).Select(Race.Training.PercentForKey).ToList();
     public const float Step = 0.8f;          // s between two ballots shown
     public const float TallyHold = 1.4f;     // s the tally stays up before the drum or the result
     public const float DrumSpin = 3f, DrumHold = 1.2f;
     public const float AnnounceHold = 2.6f, GridHold = 2.6f;
     public const float Countdown = 3f;
 
-    /// <summary>The powers with the most votes, lowest first (one: the winner; more: the drum). Counts per power.</summary>
+    /// <summary>
+    /// The powers with the most votes, lowest first (one: the winner; more: the drum). Counts per power.
+    /// Abstentions are skipped; with no submitted vote at all every fuel is on the drum (counts stay empty).
+    /// </summary>
     public static List<int> Tally(IEnumerable<int> votes, out SortedDictionary<int, int> counts)
     {
         counts = new SortedDictionary<int, int>();
-        foreach (int v in votes) counts[v] = counts.TryGetValue(v, out int c) ? c + 1 : 1;
-        if (counts.Count == 0) return new List<int> { NoVote };
+        foreach (int v in votes) if (Voted(v)) counts[v] = counts.TryGetValue(v, out int c) ? c + 1 : 1;
+        if (counts.Count == 0) return AllFuels.ToList();
         int max = counts.Values.Max();
         return counts.Where(kv => kv.Value == max).Select(kv => kv.Key).ToList();
     }
@@ -40,12 +50,18 @@ public static class LanBallot
     /// <summary>The drum's pick among n tied options (index), equal chances, from the seed.</summary>
     public static int Draw(int n, int seed) => n <= 1 ? 0 : (int)(Mix((ulong)(uint)seed) % (ulong)n);
 
-    /// <summary>Each rule is counted independently; ties use a separate deterministic draw.</summary>
-    public static bool Rule(IEnumerable<bool> votes, int seed, int salt)
+    /// <summary>
+    /// Each rule is counted independently from the submitted votes only (null: NOT VOTED, skipped);
+    /// ties, and no votes at all, use a separate deterministic YES/NO draw.
+    /// </summary>
+    public static bool Rule(IEnumerable<bool?> votes, int seed, int salt)
     {
-        var tied = Tally(votes.Select(v => v ? 1 : 0), out _);
-        return tied[Draw(tied.Count, unchecked((int)Mix((ulong)(uint)seed ^ (uint)salt)))] != 0;
+        int yes = 0, no = 0;
+        foreach (var v in votes) if (v == true) yes++; else if (v == false) no++;
+        if (yes != no) return yes > no;
+        return Draw(2, unchecked((int)Mix((ulong)(uint)seed ^ (uint)salt))) != 0;
     }
+    public static bool Rule(IEnumerable<bool> votes, int seed, int salt) => Rule(votes.Select(v => (bool?)v), seed, salt);
 
     /// <summary>Grid order drawn by lot: a Fisher-Yates shuffle of the ids from the seed.</summary>
     public static List<long> Shuffle(IEnumerable<long> ids, int seed)

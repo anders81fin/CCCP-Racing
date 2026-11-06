@@ -54,6 +54,7 @@ public partial class RaceScene
         _hud.RadioStationCount = _carRadio.StationCount;
         _hud.AntialiasingName = AaNames[_aaMode];
         _hud.SofteningName = SoftNames[_softLevel];
+        _hud.RenderingName = RenderingName;
         SyncVisualHud();
         SyncSettingsHud();
     }
@@ -135,8 +136,25 @@ void fragment() {
         cfg.Save(path);
     }
 
+    // RENDERING: PIXEL (default) draws the 3D into the low-res picture and blows it up; NATIVE draws it at the window's own resolution, 1:1 (PixelFrame.Native).
+    // The HUD keeps its logical 480x270-style size either way. Remembered in settings.cfg [video] rendering (0 pixel, 1 native).
+    static string RenderingName => PixelFrame.Native ? "NATIVE" : "PIXEL";
+
+    void StepRendering()
+    {
+        PixelFrame.Native = !PixelFrame.Native;
+        _hud.RenderingName = RenderingName;
+        string path = _records.Dir + "settings.cfg";
+        var cfg = new ConfigFile();
+        cfg.Load(path);       // keep the other sections
+        cfg.SetValue("video", "rendering", PixelFrame.Native ? 1 : 0);
+        cfg.Save(path);
+    }
+
     void LoadAntialiasing(ConfigFile cfg)
     {
+        var rendering = cfg.GetValue("video", "rendering", 0);
+        PixelFrame.Native = rendering.VariantType == Variant.Type.Int && (int)rendering == 1;
         var soft = cfg.GetValue("video", "softening", 0);
         _softLevel = soft.VariantType == Variant.Type.Int && (int)soft > 0 ? 1 : 0;      // the earlier steps all mean on
         ApplySoftening();
@@ -261,11 +279,11 @@ void fragment() {
         Visible = false;
         _instructionViewport = new SubViewport
         {
-            Size = (Vector2I)GetViewport().GetVisibleRect().Size,
             OwnWorld3D = true, HandleInputLocally = false, AudioListenerEnable3D = true,
             RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
             CanvasItemDefaultTextureFilter = Viewport.DefaultCanvasItemTextureFilter.Nearest,
         };
+        PixelFrame.Mirror(_instructionViewport, GetViewport());      // (PIXEL: the visible rect's size, as before; NATIVE: the parent's framebuffer)
         ApplyAntialiasing(_instructionViewport);
         GetParent().AddChild(_instructionViewport);
         _instructionImage = new TextureRect

@@ -28,6 +28,14 @@ public partial class RaceScene
         foreach (var x in VwWaitReady()) yield return x;
         for (int i = 0; i < 600 && !(_state == State.Title && _card == TitleCard.None && !_showLog && !_askName); i++) yield return null;
         for (int i = 0; i < 60; i++) yield return null;
+        if (VlArg("--vw-native") == "1")
+        {
+            // VISUALS > RENDERING NATIVE in the player's game and on disk: the exporter child must still render its fixed pixel movie
+            StepRendering(); for (int i = 0; i < 4; i++) yield return null;
+            var native = new ConfigFile(); native.Parse(ExportSettingsSnapshot());
+            VwCheck(PixelFrame.Native && native.GetValue("video", "rendering", 0).AsInt32() == 1 && (GetViewport() as SubViewport)?.Size2DOverrideStretch == true,
+                $"NATIVE before the export: the game renders at {(GetViewport() as SubViewport)?.Size}, the child's settings say rendering=1");
+        }
         string fx = VlArg("--vw-fx") ?? "/tmp/cccp-lc-fx", track = VlArg("--vw-track") ?? "ilyich";
         var jobsBefore = (VlArg("--export-jobs-dir") is string j0 && Directory.Exists(j0) ? Directory.GetDirectories(j0) : Array.Empty<string>()).ToHashSet();      // (orphans of runs that were killed stay: only job folders made by this run are judged)
         var filesBefore = (VlArg("--export-dir") is string d0 && Directory.Exists(d0) ? Directory.GetFiles(d0) : Array.Empty<string>()).ToHashSet();      // (earlier runs' outputs stay: only what this run makes is judged)
@@ -67,19 +75,19 @@ public partial class RaceScene
         {
             foreach (var x in VrTap(Key.T)) yield return x; // temporarily disable cut to place a key before IN
             v.ViewerSeek(9f);
-            foreach (var x in VrTap(Key.E)) yield return x;
+            foreach (var x in VrTap(Key.V)) yield return x;
             int freeRow = Array.FindIndex(s.EditRowTexts, r => r.StartsWith("FREE CAMERA"));
             foreach (var x in ToExportRow(s, freeRow)) yield return x;
             foreach (var x in VrTap(Key.Enter)) yield return x;
             foreach (var x in VrTap(Key.W, 15)) yield return x;
-            foreach (var x in VrTap(Key.E, 10)) yield return x;
+            foreach (var x in VrTap(Key.V, 10)) yield return x;
             if (!v.ViewerFreeRig.Follow) foreach (var x in VrTap(Key.F)) yield return x;
             if (!v.ViewerFreeRig.Look) foreach (var x in VrTap(Key.G)) yield return x;
             if (VlArg("--camera-motion") == "1") foreach (var x in VwConfigureMotion(s, v)) yield return x;
             foreach (var x in VrTap(Key.K)) yield return x;
             foreach (var x in VrTap(Key.Escape)) yield return x;
             v.ViewerSeek(12f);
-            foreach (var x in VrTap(Key.E)) yield return x;
+            foreach (var x in VrTap(Key.V)) yield return x;
             foreach (var x in ToExportRow(s, freeRow)) yield return x;
             foreach (var x in VrTap(Key.Enter)) yield return x;
             if (v.ViewerFreeRig.Follow) foreach (var x in VrTap(Key.F)) yield return x;
@@ -104,7 +112,7 @@ public partial class RaceScene
             v.ViewerSeek(10f);
         }
         // E opens the panel: EXPORT is a row of it
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         var rows = s.EditRowTexts;
         int exportRow = Array.FindIndex(rows, r => r.StartsWith("EXPORT"));
         VwCheck(exportRow >= 0, "the EDIT panel lists EXPORT MP4... (" + string.Join(" | ", rows) + ")");
@@ -140,7 +148,7 @@ public partial class RaceScene
         VwCheck(v.ViewerClock > modalClock + 0.1f, "after release a fresh RIGHT press seeks normally");
         v.ViewerSeek(modalClock);v.ViewerSetPaused(modalPaused);_vwDrv.SetControl(false);
         if (VlArg("--export-input-only") == "1") { s.Close(); yield break; }
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         foreach (var x in ToExportRow(s, exportRow)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
         if (ov.ExportRows[0].Contains("THE CUT")) foreach (var x in VrTap(Key.Left)) yield return x;
@@ -186,7 +194,7 @@ public partial class RaceScene
         var after = Directory.GetFiles(info.Dir).ToDictionary(f => Path.GetFileName(f), f => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(f))));
         VwCheck(before.Count == after.Count && before.All(kv => after.GetValueOrDefault(kv.Key) == kv.Value), "the original lap files are byte-identical");
         // a second export, cancelled through the UI (ESC asks, Enter confirms)
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         foreach (var x in ToExportRow(s, exportRow)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
         VwCheck(s.ExportOpen, "the export card opened for the second export (the selection was moved to the EXPORT row, not assumed)");

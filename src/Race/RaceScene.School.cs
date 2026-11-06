@@ -184,7 +184,7 @@ public partial class RaceScene : ISchoolHost
             foreach (var r in _sc.Results) GD.Print("  " + r);
         }
         if (InstructionTrack != null) { InstructionFinished?.Invoke(); return; }
-        if (_sc.Quit) { GetTree().Quit(); return; }
+        if (_sc.Quit) { CCCPRacing.Audio.AudioMix.Quit(this); return; }
         if (_sc.FromMenu && LessonsBack()) return;      // from the lessons' tree: back to it
         if (_sc.FromMenu)
         {

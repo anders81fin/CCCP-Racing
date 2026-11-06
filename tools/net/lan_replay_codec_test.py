@@ -19,6 +19,16 @@ class Test {
  var root=Path.Combine(Path.GetTempPath(),"cccp-lan-replay-"+Guid.NewGuid());Directory.CreateDirectory(root);
  try {
  var h=new LanReplayFile.Header("bonus","signature","0.79",11,15,1,Enumerable.Range(1,6).Select(i=>new LanReplayFile.Player(i,"PLAYER"+i,i-1)).ToArray());
+ foreach(int fuel in new[]{50,100,200,201}) {
+  string fuelPath=Path.Combine(root,"fuel-"+fuel);
+  var fw=new LanReplayFile.Writer(fuelPath,h with {Protocol=12,Fuel=fuel});
+  fw.Add(0,LanReplayFile.Kind.Go,Array.Empty<byte>());
+  Check(await fw.Finish()==fuelPath,"fuel recording published "+fuel);
+  using var fr=new LanReplayFile.Reader(fuelPath);
+  Check(fr.Metadata.Protocol==12 && fr.Metadata.Fuel==fuel,"fuel survives save/load "+fuel);
+ }
+ bool badFuel=false;try{LanReplayFile.Validate(h with {Protocol=12,Fuel=175});}catch(InvalidDataException){badFuel=true;}
+ Check(badFuel,"unknown recorded fuel rejected");
  string p=Path.Combine(root,"six.lanreplay");var w=new LanReplayFile.Writer(p,h);byte[] bytes={1,2,3};
  Check(w.Add(0,LanReplayFile.Kind.Mesh,bytes),"mesh queued");bytes[0]=99;
  for(int i=0;i<6;i++)Check(w.Add(i,LanReplayFile.Kind.Car,new byte[]{(byte)i}),"car "+(i+1));

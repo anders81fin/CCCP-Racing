@@ -35,7 +35,7 @@ public partial class RaceScene
         }
         // Cooperatively cancel the owned job before exiting; do not orphan its renderer or parts.
         var job=_lanExportUi?.LastJob;
-        if(job==null || job.Done.IsCompleted) GetTree().Quit();
+        if(job==null || job.Done.IsCompleted) CCCPRacing.Audio.AudioMix.Quit(this);
         return false;
     }
     void LanPlaybackReleaseAccess()

@@ -87,10 +87,10 @@ public partial class RaceScene
         foreach (var x in VrTap(Key.L)) yield return x;
         VwCheck(camA != camB && s.Dirty, $"two camera keys of different modes ({camA}, {camB}) and the edit is unsaved");
         VwCheck(v.ViewerWindowed && MathF.Abs(v.ViewerWindowStart - 10f) < 0.011f && MathF.Abs(v.ViewerWindowEnd - 22f) < 0.011f && v.ViewerEdits.Keys.Count == 2, $"window {v.ViewerWindowStart}..{v.ViewerWindowEnd}, {v.ViewerEdits.Keys.Count} keys");
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
         foreach (var x in VrShot("edits-1-panel")) yield return x;
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         // --- exact boundaries
         v.ViewerSeek(10.0f); for (int i = 0; i < 4; i++) yield return null;
         VwCheck(MathF.Abs(v.ViewerClock - 10f) < 0.011f, "a seek to IN lands on IN");
@@ -186,7 +186,7 @@ public partial class RaceScene
         var g = ReplayViewer; var gv = g.Scene;
         for (int i = 0; i < 8; i++) yield return null;      // (the hold starts with the first frame the world is ready)
         float held = gv.ViewerClock; bool allHeld = true, noDirty = true;
-        foreach (var k in new[] { Key.I, Key.K, Key.P, Key.E, Key.C, Key.Space, Key.L })
+        foreach (var k in new[] { Key.I, Key.K, Key.P, Key.V, Key.C, Key.Space, Key.L })
         {
             foreach (var x in VrTap(k)) yield return x;
             allHeld &= g.State == ReplayViewerState.Building && gv.ViewerPaused && MathF.Abs(gv.ViewerClock - held) < 1e-4f; noDirty &= !g.Dirty && !g.EditOpen;
@@ -232,7 +232,7 @@ public partial class RaceScene
         float speedNew = v.ViewerSpeed; var camNew = v.ViewerCamera;
         VwCheck(speedNew != speedBefore && camNew != camBefore, $"speed {speedBefore}->{speedNew} and camera {camBefore}->{camNew} changed by hand");
         float? in0 = v.ViewerEdits.In, out0 = v.ViewerEdits.Out; int keys0 = v.ViewerEdits.Keys.Count; bool loop0 = v.ViewerLoop;
-        foreach (var x in VrTap(Key.S)) yield return x;
+        foreach (var x in VrTapCtrl(Key.S)) yield return x;
         VwCheck(s.SaveBusy, "SAVE is pending (slow disk)");
         foreach (var k in new[] { Key.I, Key.O, Key.K, Key.L, Key.P, Key.T }) foreach (var x in VrTap(k)) yield return x;
         VwCheck(v.ViewerEdits.In == in0 && v.ViewerEdits.Out == out0 && v.ViewerEdits.Keys.Count == keys0 && v.ViewerLoop == loop0 && v.ViewerEdits.TrimEnabled, "while the save is pending the edit keys change nothing");
@@ -261,7 +261,7 @@ public partial class RaceScene
         bool overlayAtFail = s.OverlayView.Shown; float speedAtFail = v.ViewerSpeed; bool pin0 = s.OverlayView.Pinned; in0 = v.ViewerEdits.In; out0 = v.ViewerEdits.Out; keys0 = v.ViewerEdits.Keys.Count;
         VwCheck(s.Dirty && pin0, "pinning again is an unsaved change");
         File.SetUnixFileMode(folder, UnixFileMode.UserRead | UnixFileMode.UserExecute);
-        foreach (var x in VrTap(Key.S)) yield return x;
+        foreach (var x in VrTapCtrl(Key.S)) yield return x;
         VwCheck(s.SaveBusy, "the failing save is pending");
         foreach (var x in VrTap(Key.P)) yield return x;
         foreach (var x in VrUntil(() => s.OverlayView.Notice.StartsWith("NOT SAVED"), 60 * 20, "the failed save is reported")) yield return x;
@@ -269,7 +269,7 @@ public partial class RaceScene
         VwCheck(s.Dirty && !s.SaveBusy && s.OverlayView.Shown == overlayAtFail && v.ViewerSpeed == speedAtFail && s.OverlayView.Pinned == pin0 && v.ViewerEdits.In == in0 && v.ViewerEdits.Out == out0 && v.ViewerEdits.Keys.Count == keys0 && s.State == ReplayViewerState.Playing, $"the failed save kept the exact working edits unsaved and the viewer open: '{s.OverlayView.Notice}'");
         foreach (var x in VrShot("edits-6-save-failed")) yield return x;
         ReplayViewerSession.SaveDelayForTest = 0f;
-        foreach (var x in VrTap(Key.S)) yield return x;      // and the same save works once the folder is writable again
+        foreach (var x in VrTapCtrl(Key.S)) yield return x;      // and the same save works once the folder is writable again
         foreach (var x in VrUntil(() => s.OverlayView.Notice.StartsWith("EDITS SAVED"), 60 * 20, "the retry saved")) yield return x;
         // leaving with an unsaved viewing choice: CANCEL keeps it, DISCARD closes without saving it, a reopen shows what was saved
         float speedSaved = v.ViewerSpeed;
@@ -291,7 +291,7 @@ public partial class RaceScene
         VwCheck(v.ViewerSpeed == speedSaved && !s.Dirty, $"after DISCARD a reopen has the saved speed ({v.ViewerSpeed}), not the discarded one");
         foreach (var x in VrTap(Key.Space)) yield return x;
         // reset: a clear question, then defaults (the old ones stay as the backup)
-        foreach (var x in VrTap(Key.E)) yield return x;
+        foreach (var x in VrTap(Key.V)) yield return x;
         for (int i = 0; i < 9; i++) foreach (var x in VrTap(Key.Down)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;

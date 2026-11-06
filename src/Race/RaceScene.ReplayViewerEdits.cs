@@ -375,7 +375,7 @@ public partial class RaceScene
             {
                 _view.PadMode = false;
                 var c = key.PhysicalKeycode;
-                if (c == Key.E) { OpenEdit(); return true; }
+                if (c == Key.V) { OpenEdit(); return true; }
                 if (_editOpen)
                 {
                     if (c is Key.Up) { _editSel = (_editSel + rows - 1) % rows; return true; }
@@ -385,7 +385,7 @@ public partial class RaceScene
                 }
                 if (c == Key.Tab) { StepCameraKey(key.ShiftPressed ? -1 : 1); return true; }
                 if (c == Key.Delete) { RemoveCameraKeyHere(); return true; }
-                int direct = c switch { Key.I => 0, Key.O => 1, Key.T => 3, Key.K => 4, Key.L => 6, Key.P => 7, Key.S => 8, _ => -1 };
+                int direct = c switch { Key.I => 0, Key.O => 1, Key.T => 3, Key.K => 4, Key.L => 6, Key.P => 7, Key.S when key.CtrlPressed => 8, _ => -1 };      // (plain S flies the free camera)
                 if (direct >= 0 && UiReady) { if (!_editable) _prompt = EditPrompt.KeepFirst; else EditDo(direct); return true; }
             }
             else if (e is InputEventJoypadButton { Pressed: true } jb)
@@ -411,7 +411,7 @@ public partial class RaceScene
         {
             if (!UiReady) return;
             _editOpen = !_editOpen;      // (every lap: a lap that is not kept lists EXPORT and the way to KEEP FIRST)
-            if (_editOpen) _editSel = 0;      // (a panel that opens again starts at its first row, not where it was left)
+            if (_editOpen) { _editSel = 0; if (FreeCameraActive) ReleaseFreeMouse(); _holdAwaitRelease = true; }      // (a panel that opens again starts at its first row, not where it was left)
         }
 
         /// <summary>Leaving: with unsaved edits the player chooses; a save in flight is waited for.</summary>

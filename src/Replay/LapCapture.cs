@@ -21,6 +21,7 @@ public sealed class LapCapture
     public int Set { get; init; }
     public string Mode { get; init; } = "";
     public float LapSeconds { get; init; }
+    public int LapNumber { get; set; }
     public LapKind Kind { get; init; }
     public bool Ranked { get; init; }
     public float DayClock { get; init; } = -1;

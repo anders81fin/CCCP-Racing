@@ -66,8 +66,11 @@ public partial class RadioMusic : Node
 
     public override void _ExitTree()
     {
-        // Release the managed reference before Godot tears down the audio server.
-        _pb?.Dispose();
+        using var driverLock = AudioMix.LockDriver();
+        using var generator = GodotObject.IsInstanceValid(_static) ? _static.Stream as AudioStreamGenerator : null;
+        if (GodotObject.IsInstanceValid(_static)) { _static.StreamPaused = false; _static.Stop(); _static.Stream = null; }
+        if (GodotObject.IsInstanceValid(_music)) { _music.StreamPaused = false; _music.Stop(); _music.Stream = null; }
+        if (GodotObject.IsInstanceValid(_pb)) _pb.Stop(); _pb?.Dispose();
         _pb = null;
     }
 

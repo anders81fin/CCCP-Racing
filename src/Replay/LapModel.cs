@@ -59,6 +59,8 @@ public sealed record LapMeta
     /// <summary>Human label of the mode: the Rally fuel grade or "stakhanov".</summary>
     public string Mode { get; init; } = "";
     public float LapSeconds { get; init; }
+    /// <summary>Completed lap number shown by the run; zero in recordings made before lap numbering.</summary>
+    public int LapNumber { get; init; }
     public LapKind Kind { get; init; }
     public bool Ranked { get; init; }
     public DateTime RecordedUtc { get; init; }

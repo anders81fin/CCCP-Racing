@@ -17,13 +17,13 @@ public static class LanReplayFile
     public const long MaxFile=512L*1024*1024;
     public enum Kind : byte { Car=1, Mesh=2, World=3, Effect=4, Break=5, OwnCar=6, Go=7 }
     public record Player(long Id,string Name,int Slot);
-    public record Header(string Track,string Signature,string GameVersion,int Protocol,int Seed,long LocalId,Player[] Players);
+    public record Header(string Track,string Signature,string GameVersion,int Protocol,int Seed,long LocalId,Player[] Players,int Fuel=100,bool Obstacles=true);
     public record Packet(float Time,Kind Type,byte[] Data);
     public record Entry(float Time,Kind Type,long Offset,int Length);
 
     public static void Validate(Header h)
     {
-        if(h==null || h.Protocol!=11 || h.Track is not ("ilyich" or "siberia" or "atomgrad" or "bonus") ||
+        if(h==null || h.Protocol is not (11 or 12 or 13 or 14 or 15) || (h.Protocol >= 12 && h.Fuel is not (50 or 100 or 200 or 201)) || h.Track is not ("ilyich" or "siberia" or "atomgrad" or "bonus") ||
             string.IsNullOrWhiteSpace(h.Signature) || h.Signature.Length>256 || h.Players==null || h.Players.Length is <1 or >6 ||
             h.Players.Select(p=>p.Id).Distinct().Count()!=h.Players.Length || !h.Players.Any(p=>p.Id==h.LocalId) ||
             h.Players.Any(p=>p.Id<=0 || p.Slot is <0 or >5 || p.Name==null || p.Name.Length>80) ||

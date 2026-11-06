@@ -11,6 +11,22 @@ public partial class LanSession
         n.Players[1]=new LanPlayer {Id=1,Name="HOST",Slot=0};n.Players[2]=new LanPlayer {Id=2,Name="CLIENT",Slot=1};
         return n;
     }
+    /// <summary>Test only: the host's count seed (production draws it at random).</summary>
+    internal int? TestSeed;
+    /// <summary>A host lobby of <paramref name="players"/> comrades (host id 1, clients 2..n) offering the tracks.</summary>
+    internal static LanSession AbstentionFixture(int players,params string[] options)
+    {
+        var n=BallotFixture(options);
+        for(int id=3;id<=players;id++) n.Players[id]=new LanPlayer{Id=id,Name="COMRADE "+id,Slot=id-1};
+        return n;
+    }
+    /// <summary>A client's Vote packet through the production receive handler.</summary>
+    internal void FixtureVote(long peer,int fuel,bool damage,bool fuelCons,string track,bool obstacles=true)
+    {
+        using var m=new MemoryStream();using(var w=new BinaryWriter(m,System.Text.Encoding.UTF8,true))
+        {w.Write((byte)Msg.Vote);w.Write((ushort)fuel);w.Write(damage);w.Write(fuelCons);w.Write(track);w.Write(obstacles);}
+        OnPacket(peer,m.ToArray());
+    }
     internal static LanSession BallotFixture(params string[] options)
     {var n=LoadingFixture("ilyich");n.State=Phase.Lobby;n.Reveal=null;n.RoundNumber=0;n.ConfigureTracks(options);return n;}
     internal byte[] RevealFixturePacket(bool loading)
@@ -56,10 +72,10 @@ public partial class LanSession
     }
     internal void CapacityFinishAll()
     {State=Phase.Race;foreach(var p in Players.Values.ToArray()) Finished(p,40+p.Slot,40+p.Slot,false);}
-    internal void CapacityVote(long peer)
+    internal void CapacityVote(long peer, int fuel=100)
     {
         using var m=new MemoryStream();using(var w=new BinaryWriter(m,System.Text.Encoding.UTF8,true))
-        {w.Write((byte)Msg.Vote);w.Write((ushort)100);w.Write(true);w.Write(false);w.Write("ilyich");}
+        {w.Write((byte)Msg.Vote);w.Write((ushort)fuel);w.Write(true);w.Write(false);w.Write("ilyich");w.Write(true);}
         OnPacket(peer,m.ToArray());
     }
 }

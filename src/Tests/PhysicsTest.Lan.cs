@@ -33,8 +33,16 @@ public partial class PhysicsTest
         Check(tied.SequenceEqual(new[] { 50, 100, 200 }), "ballot: a 3-way tie, all three on the drum");
         tied = LanBallot.Tally(new[] { 50, 200, 50, 200 }, out _);
         Check(tied.SequenceEqual(new[] { 50, 200 }), "ballot: 2 + 2 votes, the drum has just those two");
-        tied = LanBallot.Tally(new[] { 200, 200, 50, LanBallot.NoVote }, out counts);
-        Check(tied.SequenceEqual(new[] { 200 }) && counts[100] == 1, "ballot: no vote counts as 100 %, 200 wins 2-1-1");
+        tied = LanBallot.Tally(new[] { 200, 200, 50, LanBallot.Abstain }, out counts);
+        Check(tied.SequenceEqual(new[] { 200 }) && !counts.ContainsKey(100) && !counts.ContainsKey(LanBallot.Abstain) && counts.Values.Sum() == 3, "ballot: NOT VOTED is not counted (no Petrol default), 200 wins 2-1");
+        tied = LanBallot.Tally(new[] { 50, LanBallot.Abstain, LanBallot.Abstain }, out counts);
+        Check(tied.SequenceEqual(new[] { 50 }) && counts.Count == 1, "ballot: one Diesel vote beats two NOT VOTED (the old Petrol default would have won 2-1)");
+        tied = LanBallot.Tally(new[] { LanBallot.Abstain, LanBallot.Abstain }, out counts);
+        Check(tied.SequenceEqual(LanBallot.AllFuels) && tied.Count == LanRace.FuelCount && counts.Count == 0, "ballot: no votes at all puts every fuel on the drum and manufactures no counts");
+        Check(!LanBallot.Rule(new bool?[] { false, null, null }, 1, 1) && LanBallot.Rule(new bool?[] { true, null, null }, 1, 1), "rules: one submitted vote decides against NOT VOTED rows (no YES/NO default)");
+        int noVoteOn = 0;
+        for (int seed = 0; seed < 2000; seed++) noVoteOn += LanBallot.Rule(new bool?[] { null, null }, seed, 0x44414d) ? 1 : 0;
+        Check(Math.Abs(noVoteOn - 1000) < 120, $"rules: with no votes YES and NO are drawn by lot ({noVoteOn}/2000 YES)");
 
         Check(LanBallot.Rule(new[] { true, true, false }, 1, 1), "rules: ON majority wins");
         Check(!LanBallot.Rule(new[] { false, true, false }, 1, 1), "rules: OFF majority wins");

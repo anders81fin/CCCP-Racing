@@ -60,6 +60,6 @@ public partial class RaceScene
             nodes = $" nodes={count}:{n:x16}";
         }
         _trace.WriteLine($"{_traceFrame} {_state}{(Replaying ? "R" : "")} {h:x16} car=({_car.Pos.X:F3},{_car.Pos.Z:F3}){nodes}");
-        if (++_traceFrame >= _traceEnd) { _trace.WriteLine("END"); _trace.Close(); _traceFrame = -1; GetTree().Quit(); }
+        if (++_traceFrame >= _traceEnd) { _trace.WriteLine("END"); _trace.Close(); _traceFrame = -1; CCCPRacing.Audio.AudioMix.Quit(this); }
     }
 }

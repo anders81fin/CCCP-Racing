@@ -13,6 +13,8 @@ track=os.environ.get('LAN_RUN_TRACK','bonus')
 seconds=int(os.environ.get('LAN_RUN_SECONDS','75'))
 gui=os.environ.get('LAN_RUN_GUI','0')=='1'
 gui_all=os.environ.get('LAN_RUN_GUI_ALL','0')=='1'
+report_dir=Path(os.environ['LAN_RUN_REPORT_DIR']) if os.environ.get('LAN_RUN_REPORT_DIR') else None
+if report_dir:report_dir.mkdir(parents=True,exist_ok=True)
 shots=os.environ.get('LAN_RUN_SHOTS',str(Path(root)/'media'/('lan-review-'+datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))))
 if not 2 <= count <= 6: raise SystemExit('LAN_RUN_PLAYERS must be 2–6')
 try:
@@ -27,24 +29,41 @@ try:
    if str(count)+' in the lobby' not in Path('/tmp/cccp-lan-host.log').read_text():raise RuntimeError('accepted roster never filled before overflow probe')
   name='host' if i==0 else 'client'+str(i)
   log=open('/tmp/cccp-lan-'+name+'.log','w')
-  args=['godot-mono','--path',root,'--max-fps','60','--audio-driver','Dummy','--log-file','/tmp/cccp-lan-'+name+'-engine.log']
+  args=['godot-mono','--path',root,'--max-fps','60','--audio-driver','Dummy','--log-file',str((report_dir/(name+'-engine.log')).resolve()) if report_dir else '/tmp/cccp-lan-'+name+'-engine.log']
   args+=['--windowed','--resolution','1280x800'] if gui and (i==1 or gui_all) else ['--headless']
   start_track=track if i==0 else os.environ.get('LAN_RUN_CLIENT_TRACK',track)
-  args+=['--','--track='+start_track,'--autodrive','--no-intro','--no-record','--comments=0','--data-dir=/tmp/cccp-lan-'+name+'-data','--lan-name='+name,'--lan-vote=3','--lan-laps=1','--lan-quit-after=3']
+  args+=['--','--track='+start_track,'--autodrive','--no-intro','--no-record','--comments=0','--data-dir=/tmp/cccp-lan-'+name+'-data','--lan-name='+name,'--lan-vote='+os.environ.get('LAN_RUN_VOTE','3'),'--lan-laps=1','--lan-quit-after=3']
   args+=['--lan-test-tracks='+os.environ.get('LAN_RUN_TRACK_OPTIONS',track)]
   if os.environ.get('LAN_RUN_TRACK_SEQUENCE'):args+=['--lan-track-sequence='+os.environ['LAN_RUN_TRACK_SEQUENCE']]
   else:args+=['--lan-track-vote='+os.environ.get('LAN_RUN_VOTE_TRACK',track)]
   if os.environ.get('LAN_RUN_ROUNDS'):args+=['--lan-rounds='+os.environ['LAN_RUN_ROUNDS']]
   if i and os.environ.get('LAN_RUN_CLIENT_LOAD_DELAY'):args+=['--lan-load-delay='+os.environ['LAN_RUN_CLIENT_LOAD_DELAY']]
   args+=['--lan-damage='+os.environ.get('LAN_RUN_DAMAGE','1'),'--lan-fuel='+os.environ.get('LAN_RUN_FUEL','0')]
+  args+=['--lan-obstacles='+os.environ.get('LAN_RUN_OBSTACLES','1')]
+  if os.environ.get('LAN_RUN_OBSTACLE_SEQUENCE'):args+=['--lan-obstacles-sequence='+os.environ['LAN_RUN_OBSTACLE_SEQUENCE']]
+  if os.environ.get('LAN_RUN_QUIT_AT'):args+=['--lan-quit-at='+os.environ['LAN_RUN_QUIT_AT']]
   if os.environ.get('LAN_RUN_START_HOLD')=='1':args+=['--clutch-kick=0.3']
   if os.environ.get('LAN_RUN_CONTACT_PROBE')=='1':args+=['--lan-contact-probe']
   if os.environ.get('LAN_RUN_LEAVE_PROBE')=='1':args+=['--lan-leave-probe']
+  keep_probe=os.environ.get('LAN_RUN_KEEP_PROBE') if i==0 else os.environ.get('LAN_RUN_CLIENT_KEEP_PROBE',os.environ.get('LAN_RUN_KEEP_PROBE'))
+  if keep_probe:args+=['--lan-keep-probe='+keep_probe]
   if i==0 and os.environ.get('LAN_RUN_REPLAY_PROBE')=='1':args+=['--lan-replay-auto-check']
   if i==0 and os.environ.get('LAN_RUN_REPLAY_EXPORT_PROBE')=='1':args+=['--lan-replay-export-check']
   if os.environ.get('LAN_RUN_DATA_ROOT'):args+=['--data-dir='+str(Path(os.environ['LAN_RUN_DATA_ROOT'])/name)]
   if os.environ.get('LAN_RUN_REPLAY_DISABLED')=='1':args+=['--lan-replay-disable']
+  # RECORD LAN RACES? per machine: yes (default, the earlier always-recording runs), no, or unset (no flag: an unanswered machine records nothing)
+  record=os.environ.get('LAN_RUN_RECORD','yes') if i==0 else os.environ.get('LAN_RUN_CLIENT_RECORD',os.environ.get('LAN_RUN_RECORD','yes'))
+  if record in ('yes','no'):args+=['--lan-record='+record]
   if os.environ.get('LAN_RUN_CAPTURE_AT'):args+=['--lan-replay-capture-at='+os.environ['LAN_RUN_CAPTURE_AT']]
+  # SHARE BOARDS per machine (comma list by index: yes, no or -): RaceScene.LanBoards.cs; the host's automatic ballot waits for N sharing comrades
+  board_share=os.environ.get('LAN_RUN_BOARD_SHARE','').split(',')
+  if i<len(board_share) and board_share[i] in ('yes','no'):args+=['--lan-board-share='+board_share[i]]
+  if i<len(board_share) and board_share[i]=='ui':args+=['--lan-board-ui-probe']      # says YES through the real lobby keys, pad and mouse
+  if os.environ.get('LAN_RUN_BOARD_SHARE_DELAY'):args+=['--lan-board-share-delay='+os.environ['LAN_RUN_BOARD_SHARE_DELAY'].split(',')[min(i,len(os.environ['LAN_RUN_BOARD_SHARE_DELAY'].split(','))-1)]]
+  if i==0 and os.environ.get('LAN_RUN_BOARD_EXPECT'):args+=['--lan-board-expect='+os.environ['LAN_RUN_BOARD_EXPECT']]
+  board_withdraw=os.environ.get('LAN_RUN_BOARD_WITHDRAW_AFTER','').split(',')
+  if i<len(board_withdraw) and board_withdraw[i].isdigit():args+=['--lan-board-withdraw-after='+board_withdraw[i]]
+  if i==0 and os.environ.get('LAN_RUN_HOST_AP_DELAY'):args+=['--lan-ap-delay='+os.environ['LAN_RUN_HOST_AP_DELAY']]
   if i and os.environ.get('LAN_RUN_CLIENT_AP_DELAY'):args+=['--lan-ap-delay='+os.environ['LAN_RUN_CLIENT_AP_DELAY']]
   args+=['--lan-host','--lan-autostart='+str(count)] if i==0 else ['--lan-join=127.0.0.1']
   if gui and (i==1 or gui_all):args+=['--lan-shots='+shots,'--lan-shot-at=30:race','--lan-shot-at=50:later']
@@ -74,6 +93,8 @@ for i in range(count+(1 if overflow else 0)):
   print(name+': overflow rejection '+('PASS' if 'GAME FULL' in content else 'FAIL'),flush=True)
   continue
  if not re.search(r'lan\[[^]]+\] [0-9.]+ GO at host time',content):errors.append(name+': no GO')
+ if 'LANKEEPTEST: FAIL' in content:errors.append(name+': KEEP probe failed')
+ if os.environ.get('LAN_RUN_KEEP_PROBE') and content.count('LANKEEPTEST: PASS')<int(os.environ.get('LAN_RUN_ROUNDS','1')):errors.append(name+': KEEP probe did not pass every round')
  if 'ERROR:' in content or 'Exception' in content or 'above the MTU' in content:errors.append(name+': runtime error')
  if os.environ.get('LAN_RUN_START_HOLD')=='1':
   holds=re.findall(r'grid hold(?: \d+)?: clutch (\w+), drift ([0-9.]+) m',content)

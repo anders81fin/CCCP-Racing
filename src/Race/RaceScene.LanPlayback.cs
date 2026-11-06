@@ -27,8 +27,9 @@ public partial class RaceScene
             }
             if(arg.StartsWith("--lan-replay-video=")) {
                 var levels=arg["--lan-replay-video=".Length..].Split(',');
-                if(levels.Length!=2) throw new InvalidDataException("Invalid video settings");
+                if(levels.Length is not (2 or 3)) throw new InvalidDataException("Invalid video settings");
                 _aaMode=Math.Clamp(int.Parse(levels[0]),0,AaNames.Length-1);_softLevel=Math.Clamp(int.Parse(levels[1]),0,1);
+                CCCPRacing.UI.PixelFrame.Native=levels.Length==3 && int.Parse(levels[2])==1;      // VISUALS > RENDERING of the race window (absent from older launchers: PIXEL)
             }
             if(arg=="--lan-replay-muted") scene._lanPlaybackOldMute=true;
         }
@@ -76,9 +77,11 @@ public partial class RaceScene
     readonly HashSet<long> _lanPlaybackDecodedPrototypes=new();
     void LanPlaybackEnter()
     {
+        if (LanPlaybackSource.Metadata.Protocol >= 12)
+            FuelGrades.ApplyEngine(_params, LanRace.Grade(LanPlaybackSource.Metadata.Fuel));
         _lanPlaybackCheck=OS.GetCmdlineUserArgs().Contains("--lan-replay-check");
         if(TrackSignature.Compute(_track)!=LanPlaybackSource.Metadata.Signature) {
-            GD.PushError("LAN replay: track signature mismatch; playback refused");GetTree().Quit(2);return;
+            GD.PushError("LAN replay: track signature mismatch; playback refused");CCCPRacing.Audio.AudioMix.Quit(this, 2);return;
         }
         // This is a private process. Disable all original actor/audio scripts; only recorded replicas run.
         foreach(Node n in FindChildren("*","",true,false)) {
@@ -123,6 +126,7 @@ public partial class RaceScene
             if(!_lanPlaybackCars.TryGetValue(p.Id,out var c)) {
                 c=new RemoteCar(p.Id,p.Name,p.Slot,p.Slot,_params,_track,this,_fx);_lanPlaybackCars[p.Id]=c;
             } else c.ResetPlayback(_fx);
+            if (LanPlaybackSource.Metadata.Protocol >= 12) c.ConfigureFuel(LanPlaybackSource.Metadata.Fuel);
             LanRace.GridPose(_track,grid++,out var at,out float yaw);c.Puppet.Reset(at,yaw);
             var standing=Snapshot.Standing(at,yaw,0,_params.IdleRpm);
             c.Buffer.Add(standing);_lanPlaybackLatest[p.Id]=standing;
@@ -278,20 +282,20 @@ public partial class RaceScene
                 if(node is AudioStreamPlayer3D a) a.StreamPaused=_lanPlaybackPaused;
             }
             if(_lanPlaybackTime>=LanPlaybackSource.Duration) {
-                if(_lanPlaybackLoop) LanPlaybackSeek(0);else _lanPlaybackPaused=true;
+                if(_lanPlaybackLoop) { LanPlaybackSeek(0); if(_lanPlaybackCheck) _lanPlaybackProbeLooped=true; }else _lanPlaybackPaused=true;
             }
             LanPlaybackProbe();
             if(_lanPlaybackShot!=null && ++_lanPlaybackShotFrames==5) {
                 var image=GetViewport().GetTexture().GetImage();
                 var result=image.SavePng(_lanPlaybackShot);image.Dispose();
-                GD.Print("LAN replay screenshot: "+result+" "+_lanPlaybackShot);GetTree().Quit(result==Error.Ok?0:2);
+                GD.Print("LAN replay screenshot: "+result+" "+_lanPlaybackShot);CCCPRacing.Audio.AudioMix.Quit(this, result==Error.Ok?0:2);
             }
-        } catch(Exception e) {GD.PushError("LAN replay failed safely: "+e.Message);GetTree().Quit(2);}
+        } catch(Exception e) {GD.PushError("LAN replay failed safely: "+e.Message);CCCPRacing.Audio.AudioMix.Quit(this, 2);}
     }
     string _lanPlaybackShot;
     int _lanPlaybackShotFrames;
     int _lanPlaybackProbeFrame,_lanPlaybackProbeStep;
-    bool _lanPlaybackCheck;
+    bool _lanPlaybackCheck, _lanPlaybackProbeLooped;
     void LanPlaybackProbe()
     {
         if(!_lanPlaybackCheck || ++_lanPlaybackProbeFrame%12!=0) return;
@@ -299,9 +303,14 @@ public partial class RaceScene
         if(_lanPlaybackProbeStep>=seeks.Length) {
             if(_lanPlaybackProbeStep==seeks.Length) {
                 GD.Print($"LANREPLAYTEST: PASS {seeks.Length} seeks, { _lanPlaybackCars.Count} cars, own damage {_lanPlaybackOwn?.HasDamage ?? false}, no LAN transport {LanSession.Current==null}");
-                _lanPlaybackProbeStep++;_lanPlaybackPaused=false;_lanPlaybackProbeFrame=0;return;
+                _lanPlaybackProbeStep++;_lanPlaybackPaused=false;_lanPlaybackLoop=true;
+                LanPlaybackSeek(Math.Max(_lanPlaybackStart,LanPlaybackSource.Duration-.05f));
+                _lanPlaybackProbeFrame=0;return;
             }
-            if(_lanPlaybackProbeFrame>=120) {GD.Print("LANREPLAYTEST: resumed after seeks");GetTree().Quit();}
+            if(_lanPlaybackProbeFrame>=120) {
+                if(!_lanPlaybackProbeLooped) throw new InvalidDataException("LAN viewer did not loop after resuming");
+                GD.Print("LANREPLAYTEST: resumed and looped after seeks");CCCPRacing.Audio.AudioMix.Quit(this);
+            }
             return;
         }
         _lanPlaybackPaused=true;
@@ -309,12 +318,19 @@ public partial class RaceScene
         LanPlaybackSeek(_lanPlaybackStart+(LanPlaybackSource.Duration-_lanPlaybackStart)*seeks[_lanPlaybackProbeStep++]);
         if(!_lanWorld.AtTargets() || _lanPlaybackCars.Values.Any(c=>!c.Puppet.Pos.IsFinite()) || LanSession.Current!=null)
             throw new InvalidDataException("LAN viewer isolation/pose check failed");
+        if (LanPlaybackSource.Metadata.Protocol >= 12)
+        {
+            var grade=LanRace.Grade(LanPlaybackSource.Metadata.Fuel);
+            int wing=grade switch { FuelGrade.Diesel=>3,FuelGrade.Rocket=>1,FuelGrade.Sputnik=>2,_=>0 };
+            if (_lanPlaybackCars.Values.Any(c=>c.Vis.Wing!=wing || c.Vis.Damage.KitWorn!=(grade==FuelGrade.Sputnik) || c.Sound.FiveCylinder!=(grade==FuelGrade.Sputnik) || c.Puppet.P.DriveFront!=FuelGrades.DriveFrontFor(grade)))
+                throw new InvalidDataException("LAN viewer did not restore the recorded fuel/body");
+        }
         if(_lanPlaybackOwn is {HasDamage:true}) {
             var own=_lanPlaybackCars[LanPlaybackSource.Metadata.LocalId];
             if(own.Puppet.Pos.DistanceTo(_lanPlaybackOwn.Sample(_lanPlaybackTime).Origin)>.001f || !own.Vis.Damage.TapeDriven)
                 throw new InvalidDataException("Original own-car pose/damage was not restored");
         }
-        GD.Print($"LANREPLAYTEST: seek {_lanPlaybackTime:F2}, replicas {_lanWorld.ReplicaCount}, effects {_lanPlaybackEffects.Count}, cars {_lanPlaybackLatest.Count}");
+        GD.Print($"LANREPLAYTEST: seek {_lanPlaybackTime:F2}, replicas {_lanWorld.ReplicaCount}, visible {_lanWorld.VisibleReplicaCount}, audible {_lanWorld.AudibleReplicaCount}, obstacles {LanPlaybackSource.Metadata.Obstacles}, effects {_lanPlaybackEffects.Count}, cars {_lanPlaybackLatest.Count}");
     }
     void LanPlaybackInput(InputEvent e)
     {
@@ -322,7 +338,7 @@ public partial class RaceScene
         try {
             if(LanExportInput(k.Keycode)) return;
             switch(k.Keycode) {
-                case Key.Escape:GetTree().Quit();break;
+                case Key.Escape:CCCPRacing.Audio.AudioMix.Quit(this);break;
                 case Key.Space:_lanPlaybackPaused=!_lanPlaybackPaused;break;
                 case Key.Left:LanPlaybackSeek(_lanPlaybackTime-5);break;
                 case Key.Right:LanPlaybackSeek(_lanPlaybackTime+5);break;
@@ -333,6 +349,6 @@ public partial class RaceScene
                 case Key.Up:_lanPlaybackSpeed=Math.Min(2,_lanPlaybackSpeed*2);break;
                 case Key.Down:_lanPlaybackSpeed=Math.Max(.25f,_lanPlaybackSpeed/2);break;
             }
-        }catch(Exception ex){GD.PushError("LAN replay seek failed safely: "+ex.Message);GetTree().Quit(2);}
+        }catch(Exception ex){GD.PushError("LAN replay seek failed safely: "+ex.Message);CCCPRacing.Audio.AudioMix.Quit(this, 2);}
     }
 }

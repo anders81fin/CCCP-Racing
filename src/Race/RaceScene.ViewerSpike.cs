@@ -76,7 +76,7 @@ public partial class RaceScene
         ("SeeThrough", "Car"), ("SeeThrough", "Off"), ("FadeUnder", "Car"), ("FadeUnder", "Off"), ("GulagTruck", "_onRoad"),
         ("Missile", "_serial"), ("Missile", "SeedBase"), ("Props", "Materials"), ("Props", "BatchCache"),
         ("NormPlan", "Ladder"), ("NormPlan", "BaseLadder"), ("NormPlan", "Factor"), ("NormPlan", "_def"),
-        ("RaceScene", "_trackId"), ("RaceScene", "_resume"), ("RaceScene", "_loadingRunMode"), ("RaceScene", "_resumeReplay"), ("RaceScene", "_tapeScenes"), ("RaceScene", "_aaMode"), ("RaceScene", "_softLevel"),
+        ("RaceScene", "_trackId"), ("RaceScene", "_resume"), ("RaceScene", "_loadingRunMode"), ("RaceScene", "_resumeReplay"), ("RaceScene", "_tapeScenes"), ("RaceScene", "_aaMode"), ("RaceScene", "_softLevel"), ("PixelFrame", "_native"),
         ("AudioMix", "Trims"), ("AudioMix", "Ducked"), ("CannonStrikeSound", "_players"), ("HindGunSound", "_players"),
         ("KolkhozWorkerModel", "WorkerMaterial"), ("WinterWorkerModel", "Material"), ("PosterGrade", "_table"), ("TrackLoadingScreen", "Active"), ("LapArchive", "Shared"),
     };
@@ -228,6 +228,6 @@ public partial class RaceScene
             SpikeLog("end", ("data_files", SpikeCount(_records.Dir)), ("files", string.Join(",", Directory.GetFileSystemEntries(_records.Dir).Select(p => Path.GetFileName(p) + ":" + (File.Exists(p) ? new FileInfo(p).Length : -1)).OrderBy(x => x))));
         }
         catch (Exception e) { GD.Print("VSPIKE|exception|" + e.GetType().Name + ": " + e.Message.Replace('\n', ' ')); }
-        GetTree().Quit();
+        CCCPRacing.Audio.AudioMix.Quit(this);
     }
 }

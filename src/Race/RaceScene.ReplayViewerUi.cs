@@ -62,7 +62,7 @@ public partial class RaceScene
         public List<ViewerCameraMode> AvailableCameraModes() => AvailableCameras();
 
         /// <summary>The exporter child: no overlay, no hints, no notices (the picture is the world only).</summary>
-        public void HideForExport() { if (_uiLayer != null) _uiLayer.Visible = false; _overlayHidden = true; }
+        public void HideForExport() { if (_uiLayer != null) _uiLayer.Visible = false; _overlayHidden = true; _exportChild = true; }
 
         /// <summary>The cameras the player may pick: the gameplay top-down, the bonnet and the cinematic one only where this personnel file has found them, and the automatic director.</summary>
         List<ViewerCameraMode> AvailableCameras()
@@ -91,6 +91,7 @@ public partial class RaceScene
             if (FreeCameraInput(e)) return;
             if (ViewerKeepInput(e)) return;
             if (ExportInput(e)) return;      // the MP4 export card / progress (src/Export/ExportUiController.cs)
+            if (DirectFreeCameraInput(e)) return;      // RaceScene.ReplayViewerFreeCamera.cs: W/A/S/D or the mouse fly off in the free camera (before the edit keys: CTRL+S saves)
             if (EditInput(e)) return;      // RaceScene.ReplayViewerEdits.cs: the EDIT panel, its direct keys and the modal questions
             if (e is InputEventKey { Pressed: true, Echo: false } k)
             {
@@ -209,6 +210,7 @@ public partial class RaceScene
         {
             if (_overlay == null) return;
             EditsFrame();
+            DirectFreeFrame();
             FreeCameraFrame(dt);
             if (UiReady && _scene.ViewerEnded && !_scene.ViewerPaused) _scene.ViewerSetPaused(true);      // a lap plays once and rests at its end
             UiHold(dt);

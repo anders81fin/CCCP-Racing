@@ -16,6 +16,7 @@ namespace CCCPRacing.UI;
 ///   speed           UP / DOWN       D-PAD UP / DOWN   (0.25X 0.5X 1X 2X)
 ///   step (paused)   , and .         LB / RB
 ///   camera          C               Y
+///   free camera     W A S D / MOUSE (EDIT > FREE CAMERA)   R or ESC back to the camera that was in view
 ///   hide/show UI    H               X
 ///   back            ESC             B
 ///   cancel loading  ESC             B
@@ -95,7 +96,7 @@ public partial class ReplayOverlay : Control
     /// <summary>The hint groups, each a key and its action, in order; Step is the one that only matters when paused.</summary>
     internal static (string Text, bool PausedOnly)[] HintGroups(bool pad, bool editable = false) => (pad
         ? new[] { ("A PLAY/PAUSE", false), ("D-PAD SEEK/SPEED", false), ("LB/RB STEP", true), ("Y CAMERA", false), ("X HIDE", false), ("BACK EDIT/EXPORT", false), ("B BACK", false) }
-        : new[] { ("SPACE PLAY/PAUSE", false), ("< > SEEK", false), ("UP/DOWN SPEED", false), (", . STEP", true), ("C CAMERA", false), ("H HIDE", false), ("E EDIT/EXPORT", false), ("ESC BACK", false) }).ToArray();      // (EDIT/EXPORT shows for every lap: a lap that is not kept offers EXPORT and the way to keep it)
+        : new[] { ("SPACE PLAY/PAUSE", false), ("< > SEEK", false), ("UP/DOWN SPEED", false), (", . STEP", true), ("C CAMERA", false), ("WASD/MOUSE FREE CAMERA", false), ("H HIDE", false), ("V EDIT/EXPORT", false), ("ESC BACK", false) }).ToArray();      // (EDIT/EXPORT shows for every lap: a lap that is not kept offers EXPORT and the way to keep it)
 
     internal static LayoutResult Layout(ReplayOverlayView v, Vector2 size)
     {
@@ -125,7 +126,7 @@ public partial class ReplayOverlay : Control
         var lines = new List<List<(string Text, bool PausedOnly)>> { new() };
         float lineW = 0, maxW = W - 2 * M - 12;
         if (v.Shown)
-            foreach (var g in v.FreeCamera && v.PadMode ? new (string Text, bool PausedOnly)[] { ("L-STICK MOVE", false), ("R-STICK LOOK", false), ("LT/RT HEIGHT", false), ("L3 FAST", false), ("A PLAY/PAUSE", false), ("D-PAD SEEK/SPEED", false), ("LB/RB STEP", true), ("X ADD KEY", false), ("Y FOLLOW", false), ("R3 LOOK AT CAR", false), ("START MOTION / LENS", false), ("B TOP-DOWN", false) } : v.FreeCamera ? new (string Text, bool PausedOnly)[] { ("WASD MOVE", false), ("Q/E HEIGHT", false), ("MOUSE LOOK", false), ("SHIFT FAST / CTRL SLOW", false), ("SPACE PLAY/PAUSE", false), ("< > SEEK", false), ("UP/DOWN SPEED", false), (", . STEP", true), ("H HIDE", false), ("F12 SCREENSHOT", false), ("B MOTION / LENS", false), ("K ADD KEY", false), ("TAB/SHIFT+TAB STEP KEYS", false), ("DEL REMOVE KEY", false), ("R/ESC TOP-DOWN", false) } : v.KeyTimes.Length > 0 && !v.PadMode ? HintGroups(v.PadMode, v.Editable).Append(("TAB CAMERA KEYS", false)).Select(h => (Text: h.Item1, PausedOnly: h.Item2)).ToArray() : HintGroups(v.PadMode, v.Editable))
+            foreach (var g in v.FreeCamera && v.PadMode ? new (string Text, bool PausedOnly)[] { ("L-STICK MOVE", false), ("R-STICK LOOK", false), ("LT/RT HEIGHT", false), ("L3 FAST", false), ("A PLAY/PAUSE", false), ("D-PAD SEEK/SPEED", false), ("LB/RB STEP", true), ("X ADD KEY", false), ("Y FOLLOW", false), ("R3 LOOK AT CAR", false), ("START MOTION / LENS", false), ("B FOLLOW CAMERA", false) } : v.FreeCamera ? new (string Text, bool PausedOnly)[] { ("WASD MOVE", false), ("Q/E HEIGHT", false), ("V EDIT/EXPORT", false), ("MOUSE LOOK", false), ("SHIFT FAST / CTRL SLOW", false), ("SPACE PLAY/PAUSE", false), ("< > SEEK", false), ("UP/DOWN SPEED", false), (", . STEP", true), ("H HIDE", false), ("F12 SCREENSHOT", false), ("B MOTION / LENS", false), ("K ADD KEY", false), ("TAB/SHIFT+TAB STEP KEYS", false), ("DEL REMOVE KEY", false), ("R/ESC FOLLOW CAMERA", false) } : v.KeyTimes.Length > 0 && !v.PadMode ? HintGroups(v.PadMode, v.Editable).Append(("TAB CAMERA KEYS", false)).Select(h => (Text: h.Item1, PausedOnly: h.Item2)).ToArray() : HintGroups(v.PadMode, v.Editable))
             {
                 float gw = PixelFont.Measure(g.Text), add = lines[^1].Count == 0 ? gw : gw + 12;
                 if (lines[^1].Count > 0 && lineW + add > maxW) { lines.Add(new()); lineW = 0; add = gw; }

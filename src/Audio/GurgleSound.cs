@@ -30,12 +30,13 @@ public partial class GurgleSound : Node
     {
         // Godot cannot clear an active generator. Restart its playback so queued
         // samples from the old tape time cannot leak across a seek or replay exit.
-        if (_player != null)
+        if (!AudioMix.Closing && _player != null)
         {
-            _player.Stop();
-            _pb?.Dispose();
-            _player.Play();
-            _pb = _player.GetStreamPlayback() as AudioStreamGeneratorPlayback;
+            using var driverLock = AudioMix.LockDriver();
+            bool paused = _player.StreamPaused;
+            _player.StreamPaused = true;
+            _pb.Stop(); _pb.ClearBuffer(); _pb.Start();
+            _player.StreamPaused = paused;
         }
         _env = _lp = _lp2 = _next = 0;
         _glugT = 1f; _glugPhase = 0;
@@ -43,8 +44,14 @@ public partial class GurgleSound : Node
 
     public override void _ExitTree()
     {
-        // Release the managed reference before Godot tears down the audio server.
-        _pb?.Dispose();
+        using var driverLock = AudioMix.LockDriver();
+        using var generator = GodotObject.IsInstanceValid(_player) ? _player.Stream as AudioStreamGenerator : null;
+        if (GodotObject.IsInstanceValid(_player))
+        {
+            _player.StreamPaused = false; _player.Stop();
+            _player.Stream = null;
+        }
+        if (GodotObject.IsInstanceValid(_pb)) _pb.Stop(); _pb?.Dispose();
         _pb = null;
     }
 

@@ -12,7 +12,14 @@ public partial class EarRingSound : AudioStreamPlayer
     double _phase;
     float _t;
 
-    public override void _ExitTree() { _pb?.Dispose(); _pb = null; }
+    public override void _ExitTree()
+    {
+        using var driverLock = AudioMix.LockDriver();
+        using var generator = Stream as AudioStreamGenerator;
+        StreamPaused = false; Stop();
+        Stream = null;
+        if (GodotObject.IsInstanceValid(_pb)) _pb.Stop(); _pb?.Dispose(); _pb = null;
+    }
     public override void _Ready()
     {
         Stream = new AudioStreamGenerator { MixRate = MixRate, BufferLength = 0.2f };
