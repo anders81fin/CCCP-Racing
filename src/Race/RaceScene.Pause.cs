@@ -23,6 +23,7 @@ public partial class RaceScene
     {
         SyncPauseReplayRow();
         SyncPauseHud();
+        if (_hud.StakhanovBoardOpen) return;
         if (_labOpen) return;      // the LAB panel takes the menu's keys (RaceScene.Lab.cs)
         if (RallyExitInput() || VisualInput(alt) || MixerInput(alt) || SettingsInput(alt) || ReplayMenuInput(alt)) return;
         if (_hud.PauseNormsOpen)
@@ -63,16 +64,17 @@ public partial class RaceScene
     /// The Party Meeting's rows, top to bottom: the single list the draw (Hud.PauseLines), the mouse hit test and the actions (PauseChoose) all read. REPLAY first where it applies (a single-player drive
     /// that can be resumed), then NORMS AND MEDALS, DRIVING SCHOOL, SETTINGS (sounds, visuals, rumble, keys), then CONTINUE, RESTART RACE and EXIT RACE. A row is found by its id, never by a position.
     /// </summary>
-    internal static System.Collections.Generic.List<PauseRowId> PauseRowList(bool norms, bool replay)
+    internal static System.Collections.Generic.List<PauseRowId> PauseRowList(bool norms, bool replay, bool leaderboards = false)
     {
         var l = new System.Collections.Generic.List<PauseRowId>();
         if (replay) l.Add(PauseRowId.Replay);
+        if (leaderboards) l.Add(PauseRowId.Leaderboards);
         if (norms) l.Add(PauseRowId.Norms);
         l.Add(PauseRowId.Instructions); l.Add(PauseRowId.Settings);
         l.Add(PauseRowId.Continue); l.Add(PauseRowId.Restart); l.Add(PauseRowId.Exit);
         return l;
     }
-    System.Collections.Generic.List<PauseRowId> PauseRowsNow => PauseRowList(_norms.Enabled, ReplayRowShown);
+    System.Collections.Generic.List<PauseRowId> PauseRowsNow => PauseRowList(_norms.Enabled, ReplayRowShown, StakhanovBoardAvailable);
     int PauseRowIndex(PauseRowId id) => PauseRowsNow.IndexOf(id);
     /// <summary>Where the cursor starts when the meeting opens: NORMS AND MEDALS when there are norms, else CONTINUE (what row 0 was before REPLAY took the top).</summary>
     int PauseStartRow => PauseRowIndex(_norms.Enabled ? PauseRowId.Norms : PauseRowId.Continue);
@@ -224,6 +226,7 @@ void fragment() {
         switch (id)
         {
             case PauseRowId.Replay: OpenReplayList(); break;
+            case PauseRowId.Leaderboards: OpenStakhanovBoard(); break;
             case PauseRowId.Norms: OpenPauseNorms(); break;
             case PauseRowId.Continue:
                 _state = _countdown > 0 ? State.Countdown : State.Racing;

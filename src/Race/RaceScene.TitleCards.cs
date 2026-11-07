@@ -12,7 +12,7 @@ namespace CCCPRacing.Race;
 /// </summary>
 public partial class RaceScene
 {
-    enum TitleCard { None, Track, LapsTime, RallyFuel, RallyResume }
+    enum TitleCard { None, Track, LapsTime, RallyFuel, RallyResume, LapsFuel }
 
     TitleCard _card;
     int _cardSel;
@@ -20,10 +20,15 @@ public partial class RaceScene
     static string _newRallyTrack;       // new rally replaces this save when loading completes
     FuelGrade _savedRallyFuel;
 
+    // The Stakhanov laps' CHOOSE FUEL card (never saved): the pick waits here until TIME OF DAY is chosen, then rides through a track's
+    // rebuild in the static (a new RaceScene parses --power again) and is taken once by PrepareRun. The last one opens the card next time.
+    FuelGrade _lapsFuelPick;
+    static FuelGrade? _lapsFuelStart, _lapsFuelLast;
+
     /// <summary>Before either run its time of day (RaceScene.DayNight.cs).</summary>
     void AskOrRun(MenuItem mode)
     {
-        if (mode == MenuItem.Training) { OpenCard(TitleCard.LapsTime); return; }     // Stakhanov laps: the time of day first
+        if (mode == MenuItem.Training) { OpenCard(TitleCard.LapsFuel); return; }     // Stakhanov laps: the fuel, then the time of day
         if (mode == MenuItem.Race)
         {
             _newRallyTrack = null;
@@ -44,10 +49,11 @@ public partial class RaceScene
             TitleCard.Track => 0,
             TitleCard.LapsTime => (int)_lapsPhase,
             TitleCard.RallyFuel => (int)(_rallyFuel = OpenFuel(FuelGrades.Load(_records.Dir))),
+            TitleCard.LapsFuel => (int)OpenFuel(_lapsFuelLast ?? Training.GradeOf(_powerStart) ?? FuelGrade.Petrol),
             _ => 0,
         };
         _cardFrame = Engine.GetProcessFrames();
-        if (CardDbg) GD.Print($"title card: {c}, selection {_cardSel}{(c == TitleCard.RallyFuel ? ", " + FuelCardLine() : "")}");
+        if (CardDbg) GD.Print($"title card: {c}, selection {_cardSel}{(c == TitleCard.RallyFuel ? ", " + FuelCardLine() : c == TitleCard.LapsFuel ? ", " + LapsFuelLine() : "")}");
     }
 
     /// <summary>The title's card has the keys: Left/Right choose, Enter goes, Esc back to the menu.</summary>
@@ -67,7 +73,7 @@ public partial class RaceScene
         else if (Input.IsActionJustPressed("pause")) _card = TitleCard.None;
         else if (Input.IsActionJustPressed("start") && !Input.IsKeyPressed(Key.Alt))
         {
-            if (_card == TitleCard.RallyFuel && FuelLocked((FuelGrade)_cardSel)) return true;      // (the card says what opens it)
+            if (_card is TitleCard.RallyFuel or TitleCard.LapsFuel && FuelLocked((FuelGrade)_cardSel)) return true;      // (the card says what opens it)
             ChooseTitleCard();
         }
         return true;
@@ -95,7 +101,31 @@ public partial class RaceScene
             }
             else OpenCard(TitleCard.RallyFuel);
         }
-        else if (c == TitleCard.LapsTime) { _lapsPhase = (DayNight.Phase)_cardSel; StartRun(MenuItem.Training); }      // the light then always goes on, lap by lap
+        else if (c == TitleCard.LapsFuel) { _lapsFuelPick = (FuelGrade)_cardSel; OpenCard(TitleCard.LapsTime); }      // (Esc on TIME OF DAY drops the pick)
+        else if (c == TitleCard.LapsTime)
+        {
+            _lapsPhase = (DayNight.Phase)_cardSel;      // the light then always goes on, lap by lap
+            bool free = TrackLoadingScreen.Active == null && _replayViewer is not { State: not ReplayViewerState.Closed };      // (StartRun's own guard: a refused start leaves no pick behind)
+            if (free) _lapsFuelStart = _lapsFuelLast = _lapsFuelPick;
+            StartRun(MenuItem.Training);
+        }
+    }
+
+    /// <summary>The Stakhanov laps' CHOOSE FUEL line: the fuel's own line (no rally medals here), or what opens it.</summary>
+    string LapsFuelLine()
+    {
+        var g = (FuelGrade)Math.Clamp(_cardSel, 0, FuelGrades.Count - 1);
+        return FuelLocked(g) ? FuelLockedLine(g) : FuelGrades.CardLine((int)g);
+    }
+
+    string FuelLockedLine(FuelGrade g) => $"LOCKED: A SILVER ON {TrackName(TrainingTrack)} IN THE RALLY ON {FuelGrades.Names[(int)FuelKey(g).Value]} OPENS IT";
+
+    /// <summary>The power the card's fuel starts this run on (taken once), or null: --power or 100 (NewRunPower).</summary>
+    int? TakeLapsFuelStart()
+    {
+        var g = _lapsFuelStart;
+        _lapsFuelStart = null;
+        return g is FuelGrade f ? Training.PercentForKey((int)f + 1) : null;      // (the Sputnik is its own 201, not the jet fuel's 200)
     }
 
     // The FUEL card's line: the power and the chosen track's norms at that pace.
@@ -123,7 +153,7 @@ public partial class RaceScene
         return _fuelLine.text;
     }
 
-    int CardCount => _card switch { TitleCard.Track => Tracks.Length, TitleCard.LapsTime => LapsPhases.Length, TitleCard.RallyFuel => FuelGrades.Count, _ => 2 };
+    int CardCount => _card switch { TitleCard.Track => Tracks.Length, TitleCard.LapsTime => LapsPhases.Length, TitleCard.RallyFuel => FuelGrades.Count, TitleCard.LapsFuel => Training.LapsCount, _ => 2 };
 
     void CardHud()
     {
@@ -132,7 +162,7 @@ public partial class RaceScene
             TitleCard.None => null,
             TitleCard.Track => "CHOOSE TRACK",
             TitleCard.LapsTime => "TIME OF DAY",
-            TitleCard.RallyFuel => "FUEL",
+            TitleCard.RallyFuel or TitleCard.LapsFuel => "CHOOSE FUEL",
             TitleCard.RallyResume => "SAVED RALLY",
             _ => null,
         };
@@ -141,6 +171,7 @@ public partial class RaceScene
             TitleCard.Track => TrackCardSub(),
             TitleCard.LapsTime => "THE STAKHANOV LAPS START AT",
             TitleCard.RallyFuel => FuelCardLine(),
+            TitleCard.LapsFuel => LapsFuelLine(),
             TitleCard.RallyResume => _cardSel == 0
                 ? "CONTINUE WITH " + FuelGrades.Names[(int)_savedRallyFuel]
                 : "CHOOSE FUEL FOR A NEW RALLY",
@@ -150,10 +181,13 @@ public partial class RaceScene
         {
             TitleCard.Track => Array.ConvertAll(Tracks, t => t.name),   // a locked one says so under it (TrackCardSub)
             TitleCard.LapsTime => LapsPhases,
-            TitleCard.RallyFuel => FuelGrades.Names,
+            TitleCard.RallyFuel or TitleCard.LapsFuel => FuelGrades.Names,
             TitleCard.RallyResume => new[] { "CONTINUE", "NEW RALLY" },
             _ => Array.Empty<string>(),
         };
+        _hud.CardNote = _card == TitleCard.LapsFuel     // the laps' keys still switch the fuel on the move (RaceScene.cs PowerKey, RaceScene.Pad.cs PadPower)
+            ? _padMode ? "D-PAD UP/DOWN SWITCHES FUEL WHILE DRIVING" : "KEYS 1-4 SWITCH FUEL WHILE DRIVING"
+            : null;
         _hud.CardSelection = _cardSel;
         _hud.CardLocked = _card == TitleCard.Track ? LockedNow() : null;
         if (_card == TitleCard.Track && _trackFor != MenuItem.Lan)
@@ -188,6 +222,7 @@ public partial class RaceScene
             {
                 _loadingRunMode = null;
                 _newRallyTrack = null;
+                _lapsFuelStart = null;
                 ProcessMode = ProcessModeEnum.Inherit;
                 screen.Cancel();
                 GD.PushError($"Cannot load track: {error}");
@@ -237,7 +272,7 @@ public partial class RaceScene
         _runMedal = NormPlan.Medal.None;
         _rallyNextOpenedThisRun = false;
         _run = mode == MenuItem.Training ? RunMode.Training : RunMode.Rally;
-        NewRunPower();
+        NewRunPower(mode == MenuItem.Training ? TakeLapsFuelStart() : null);
         _carRadio.SetOn(RadioPreference(), false);
         DefaultComments();
         EnterCountdown();

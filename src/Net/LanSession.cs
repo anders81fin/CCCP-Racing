@@ -71,7 +71,7 @@ public partial class LanSession : Node
     public const int Port = 24105, MaxPlayers = 6;
     public const float BallotTime = 60f, DnfAfter = 60f;
     const int SnapChannel = 1, Channels = 6;      // 0 lobby, 1 snapshots, 2 inputs, 3 world, 4 meshes, 5 board sync (LanSession.Boards.cs)
-    public const int Protocol = 15; // 15: SHARE BOARDS in the lobby (consent flags, offers, chunked recordings on channel 5); 14: shared moving-obstacles vote; 13: NOT VOTED ballots (pct 0, rule byte 2) are real abstentions; 12: four fuel-specific engines/bodies
+    public const int Protocol = 16; // 16: independent Stakhanov top tens per fuel; 15: SHARE BOARDS in the lobby; 14: shared moving obstacles; 13: abstentions; 12: four fuel engines/bodies
     const float PingEvery = 0.25f, PingEveryRacing = 1f, LobbyEvery = 0.5f, HelloTimeout = 5f;
 
     public enum Phase : byte { Lobby, Ballot, Race, Results, Loading, SessionFinished }

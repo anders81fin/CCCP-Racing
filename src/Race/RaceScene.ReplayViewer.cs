@@ -157,7 +157,7 @@ public partial class RaceScene
             _priorHud = ((CanvasLayer)live._hud.GetParent()).Visible;
             var snapshot = ViewerGlobals.Capture(live);
             _restoreWorld = () => snapshot.Restore(live);
-            // The title mutes the sound-effect bus (it plays music only): a viewer opened from the title (PARTY OFFICE > RECORDINGS, the MP4 exporter) would be silent. The viewer's own engine and world sound
+            // The title mutes the sound-effect bus (it plays music only): a viewer opened from the title (PARTY OFFICE > KGB FILES > RECORDINGS, the MP4 exporter) would be silent. The viewer's own engine and world sound
             // need the bus open; the live scene's state is given back at the end.
             _sfxWasMuted = AudioMix.SfxMuted; AudioMix.MuteSfx(false);
             foreach (var node in live.FindChildren("*", "", true, false))

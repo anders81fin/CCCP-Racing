@@ -23,7 +23,7 @@ public partial class PhysicsTest
     {
         public string Dir; public Leaderboard[] Live = new Leaderboard[RecordStore.Sets]; public LanBoardStore Store; public LapArchive Laps; public int Changed;
         public string BoardPath(string track, int set) => RecordStore.PathsOnly(Dir, track).BoardForSet(set);
-        public Leaderboard Disk(string track, int set) => Leaderboard.Load(BoardPath(track, set), -1, LanBoardManifest.Capacity(set));
+        public Leaderboard Disk(string track, int set) => Leaderboard.Load(BoardPath(track, set), -1, set == 1 ? Leaderboard.StakhanovSize : Leaderboard.Size, fuelPartitions: set == 1);
         public void Mark(string track, string sig, int layout = RecordStore.Layout)
         {
             if (sig != null) File.WriteAllText(Dir + $"track_{track}.sig", sig + "\n");
@@ -106,8 +106,9 @@ public partial class PhysicsTest
             LanBoardImportTests(root, rig);
             LanBoardProtocolTests(root, rig);
             LanBoardWireBounds();
-            Check(LanSession.Protocol == 15 && LanReplayHeaderOk(15) && LanReplayHeaderOk(14) && LanReplayHeaderOk(11) && !LanReplayHeaderOk(16),
-                "LAN boards: live protocol 15; stored LAN replays of protocols 11-15 still pass the header check, 16 does not");
+            StakhanovFuelBoardTests(root);
+            Check(LanSession.Protocol == 16 && LanReplayHeaderOk(16) && LanReplayHeaderOk(15) && LanReplayHeaderOk(14) && LanReplayHeaderOk(11) && !LanReplayHeaderOk(17),
+                "LAN boards: live protocol 16; stored LAN replays of protocols 11-16 pass the header check, 17 does not");
         }
         finally { try { Directory.Delete(root, true); } catch { } }
     }
@@ -558,7 +559,7 @@ public partial class PhysicsTest
                 {
                     string path = RecordStore.PathsOnly(dir, track).BoardForSet(set);
                     if (!File.Exists(path)) continue;
-                    foreach (var e in Leaderboard.Load(path, -1, LanBoardManifest.Capacity(set)).Entries)
+                    foreach (var e in Leaderboard.Load(path, -1, set == 1 ? Leaderboard.StakhanovSize : Leaderboard.Size, fuelPartitions: set == 1).Entries)
                     {
                         string state = "none";
                         if (e.RecordingId != null)

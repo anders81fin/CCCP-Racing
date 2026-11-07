@@ -43,7 +43,7 @@ public partial class RaceScene
             copy.HasDayClock ? copy.DayClockAt(0) : -1, _file.ToString(), _records.Signature);
         cap.Fuels = LapFuelsText();
         cap.LapNumber = System.Math.Max(1, _timer.LapsDone);
-        bool board = ranked && !_autodrive && _board.Qualifies(time);
+        bool board = ranked && !_autodrive && _board.Qualifies(time, _lapPeak);
         var archive = board ? LeaderboardLapArchive : LapArchiveBox;
         if (board) _boardLapArchiveUsed = archive; else _lapArchiveUsed = archive;
         var res = archive.Submit(cap);

@@ -18,8 +18,17 @@ public class Leaderboard
 {
     public const int Size = 3;
     public const int StakhanovSize = 10;
+    public const int StakhanovTotalSize = StakhanovSize * (Training.LapsCount + 1); // four fuels and an unclassified legacy bucket
     public int Capacity { get; }
-    public Leaderboard(int capacity = Size) { Capacity = Math.Clamp(capacity, 1, StakhanovSize); }
+    public bool FuelPartitions { get; }
+    public int StorageCapacity => FuelPartitions ? Capacity * (Training.LapsCount + 1) : Capacity;
+    public Leaderboard(int capacity = Size, bool fuelPartitions = false) { Capacity = Math.Clamp(capacity, 1, StakhanovSize); FuelPartitions = fuelPartitions; }
+    static int FuelBucket(int power) => Training.GradeOf(power) is FuelGrade g ? (int)g : Training.LapsCount;
+    void Trim()
+    {
+        var counts = new int[Training.LapsCount + 1];
+        _entries.RemoveAll(e => ++counts[FuelPartitions ? FuelBucket(e.Power) : 0] > Capacity);
+    }
     public const int MaxName = 12;
     public const string DefaultName = "TOVARISH";
 
@@ -37,14 +46,14 @@ public class Leaderboard
     /// Loads the board. With no readable file, an existing record lap (seedRecord &gt; 0) is put
     /// on it as TOVARISH with no date, so the record made before the board existed is not lost.
     /// </summary>
-    public static Leaderboard Load(string path, float seedRecord = -1, int capacity = Size)
+    public static Leaderboard Load(string path, float seedRecord = -1, int capacity = Size, bool fuelPartitions = false)
     {
-        var b = new Leaderboard(capacity) { Path = path };
+        var b = new Leaderboard(capacity, fuelPartitions) { Path = path };
         var cfg = new ConfigFile();
         if (FileAccess.FileExists(path) && cfg.Load(path) == Error.Ok)
         {
             b.LastName = CleanName(cfg.GetValue("driver", "last_name", "").AsString());
-            for (int i = 0; i < StakhanovSize; i++)
+            for (int i = 0; i < (fuelPartitions ? StakhanovTotalSize : StakhanovSize); i++)
             {
                 string sec = $"entry_{i}";
                 if (!cfg.HasSection(sec)) continue;
@@ -57,7 +66,7 @@ public class Leaderboard
             }
             var ordered = b._entries.OrderBy(e => e.Time).ToArray(); // stable: keep the saved ordering of ties
             b._entries.Clear(); b._entries.AddRange(ordered);
-            if (b._entries.Count > b.Capacity) b._entries.RemoveRange(b.Capacity, b._entries.Count - b.Capacity);
+            b.Trim();
         }
         else if (seedRecord > 0)
             b._entries.Add(new Entry(DefaultName, seedRecord, ""));
@@ -67,7 +76,9 @@ public class Leaderboard
     public void Save()
     {
         if (string.IsNullOrEmpty(Path)) return;
+        if (!BackupLegacy()) return;
         var cfg = new ConfigFile();
+        if (FuelPartitions) cfg.SetValue("board", "fuel_top10", 1);
         cfg.SetValue("driver", "last_name", LastName);
         for (int i = 0; i < _entries.Count; i++)
         {
@@ -84,16 +95,33 @@ public class Leaderboard
         if (err != Error.Ok) GD.PrintErr($"Leaderboard: could not save {Path}: {err}");
     }
 
+    // Preserve the exact pre-migration board once. Old rows without a known
+    // fuel remain unclassified; no missing historic results are invented.
+    bool BackupLegacy()
+    {
+        if (!FuelPartitions || !FileAccess.FileExists(Path)) return true;
+        var old = new ConfigFile();
+        if (old.Load(Path) == Error.Ok && old.HasSectionKey("board", "fuel_top10")) return true;
+        string real = ProjectSettings.GlobalizePath(Path), backup = real + ".before-fuel-top10";
+        try
+        {
+            if (!System.IO.File.Exists(backup)) System.IO.File.Copy(real, backup, false);
+            return true;
+        }
+        catch (Exception e) { GD.PrintErr("Leaderboard migration backup: " + e.Message); return false; }
+    }
+
     /// <summary>1-based place a lap of this time would take (ties go after equal times), 0 if off the board.</summary>
-    public int RankFor(float time)
+    public int RankFor(float time, int power = 0)
     {
         if (time <= 0 || !float.IsFinite(time)) return 0;
         int i = 0;
-        while (i < _entries.Count && _entries[i].Time <= time) i++;
+        foreach (var e in _entries)
+            if ((!FuelPartitions || FuelBucket(e.Power) == FuelBucket(power)) && e.Time <= time) i++;
         return i < Capacity ? i + 1 : 0;
     }
 
-    public bool Qualifies(float time) => RankFor(time) > 0;
+    public bool Qualifies(float time, int power = 0) => RankFor(time, power) > 0;
 
     /// <summary>Puts a lap on the board and drops any entry beyond its capacity; returns its 1-based place, 0 if it did not make it.</summary>
     /// <param name="power">Engine power in whole percent (Stakhanov laps), 0 for none.</param>
@@ -102,12 +130,13 @@ public class Leaderboard
     /// <param name="boost">OCTANE BOOSTER ran during the lap.</param>
     public int Insert(string name, float time, string date = null, int power = 0, bool pad = false, bool night = false, bool boost = false, string recordingId = null)
     {
-        int rank = RankFor(time);
+        int rank = RankFor(time, power);
         if (rank == 0) return 0;
         name = CleanName(name);
         if (name.Length == 0) name = DefaultName;
-        _entries.Insert(rank - 1, new Entry(name, time, date ?? Time.GetDateStringFromSystem(), Math.Max(0, power), pad, night, boost, CleanRecordingId(recordingId)));
-        if (_entries.Count > Capacity) _entries.RemoveRange(Capacity, _entries.Count - Capacity);
+        int index = _entries.FindIndex(e => e.Time > time);
+        _entries.Insert(index < 0 ? _entries.Count : index, new Entry(name, time, date ?? Time.GetDateStringFromSystem(), Math.Max(0, power), pad, night, boost, CleanRecordingId(recordingId)));
+        Trim();
         return rank;
     }
 
@@ -141,8 +170,9 @@ public class Leaderboard
         if (Find(RowKey(name, time, date, power, pad, night, boost)) != null) return -1;
         var incoming=new Entry(name,time,date ?? "",Math.Max(0,power),pad,night,boost);
         _entries.Add(incoming); _entries.Sort(Compare);
-        if(_entries.Count>Capacity) _entries.RemoveRange(Capacity,_entries.Count-Capacity);
-        return _entries.IndexOf(incoming)+1;
+        Trim();
+        if (!_entries.Contains(incoming)) return 0;
+        return _entries.Where(e => !FuelPartitions || FuelBucket(e.Power) == FuelBucket(power)).ToList().IndexOf(incoming) + 1;
     }
 
     /// <summary>Puts back exactly these rows (a merge whose save failed is undone in memory).</summary>
@@ -166,11 +196,13 @@ public class Leaderboard
     public string SaveAtomic()
     {
         if (string.IsNullOrEmpty(Path)) return "no board file";
+        if (!BackupLegacy()) return "could not preserve the original Stakhanov board";
         string tmp = Path + ".lan.tmp";
         string realTmp = ProjectSettings.GlobalizePath(tmp), real = ProjectSettings.GlobalizePath(Path);
         try
         {
             var cfg = new ConfigFile();
+            if (FuelPartitions) cfg.SetValue("board", "fuel_top10", 1);
             cfg.SetValue("driver", "last_name", LastName);
             for (int i = 0; i < _entries.Count; i++)
             {
@@ -187,7 +219,7 @@ public class Leaderboard
             if (fail == "before-write") throw new System.IO.IOException("test: " + fail);
             var err = cfg.Save(tmp);
             if (err != Error.Ok) throw new System.IO.IOException($"could not write {tmp}: {err}");
-            var back = Load(tmp, -1, Capacity);
+            var back = Load(tmp, -1, Capacity, FuelPartitions);
             // (as a set: the load's sort may order equal times differently)
             static string Row(Entry e) => RowKey(e) + "|" + CleanRecordingId(e.RecordingId);
             var want = _entries.ConvertAll(Row); var got = new List<Entry>(back.Entries).ConvertAll(Row);

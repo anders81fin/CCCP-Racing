@@ -24,7 +24,7 @@ public static class FuelGrades
     };
 
     /// <summary>The line of the FUEL card before the norms: the power of petrol and rocket fuel; the diesel is an engine of its own.</summary>
-    public static string CardLine(int grade) => grade == (int)FuelGrade.Diesel ? "DIESEL: 400 NM, 5000 RPM" : grade == (int)FuelGrade.Rocket ? "175% POWER, 250% ON TURBO" : grade == (int)FuelGrade.Sputnik ? "JET POWER, FOUR-WHEEL DRIVE" : $"{Percent[grade]}% POWER";
+    public static string CardLine(int grade) => grade == (int)FuelGrade.Diesel ? "400 NM, 5000 RPM, ECONOMICAL" : grade == (int)FuelGrade.Rocket ? "175% POWER, 250% ON TURBO" : grade == (int)FuelGrade.Sputnik ? "TOP SECRET: AWD PROTOTYPE" : "THE STANDARD";
 
     /// <summary>
     /// The diesel's engine, a diesel and not a petrol engine at half the power (tried out in LAB, 2 November): a lower redline with taller gears (the same top speed

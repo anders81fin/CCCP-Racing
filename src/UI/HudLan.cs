@@ -9,7 +9,7 @@ public enum LanPage { None, Menu, Name, Join, Ip, Connecting, Message, Lobby, Ba
 
 public partial class Hud
 {
-    public const string LanLabel = "LAN RACE", LanShort = "LAN";
+    public const string LanLabel = "LAN / INTERNET", LanShort = "LAN";
 
     public class LanRow
     {

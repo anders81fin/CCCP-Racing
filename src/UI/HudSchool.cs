@@ -51,6 +51,8 @@ public partial class Hud
     public string SchoolRecapGo;
     /// <summary>A choice card over the title (null: none): its heading, a line under it, the options and the one selected.</summary>
     public string CardTitle, CardSub;
+    /// <summary>A line of its own under the options (null: none), e.g. the Stakhanov fuel card's "you can switch while driving".</summary>
+    public string CardNote;
     /// <summary>The highlighted track has a scenic tour (T / Y opens it).</summary>
     public bool CardTour;
     public string[] CardOptions = Array.Empty<string>();
@@ -347,15 +349,16 @@ public partial class Hud
         var s = Screen;
         float cx = s.X / 2;
         float top = Mathf.Floor(_cardTop), room = s.Y - 14 - top;
-        bool compact = room < 82;
+        bool note = CardNote != null;      // (a line more: the card grows by it)
+        bool compact = room < (note ? 93 : 82);
         // Two-size letters while they fit; the track card's four names go down to the small ones.
         int scale = compact ? 1 : 2, pad = compact ? 28 : 40;
         float Opts() { float o = 0; foreach (var n in CardOptions) o += PixelFont.Measure(n, scale) + pad; return o; }
         float opts = Opts();
         if (opts > s.X - 48 && scale == 2) { scale = 1; pad = 28; opts = Opts(); }
         int titleScale = compact ? 1 : 2;
-        float w = Math.Min(s.X - 8, Math.Max(Math.Max(PixelFont.Measure(CardTitle, titleScale), opts), PixelFont.Measure(CardSub ?? "")) + 40);
-        float h = compact ? Math.Min(56, room) : 82;
+        float w = Math.Min(s.X - 8, Math.Max(Math.Max(PixelFont.Measure(CardTitle, titleScale), opts), Math.Max(PixelFont.Measure(CardSub ?? ""), PixelFont.Measure(CardNote ?? ""))) + 40);
+        float h = compact ? Math.Min(note ? 66 : 56, room) : note ? 93 : 82;
         var r = new Rect2(Mathf.Floor(cx - w / 2), top, w, h);
         Panel(r, 0.94f);
         float ty = compact ? 5 : 9, sy = compact ? 15 : 27, oy = compact ? 25 : 40, oh = compact ? 17 : 20;
@@ -371,6 +374,7 @@ public partial class Hud
             PixelFont.DrawCentered(this, CardOptions[i], x + ow / 2, r.Position.Y + oy + (scale == 2 ? 3 : Mathf.Floor((oh - 7) / 2f)), c, scale);
             x += ow;
         }
+        if (note && h >= (compact ? 66 : 93)) PixelFont.DrawCentered(this, CardNote, cx, r.Position.Y + oy + oh + (compact ? 3 : 5), Paper);
         DrawLapsReward(r, oy, compact);
         if (LapsRewardSource != null) return;
         string keys = CardTour ? P("< > CHOOSE   ENTER OK   T TOUR   ESC BACK", "< > CHOOSE   A OK   Y TOUR   B BACK")

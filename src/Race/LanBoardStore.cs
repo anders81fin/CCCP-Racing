@@ -72,7 +72,7 @@ public sealed class LanBoardStore : ILanBoardStore
         float seed = -1;
         if (!Godot.FileAccess.FileExists(path) && IOFile.Exists(Real(paths.GhostForSet(set))))
             try { LapGhostBytes.Fingerprint(IOFile.ReadAllBytes(Real(paths.GhostForSet(set))), out _, out seed); } catch { seed = -1; }
-        return Leaderboard.Load(path, seed, LanBoardManifest.Capacity(set));
+        return Leaderboard.Load(path, seed, set == 1 ? Leaderboard.StakhanovSize : Leaderboard.Size, fuelPartitions: set == 1);
     }
 
     // ------------------------------------------------------------ the offer
@@ -158,7 +158,7 @@ public sealed class LanBoardStore : ILanBoardStore
             foreach (var (set, rows) in t.Sets)
             {
                 var board = BoardOf(t.Track, set);
-                if (board.Capacity != LanBoardManifest.Capacity(set)) { res.Skipped.Add($"{t.Track} set {set}: capacity"); continue; }
+                if (board.StorageCapacity != LanBoardManifest.Capacity(set)) { res.Skipped.Add($"{t.Track} set {set}: capacity"); continue; }
                 var before = board.Entries.ToList();
                 int added = 0, linked = 0;
                 foreach (var r in rows)

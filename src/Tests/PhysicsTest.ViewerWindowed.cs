@@ -344,6 +344,15 @@ public partial class PhysicsTest
             {
                 var (c, _) = VwChild("stakhanov-start-ilyich", false, new[] { "--viewer-windowed=stakhanov-start", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 300);
                 VwJudge("stakhanov-start-ilyich", c);
+                var (c2, _) = VwChild("stakhanov-fuel-reload-siberia", false, new[] { "--viewer-windowed=stakhanov-fuel-reload", "--track=ilyich", "--unlock-all", "--power=50", "--no-intro" }.Concat(fxArgs).ToArray(), 600);
+                VwJudge("stakhanov-fuel-reload-siberia", c2);
+                var (c3, _) = VwChild("stakhanov-legacy-power", false, new[] { "--viewer-windowed=stakhanov-legacy", "--start", "--training", "--power=201", "--unlock-all", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 240);
+                VwJudge("stakhanov-legacy-power", c3);
+            }
+            if (On("stakhanovboard"))
+            {
+                var (c, _) = VwChild("stakhanov-board", false, new[] { "--viewer-windowed=stakhanov-board", "--start", "--training", "--power=100", "--unlock-all", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 240);
+                VwJudge("stakhanov-board", c);
             }
             if (On("native"))
             {

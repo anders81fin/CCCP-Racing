@@ -3,6 +3,15 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.855
+
+- PARTY OFFICE groups PERSONNEL, LEADERBOARDS and RECORDINGS under KGB FILES. Multiplayer is named LAN / INTERNET
+- STAKHANOV LAPS offers CHOOSE FUEL between track and time of day. The chosen engine starts the run, also after changing tracks. The card explains switching fuel while driving
+- Stakhanov BEST and LAST show the current session for the selected fuel. Each track keeps a full top 10 for each fuel. Mixed laps use the highest fuel used, and old known-fuel results are preserved
+- PARTY MEETING offers LEADERBOARDS on the current track. Browse fuels without changing the car, and return to the paused meeting. The compact live board shows places 1, 2, 3 and 10
+- SHARE BOARDS includes all Stakhanov fuel boards and their recordings. LAN protocol 16 requires matching game builds. Older LAN replays remain supported
+- Fuel cards use shorter descriptions: Diesel torque, rev limit and economy, standard Petrol and the secret SPUTNIK AWD prototype
+
 ## 0.854
 
 - LAN SECRET BALLOT gives 60 seconds to choose the track, fuel, damage, fuel use and moving obstacles. Missing ballots say NOT VOTED. With no votes, every choice is drawn at random

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using CCCPRacing.UI;
 using Godot;
 
@@ -74,7 +75,7 @@ public partial class RaceScene
         int rank = _board.Insert(name, time, null, power, _lapPad, _lapNight, _lapBoost, _lastBoardRecordingId);
         _board.Save();
         _records.WriteSignature();
-        _boardHighlights[RecordSet] = rank - 1;
+        _boardHighlights[RecordSet] = _board.FuelPartitions ? _board.Entries.ToList().FindLastIndex(e => e.Name == name && e.Time == time && e.Power == power) : rank - 1;
         string lap = $"{name}  {LapTimer.Format(time)}" + (power > 0 ? $"  {power}%" : "");
         if (record)
             _hud.Show(Slogans.Pick(Slogans.Record), lap + "  -  PLACE #1 ON THE BOARD", 3.5f, Hud.Gold, plain: "RECORD LAP", plainSub: lap + "  -  PLACE #1 ON THE BOARD");

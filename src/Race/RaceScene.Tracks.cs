@@ -50,7 +50,7 @@ public partial class RaceScene
     {
         string key = id + "_" + set;
         if (!_otherBoards.TryGetValue(key, out var b))
-            _otherBoards[key] = b = Leaderboard.Load(new RecordStore(_records.Dir, id, null).BoardForSet(set), capacity: set == 1 ? Leaderboard.StakhanovSize : Leaderboard.Size);
+            _otherBoards[key] = b = Leaderboard.Load(new RecordStore(_records.Dir, id, null).BoardForSet(set), capacity: set == 1 ? Leaderboard.StakhanovSize : Leaderboard.Size, fuelPartitions: set == 1);
         return b;
     }
 

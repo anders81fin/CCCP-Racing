@@ -144,6 +144,7 @@ public partial class RaceScene
         if (_gulag || _planScreen || _showKeys || CardShown) return PadCtx.Any;
         if (_keepNameOpen || _askName || _lanPage is LanPage.Name or LanPage.Ip) return PadCtx.Wheel;
         if (_recordingsOpen) return PadCtx.Menu;
+        if (_hud.StakhanovBoardOpen) return PadCtx.Menu;
         if (_lanPage != LanPage.None || _watching || _showBoard || _showLog || _showFiles || _showLessons) return PadCtx.Menu;
         if (_state == State.Title) return PadCtx.Title;
         if (_state == State.Paused) return PadCtx.Pause;
@@ -277,7 +278,7 @@ public partial class RaceScene
                 }
                 key = b == JoyButton.A || b == JoyButton.Start ? Key.Enter : b == JoyButton.Y ? Key.T : DpadKey(b);   // Y: a track's tour
                 if (b == JoyButton.Back && _card == TitleCard.None && !echo) { PadBackButtonOnTitle(); return true; }
-                if (b == JoyButton.B && _menuParent != null) key = Key.Escape;       // back to the top row (there Esc would quit the game)
+                if (b == JoyButton.B && _menuParent != null) key = Key.Escape;       // back one level (at the top Esc would quit the game)
                 break;
             case PadCtx.Menu:
                 key = b switch { JoyButton.A or JoyButton.Start => Key.Enter, JoyButton.B => Key.Escape, JoyButton.X when _recordingsOpen => Key.Delete, JoyButton.Y when _recordingsOpen => Key.K,
@@ -298,8 +299,8 @@ public partial class RaceScene
     }
 
     /// <summary>
-    /// The pad's Back button (the small one left of the big centre button) on the title menu: PARTY OFFICE opens, and in
-    /// PARTY OFFICE it hands in the resignation. B is always just back (Esc) one level.
+    /// The pad's Back button (the small one left of the big centre button) on the title menu: PARTY OFFICE opens (on KGB FILES,
+    /// also from the KGB FILES row), and in PARTY OFFICE it hands in the resignation. B is always just back (Esc) one level.
     /// </summary>
     void PadBackButtonOnTitle()
     {

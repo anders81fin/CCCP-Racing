@@ -4,7 +4,7 @@ namespace CCCPRacing.UI;
 // row by its id; the Hud draws the labels of those ids and knows nothing of positions. One list, three readers: the draw, the mouse hit test and the actions.
 
 /// <summary>The main menu, top to bottom as they appear: REPLAY first when it applies, NORMS AND MEDALS, DRIVING SCHOOL, SETTINGS, then CONTINUE, RESTART RACE, EXIT RACE (KEYS lives under SETTINGS).</summary>
-public enum PauseRowId { Replay, Norms, Instructions, Settings, Continue, Restart, Exit }
+public enum PauseRowId { Replay, Norms, Instructions, Settings, Continue, Restart, Exit, Leaderboards }
 
 /// <summary>SETTINGS: the two screens, RUMBLE (only where there is a pad, as before), the KEYS help and back to the main menu.</summary>
 public enum SettingsRowId { Sounds, Visuals, Lab, LabTune, Rumble, Keys, Back }

@@ -5,26 +5,28 @@ using Godot;
 namespace CCCPRacing.Race;
 
 /// <summary>
-/// The title menu in two levels. The top row: SINGLE PLAYER | MULTIPLAYER | PARTY OFFICE;
-/// Enter opens a row (DRIVING SCHOOL | SOCIALIST RALLY | STAKHANOV LAPS; LAN RACE;
-/// KGB FILES | LEADERBOARD | ABOUT THE GAME | RESIGN; ABOUT THE GAME is a third row: CHANGELOG | CREDITS | BACK;
+/// The title menu's nested rows. The top row: SINGLE PLAYER | MULTIPLAYER | PARTY OFFICE;
+/// Enter opens a row (DRIVING SCHOOL | SOCIALIST RALLY | STAKHANOV LAPS; LAN / INTERNET;
+/// KGB FILES | CREDITS | RESIGN; KGB FILES is a third row: PERSONNEL | LEADERBOARDS | RECORDINGS;
 /// the DRIVING SCHOOL teaches car control on ILYICH'S LAMP and comes back here, a rally's own school
 /// is offered before a rally on a track that has one, Stakhanov laps have none),
-/// Esc goes back up with the parent selected (on the top row Esc hands in the resignation). Left/Right move
-/// along a row, Down/Up select and leave the replay line at both levels. Back from a run the top row
+/// Esc goes back up one level with the parent selected (on the top row Esc hands in the resignation). Left/Right move
+/// along a row, Down/Up select and leave the replay line at every level. Back from a run the top row
 /// has the parent of the mode played last, and Enter opens its row on that mode. In a mode row a
 /// hint box in the middle of the screen says what the selected mode is.
 /// </summary>
 public partial class RaceScene
 {
-    enum MenuItem { Race, Training, Lan, Board, Single, Multi, Quit, School, Files, Office, Credits, Recordings }
+    enum MenuItem { Race, Training, Lan, Board, Single, Multi, Quit, School, Files, Office, Credits, Recordings, Personnel }
 
     static readonly MenuItem[] TopItems = { MenuItem.Single, MenuItem.Multi, MenuItem.Office };
     static readonly MenuItem[] SingleItems = { MenuItem.School, MenuItem.Race, MenuItem.Training };
     static readonly MenuItem[] MultiItems = { MenuItem.Lan };
-    static readonly MenuItem[] OfficeItems = { MenuItem.Files, MenuItem.Board, MenuItem.Recordings, MenuItem.Credits, MenuItem.Quit };
+    static readonly MenuItem[] OfficeItems = { MenuItem.Files, MenuItem.Credits, MenuItem.Quit };
+    static readonly MenuItem[] FilesItems = { MenuItem.Personnel, MenuItem.Board, MenuItem.Recordings };     // PARTY OFFICE > KGB FILES
     static readonly string[] TopLabels = { "SINGLE PLAYER", "MULTIPLAYER", "PARTY OFFICE" }, TopShort = { "1 PLAYER", "MULTI", "OFFICE" };
-    static readonly string[] OfficeLabels = { "KGB FILES", "LEADERBOARD", "RECORDINGS", "CREDITS", "RESIGN" }, OfficeShort = { "FILES", "TOP 10", "REC", "CREDITS", "RESIGN" };
+    static readonly string[] OfficeLabels = { "KGB FILES", "CREDITS", "RESIGN" }, OfficeShort = { "FILES", "CREDITS", "RESIGN" };
+    static readonly string[] FilesLabels = { "PERSONNEL", "LEADERBOARDS", "RECORDINGS" }, FilesShort = { "PERSONNEL", "TOP 10", "REC" };
     static readonly string[] SingleLabels = { "DRIVING SCHOOL", Hud.RaceLabel, Hud.TrainingLabel }, SingleShort = { "SCHOOL", Hud.RaceShort, Hud.TrainingShort };
     static readonly string[] MultiLabels = { Hud.LanLabel }, MultiShort = { Hud.LanShort };
 
@@ -33,13 +35,14 @@ public partial class RaceScene
     MenuItem _lastPlayed = MenuItem.Lan;
     bool _menuSingleTest;
 
-    MenuItem[] MenuRow => _menuParent switch { MenuItem.Single => SingleItems, MenuItem.Multi => MultiItems, MenuItem.Office => OfficeItems, _ => TopItems };
+    MenuItem[] MenuRow => _menuParent switch { MenuItem.Single => SingleItems, MenuItem.Multi => MultiItems, MenuItem.Office => OfficeItems, MenuItem.Files => FilesItems, _ => TopItems };
 
     static MenuItem ParentOf(MenuItem m) => m switch
     {
         MenuItem.Training or MenuItem.Race or MenuItem.School => MenuItem.Single,
         MenuItem.Lan => MenuItem.Multi,
-        MenuItem.Files or MenuItem.Board or MenuItem.Recordings or MenuItem.Credits or MenuItem.Quit => MenuItem.Office,
+        MenuItem.Personnel or MenuItem.Board or MenuItem.Recordings => MenuItem.Files,
+        MenuItem.Files or MenuItem.Credits or MenuItem.Quit => MenuItem.Office,
         _ => m,
     };
 
@@ -67,9 +70,11 @@ public partial class RaceScene
     {
         switch (_menu)
         {
-            case MenuItem.Single or MenuItem.Multi or MenuItem.Office: OpenMenu(_menu, _menu == MenuItem.Office ? MenuItem.Files : null); break;
+            case MenuItem.Single or MenuItem.Multi or MenuItem.Office or MenuItem.Files:
+                OpenMenu(_menu, _menu switch { MenuItem.Office => MenuItem.Files, MenuItem.Files => MenuItem.Personnel, _ => null });
+                break;
             case MenuItem.Board: EnterBoard(); break;
-            case MenuItem.Files: EnterFiles(); break;     // RaceScene.Files.cs
+            case MenuItem.Personnel: EnterFiles(); break;     // RaceScene.Files.cs
             case MenuItem.Recordings: EnterRecordings(); break;     // RaceScene.Recordings.cs
             case MenuItem.Credits: EnterCredits(); break;
             case MenuItem.Lan: MenuPlayed(MenuItem.Lan); EnterLanMenu(); break;
@@ -84,11 +89,11 @@ public partial class RaceScene
         }
     }
 
-    /// <summary>Title Esc: out of a row to the top (true), or nothing to go back to (false: quit).</summary>
+    /// <summary>Title Esc: out of a row one level up (true; KGB FILES goes to PARTY OFFICE), or nothing to go back to (false: quit).</summary>
     bool MenuBack()
     {
         if (_menuParent is not MenuItem parent) return false;
-        _menuParent = null;
+        _menuParent = Array.IndexOf(TopItems, parent) >= 0 ? null : ParentOf(parent);
         _menu = parent;
         return true;
     }
@@ -106,12 +111,21 @@ public partial class RaceScene
         for (int up = 0; up < 3 && _menuParent == null && Array.IndexOf(TopItems, _menu) < 0; up++) _menu = ParentOf(_menu);
         var row = MenuRow;
         bool top = _menuParent == null;
-        _hud.MenuLabels = top ? TopLabels : _menuParent switch { MenuItem.Single => SingleLabels, MenuItem.Office => OfficeLabels, _ => MultiLabels };
-        _hud.MenuShort = top ? TopShort : _menuParent switch { MenuItem.Single => SingleShort, MenuItem.Office => OfficeShort, _ => MultiShort };
-        _hud.MenuHeader = top ? null : TopLabels[Array.IndexOf(TopItems, _menuParent.Value)];
+        _hud.MenuLabels = top ? TopLabels : _menuParent switch { MenuItem.Single => SingleLabels, MenuItem.Office => OfficeLabels, MenuItem.Files => FilesLabels, _ => MultiLabels };
+        _hud.MenuShort = top ? TopShort : _menuParent switch { MenuItem.Single => SingleShort, MenuItem.Office => OfficeShort, MenuItem.Files => FilesShort, _ => MultiShort };
+        _hud.MenuHeader = top ? null : MenuHeaderLabel(_menuParent.Value);
         _hud.MenuDim = -1;
         _hud.MenuSelection = Math.Max(0, Array.IndexOf(row, _menu));
         _hud.MenuHint = top || _askName ? null : MenuHint(_menu);   // over a card too: the card goes under it
+    }
+
+    /// <summary>A row's header: its parent's own label (a top-row item, or KGB FILES in PARTY OFFICE).</summary>
+    static string MenuHeaderLabel(MenuItem parent)
+    {
+        int i = Array.IndexOf(TopItems, parent);
+        if (i >= 0) return TopLabels[i];
+        i = Array.IndexOf(OfficeItems, parent);
+        return i >= 0 ? OfficeLabels[i] : null;
     }
 
     /// <summary>What a mode is, in a few lines for the hint box (the pad's words when a pad is in use).</summary>
@@ -121,7 +135,7 @@ public partial class RaceScene
         {
             "TRACK PRACTICE ON AN EMPTY ROAD.",
             "NO DAMAGE, NO FUEL, NO NORMS. JUST SPEED.",
-            _padMode ? "D-PAD: DIESEL / PETROL / JET FUEL." : "1 DIESEL  2 PETROL  3 JET FUEL.",
+            _padMode ? "D-PAD: DIESEL / PETROL / JET FUEL / SPUTNIK." : "1 DIESEL  2 PETROL  3 JET FUEL  4 SPUTNIK.",
             "BEAT THE RECORD ON THE BOARD OF HONOUR.",
         }),
         MenuItem.Race => (Hud.RaceLabel, new[]
@@ -147,12 +161,18 @@ public partial class RaceScene
         }),
         MenuItem.Files => ("KGB FILES", new[]
         {
+            "THE ARCHIVE OF THE PARTY:",
+            "PERSONNEL FILES, THE BOARDS OF HONOUR",
+            "AND THE RECORDINGS OF YOUR LAPS.",
+        }),
+        MenuItem.Personnel => ("PERSONNEL", new[]
+        {
             "FIVE PERSONNEL FILES IN THE ARCHIVE.",
             "EACH DRIVER KEEPS HIS OWN NAME, MEDALS,",
             "LESSONS SEEN AND SPEED RECORDS.",
             "OPEN YOURS, START A NEW ONE, OR ERASE ONE.",
         }),
-        MenuItem.Board => ("LEADERBOARD", new[]
+        MenuItem.Board => ("LEADERBOARDS", new[]
         {
             "THE BOARD OF HONOUR: THE TEN BEST LAPS",
             "OF EVERY TRACK, RALLY AND STAKHANOV LAPS.",

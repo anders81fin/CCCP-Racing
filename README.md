@@ -3,7 +3,7 @@
 Rally-Sport-inspired time trial on a Soviet kolkhoz. Power: ACCORDING TO PLAN. Suspension: NYET.
 
 Source code: [anders81fin/CCCP-Racing](https://github.com/anders81fin/CCCP-Racing).
-Source for version **0.854**: [v0.854](https://github.com/anders81fin/CCCP-Racing/tree/v0.854).
+Source for version **0.855**: [v0.855](https://github.com/anders81fin/CCCP-Racing/tree/v0.855).
 GitHub account: [anders81fin](https://github.com/anders81fin).
 
 Source code is offered under **GPL-3.0-or-later** and game models, images, track
@@ -64,7 +64,8 @@ Car radio: Backspace on/off; choose the SONG row in PARTY MEETING and use left/r
 `assets/music/radio/` (sorted by file name; the file name is shown as the song title).
 
 Title menu: SINGLE PLAYER (DRIVING SCHOOL, SOCIALIST RALLY, STAKHANOV LAPS), MULTIPLAYER
-(LAN RACE), LEADERBOARD (the 10 fastest laps and their drivers), CHANGELOG and QUIT; a hint
+(LAN / INTERNET), PARTY OFFICE (KGB FILES: PERSONNEL, LEADERBOARDS with the 10 fastest laps and their drivers,
+RECORDINGS; CREDITS; RESIGN); a hint
 box explains the selected mode, Down selects the replay of the record lap. The name is asked when a rally or Stakhanov laps are
 chosen on the title; a top-10 lap goes on the board under it at once, the race going on. The boards are stored in
 `user://leaderboard_<track>*.cfg`. In-race messages go by importance (docs/comments.csv):
@@ -113,7 +114,15 @@ bonus track in the rally on DIESEL, JET FUEL with a silver there on PETROL and S
 (the ladder times 1.02 for diesel, 0.97 for jet fuel and 0.95 for the Sputnik, per track in `tracks/ID.json` "norms"), and each fuel has its own record
 lap, ghost, board and medals (a medal on any fuel opens the next track). Note that the top speed is about the same on all three (155-159 km/h):
 the fuels differ in how the car pulls out of corners (the diesel with torque from the bottom, the jet fuel with power).
-T (a pad: Y) on the FUEL card plays the car of the highlighted fuel as a CAR TOUR (RaceScene.CarTour.cs, the scripts in CarTourScript.cs): a black card, close-ups with a dry caption each, the engine revved and lifted so that its voice, whistle, pops and smoke are heard, and a card of its data. A locked fuel's tour can be watched but cannot start a run; nothing is raced or recorded. Test hooks: `--car-tour=diesel|petrol|rocket|sputnik` (with `--car-tour-nocard`, `--car-tour-at=SECONDS` and `--car-tour-check`).
+STAKHANOV LAPS ask CHOOSE FUEL after the track and before TIME OF DAY: the same four fuels and locks (no medals, no tour, not saved);
+keys 1-4 (a pad: D-pad up/down) still switch the fuel while driving, as the card says.
+BEST and LAST show the current session's times for the fuel currently selected; starting or restarting a run clears them.
+Each track keeps a separate Stakhanov top 10 for each fuel. A mixed-fuel lap belongs to the highest fuel used during that lap.
+The small board at the top right shows places 1, 2, 3 and 10. PARTY MEETING > LEADERBOARDS opens the current track and fuel;
+Left/Right browses the other fuels without changing the car or track, and Esc (pad: B) returns to the paused meeting.
+Existing known-fuel results are retained; unknown legacy results stay unclassified. The first upgraded save preserves the original
+Stakhanov board as `leaderboard_<track>_stakhanov.cfg.before-fuel-top10`. LAN sharing includes all fuel boards in the lobby.
+T (a pad: Y) on the rally's FUEL card plays the car of the highlighted fuel as a CAR TOUR (RaceScene.CarTour.cs, the scripts in CarTourScript.cs): a black card, close-ups with a dry caption each, the engine revved and lifted so that its voice, whistle, pops and smoke are heard, and a card of its data. A locked fuel's tour can be watched but cannot start a run; nothing is raced or recorded. Test hooks: `--car-tour=diesel|petrol|rocket|sputnik` (with `--car-tour-nocard`, `--car-tour-at=SECONDS` and `--car-tour-check`).
 Beat the last norm and you move on (the next track is under construction); run out of laps, kill the engine
 (it has health: crashes hurt it, smoke at 25 %, oil at 0 %) or get the car destroyed
 (tank shell, missile, a crashing MiK-21) and the truck takes you to the gulag. Training laps

@@ -8,7 +8,7 @@ namespace CCCPRacing.Race;
 /// <summary>
 /// The KGB ARCHIVE: the five PERSONNEL FILES (PlayerFiles), each driver's own medals, KGB file,
 /// lessons seen and GAI readings. A plain launch opens it first (after the TEST VERSION card): the
-/// driver opens their file or a new one, then the main menu; the title's FILES opens it again. Up/Down
+/// driver opens their file or a new one, then the main menu; the title's PARTY OFFICE > KGB FILES > PERSONNEL opens it again. Up/Down
 /// choose, Enter takes a file into use (an empty one asks its driver's name first), Delete (a pad: Y)
 /// erases one after ERASE FROM HISTORY?, Esc back (at launch: quits, as the top row does). The boards
 /// of honour stay everyone's.
@@ -48,7 +48,7 @@ public partial class RaceScene
         _filesAtLaunch = false;
         _filesErase = false;
         _filesSel = _file - 1;
-        _menu = MenuItem.Files;
+        _menu = MenuItem.Personnel;     // (PARTY OFFICE > KGB FILES > PERSONNEL)
         _overlayFrame = Engine.GetProcessFrames();
         _hud.Mode = HudMode.Files;
         FilesHud();
@@ -181,7 +181,7 @@ public partial class RaceScene
             if (!_noRecord) _ghosts[m] = Ghost.Load(_records.GhostForSet(m), _params, _track);
             _bestLaps[m] = _ghosts[m]?.LapTime ?? -1;
             _tapes[m] = LoadTapeSlot(m);      // RaceScene.Tape.cs: the tape beside the ghost, if it is whole
-            _boards[m] = Leaderboard.Load(m == 0 ? rallyBoard : _records.BoardForSet(m), _bestLaps[m], m == 1 ? Leaderboard.StakhanovSize : Leaderboard.Size);
+            _boards[m] = Leaderboard.Load(m == 0 ? rallyBoard : _records.BoardForSet(m), _bestLaps[m], m == 1 ? Leaderboard.StakhanovSize : Leaderboard.Size, fuelPartitions: m == 1);
         }
         // The shipped demonstration stays separate from all player records and racing ghosts.
         const string demo = "res://assets/replays/ilyich-stakhanov-petrol";

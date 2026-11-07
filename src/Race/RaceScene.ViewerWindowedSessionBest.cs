@@ -51,7 +51,7 @@ public partial class RaceScene
         VwCheck(MathF.Abs(_hud.SessionBestLap - 30f) < 1e-4f, "a viewer visit leaves it");
         // the other modes show the record as before
         var keep = _run; _run = RunMode.Training; foreach (var x in Settle()) yield return x;
-        VwCheck(!_hud.BestIsSession, "Stakhanov laps keep the record on the BEST line");
+        VwCheck(_hud.BestIsSession && _hud.SessionBestLap < 0, "Stakhanov laps show their independent per-fuel session best");
         _run = keep; foreach (var x in Settle()) yield return x;
         // the earned medal's star under the card, for each medal
         foreach (var medal in new[] { NormPlan.Medal.Bronze, NormPlan.Medal.Silver, NormPlan.Medal.Gold })

@@ -2,7 +2,7 @@
 
 Completed single-player Socialist Rally and Stakhanov laps are recorded
 automatically. Recent session recordings are temporary; use **KEEP** to retain
-a recording on disk. PARTY OFFICE > RECORDINGS opens the recording library.
+a recording on disk. PARTY OFFICE > KGB FILES > RECORDINGS opens the recording library.
 PARTY MEETING > REPLAY lists recordings from the current run. A single available
 lap opens directly; multiple laps present a selection. Current-run rows show
 their lap number and follow driving order across recording folders. Pinned
@@ -26,6 +26,21 @@ edit sidecar is ignored with an explanation.
 The free camera can place shots with tracking, helicopter, crane, dolly and
 zoom motion. Export uses the saved camera framing. Check the viewer's on-screen
 controls for keyboard and controller actions.
+
+## Stakhanov leaderboards
+
+Each track keeps a separate top 10 for each fuel. A lap using more than one
+fuel is attributed to the highest fuel used. The live mini board shows places
+1, 2, 3 and 10 for the selected fuel; BEST and LAST show that fuel's times in
+the current session. Starting or restarting clears those session times.
+
+PARTY MEETING > LEADERBOARDS opens the current track and fuel. Left/Right
+(controller: D-pad) browses other fuels on that same track without changing
+the car. Esc, Enter or controller B returns to the paused meeting.
+Qualifying results retain their attached recordings, and lobby sharing includes
+all fuel boards. Existing known-fuel results migrate to their fuel; unknown
+legacy results remain unclassified. The original board is preserved once as
+`leaderboard_<track>_stakhanov.cfg.before-fuel-top10` before the first upgraded save.
 
 ## Deleting
 

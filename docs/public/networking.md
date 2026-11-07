@@ -2,7 +2,7 @@
 
 Up to six players race on Ilyich, Siberia, Atomgrad or the bonus track. All
 participants need a compatible game build and LAN protocol; the current code
-uses protocol 15. The host's campaign unlocks determine the available tracks.
+uses protocol 16. The host's campaign unlocks determine the available tracks.
 Joining players do not need their own medals for the selected track.
 
 One player hosts a lobby. Others join through local discovery or the host's

@@ -425,6 +425,10 @@ src/Race/RaceScene.SoundMixer.cs
 src/Race/RaceScene.SoundMixer.cs.uid
 src/Race/RaceScene.SpeedTrap.cs
 src/Race/RaceScene.SpeedTrap.cs.uid
+src/Race/RaceScene.StakhanovBoard.cs
+src/Race/RaceScene.StakhanovBoard.cs.uid
+src/Race/RaceScene.StakhanovSession.cs
+src/Race/RaceScene.StakhanovSession.cs.uid
 src/Race/RaceScene.StartLine.cs
 src/Race/RaceScene.StartLine.cs.uid
 src/Race/RaceScene.StartRev.cs
@@ -521,6 +525,8 @@ src/Race/RaceScene.ViewerWindowedScreenshot.cs
 src/Race/RaceScene.ViewerWindowedScreenshot.cs.uid
 src/Race/RaceScene.ViewerWindowedSessionBest.cs
 src/Race/RaceScene.ViewerWindowedSessionBest.cs.uid
+src/Race/RaceScene.ViewerWindowedStakhanovBoard.cs
+src/Race/RaceScene.ViewerWindowedStakhanovBoard.cs.uid
 src/Race/RaceScene.ViewerWindowedStakhanovStart.cs
 src/Race/RaceScene.ViewerWindowedStakhanovStart.cs.uid
 src/Race/RaceScene.ViewerWindowedTest.cs
@@ -833,6 +839,8 @@ src/Tests/PhysicsTest.SoundGrades.cs
 src/Tests/PhysicsTest.SoundGrades.cs.uid
 src/Tests/PhysicsTest.Spin.cs
 src/Tests/PhysicsTest.Spin.cs.uid
+src/Tests/PhysicsTest.StakhanovFuelBoards.cs
+src/Tests/PhysicsTest.StakhanovFuelBoards.cs.uid
 src/Tests/PhysicsTest.StartHillAssist.cs
 src/Tests/PhysicsTest.StartHillAssist.cs.uid
 src/Tests/PhysicsTest.Tape.Async.cs
@@ -1289,6 +1297,8 @@ src/UI/HudSettings.cs
 src/UI/HudSettings.cs.uid
 src/UI/HudSoundBalance.cs
 src/UI/HudSoundBalance.cs.uid
+src/UI/HudStakhanovBoard.cs
+src/UI/HudStakhanovBoard.cs.uid
 src/UI/HudStartup.cs
 src/UI/HudStartup.cs.uid
 src/UI/HudTrackPreview.cs

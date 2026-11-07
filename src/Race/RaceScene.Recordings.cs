@@ -8,9 +8,9 @@ using Godot;
 namespace CCCPRacing.Race;
 
 /// <summary>
-/// PARTY OFFICE > RECORDINGS and KEEP (docs/work-orders/player-recordings-phase4.md, A). The same list as the Party Meeting's REPLAY (RaceScene.ReplayMenu.cs) over the title,
+/// PARTY OFFICE > KGB FILES > RECORDINGS and KEEP (docs/work-orders/player-recordings-phase4.md, A). The same list as the Party Meeting's REPLAY (RaceScene.ReplayMenu.cs) over the title,
 /// for the laps of this game session ("THIS SESSION", in memory) and the ones kept on disk ("KEPT", the personnel file's lap folder, there after a restart). It owns no drive:
-/// the title scene itself is the viewer's session owner and gets the title back as it was (the menu on RECORDINGS, the title replay and the music). KEEP asks for a name and writes
+/// the title scene itself is the viewer's session owner and gets the title back as it was (the KGB FILES row on RECORDINGS, the title replay and the music). KEEP asks for a name and writes
 /// the whole pair through the archive's own Retain (its worker, tmp-verify-replace). Explicit DELETE uses a separate confirmation and archive worker operation. Names are set at KEEP (and by KEEP on a kept lap: a rename);
 /// labels, pins and cuts are the later editing phase.
 /// </summary>

@@ -22,7 +22,7 @@ public sealed record LanBoardTrack(string Track, string Signature, IReadOnlyList
 /// </summary>
 public sealed class LanBoardManifest
 {
-    public const int MaxBytes = 32 * 1024, MaxTracks = 4;
+    public const int MaxBytes = 64 * 1024, MaxTracks = 4;
     public const float MaxTime = 3600;
     public string BuiltTrack = "", BuiltSignature = "";
     /// <summary>Recordings not offered because they were still being saved on this machine.</summary>
@@ -32,7 +32,7 @@ public sealed class LanBoardManifest
     public int RowCount => Tracks.Sum(t => t.Sets.Sum(s => s.Rows.Count));
     public int RecordingCount => Tracks.Sum(t => t.Sets.Sum(s => s.Rows.Count(r => r.RecordingId != null)));
 
-    public static int Capacity(int set) => set == 1 ? Leaderboard.StakhanovSize : Leaderboard.Size;
+    public static int Capacity(int set) => set == 1 ? Leaderboard.StakhanovTotalSize : Leaderboard.Size;
 
     public void Write(BinaryWriter w)
     {

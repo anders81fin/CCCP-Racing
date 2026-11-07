@@ -211,7 +211,7 @@ public partial class Hud : Control
         if (NameAsk && Mode is HudMode.Title or HudMode.Files) DrawNameAsk();
         if (ShowDebug) DrawDebug();
         if (Mode == HudMode.Keys) DrawKeys();
-        if (Mode == HudMode.Paused) { if (LabOpen) { } else if (RallyExitOpen) DrawRallyExit(); else if (PauseNormsOpen) DrawPauseNorms(); else if (VisualOpen) DrawVisual(); else if (MixerOpen) DrawMixer(); else if (SettingsOpen) DrawSettings(); else if (ReplayListOpen) DrawReplayList(); else DrawPause(); }
+        if (Mode == HudMode.Paused) { if (LabOpen) { } else if (StakhanovBoardOpen) DrawStakhanovBoard(false); else if (RallyExitOpen) DrawRallyExit(); else if (PauseNormsOpen) DrawPauseNorms(); else if (VisualOpen) DrawVisual(); else if (MixerOpen) DrawMixer(); else if (SettingsOpen) DrawSettings(); else if (ReplayListOpen) DrawReplayList(); else DrawPause(); }
         if (LabRun && inCar && Mode != HudMode.Keys) DrawLabTag();
         if (LabOpen) DrawLab();
         if (Mode == HudMode.Title && ReplayListOpen) DrawReplayList();      // RECORDINGS in the Party Office (HudReplay.cs)
@@ -543,6 +543,7 @@ public partial class Hud : Control
             if (Lan.Page == LanPage.None) DrawLanStandings();
         }
         else if (NormCardShown) DrawNormCard();      // the Socialist Rally's target card carries the emblem in its header (HudNormCard.cs)
+        else if (StakhanovMiniBoard) DrawStakhanovBoard(true);
         else
         {
             DrawStar(new Vector2(s.X - 12, 11), 1, Red);
@@ -659,6 +660,7 @@ public partial class Hud : Control
             {
                 PauseRowId.Replay => "       " + (PauseReplayAvailable ? "REPLAY" : "REPLAY - NO LAPS"),
                 PauseRowId.Norms => "       NORMS AND MEDALS",
+                PauseRowId.Leaderboards => "       LEADERBOARDS",
                 PauseRowId.Continue => P("ESC    ", "BACK   ") + "CONTINUE",
                 PauseRowId.Restart => P("R      ", "X      ") + "RESTART RACE",
                 PauseRowId.Exit => "       EXIT RACE",

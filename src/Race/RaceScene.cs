@@ -989,6 +989,7 @@ public partial class RaceScene : Node3D
     {
         if(LanPlaybackSource!=null) {if(!_lanPlaybackExternallyDriven) LanPlaybackInput(e);return;}
         if (ViewerMode) return;      // a viewer takes no input of its own; the session owner drives it
+        if (StakhanovBoardRawInput(e)) return;
         if (_replayViewer is { State: not ReplayViewerState.Closed } rv) { rv.RouteInput(e); return; }      // an open viewer owns the input: the frozen live scene gets none (RaceScene.ReplayViewer.cs)
         if (_showBoard && LeaderboardReplayInput(e)) return;
         if (_lanLeaveAsk) { if (!PadRawInput(e)) LanLeaveRawInput(e); return; }
@@ -1093,6 +1094,7 @@ public partial class RaceScene : Node3D
         _sessionLapArchives.Clear(); _sessionLapOrder.Clear(); _sessionLapSequence = 0;
         _replayListTask = null; _replayInfos.Clear(); _replayKnownLaps = -1;
         _sessionBest = -1f;      // a run's start or a restart opens a new session; a norm advancing, a pause or a viewer visit never reaches here
+        StakhanovSessionReset();
         _state = State.Countdown;
         _hud.Mode = HudMode.Countdown;
         _startRevLeft = !InLanRace && !InSchool ? StartRevDuration : 0;
@@ -1154,10 +1156,10 @@ public partial class RaceScene : Node3D
         if (_params != null && !_labRun) FuelGrades.ApplyEngine(_params, EngineFuel);
     }
 
-    /// <summary>A run started from the title (or --start): Stakhanov laps begin at 100 % (or --power).</summary>
-    void NewRunPower()
+    /// <summary>A run started from the title (or --start): Stakhanov laps begin on the CHOOSE FUEL card's fuel (start), else at 100 % (or --power).</summary>
+    void NewRunPower(int? start = null)
     {
-        _power = _lapPeak = _powerStart;
+        _power = _lapPeak = _run == RunMode.Training && start is int chosen ? chosen : _powerStart;
         if (_run == RunMode.Training && Training.GradeOf(_power) is FuelGrade sg && FuelLocked(sg)) _power = _lapPeak = Training.PercentForKey((int)OpenFuel(sg) + 1);      // a closed fuel does not start the laps
         _heroNodded = false;
     }
@@ -1234,6 +1236,7 @@ public partial class RaceScene : Node3D
         // Each run has its own records: a Stakhanov lap at any power is ranked at the highest power
         // used during it; the next lap starts from the power chosen now.
         bool fake = _fakeLap;
+        StakhanovSessionLap(time, _timer.LastLapRanked, false, fake);
         TapeLapReport(time, record, fake);
         if (!fake) TapeSaveSessionLap(time);
         if (record && !fake)     // a test lap (--lap-done-at) never becomes the ghost
@@ -1256,7 +1259,7 @@ public partial class RaceScene : Node3D
         LapFuelsReset();
         string lap = "LAP " + LapTimer.Format(time) + (StakhanovRules ? "  " + (_run == RunMode.Training ? Training.FuelShort(_lapPeak) : _lapPeak + "%") : "");
         // A top-10 lap by a human driver stops the game for the name; the autopilot is not asked.
-        int rank = _timer.LastLapRanked && (!_autodrive || fake) ? _board.RankFor(time) : 0;
+        int rank = _timer.LastLapRanked && (!_autodrive || fake) ? _board.RankFor(time, _lapPeak) : 0;
         if (rank > 0)
             BoardLap(time, record);      // under the name given at the start (RaceScene.Name.cs)
         else if (record)
@@ -1278,6 +1281,7 @@ public partial class RaceScene : Node3D
         // A rescued or false-start lap still contains useful trailer action.
         // Keep it only in an opt-in session, never in the player's records.
         TapeSaveSessionLap(time, ranked: false);
+        StakhanovSessionLap(time, false, true, _fakeLap);
         _kgb.LogLap();
         if (!CardsOn) _hud.Show("LAP NOT COUNTED", "VOID LAP " + LapTimer.Format(time), 3f, Hud.Red);
         _lapPeak = _power;
@@ -2398,7 +2402,7 @@ public partial class RaceScene : Node3D
     {
         // Replay focus, the leaderboard, the key card and the name entry listen to raw input only; the
         // press that ended them is swallowed here (Enter/Esc would otherwise start, pause or quit).
-        if (_watching || _showBoard || _showLog || _showFiles || _showLessons || _showKeys || CardShown || _gulag || _planScreen || _askName || _resignOut >= 0 || _recordingsOpen || _keepNameOpen || _lanKeep.OwnsInput) return;      // (LAN KEEP: Esc, R, M, C... are its keys, not the race's)
+        if (_watching || _showBoard || _showLog || _showFiles || _showLessons || _showKeys || CardShown || _gulag || _planScreen || _askName || _resignOut >= 0 || _recordingsOpen || _keepNameOpen || _lanKeep.OwnsInput || _hud.StakhanovBoardOpen) return;      // modal screens own the keys, including the paused Stakhanov board
         if (Engine.GetProcessFrames() <= _overlayExitFrame + 1) return;
         if(LanSession.Current?.LeavePrompt is {ConsumedFrame:>0} leave && Engine.GetProcessFrames()<=leave.ConsumedFrame+1) return;
         if (LanInput() || TitleCardInput() || SchoolInput()) return;
@@ -2495,6 +2499,8 @@ public partial class RaceScene : Node3D
         _hud.LastLap = _timer.LastLap;
         _hud.LapVoid = _state == State.Countdown ? _falseStart : _timer.LapVoid;
         _hud.LastLapVoid = _timer.LastLapVoid;
+        StakhanovSessionHud();
+        StakhanovBoardHud();
         _hud.Lap = _timer.LapsDone + 1;
         _hud.Training = StakhanovRules;
         MenuHud();

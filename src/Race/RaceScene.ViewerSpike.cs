@@ -76,7 +76,7 @@ public partial class RaceScene
         ("SeeThrough", "Car"), ("SeeThrough", "Off"), ("FadeUnder", "Car"), ("FadeUnder", "Off"), ("GulagTruck", "_onRoad"),
         ("Missile", "_serial"), ("Missile", "SeedBase"), ("Props", "Materials"), ("Props", "BatchCache"),
         ("NormPlan", "Ladder"), ("NormPlan", "BaseLadder"), ("NormPlan", "Factor"), ("NormPlan", "_def"),
-        ("RaceScene", "_trackId"), ("RaceScene", "_resume"), ("RaceScene", "_loadingRunMode"), ("RaceScene", "_resumeReplay"), ("RaceScene", "_tapeScenes"), ("RaceScene", "_aaMode"), ("RaceScene", "_softLevel"), ("PixelFrame", "_native"),
+        ("RaceScene", "_trackId"), ("RaceScene", "_resume"), ("RaceScene", "_loadingRunMode"), ("RaceScene", "_resumeReplay"), ("RaceScene", "_tapeScenes"), ("RaceScene", "_aaMode"), ("RaceScene", "_softLevel"), ("RaceScene", "_lapsFuelStart"), ("RaceScene", "_lapsFuelLast"), ("PixelFrame", "_native"),
         ("AudioMix", "Trims"), ("AudioMix", "Ducked"), ("CannonStrikeSound", "_players"), ("HindGunSound", "_players"),
         ("KolkhozWorkerModel", "WorkerMaterial"), ("WinterWorkerModel", "Material"), ("PosterGrade", "_table"), ("TrackLoadingScreen", "Active"), ("LapArchive", "Shared"),
     };

@@ -11,7 +11,7 @@ using Godot;
 namespace CCCPRacing.Race;
 
 // Windowed scenarios "recordings-keep" and "recordings-restart" (--viewer-windowed-only=recordings): two game children that share one data dir (the parent hashes the kept pairs between them,
-// and puts a damaged lap folder beside them). Child 1 drives Stakhanov laps, goes back to the title, opens PARTY OFFICE > RECORDINGS by keys, KEEPs with a name, cancels another name, and
+// and puts a damaged lap folder beside them). Child 1 drives Stakhanov laps, goes back to the title, opens PARTY OFFICE > KGB FILES > RECORDINGS by keys, KEEPs with a name, cancels another name, and
 // KEEPs again and quits at once. Child 2 (a fresh process, the title) lists what was kept, compares the SHA-256 of the pairs, watches one from the Office, checks the title came back
 // exactly, then the pad (D-pad, A, Y, the name wheel, B), a failing KEEP and a cancel. The PARTY MEETING's own list and its partial-lap resume are the replay-ui scenario's.
 public partial class RaceScene
@@ -47,8 +47,11 @@ public partial class RaceScene
         VwCheck(_menu == MenuItem.Office, "the cursor is on PARTY OFFICE");
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
+        VwCheck(_menuParent == MenuItem.Office && _menu == MenuItem.Files && !_hud.MenuLabels.Contains("RECORDINGS"), "PARTY OFFICE opens on KGB FILES (RECORDINGS is not in its own row)");
+        foreach (var x in VrTap(Key.Enter)) yield return x;
+        for (int i = 0; i < 6; i++) yield return null;
         for (int i = 0; i < 6 && _menu != MenuItem.Recordings; i++) foreach (var x in VrTap(Key.Right)) yield return x;
-        VwCheck(_menuParent == MenuItem.Office && _menu == MenuItem.Recordings && _hud.MenuLabels.Contains("RECORDINGS"), "PARTY OFFICE has RECORDINGS");
+        VwCheck(_menuParent == MenuItem.Files && _menu == MenuItem.Recordings && _hud.MenuLabels.Contains("RECORDINGS") && _hud.MenuHeader == "KGB FILES", "PARTY OFFICE > KGB FILES has RECORDINGS");
         foreach (var x in VrTap(Key.Enter)) yield return x;
         foreach (var x in VrUntil(() => _recordingsOpen && _hud.ReplayListOpen && !_replayLooking, 60 * 10, "the RECORDINGS list is up")) yield return x;
     }
@@ -104,7 +107,7 @@ public partial class RaceScene
         foreach (var x in VrTap(Key.K)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
         foreach (var x in VrUntil(() => _hud.ReplayList.Notice.StartsWith("KEPT"), 60 * 20, "an empty name is kept under the default name")) yield return x;
-        VwCheck(_hud.ReplayList.Notice.Contains("ILYICH STAK "), $"default name: {_hud.ReplayList.Notice}");
+        VwCheck(System.Text.RegularExpressions.Regex.IsMatch(_hud.ReplayList.Notice, @"^KEPT: LAP \d+ ILYICH \d+-\d\d-\d\d$"), $"default name of a numbered lap (LAP n TRACK time): {_hud.ReplayList.Notice}");
         _hud.ReplayList.Selected = 2;
         foreach (var x in VrTap(Key.K)) yield return x;
         foreach (var x in VrType("my best 1")) yield return x;
@@ -153,7 +156,7 @@ public partial class RaceScene
         for (int i = 0; i < 20; i++) yield return null;
         var snap2 = (_menuParent, _menu, _rallyPhase, _lapsPhase, _rallyFuel, _trackId, _lastPlayed, _hud.ReplayList.Selected, _state);
         VwCheck(snap.Equals(snap2), $"the title came back as it was: {snap2}");
-        VwCheck(_recordingsOpen && _hud.ReplayListOpen && _menuParent == MenuItem.Office && _menu == MenuItem.Recordings && _card == TitleCard.None, "back in RECORDINGS under PARTY OFFICE, no card");
+        VwCheck(_recordingsOpen && _hud.ReplayListOpen && _menuParent == MenuItem.Files && _menu == MenuItem.Recordings && _card == TitleCard.None, "back in RECORDINGS under PARTY OFFICE > KGB FILES, no card");
         VwCheck(_state == State.Title && _countdown <= 0 && _hud.Mode == HudMode.Title, "no countdown or race started");
         VwCheck(Audio.AudioMix.SfxMuted == sfxBefore, "the title's sound-effect mute is given back after the viewer");
         bool audioSame = true; foreach (var (n, was) in audio) if (IsInstanceValid(n)) audioSame &= (n is AudioStreamPlayer a ? a.StreamPaused : ((AudioStreamPlayer3D)n).StreamPaused) == was;
@@ -179,7 +182,7 @@ public partial class RaceScene
         VwCheck(renamed.Length == 2 && _hud.ReplayList.Rows.Count(r => r.Detail.EndsWith(renamed)) == 1, $"exactly one row carries the new name '{renamed}'");
         foreach (var x in VrPad(JoyButton.B)) yield return x;
         for (int i = 0; i < 12; i++) yield return null;
-        VwCheck(!_recordingsOpen && _menuParent == MenuItem.Office && _menu == MenuItem.Recordings && _state == State.Title, "pad B leaves RECORDINGS for PARTY OFFICE, on RECORDINGS");
+        VwCheck(!_recordingsOpen && _menuParent == MenuItem.Files && _menu == MenuItem.Recordings && _state == State.Title, "pad B leaves RECORDINGS for KGB FILES, on RECORDINGS");
         // a failing KEEP is visible and leaves the pair usable
         foreach (var x in VrTap(Key.Enter)) yield return x;
         foreach (var x in VrUntil(() => _recordingsOpen && !_replayLooking, 60 * 10, "RECORDINGS again")) yield return x;
