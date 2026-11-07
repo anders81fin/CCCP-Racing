@@ -221,7 +221,36 @@ public static class GulagCamp
         n.AddChild(Props.Part(new PrismMesh { Size = new Vector3(D + 1.1f, 1.75f, L + 0.8f) }, Snow, new Vector3(0, H + 0.95f, 0)));
         n.AddChild(Props.Part(Props.Cyl(0.13f, 1.2f, 5), Wire, new Vector3(D * 0.2f, H + 1.9f, L * 0.25f)));
         SiberiaModelDetails.CampHut(n, L);
+        n.AddChild(ChimneySmoke(new Vector3(D * 0.2f, H + 2.9f, L * 0.25f)));      // the stove is lit: the camp is heated
         return n;
+    }
+
+    static Gradient _smokeRamp;
+    static StandardMaterial3D _smokeMaterial;
+
+    /// <summary>Wood smoke rising from a stovepipe's top (local position <paramref name="top"/>), a light grey that thins out and drifts on the wind. GPU particles, as the train's exhaust:
+    /// the same in play and in a replay (a static emitter, nothing to record).</summary>
+    static GpuParticles3D ChimneySmoke(Vector3 top)
+    {
+        _smokeRamp ??= new Gradient
+        {
+            Colors = new[] { new Color(0.66f, 0.66f, 0.64f, 0.55f), new Color(0.74f, 0.74f, 0.74f, 0.3f), new Color(0.8f, 0.8f, 0.8f, 0f) },
+            Offsets = new[] { 0f, 0.5f, 1f },
+        };
+        _smokeMaterial ??= new StandardMaterial3D { VertexColorUseAsAlbedo = true, Transparency = BaseMaterial3D.TransparencyEnum.Alpha, Roughness = 1f, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
+        return new GpuParticles3D
+        {
+            Name = "ChimneySmoke", Position = top,
+            Amount = 14, Lifetime = 5f, LocalCoords = false,
+            VisibilityAabb = new Aabb(new Vector3(-8, -2, -8), new Vector3(16, 22, 16)),
+            DrawPass1 = new SphereMesh { Radius = 0.22f, Height = 0.44f, RadialSegments = 8, Rings = 4, Material = _smokeMaterial },
+            ProcessMaterial = new ParticleProcessMaterial
+            {
+                Direction = Vector3.Up, Spread = 9f, InitialVelocityMin = 0.9f, InitialVelocityMax = 1.5f,
+                Gravity = new Vector3(0.35f, 0.15f, 0.1f), ScaleMin = 0.9f, ScaleMax = 2.8f,
+                ColorRamp = new GradientTexture1D { Gradient = _smokeRamp },
+            },
+        };
     }
 
     /// <summary>Barbed wire on leaning posts every 4 m, four strands; a span is left out where keep says no.</summary>

@@ -55,10 +55,10 @@ public partial class HindSorties
     }
 
     /// <summary>The aircraft of a tape ("hind/<c>number</c>" without the kind): the play model, marked alike, nothing simulated.</summary>
-    public static Node3D BuildReplayAircraft(string number)
+    public static Node3D BuildReplayAircraft(string number, TyreEffects effects = null)
     {
         var model = BuildAircraft(number, out var engine, out var gun);
-        var fx = new HindReplayFx { Name = "TapeState", Model = model, Lights = model.GetNode<MilitaryLights>("NightLights") };
+        var fx = new HindReplayFx { Name = "TapeState", Fx = effects, Model = model, Lights = model.GetNode<MilitaryLights>("NightLights") };
         model.AddChild(fx);
         MarkTape(model, number, () => 0, () => 0, engine, gun, model.GetNode<MeshInstance3D>("Gun/Flash"), () => fx.State, k => fx.State = k);
         return model;
@@ -89,6 +89,27 @@ public partial class HindReplayFx : Node
     public int State;
     public Node3D Model;
     public MilitaryLights Lights;
+    public TyreEffects Fx;
+    Vector3 _prev;
+    bool _has;
+    readonly float[] _soot = new float[2];
+
+    /// <summary>The player's diesel smoke from both exhausts, as the live aircraft (HindSorties.Tick) makes it: while powered (not falling or wrecked) and moving; the speed is the pose's movement (a seek's jump is not speed).</summary>
+    public override void _PhysicsProcess(double delta)
+    {
+        if (Fx == null || Model == null || !Model.IsInsideTree() || delta <= 0) return;
+        Vector3 pos = Model.GlobalPosition, vel = _has ? (pos - _prev) / (float)delta : Vector3.Zero;
+        _prev = pos; _has = true;
+        if (State >= 2 || !Model.IsVisibleInTree() || vel.Length() < HindSorties.SootMinSpeed || vel.Length() > 120f) return;
+        Fx.BeginReplay(0);
+        try
+        {
+            for (int i = 0; i < 2; i++)
+                Fx.EngineSoot(Model.GlobalTransform * HindSorties.SootPipes[i], Model.GlobalTransform.Basis.Z, vel, 0.6f, HindSorties.SootPower, ref _soot[i], (float)delta, kerosene: true);
+        }
+        finally { Fx.EndReplay(); }
+    }
+
     public override void _Process(double delta)
     {
         Lights.Powered = State < 2; Lights.BeamAllowed = State == 1;

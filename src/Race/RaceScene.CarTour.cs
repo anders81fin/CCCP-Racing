@@ -260,7 +260,7 @@ public partial class RaceScene
             "POWER|" + power,
             "DRIVE|" + drive,
             "VOICE|" + voice,
-            "FUEL USE|" + FuelGrades.Burn[(int)g].ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " X PETROL",
+            "FUEL USE|" + (FuelGrades.Burn[(int)g] / FuelGrades.Burn[(int)FuelGrade.Petrol]).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + " X PETROL",
             "NORMS|" + LapTimer.Format(ladder[0]) + " - " + LapTimer.Format(ladder[^1]),
             "MEDAL|" + (medal > NormPlan.Medal.None ? Campaign.Name(medal) : "NONE YET") + " ON " + TrackName(_trackId),
             "STATUS|" + (FuelLocked(g) ? "LOCKED" : "OPEN"),

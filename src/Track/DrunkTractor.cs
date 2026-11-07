@@ -28,7 +28,7 @@ public partial class DrunkTractor : Node3D
 
     Vector2 _pos, _goal;
     float _yaw, _speed, _targetSpeed;
-    float _speedTimer, _napTimer, _hicTimer, _puffTimer, _clodAcc, _t0, _drift, _segDist;
+    float _soot, _speedTimer, _napTimer, _hicTimer, _puffTimer, _clodAcc, _t0, _drift, _segDist;
     int _obsBody = -1, _obsPlough = -1;
     readonly List<(Vector2 p, float r)> _avoid = new();
     readonly RandomNumberGenerator _rng = new() { Seed = 1986 };
@@ -702,14 +702,17 @@ public partial class DrunkTractor : Node3D
         for (int k = 0; k < 6; k++) _c[o + k] = col;
     }
 
+    /// <summary>The stack (the model's own space) and the engine's size against the player's car (also the slurry and rescue tractors' pipe).</summary>
+    internal static readonly Vector3 SootPipe = new(0.4f, 2.95f, -1.2f);
+    internal const float SootPower = 1.2f;
+
     void Exhaust(float dt)
     {
         Vector3 pipe = _model.GlobalTransform * new Vector3(0.4f, 2.95f, -1.2f);
-        _puffTimer -= dt;
-        if (_puffTimer <= 0 && !Dozing)
+        if (!Dozing)      // the player's diesel smoke, a little bigger engine
         {
-            _puffTimer = 0.25f + 0.2f / (0.5f + _speed);
-            _fx.Smoke(pipe, Vector3.Up * 1.2f, new Color(0.35f, 0.35f, 0.35f), 0.45f, 0.3f, 1.2f, 1.2f);
+            Vector3 fwd = -_model.GlobalTransform.Basis.Z.Normalized();
+            _fx.EngineSoot(pipe, -fwd, fwd * _speed, Mathf.Clamp(_speed / 4f, 0.25f, 1f), SootPower, ref _soot, dt);
         }
         _hicTimer -= dt;
         if (_hicTimer <= 0)

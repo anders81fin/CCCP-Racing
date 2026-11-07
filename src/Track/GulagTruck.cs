@@ -101,7 +101,7 @@ public partial class GulagTruck : Node3D
     readonly RandomNumberGenerator _rng = new() { Seed = 1937 };
 
     readonly List<Vector2> _path = new();
-    float _s, _pathLen, _speed, _yaw, _timer, _t0, _puff;
+    float _s, _pathLen, _speed, _yaw, _timer, _t0, _puff, _soot;
     Vector2 _pos;
     Vector3 _walkFrom, _walkTo;
     int _carIndex;
@@ -616,11 +616,10 @@ public partial class GulagTruck : Node3D
 
     void Exhaust(float dt)
     {
-        _puff -= dt;
-        if (_puff > 0) return;
-        _puff = _speed > 4f ? 0.1f : 0.22f;
         Vector3 pipe = _model.GlobalTransform * (new Vector3(1.05f, 3.05f, -0.4f) * TruckScale);
-        _fx.Smoke(pipe, Vector3.Up * 1.6f, new Color(0.22f, 0.22f, 0.22f), 0.55f, 0.35f, 1.5f, 1.2f);
+        Vector3 fwd = -_model.GlobalTransform.Basis.Z.Normalized();
+        // the player's diesel smoke, a lorry's big engine
+        _fx.EngineSoot(pipe, -fwd, fwd * _speed, Mathf.Clamp(_speed / 8f, 0.25f, 1f), 2.2f, ref _soot, dt);
     }
 
     // ------------------------------------------------------------ model

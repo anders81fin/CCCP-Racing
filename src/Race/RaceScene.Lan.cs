@@ -736,7 +736,7 @@ public partial class RaceScene
         LanRecordProbeTick();      // --lan-record-probe (RaceScene.LanRecordTest.cs)
         LanBoardsFrame();          // SHARE BOARDS (RaceScene.LanBoards.cs)
         if(_lanReadyAt>0 && LanSession.Now>=_lanReadyAt) {_lanReadyAt=-1;ReportLanWorldReady();}
-        if(InLanRace && !_net.IsHost) _lanWorld?.Frame(dt);
+        if(InLanRace && !_net.IsHost) {_lanWorld?.Frame(dt);LanSootTick(dt);}
         double now = LanSession.Now;
         if (_lanConnectAt > 0 && now - _lanConnectAt > 6)
         {

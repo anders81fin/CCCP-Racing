@@ -319,11 +319,13 @@ public partial class DrunkMen : Node3D
 public partial class SovietBus : Node3D
 {
     const float Length = 8f, Width = 2.5f;
+    internal static readonly Vector3 SootPipe = new(-0.9f, 0.4f, Length / 2f + 0.1f);      // the rear pipe (model space)
+    internal const float SootPower = 1.8f;      // a bus's big engine against the player's car
     const float Cruise = 8.5f, BendSpeed = 4f;
 
     TrackData _t;
     TyreEffects _fx;
-    float _s, _speed, _stopTimer, _honkCd, _puff;
+    float _s, _speed, _stopTimer, _honkCd, _puff, _soot;
     int _lastStop = -1;
     readonly int[] _obs = new int[5];
     Node3D _model, _doorL, _doorR;
@@ -682,13 +684,9 @@ public partial class SovietBus : Node3D
         {
             float speed = vel.Length();
             _sound.Speed = speed;
-            _puff -= dt;
-            if (_puff <= 0)
-            {
-                _puff = speed > 0.5f ? 0.3f : 0.6f;
-                Vector3 pipe = _model.GlobalTransform * new Vector3(-0.9f, 0.4f, Length / 2f + 0.1f);
-                _fx.Smoke(pipe, Vector3.Up * 0.8f, new Color(0.15f, 0.15f, 0.15f), 0.55f, 0.35f, 1.4f, 1.3f);
-            }
+            Vector3 pipe = _model.GlobalTransform * SootPipe;
+            // the player's diesel smoke, a bus's big engine (the pipe is at the rear)
+            _fx.EngineSoot(pipe, new Vector3(-fwd.X, 0, -fwd.Y), new Vector3(vel.X, 0, vel.Y), Mathf.Clamp(speed / 8f, 0.25f, 1f), SootPower, ref _soot, dt);
         }
     }
 }

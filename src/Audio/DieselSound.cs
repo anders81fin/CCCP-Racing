@@ -23,7 +23,9 @@ public partial class DieselSound : AudioStreamPlayer3D
         {
             _voice=value;
             UnitSize=value switch {EngineVoice.Tank=>65,EngineVoice.Armoured=>45,EngineVoice.Petrol=>30,_=>14};
-            MaxDb=value==EngineVoice.Utility?3:0;
+            // The volume stops growing at this gain: the tank's and the armoured car's rumble used to be capped at 0 dB (all of it within 65 and 45 m), so going right up to one did not make it louder;
+            // now it keeps growing to +9 / +6 dB (inside ~23 m of a tank, ~22 m of a BTR).
+            MaxDb=value switch {EngineVoice.Utility=>3,EngineVoice.Tank=>9,EngineVoice.Armoured=>6,_=>0};
             AttenuationFilterDb=value==EngineVoice.Utility?-24:-12;
         }
     }

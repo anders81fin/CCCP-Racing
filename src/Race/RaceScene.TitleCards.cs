@@ -256,6 +256,11 @@ public partial class RaceScene
 
     void ConsumeRallyCheckpoint()
     {
+        if (_resumeStale)
+        {
+            _resumeStale = false;
+            _hud.Alert("SAVED RALLY DISCARDED", "THE NORMS CHANGED AFTER IT WAS SAVED. NEW RALLY FROM NORM 1", 5f, Hud.Red, urgent: true);
+        }
         if (!_resumeLoaded && _newRallyTrack != _trackId) return;
         var error = RallyResume.Clear(FileDir, _trackId);
         if (error != Error.Ok)

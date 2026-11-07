@@ -14,6 +14,7 @@ public partial class Buk21Battery : Node3D
     {
         public Node3D Model, Turret, Rack, Radar;
         public int Loaded = 4;
+        public float Soot;
         public float Reload, RadarAngle;      // (RadarAngle: the dish's unwrapped turn, for the world tape)
     }
     sealed class MissileFlight
@@ -38,6 +39,18 @@ public partial class Buk21Battery : Node3D
     int _loaderObstacle;
     float _wheelAngle;      // the loader's wheels' unwrapped turn (they all turn alike), for the world tape
     public bool Alert => _alert > 0;
+
+    // The battery's engines (diesel, as the tracked launchers' and the generator's really are): the player's diesel smoke (TyreEffects.EngineSoot) at idle, the launchers' and the generator's
+    // always (the dish turns all the time), the loader truck's while it drives. Pipes are in each part's own space; TapeEmitters makes the same smoke from the poses in a replay.
+    internal static readonly Vector3 LauncherPipe = new(0.9f, 1.95f, 3.7f), GeneratorPipe = new(-0.6f, 1.95f, 1.0f), LoaderPipe = new(1.1f, 2.95f, -1.3f);
+    internal const float LauncherSootPower = 0.6f, GeneratorSootPower = 0.5f, LoaderSootPower = 1.8f, LoaderMinSpeed = 0.3f, LoaderSpeedRef = 2f;
+    internal const float IdleThrottle = 0f, GeneratorThrottle = 0.3f;
+    float _genSoot, _loaderSoot, _loaderSpeed;
+    Node3D _generator;
+    /// <summary>The parts that smoke, for the replay's emitters.</summary>
+    internal IEnumerable<Node3D> TapeLaunchers() { foreach (var l in _launchers) yield return l.Model; }
+    internal Node3D TapeGenerator => _generator;
+    internal Node3D TapeLoader => _loader;
     public event Action<Vector3> Launched;
 
     public void Init(TrackData track, TyreEffects fx, HindSorties aircraft, PropInstance site)
@@ -57,6 +70,7 @@ public partial class Buk21Battery : Node3D
                 Vector3 local = new Basis(Vector3.Up, heading) * new Vector3(0, 0, circle * 2.5f);
                 track.Obstacles.Add(new Obstacle(at + new Vector2(local.X, local.Z), 2));
             }
+            model.AddChild(Props.Part(Props.Cyl(.09f,.4f,6),new Color(.1f,.1f,.09f),LauncherPipe-new Vector3(0,.2f,0)));      // the engine's exhaust stub, rear deck
             var launcher = new Launcher { Model = model, Turret = model.GetNode<Node3D>("Turret"),
                 Rack = model.GetNode<Node3D>("Turret/Rack"), Radar = model.GetNode<Node3D>("Turret/Radar") };
             _launchers.Add(launcher);
@@ -85,6 +99,8 @@ public partial class Buk21Battery : Node3D
                     support.AddChild(Props.Part(Props.Box(.26f,.025f,.28f),net*(.8f+Noise.Hash01(z,x,12)*.4f),new Vector3(-4.6f+x*.4f,y,-1+z*.4f),new Vector3(0,x*17,0)));
             }
         DrunkTractor.BatchStatic(support,null); AddChild(support);
+        _generator = support;
+        support.AddChild(Props.Part(Props.Cyl(.07f,.5f,6),new Color(.1f,.1f,.09f),GeneratorPipe-new Vector3(0,.25f,0)));      // the generator's exhaust stub
         support.AddChild(Props.Part(Props.Box(.08f,3,.08f),new Color(.28f,.29f,.22f),new Vector3(1,1.5f,0)));
         var work=new MilitaryLights {Name="BatteryWorkLight"};support.AddChild(work);
         work.Lamp(new(1,3,0),new(1,.8f,.5f),.12f);work.Beam(new(1,3,0),-85,10,2,48);
@@ -121,6 +137,16 @@ public partial class Buk21Battery : Node3D
     {
         _nextShot -= dt; _alert=Math.Max(0,_alert-dt);
         LoadingTick(dt);
+        if (_fx != null && dt > 0)
+        {
+            foreach (var l in _launchers) _fx.EngineSoot(l.Model.GlobalTransform * LauncherPipe, l.Model.GlobalTransform.Basis.Z, Vector3.Zero, IdleThrottle, LauncherSootPower, ref l.Soot, dt);
+            if (_generator != null) _fx.EngineSoot(_generator.GlobalTransform * GeneratorPipe, _generator.GlobalTransform.Basis.Z, Vector3.Zero, GeneratorThrottle, GeneratorSootPower, ref _genSoot, dt);
+            if (_loader != null && _loaderSpeed >= LoaderMinSpeed)
+            {
+                Vector3 fwd = -_loader.GlobalTransform.Basis.Z.Normalized();
+                _fx.EngineSoot(_loader.GlobalTransform * LoaderPipe, -fwd, fwd * _loaderSpeed, Mathf.Clamp(_loaderSpeed / LoaderSpeedRef, 0.25f, 1f), LoaderSootPower, ref _loaderSoot, dt);
+            }
+        }
         foreach(var l in _launchers)
         {
             l.Radar.RotateY(dt*.8f); l.RadarAngle+=dt*.8f;
@@ -237,6 +263,7 @@ public partial class Buk21Battery : Node3D
     }
     void LoadingTick(float dt)
     {
+        _loaderSpeed=0;
         if(_loading==null) return;
         _loadingTime+=dt;
         Vector3 from=_loadingTime<22?_loaderHome:_loaderWork;
@@ -248,6 +275,7 @@ public partial class Buk21Battery : Node3D
         foreach(var wheel in _wheels) wheel.RotateX(travelDistance/.55f);
         _wheelAngle+=travelDistance/.55f;
         _lastLoaderPosition=_loader.Position;
+        if(dt>0) _loaderSpeed=travelDistance/dt;
         Vector3 direction=to-from;
         _loader.Rotation=new Vector3(0,TrackData.YawFor(new Vector2(direction.X,direction.Z)),0);
         _track.Obstacles[_loaderObstacle]=new Obstacle(new Vector2(_loader.Position.X,_loader.Position.Z),2);

@@ -8,7 +8,7 @@ public partial class RaceScene
 {
     string ResumeSignature => _records.Signature + ":" + string.Join(",",
         System.Array.ConvertAll(NormPlan.Ladder, t => t.ToString("R", CultureInfo.InvariantCulture)));
-    bool _resumeLoaded;
+    bool _resumeLoaded, _resumeStale;
 
     void AskLeaveRally()
     {
@@ -55,7 +55,13 @@ public partial class RaceScene
         _resumeLoaded = false;
         _hud.PauseNormsResumed = false;
         if (_newRallyTrack == _trackId) return;
-        if (RallyResume.Load(FileDir, _trackId, ResumeSignature) is not { } point) return;
+        if (RallyResume.Load(FileDir, _trackId, ResumeSignature) is not { } point)
+        {
+            // A save that no longer fits (the norms or the profile changed after it was saved, or the file is damaged) cannot be
+            // resumed: the run starts from the first norm, so the save is dropped and the player told, not offered again.
+            if (RallyResume.Exists(FileDir, _trackId) && RallyResume.Clear(FileDir, _trackId) == Error.Ok) _resumeStale = true;
+            return;
+        }
         _norms.Restore(point.Step, point.Left, point.Used, point.PassedTimes, point.PassedTargets);
         _wrecks = point.Wrecks;
         _runClock = point.RunTime;

@@ -14,6 +14,9 @@ public partial class HindSorties : Node3D
     public const int BurstRounds = 120;
     public const float BurstInterval = .04f, BurstStart = -60, BurstEnd = 60;
     public static float BurstOffset(int shot) => Mathf.Lerp(BurstStart, BurstEnd, Math.Clamp(shot, 0, BurstRounds - 1) / (float)(BurstRounds - 1));
+    /// <summary>The two exhaust mouths (the model's own space; the Mi-24's front is -Z), the size of each against the player's car, and the speed under which a hovering-at-rest one makes none.</summary>
+    internal static readonly Vector3[] SootPipes = { new(-1.21f, 3.2f, 2.5f), new(1.21f, 3.2f, 2.5f) };
+    internal const float SootPower = 1.5f, SootMinSpeed = 0.5f;
     enum Phase { Parked, Spool, Lift, Climb, Approach, Lineup, Attack, Return, Descend, Exit, Falling, Wreck }
     sealed class Aircraft
     {
@@ -26,7 +29,7 @@ public partial class HindSorties : Node3D
         public Phase Phase;
         public Vector3 Pos, Previous, Velocity;
         public Vector2 Target, Direction, Entry;
-        public float Yaw, Roll, Pitch, Speed, Time, ShotClock, SmokeClock, FlightAge;
+        public float Yaw, Roll, Pitch, Speed, Time, ShotClock, SmokeClock, FlightAge, Soot;
         public double RotorTotal, TailTotal;      // the unwrapped angles the world tape records (the wrapped ones above drive the model)
         public float RotorSpeed, RotorAngle, TailRotorAngle, DepartureDelay, TurnRate, VerticalSpeed, GearDown = 1;
         public int Passes, Shots, Slot, Id;
@@ -59,6 +62,7 @@ public partial class HindSorties : Node3D
     bool _ready;
     int _nextAircraftId;
     Buk21Battery _battery;
+    internal Buk21Battery Battery => _battery;
     BonusExerciseLife _life;
     public event Action<Vector3> AttackApproaching;
     public event Action SoupUnshaken;
@@ -417,6 +421,9 @@ public partial class HindSorties : Node3D
                 break;
         }
         if (p.Phase is not (Phase.Falling or Phase.Wreck)) p.Velocity = (p.Pos - p.Previous) / dt;
+        if (_fx != null && p.Phase is not (Phase.Parked or Phase.Spool or Phase.Falling or Phase.Wreck) && p.Velocity.Length() > SootMinSpeed)
+            foreach (var pipe in SootPipes)      // the player's diesel smoke from both exhausts (HindReplayFx makes the same in a replay)
+                _fx.EngineSoot(p.Model.GlobalTransform * pipe, p.Model.GlobalTransform.Basis.Z, p.Velocity, Mathf.Clamp(p.Engine.Level, 0.3f, 1f), SootPower, ref p.Soot, dt, kerosene: true);
         bool gearWanted=p.Phase is Phase.Parked or Phase.Spool or Phase.Lift or Phase.Descend
             || p.Phase==Phase.Climb && p.Time<1 || p.Phase==Phase.Return && Flat(p.Pos).DistanceTo(BonusAirbase.Pads[p.Slot%BonusAirbase.Pads.Length])<65;
         p.GearDown=Mathf.MoveToward(p.GearDown,gearWanted?1:0,dt*.42f);

@@ -11,7 +11,8 @@ namespace CCCPRacing.Track;
 /// padded jackets two metres apart, heads down and hands behind their backs, and a guard at the
 /// back with a submachine gun levelled at them. They trudge round the lap with the race along
 /// the right-hand edge of the road, and step off into the snow bank for a snowplough from either
-/// side or a car coming fast. Solid obstacles: a car bumps into them and they stand their ground.
+/// side or a car coming fast. A car that hits one knocks him over (Knockdown, like the Kolkhoz workers):
+/// he tips away from the car, lies a while where he fell, gets up and jogs back to his place in the column.
 /// </summary>
 public partial class PrisonerColumn : Node3D
 {
@@ -28,6 +29,9 @@ public partial class PrisonerColumn : Node3D
         public float Back, Side, Phase;      // metres behind the head of the column; how far it has stepped aside (0..1)
         public bool Guard, Gunner;
         public int Obs;
+        public Knockdown Down = new();
+        public Vector2 Pos;            // where he stands now (a man knocked over is left behind by the march)
+        public bool Straggling;        // knocked over: lying, or jogging back to his place
     }
 
     TrackData _t;
@@ -45,6 +49,7 @@ public partial class PrisonerColumn : Node3D
             bool guard = k == 0 || k == prisoners + 1;
             var w = new Walker { Back = k * Spacing + (k == prisoners + 1 ? 1.2f : 0f), Guard = guard, Gunner = k == prisoners + 1, Phase = k * 0.7f, Obs = t.Obstacles.Count };
             t.Obstacles.Add(new Obstacle(new Vector2(-1e4f, -1e4f), 0.1f));
+            w.Down.Bind(t, w.Obs);
             Build(w, k);
             AddChild(w.Root);
             // The world tape: the figure (it moves, the PrisonerColumn node does not), head, arms and legs.
@@ -62,8 +67,14 @@ public partial class PrisonerColumn : Node3D
         _s = _startS;
         _barkCd = 4f;
         _bark = 0;
-        foreach (var w in _walkers) w.Side = 0;
+        foreach (var w in _walkers) { w.Side = 0; w.Down.Reset(); w.Straggling = false; }
         Tick(0, null);
+    }
+
+    /// <summary>What knocks the column's men over (Breakables.AddKnock).</summary>
+    public IEnumerable<(int obstacle, Func<Vector3, bool> hit)> Knocks()
+    {
+        foreach (var w in _walkers) yield return (w.Obs, w.Down.Hit);
     }
 
     /// <summary>Return the marching detail to the camp for its scenic introduction.</summary>
@@ -103,10 +114,24 @@ public partial class PrisonerColumn : Node3D
                 if (d < 25f && car.Speed > 7f && v.Dot(rel) > 0) clear = false;
             }
             w.Side = Mathf.MoveToward(w.Side, clear ? 0f : 1f, (clear ? 0.6f : 2.2f) * dt);
-            Vector2 pos = edge + right * (Aside * Mathf.SmoothStep(0f, 1f, w.Side));
-            w.Phase += dt * (w.Side > 0.02f && w.Side < 0.98f ? 11f : 6.5f);
+            Vector2 slot = edge + right * (Aside * Mathf.SmoothStep(0f, 1f, w.Side));
+            if (w.Down.Down) w.Straggling = true;
+            w.Down.Tick(dt);
+            Vector2 pos = slot;
+            bool jog = false;
+            if (w.Down.Down) pos = w.Pos;      // lies where he fell while the column marches on
+            else if (w.Straggling)
+            {
+                // Up again: a jog back to his place (faster than the march).
+                Vector2 to = slot - w.Pos;
+                float step = 5f * dt;
+                if (to.Length() <= step) w.Straggling = false;
+                else { pos = w.Pos + to.Normalized() * step; jog = true; }
+            }
+            w.Pos = pos;
+            w.Phase += dt * (w.Down.Down ? 0f : jog || (w.Side > 0.02f && w.Side < 0.98f) ? 11f : 6.5f);
             Pose(w, pos, dir, right);
-            _t.Obstacles[w.Obs] = new Obstacle(pos, Radius, dir * Walk);
+            if (!w.Down.Down) _t.Obstacles[w.Obs] = new Obstacle(pos, Radius, dir * Walk);      // (a man knocked over has his obstacle out of the way)
         }
         // The guard at the back hurries them along when a car is about.
         if (carNear && _barkCd <= 0) { _bark = 1.8f; _barkCd = 7f; _barkText = Barks[(int)(_clock * 7f) % Barks.Length]; }
@@ -124,7 +149,7 @@ public partial class PrisonerColumn : Node3D
     {
         float y = _t.MeshHeight(pos.X, pos.Y);
         Vector2 face = w.Side > 0.05f && w.Side < 0.95f ? (dir + right * 0.8f).Normalized() : dir;
-        w.Root.GlobalTransform = new Transform3D(new Basis(Vector3.Up, TrackData.YawFor(face)).Scaled(Vector3.One * SizeScale), new Vector3(pos.X, y, pos.Y));
+        w.Root.GlobalTransform = new Transform3D(w.Down.Tilt * new Basis(Vector3.Up, TrackData.YawFor(face)).Scaled(Vector3.One * SizeScale), new Vector3(pos.X, y, pos.Y));
         float sw = MathF.Sin(w.Phase);
         w.LegL.Rotation = new Vector3(sw * 0.5f, 0, 0);
         w.LegR.Rotation = new Vector3(-sw * 0.5f, 0, 0);

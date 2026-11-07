@@ -215,7 +215,7 @@ public partial class RaceScene
         while(_lanPlaybackBreakTime<target) {
             float step=Math.Min(.05f,target-_lanPlaybackBreakTime);
             _wood.Tick(step);_scenery.Tick(step,_car,false);
-            foreach(var c in _lanPlaybackCars.Values) {c.TickEngine(step);_fx.Emit(c.Puppet,step,c.FxSlot);}
+            foreach(var c in _lanPlaybackCars.Values) {c.TickEngine(step);_fx.Emit(c.Puppet,step,c.FxSlot);LanCarSmoke(c.Puppet,c.Fuel,c.FxSlot,step);}
             _fx.AdvancePlayback(step);_lanPlaybackBreakTime+=step;
         }
     }
@@ -254,6 +254,7 @@ public partial class RaceScene
         if(snapCamera) _cam.SnapDriving(car.Pos,car.Vel);else if(!_lanPlaybackPaused) _cam.Follow(car.Pos,car.Vel,dt);
         _lanWorld.SetPaused(_lanPlaybackPaused);
         _lanWorld.Frame(dt);
+        if(!_lanPlaybackPaused) LanSootTick(dt);
         string exportHint=LanPlaybackMayExport?"E export MP4":"MP4 AVAILABLE AFTER LAN SESSION";
         _lanPlaybackLabel.Text=$"LAN REPLAY  {roster[_lanPlaybackCar].Name}\n{_lanPlaybackTime-_lanPlaybackStart:F1} / {LanPlaybackSource.Duration-_lanPlaybackStart:F1} s  {_lanPlaybackSpeed:0.##}x\nSPACE pause  LEFT/RIGHT seek  TAB car\nUP/DOWN speed  HOME restart  L loop\n{exportHint}  H controls  ESC close\nREMOTE BODY DENTS NOT RECORDED";
     }

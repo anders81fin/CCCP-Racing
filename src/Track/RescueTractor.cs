@@ -35,7 +35,7 @@ public partial class RescueTractor : Node3D
 
     Phase _phase, _dbgPhase;
     Vector2 _pos;
-    float _yaw, _speed, _timer, _t0, _puff;
+    float _yaw, _speed, _timer, _t0, _puff, _soot;
     Quaternion _carFrom;
     Vector3 _carFromPos, _carToPos;
     float _carYaw, _ropeLen;
@@ -288,11 +288,10 @@ public partial class RescueTractor : Node3D
 
     void Exhaust(float dt)
     {
-        _puff -= dt;
-        if (_puff > 0) return;
-        _puff = _phase == Phase.Pull ? 0.08f : 0.2f;
         Vector3 pipe = _model.GlobalTransform * new Vector3(0.4f, 2.95f, -1.2f);
-        _fx.Smoke(pipe, Vector3.Up * 1.4f, new Color(0.3f, 0.3f, 0.3f), 0.5f, 0.3f, 1.3f, 1.1f);
+        Vector3 fwd = -_model.GlobalTransform.Basis.Z.Normalized();
+        // the player's diesel smoke, bigger for a tractor; straining at the tow it works at full throttle
+        _fx.EngineSoot(pipe, -fwd, fwd * _speed, _phase == Phase.Pull ? 1f : Mathf.Clamp(_speed / 4f, 0.25f, 1f), 1.4f, ref _soot, dt);
     }
 
     void Place(float dt)

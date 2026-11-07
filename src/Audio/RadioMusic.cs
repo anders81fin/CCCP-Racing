@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 
 namespace CCCPRacing.Audio;
@@ -20,7 +21,8 @@ public partial class RadioMusic : Node
     public const string SubtleBusName = "RadioTitle";
     const float MixRate = 22050f;
 
-    [Export] public string TrackPath = "res://assets/music/he_katsoivat_lanteen.mp3";
+    const string DefaultTitleSong = "res://assets/music/he_katsoivat_lanteen.mp3";
+    [Export] public string TrackPath = DefaultTitleSong;
     [Export] public float VolumeDb = -1f;
     /// <summary>Loop the song (title music) or finish it and raise SongFinished (car radio).</summary>
     public bool LoopSongs = true;
@@ -74,10 +76,44 @@ public partial class RadioMusic : Node
         _pb = null;
     }
 
+    static string _titleSong;
+
+    /// <summary>The title music changes at every launch and goes through all the songs in turn (the title song,
+    /// then the radio's stations). The next index is kept in user://title_music.cfg; one song per process,
+    /// whoever asks first. A headless test run neither reads nor advances the rotation.</summary>
+    static string TitleSongOfThisLaunch()
+    {
+        if (_titleSong != null) return _titleSong;
+        var songs = new List<string> { DefaultTitleSong };
+        foreach (string f in DirAccess.GetFilesAt(CarRadio.Folder))
+        {
+            string name = f.EndsWith(".import") ? f[..^".import".Length] : f;
+            string path = CarRadio.Folder + "/" + name;
+            if (name.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase) && !songs.Contains(path)) songs.Add(path);
+        }
+        songs.Sort(1, songs.Count - 1, StringComparer.OrdinalIgnoreCase);      // a fixed order whatever the file system says
+        bool headless = DisplayServer.GetName() == "headless";
+        int next = 0;
+        var cfg = new ConfigFile();
+        if (!headless && cfg.Load(TitleRotationFile) == Error.Ok)
+        {
+            var v = cfg.GetValue("title", "next", 0);
+            if (v.VariantType == Variant.Type.Int) next = Math.Abs((int)v) % songs.Count;
+        }
+        if (!headless)
+        {
+            cfg.SetValue("title", "next", (next + 1) % songs.Count);
+            cfg.Save(TitleRotationFile);
+        }
+        return _titleSong = songs[next];
+    }
+    const string TitleRotationFile = "user://title_music.cfg";
+
     public override void _Ready()
     {
         if (Subtle) EnsureSubtleBus(); else EnsureBus();
 
+        if (Subtle && TrackPath == DefaultTitleSong) TrackPath = TitleSongOfThisLaunch();
         AudioStream stream = string.IsNullOrEmpty(TrackPath) ? null : ResourceLoader.Load<AudioStream>(TrackPath);
         if (stream is AudioStreamMP3 mp3) mp3.Loop = LoopSongs;
         _music = new AudioStreamPlayer { Stream = stream, Bus = Bus, VolumeDb = -80f };

@@ -76,6 +76,13 @@ public partial class RaceScene
         foreach(var entry in _dosimetrist?.Knocks() ?? Array.Empty<(int,Func<Vector3,bool>)>()) _lanExtraSlots.Add(entry.Item1);
     }
 
+    /// <summary>A pipe within 170 m of some driver: the others have no use for the smoke far from every car.</summary>
+    bool LanNearDriver(Vector3 pipe)
+    {
+        foreach (var d in _lanDrivers.Values) if (pipe.DistanceSquaredTo(d.Car.Pos) <= 170f * 170f) return true;
+        return pipe.DistanceSquaredTo(_car.Pos) <= 170f * 170f;
+    }
+
     void LanRestoreExtraWorld()
     {
         foreach(var (node,process,visible) in _lanExtraRestore)
@@ -272,8 +279,27 @@ public partial class RaceScene
         else target.RepairFrom=-1;
         if(!_drunksAll.MechanicUp) _lanMechanicTarget=null;
     }
+    // The exhaust smoke in a LAN race: every machine smokes the cars (own and the others', each by its fuel) from their states; the world's vehicles smoke on the host as in a single
+    // game, and the host sends the smoking pipes to the others (LanWorld's smoke trailer), which make the same puffs from them (LanSootTick).
+    float[] _lanSootAcc = new float[64];
+    void LanCarSmoke(CarSim car, FuelGrade fuel, int slot, float dt)
+    {
+        if (fuel == FuelGrade.Diesel) _fx.DieselSoot(car, dt, slot);
+        else _fx.PetrolSmoke(car, dt, fuel is FuelGrade.Rocket or FuelGrade.Sputnik ? 1.5f : 1f, slot);
+    }
+    void LanSootTick(float dt)
+    {
+        if (_lanWorld == null || dt <= 0 || _state == State.Paused) return;
+        var list = _lanWorld.Soot;
+        float age = (Time.GetTicksMsec() - _lanWorld.SootStamp) / 1000f;
+        if (age > 0.4f || list.Count == 0) return;      // the host has gone quiet: nothing is still smoking
+        if (_lanSootAcc.Length < list.Count) Array.Resize(ref _lanSootAcc, list.Count * 2);
+        for (int i = 0; i < list.Count; i++) _fx.SootFrom(list[i], list[i].Pipe + list[i].Vel * age, ref _lanSootAcc[i], dt);
+    }
+
     void LanAuthorityPhysics(float dt)
     {
+        _fx.CollectSources = _net.IsHost;
         LanContactProbeTick();
         bool racing=_state==State.Racing && _net.State==LanSession.Phase.Race;
         var command=DriverCommand.Of(_car,++_lanSequence,_horn.Pressed);
@@ -365,7 +391,7 @@ public partial class RaceScene
                 _net.SendSnapshot(id,snap);
                 if(id!=_net.MyId && _remote.TryGetValue(id,out var rc)) rc.Buffer.Add(snap);
             }
-            if((_lanWorldClock+=dt)>=.05f) {_lanWorldClock=0;_lanWorld.Capture(_actors.Select(a=>a.Node).Concat(_lanExtraRoots),_track.Obstacles,_worldObstacles.Select(o=>o.index).Concat(_lanExtraSlots),(bytes,mesh)=>_net.SendWorld(bytes,mesh));}
+            if((_lanWorldClock+=dt)>=.05f) {_lanWorldClock=0;_lanWorld.Capture(_actors.Select(a=>a.Node).Concat(_lanExtraRoots),_track.Obstacles,_worldObstacles.Select(o=>o.index).Concat(_lanExtraSlots),(bytes,mesh)=>_net.SendWorld(bytes,mesh),_fx.TakeSootSources(LanNearDriver));}
         }
         else
         {
@@ -423,6 +449,7 @@ public partial class RaceScene
         _lanWasDead=_health.Dead;_lanWasDestroyed=_health.Destroyed;
         _snd.EngineLevel=_health.Dead || _tank.Empty?0:1;_snd.Misfire=_health.Smoking?.5f:0;
         _engineFx.Tick(dt,_car,_health);_fx.Emit(_car,dt);
+        LanCarSmoke(_car,LanRace.Grade(_power),-1,dt);
         if (_tank.Empty && !_dry) _hud.Alert("OUT OF FUEL", "STOP FOR EMERGENCY FUEL - TEN SECONDS", 4f, Hud.Red);
         _dry = _tank.Empty;
         if (_net.IsHost)
@@ -438,6 +465,7 @@ public partial class RaceScene
             if(_net.IsHost && _lanDrivers.TryGetValue(rc.Id,out var actual))
             {rc.Puppet.Pos=actual.Car.Pos;rc.Puppet.Rot=actual.Car.Rot;rc.Puppet.Vel=actual.Car.Vel;}
             rc.TickEngine(dt);_fx.Emit(rc.Puppet,dt,rc.FxSlot);
+            LanCarSmoke(rc.Puppet,rc.Fuel,rc.FxSlot,dt);
         }
         LanReplaySample();
     }

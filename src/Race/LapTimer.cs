@@ -59,6 +59,8 @@ public class LapTimer
     }
 
     public void Stop() => Running = false;
+    /// <summary>A new run's start: the previous run's last lap is not shown (BestLap, the record, stays).</summary>
+    public void ClearLast() { LastLap = -1; LastLapVoid = false; LastLapRanked = false; }
     /// <summary>A server rescue moved the car; the teleport itself cannot cross the finish line.</summary>
     public void ResetMovementHistory() {_hasPrev=false;_lineCrossed=false;}
     public void CopyNetwork(int laps,int gate,int progress,float time,float last,float best)

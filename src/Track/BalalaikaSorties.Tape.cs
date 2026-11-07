@@ -100,6 +100,9 @@ public partial class JetReplayFx : Node
     public JetSound Sound;
     public TyreEffects Fx;
     readonly RandomNumberGenerator _rng = new() { Seed = 1958 };
+    Vector3 _prev;
+    bool _has;
+    float _soot;
 
     public override void _PhysicsProcess(double delta)
     {
@@ -119,6 +122,11 @@ public partial class JetReplayFx : Node
                 if (_rng.Randf() < 0.4f)
                     Fx.Smoke(tail + back * 3f, Vector3.Up * 0.5f, new Color(0.45f, 0.45f, 0.45f), 0.35f, 0.8f, 3f, 1.8f);
             }
+            // The player's diesel smoke from the nozzle, as the live jet (BalalaikaSorties.Exhaust) makes it; the speed is the pose's movement (a seek's jump is not speed).
+            Vector3 pos = Model.GlobalPosition, vel = _has && delta > 0 ? (pos - _prev) / (float)delta : Vector3.Zero;
+            _prev = pos; _has = true;
+            if (Model.IsVisibleInTree() && vel.Length() < 400f)
+                Fx.EngineSoot(Model.GlobalTransform * BalalaikaSorties.SootPipe, Model.GlobalTransform.Basis.Z, vel, Mathf.Max(0.3f, ab), BalalaikaSorties.SootPowerFor(ab), ref _soot, (float)delta, kerosene: true);
             if (State == 2)
             {
                 Vector3 at = Model.GlobalPosition + Vector3.Up * 1.6f;

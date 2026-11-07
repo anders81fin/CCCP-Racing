@@ -10,7 +10,7 @@
   // Inland service bay, separate from the forward helicopter post.
   "depot": {"at": 632, "side": "left", "off": 7.5},
   // The rally's norms: the default ladder (1:15 down to 0:52.50, bronze at 4 norms and silver at 7), and the rocket fuel's own, set by hand.
-  "norms": { "dieselLadder": [76.5, 74, 71.5, 69, 66.5, 64, 61, 58, 55, 53], "ladder": [75, 72.5, 70, 67.5, 65, 62.5, 60, 57.5, 55, 52.5], "bronze": 4, "silver": 7, "rocketLadder": [64.5, 62, 60, 58, 55.5, 53.5, 51, 49, 47, 44.5] },
+  "norms": { "ladder": [75.5, 73, 70.5, 68, 65.5, 63, 60, 57, 54, 52], "dieselLadder": [76.5, 74, 71.5, 69, 66.5, 64, 61, 58, 55, 53], "bronze": 4, "silver": 7 },
   "size": 160,
   "tileSize": 2.0,
   "seed": 1917,

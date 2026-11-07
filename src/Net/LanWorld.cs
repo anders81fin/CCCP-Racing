@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.IO.Compression;
+using CCCPRacing.Car;
 using CCCPRacing.Track;
 using CCCPRacing.Audio;
 using Godot;
@@ -23,7 +24,7 @@ public sealed class LanWorld
     readonly Dictionary<int,RotatingBeacon> _beacons=new();
     /// <summary>Trailer tags appended after the original prototype/state layout. Older readers stop before them, and recordings
     /// without them decode with the original rules, so stored LAN replays stay readable in both directions.</summary>
-    const int MaterialTrailer=0x314D574C, BeaconTrailer=0x3142574C;   // "LWM1", "LWB1"
+    const int MaterialTrailer=0x314D574C, BeaconTrailer=0x3142574C, SootTrailer=0x3153574C;   // "LWM1", "LWB1", "LWS1"
     /// <summary>Test seam: write the pre-trailer layout, as builds before the trailers did.</summary>
     internal bool LegacyLayout;
     public int ReplicaBeaconCount=>_beacons.Count;
@@ -45,7 +46,7 @@ public sealed class LanWorld
     {
         SetPaused(true);
         foreach(Node child in _root.GetChildren()) {if(child is Node3D n) n.Hide();child.QueueFree();}
-        _replicas.Clear();_targets.Clear();_sounds.Clear();_lights.Clear();_beacons.Clear();_audible.Clear();
+        _replicas.Clear();_targets.Clear();_sounds.Clear();_lights.Clear();_beacons.Clear();_audible.Clear();Soot.Clear();
     }
     static byte[] Pack(byte[] b) { using var m=new MemoryStream(); using(var z=new BrotliStream(m,CompressionLevel.Fastest,true)) z.Write(b); return m.ToArray(); }
     static byte[] Unpack(byte[] b)
@@ -79,7 +80,7 @@ public sealed class LanWorld
     }
     static void V(BinaryWriter w,Vector3 v) { w.Write(v.X); w.Write(v.Y); w.Write(v.Z); }
     static Vector3 V(BinaryReader r)=>new(r.ReadSingle(),r.ReadSingle(),r.ReadSingle());
-    public void Capture(IEnumerable<Node3D> roots, IReadOnlyList<Obstacle> obstacles, IEnumerable<int> slots, Action<byte[],bool> send)
+    public void Capture(IEnumerable<Node3D> roots, IReadOnlyList<Obstacle> obstacles, IEnumerable<int> slots, Action<byte[],bool> send, IReadOnlyList<TyreEffects.SootSource> soot=null)
     {
         var leaves=new List<MeshInstance3D>(); var unique=new HashSet<ulong>();
         foreach(var root in roots) if(root!=null && GodotObject.IsInstanceValid(root))
@@ -161,6 +162,9 @@ public sealed class LanWorld
                 w.Write(id);w.Write(b.IsVisibleInTree());w.Write(b.Phase);
                 var pose=b.GlobalTransform;V(w,pose.Basis.X);V(w,pose.Basis.Y);V(w,pose.Basis.Z);V(w,pose.Origin);
             }
+            // The smoking pipes (the vehicles' exhaust smoke is made on each machine from these, not sent as puffs); a reader without this trailer just ends before it.
+            w.Write(SootTrailer);w.Write(soot?.Count ?? 0);
+            if(soot!=null) foreach(var s in soot) {V(w,s.Pipe);V(w,s.Back);V(w,s.Vel);w.Write(s.Throttle);w.Write(s.Power);w.Write(s.Kerosene);}
         }
         send(Pack(stream.ToArray()),false);
     }
@@ -297,7 +301,20 @@ public sealed class LanWorld
             }
         }
         foreach(var (id,beacon) in _beacons) if(!beaconsSeen.Contains(id)) beacon.Visible=false;
+        Soot.Clear();
+        if(Trailer(r,SootTrailer))
+        {
+            n=r.ReadInt32();if(n<0||n>256) throw new InvalidDataException("world smoke");
+            for(int i=0;i<n;i++) {
+                var s=new TyreEffects.SootSource(V(r),V(r),V(r),r.ReadSingle(),r.ReadSingle(),r.ReadBoolean());
+                if(s.Pipe.IsFinite() && s.Back.IsFinite() && s.Vel.IsFinite() && float.IsFinite(s.Throttle) && float.IsFinite(s.Power)) Soot.Add(s);
+            }
+        }
+        SootStamp=Time.GetTicksMsec();
     }
+    /// <summary>The smoking pipes of the latest world state and when it came (ms); the machine smokes them every frame (RaceScene.LanSootTick).</summary>
+    public readonly List<TyreEffects.SootSource> Soot=new();
+    public ulong SootStamp;
     Node3D Target(int id)=>_replicas.TryGetValue(id,out var m)?m:_lights.TryGetValue(id,out var l)?l:_beacons.TryGetValue(id,out var b)?b:null;
     public bool AtTargets()=>_targets.All(k=>{Node3D n=Target(k.Key);return n==null || n.GlobalTransform.IsEqualApprox(k.Value);});
     public void Snap() {foreach(var (id,t) in _targets) {Node3D n=Target(id);if(n!=null) n.GlobalTransform=t;}}

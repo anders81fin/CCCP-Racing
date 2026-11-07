@@ -3,6 +3,15 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.857
+
+- Diesel sets the norms on every track: each better fuel (Petrol, Jet Fuel, Sputnik) is exactly 1 s tighter on every norm. Siberia Diesel runs from 1:30.00 down to 1:03.00
+- Fuel use: Diesel 0.5, Petrol 0.8, Jet Fuel 1.0, Sputnik 1.2 of the tuned rate
+- Every vehicle on the road smokes like the diesel car, bigger engines more: tractors, buses, lorries, snow ploughs, concrete mixers, BTRs, tanks and the BUK battery. MiGs and Hinds leave a pale kerosene haze, the MiG thicker on the afterburner. Petrol, Jet Fuel and Sputnik cars have a thin exhaust of their own, and the camp stovepipes smoke. All of it works in LAN races and LAN replays too
+- The men of the Siberia prisoner column fall over when a car hits them, like the kolkhoz workers do
+- The radio starts at 50 %, which is the old full volume. The title music changes at every launch and goes through all the songs. The horn is twice as loud, and tank and BTR rumble keeps growing as you get close
+- A new rally run starts with LAST and the ghost cleared. A rally save made under older norms is discarded with a notice. The mechanic sickle is 40 % larger
+
 ## 0.856
 
 - CHOOSE TRACK offers L LEADERBOARDS (controller X) for the highlighted track and mode. Rally boards follow Diesel, Petrol, Jet Fuel, Sputnik. Stakhanov always opens on Diesel and browses each fuel's top 10

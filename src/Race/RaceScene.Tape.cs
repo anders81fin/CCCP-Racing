@@ -417,9 +417,20 @@ public partial class RaceScene
         foreach (var (a, key) in _tapeKeys)
         {
             if (!_tapePlayer.Covers(key)) continue;
-            if (a.Node == _tanksAll) foreach (var h in _tanksAll.TapeHulls()) _tapeEmit.Add(h, TapeEmitters.Kind.Tank);
-            else if (a.Node == _btrAll) foreach (var h in _btrAll.TapeHulls()) _tapeEmit.Add(h, TapeEmitters.Kind.Btr);
-            else if (a.Node == _ploughsAll) foreach (var h in _ploughsAll.TapePloughs()) _tapeEmit.Add(h, TapeEmitters.Kind.Plough);
+            if (a.Node == _tanksAll) foreach (var h in _tanksAll.TapeHulls()) _tapeEmit.AddSoot(h, TapeEmitters.Kind.Tank, TankBattle.SootPipe, TankBattle.SootPower);
+            else if (a.Node == _btrAll) foreach (var h in _btrAll.TapeHulls()) _tapeEmit.AddSoot(h, TapeEmitters.Kind.Btr, BtrPatrols.SootPipe, BtrPatrols.SootPower);
+            else if (a.Node == _ploughsAll) { foreach (var h in _ploughsAll.TapePloughs()) _tapeEmit.AddSoot(h, TapeEmitters.Kind.Plough, SnowPloughs.SootPipe, SnowPloughs.SootPower); foreach (var h in _ploughsAll.TapeMixers()) _tapeEmit.AddSoot(h, TapeEmitters.Kind.Soot, SnowPloughs.MixerSootPipe, SnowPloughs.SootPower); }
+            else if (a.Node == _tractorAll) _tapeEmit.AddSoot(_tractorAll.Model, TapeEmitters.Kind.Soot, DrunkTractor.SootPipe, DrunkTractor.SootPower, 4f);
+            else if (a.Node == _slurryAll) _tapeEmit.AddSoot(_slurryAll.Model, TapeEmitters.Kind.Soot, DrunkTractor.SootPipe, DrunkTractor.SootPower, 2.8f);
+            else if (a.Node == _busAll) _tapeEmit.AddSoot(_busAll.Model, TapeEmitters.Kind.Soot, SovietBus.SootPipe, SovietBus.SootPower);
+            else if (a.Node == _kozlikAll) _tapeEmit.AddSoot(_kozlikAll.Model, TapeEmitters.Kind.Soot, KozlikPatrol.SootPipe, 1f, 10f);
+            else if (a.Node == _hindsAll && _hindsAll.Battery is { } buk)
+            {
+                foreach (var m in buk.TapeLaunchers()) _tapeEmit.AddSoot(m, TapeEmitters.Kind.Soot, Buk21Battery.LauncherPipe, Buk21Battery.LauncherSootPower, fixedThrottle: Buk21Battery.IdleThrottle);
+                _tapeEmit.AddSoot(buk.TapeGenerator, TapeEmitters.Kind.Soot, Buk21Battery.GeneratorPipe, Buk21Battery.GeneratorSootPower, fixedThrottle: Buk21Battery.GeneratorThrottle);
+                _tapeEmit.AddSoot(buk.TapeLoader, TapeEmitters.Kind.Soot, Buk21Battery.LoaderPipe, Buk21Battery.LoaderSootPower, Buk21Battery.LoaderSpeedRef, minSpeed: Buk21Battery.LoaderMinSpeed);
+            }
+            else if (a.Node == _rescue) _tapeEmit.AddSoot(_rescue.Model, TapeEmitters.Kind.Soot, DrunkTractor.SootPipe, 1.4f, 4f);
         }
         TapeLog($"replay of set {TitleSet} from tape: covers [{string.Join(", ", covered)}], live [{string.Join(", ", live)}]");
         if (!_tapePlayer.Covers("Kozlik:Kozlik") && slot.Tape.ActorStructure.TryGetValue("Kozlik:Kozlik",out var oldKozlik))

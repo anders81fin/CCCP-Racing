@@ -23,9 +23,10 @@ public partial class CarRadio : Node
     int _current = -1;
     bool _on;
 
-    /// <summary>Volume levels 0..10, 3 dB apart; level 8 is the original loudness, 0 is mute.</summary>
-    public const int MaxVolume = 10, DefaultVolume = 8;
-    const float DefaultDb = -3f, StepDb = 3f;
+    /// <summary>Volume levels 0..10, 2.5 dB apart like the other mixer rows; level 5 (the default, 50 %) is the
+    /// loudness that used to be the maximum, 0 is mute. Saved as radio/level (the old radio/volume was on a different scale).</summary>
+    public const int MaxVolume = 10, DefaultVolume = 5;
+    const float DefaultDb = 3f, StepDb = 2.5f;
     int _volume = DefaultVolume;
     string _settingsPath;
 
@@ -162,7 +163,7 @@ public partial class CarRadio : Node
         int v = DefaultVolume;
         if (cfg.Load(_settingsPath) == Error.Ok)
         {
-            var val = cfg.GetValue("radio", "volume", DefaultVolume);
+            var val = cfg.GetValue("radio", "level", DefaultVolume);
             if (val.VariantType == Variant.Type.Int && (int)val >= 0 && (int)val <= MaxVolume) v = (int)val;
         }
         _volume = v;
@@ -174,7 +175,7 @@ public partial class CarRadio : Node
         if (_settingsPath == null) return;
         var cfg = new ConfigFile();
         cfg.Load(_settingsPath);      // keep any other sections
-        cfg.SetValue("radio", "volume", _volume);
+        cfg.SetValue("radio", "level", _volume);
         cfg.Save(_settingsPath);
     }
 

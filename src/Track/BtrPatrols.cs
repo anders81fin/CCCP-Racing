@@ -24,7 +24,7 @@ public partial class BtrPatrols : Node3D
         public readonly List<Node3D> Steering=new(),Wheels=new();
         public Vector2[] Route,Dense;public float[] Along;public float Length;
         public Stop[] Stops=Array.Empty<Stop>();public float[] StopAt=Array.Empty<float>();
-        public float S,Speed,Spin,Dust,TurretYaw,FireWait,Phase,Timer;
+        public float Soot,S,Speed,Spin,Dust,TurretYaw,FireWait,Phase,Timer;
         public int Slot,Number,Stopping,Bursts,Rounds;
         public float Roundclock;
         public Vector2 Fire;
@@ -211,6 +211,11 @@ public partial class BtrPatrols : Node3D
             foreach(var axle in p.Steering) axle.Rotation=new Vector3(0,-MathF.Atan(3.6f*turn),0);
             foreach(var wheel in p.Wheels) wheel.Rotation=new Vector3(p.Spin,0,0);
             p.Sound.Speed=p.Speed;
+            if(_fx!=null)
+            {
+                Vector3 fwd3=-p.Model.GlobalTransform.Basis.Z.Normalized();
+                _fx.EngineSoot(p.Model.GlobalTransform*SootPipe,-fwd3,fwd3*p.Speed,Mathf.Clamp(p.Speed/8f,.25f,1f),SootPower,ref p.Soot,dt);      // the player's diesel smoke (TapeEmitters: the same in a replay)
+            }
             if(_fx!=null && (p.Dust-=dt)<=0 && p.Speed>.5f)
             {
                 p.Dust=.35f;
@@ -238,6 +243,8 @@ public partial class BtrPatrols : Node3D
         CastShadow=GeometryInstance3D.ShadowCastingSetting.Off};
     /// <summary>The puff where a tracer ends.</summary>
     /// <summary>One puff of dust behind a rolling BTR (live play and the title replay's emitters).</summary>
+    internal static readonly Vector3 SootPipe=new(1.15f,1.2f,3.0f);
+    internal const float SootPower=2.5f;
     internal static void DustFx(TyreEffects fx,Vector3 at) => fx.Smoke(at,Vector3.Up*.6f,new(.48f,.43f,.32f),.35f,.6f,1.1f,1.2f);
     /// <summary>The BTRs' hulls, for the replay's dust emitters.</summary>
     internal IEnumerable<Node3D> TapeHulls() { foreach(var p in _patrols) yield return p.Model; }

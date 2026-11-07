@@ -91,6 +91,7 @@ public partial class SnowPloughs
             VertexColorUseAsAlbedo = true, Roughness = 0.9f
         } });
         m.AddChild(Props.Part(Props.Box(2.45f, 0.19f, 0.22f), Steel, new Vector3(0, 1.24f, -4.06f)));
+        m.AddChild(Props.Part(Props.Cyl(0.09f, 1.9f, 8), Black, new Vector3(1.0f, 3.0f, -1.9f)));      // the exhaust stack behind the cab
         m.AddChild(Props.Part(Props.Box(1.15f, 0.42f, 0.04f), Black, new Vector3(0, 1.7f, -4.045f)));
         for (int k = 0; k < 4; k++)
             m.AddChild(Props.Part(Props.Box(1.1f, 0.035f, 0.035f), Steel, new Vector3(0, 1.55f + k * 0.1f, -4.075f)));

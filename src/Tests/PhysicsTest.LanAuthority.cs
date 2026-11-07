@@ -331,6 +331,12 @@ public partial class PhysicsTest
         mesh.Position+=Vector3.Right*3;mesh.Visible=false;
         sender.Capture(new[]{actor},hostObstacles,new[]{0},Deliver);receiver.Frame(1);
         Check(!replica.Visible && replica.GlobalPosition.DistanceTo(mesh.GlobalPosition)<.001f,"LAN: next world state recovers a lost update and shares visibility");
+        // The smoking pipes travel with the state: the same pipes come out, a state without them leaves none.
+        var pipes=new System.Collections.Generic.List<CCCPRacing.Car.TyreEffects.SootSource> {new(new Vector3(1,2,3),new Vector3(0,0,1),new Vector3(0,0,-5),.5f,1.8f,false),new(new Vector3(4,5,6),new Vector3(1,0,0),Vector3.Zero,0f,2.5f,true)};
+        sender.Capture(new[]{actor},hostObstacles,new[]{0},Deliver,pipes);
+        Check(receiver.Soot.Count==2 && receiver.Soot[0]==pipes[0] && receiver.Soot[1]==pipes[1],"LAN: the smoking pipes of the world's vehicles reach the other machines");
+        sender.Capture(new[]{actor},hostObstacles,new[]{0},Deliver);
+        Check(receiver.Soot.Count==0,"LAN: a world state without smoke leaves none");
         sender.Free();receiver.Free();host.QueueFree();client.QueueFree();
     }
 

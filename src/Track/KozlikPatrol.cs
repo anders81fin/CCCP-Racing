@@ -45,6 +45,8 @@ public partial class KozlikPatrol : Node3D
 
     TrackData _t;
     TyreEffects _fx;
+    public Node3D Model => _model;
+    internal static readonly Vector3 SootPipe = new(0.6f, 0.4f, Length / 2f + 0.05f);
     BalalaikaSorties _jets;
     public HindSorties StrikeAircraft { get; set; }
     SovietBus _bus;
@@ -54,7 +56,7 @@ public partial class KozlikPatrol : Node3D
     int _rwFrom = -1;
 
     Mode _mode;
-    float _s, _lat, _speed, _guardTimer, _clock, _puff, _dbg, _drink, _drinkCd, _wave, _waveCd, _hic, _hicCd, _angry, _smoke, _wheelSpin;
+    float _s, _lat, _speed, _guardTimer, _clock, _puff, _soot, _dbg, _drink, _drinkCd, _wave, _waveCd, _hic, _hicCd, _angry, _smoke, _wheelSpin;
     GuardSpot _cur, _trapSpot;
     float _chaseT, _caughtT, _askT, _pause;
     bool _chaseOut;
@@ -506,13 +508,9 @@ public partial class KozlikPatrol : Node3D
         if (dt > 0)
         {
             _sound.Speed = _speed;
-            _puff -= dt;
-            if (_puff <= 0 && _speed > 0.5f)
-            {
-                _puff = 0.35f;
-                Vector3 pipe = _model.GlobalTransform * new Vector3(0.6f, 0.4f, Length / 2f + 0.05f);
-                _fx.Smoke(pipe, Vector3.Up * 0.6f, new Color(0.45f, 0.45f, 0.45f), 0.35f, 0.25f, 0.9f, 0.9f);
-            }
+            Vector3 pipe = _model.GlobalTransform * SootPipe;
+            Vector3 fwd3 = -_model.GlobalTransform.Basis.Z.Normalized();
+            _fx.EngineSoot(pipe, -fwd3, fwd3 * _speed, Mathf.Clamp(_speed / 10f, 0.25f, 1f), 1f, ref _soot, dt);      // the player's diesel smoke
             _dbg -= dt;
             if (_dbg <= 0 && OS.HasEnvironment("KOZLIKDBG"))
             {

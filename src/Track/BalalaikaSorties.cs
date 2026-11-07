@@ -32,7 +32,7 @@ public partial class BalalaikaSorties : Node3D
         public MeshInstance3D Flame;
         public JetSound Sound;
         public Vector3 Pos, PrevPos, Vel;
-        public float Yaw, Pitch, Roll, Speed, Climb, PhaseTime, FlightLeft, Afterburner, RwS;
+        public float Yaw, Pitch, Roll, Speed, Climb, PhaseTime, FlightLeft, Afterburner, RwS, Soot;
         public int TaxiIdx;
         public float Waited;          // the hold for a plough still to run out (s)
         public Vector2 Waypoint, CrashAt;
@@ -625,10 +625,17 @@ public partial class BalalaikaSorties : Node3D
         j.Sound.Afterburner = j.Afterburner;
     }
 
+    /// <summary>The nozzle (the model's own space) and the engine's size against the player's car: the jet smokes black like the diesel, harder on the afterburner.</summary>
+    internal static readonly Vector3 SootPipe = new(0, 1.6f, 6.6f);
+    internal const float SootPower = 2.5f;
+    /// <summary>The jet's smoke against the first guess (SootPower): two thirds of it without the afterburner, all of it on full afterburner, between them as the afterburner comes on.</summary>
+    internal static float SootPowerFor(float afterburner) => SootPower * Mathf.Lerp(2f / 3f, 1f, Mathf.Clamp(afterburner, 0f, 1f));
+
     void Exhaust(Jet j, float dt)
     {
+        if (dt > 0) _fx.EngineSoot(j.Model.GlobalTransform * SootPipe, j.Model.GlobalTransform.Basis.Z, j.Vel, Mathf.Max(0.3f, j.Afterburner), SootPowerFor(j.Afterburner), ref j.Soot, dt, kerosene: true);
         if (j.Afterburner < 0.05f) return;
-        Vector3 tail = j.Model.GlobalTransform * new Vector3(0, 1.6f, 6.6f);
+        Vector3 tail = j.Model.GlobalTransform * SootPipe;
         Vector3 back = j.Model.GlobalTransform.Basis.Z;
         for (int k = 0; k < 2; k++)
             _fx.Burst(tail + back * _rng.RandfRange(0.5f, 2.5f), back * 12f, _rng.Randf() < 0.5f ? new Color(1f, 0.85f, 0.4f) : new Color(1f, 0.45f, 0.1f),

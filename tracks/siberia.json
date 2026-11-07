@@ -13,7 +13,7 @@
   "name": "SIBLAG NO.2 FIVE YEARS IN FOUR",
   // The rally's norms: 1:35 down to 1:10 (the user's choice, 2026-10-13; even 3 s / 2.5 s steps; the
   // autopilot laps the empty road in ~96 s, ~1:55 in traffic). Bronze for 4 norms beaten, silver for 7, gold for the plan.
-  "norms": { "ladder": [95, 92, 89.5, 86.5, 84, 81, 78.5, 75.5, 73, 70], "bronze": 4, "silver": 7, "diesel": 1.02, "rocket": 0.97, "rocketLadder": [81.5, 79, 76.5, 74, 72, 69, 67, 64.5, 62, 59.5] },
+  "norms": { "ladder": [89, 86, 83, 80, 77, 74, 71, 68, 65, 62], "dieselLadder": [90, 87, 84, 81, 78, 75, 72, 69, 66, 63], "bronze": 4, "silver": 7, "diesel": 1.02, "rocket": 0.97 },
   "size": 160,
   "tileSize": 2.0,
   "seed": 1937,

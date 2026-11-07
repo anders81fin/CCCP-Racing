@@ -116,8 +116,13 @@ public partial class SlurryTractor : Node3D
         _previousNozzle = Nozzle();
     }
 
+    /// <summary>The effects (the player's diesel smoke from the stack); null: none.</summary>
+    public CCCPRacing.Car.TyreEffects Fx;
+    float _soot, _sootDt;
+
     public void Tick(float dt, bool raceActive = true, SovietBus bus = null)
     {
+        _sootDt = dt;
         if (_departureStage != 4)
         {
             if (!raceActive) return;
@@ -207,6 +212,12 @@ public partial class SlurryTractor : Node3D
         _track.Obstacles[_bodySlot] = new Obstacle(_pos, 1.3f, forward.Normalized() * speed, Material: ImpactMaterial.Metal);
         _track.Obstacles[_tankSlot] = new Obstacle(_trailer, 1.5f, forward.Normalized() * speed, Material: ImpactMaterial.Metal);
         _sound.Speed = speed;
+        if (Fx != null && _sootDt > 0)
+        {
+            Vector3 pipe = _tractor.GlobalTransform * new Vector3(0.4f, 2.95f, -1.2f);
+            Vector3 fwd = -_tractor.GlobalTransform.Basis.Z.Normalized();
+            Fx.EngineSoot(pipe, -fwd, fwd * speed, Mathf.Clamp(speed / 2.8f, 0.25f, 1f), 1.2f, ref _soot, _sootDt);      // the player's diesel smoke, as the other tractors'
+        }
     }
     void Ground(Node3D node, Vector2 p, Vector2 forward)
     {

@@ -36,13 +36,16 @@ public class NormPlan
         _ => 1f,
     };
 
-    /// <summary>A track's ladder at a fuel's pace, to half a second: DIESEL slower, JET FUEL faster, PETROL as it is.</summary>
+    /// <summary>Seconds each better fuel takes off every norm: DIESEL is the reference, PETROL 1 s tighter, JET FUEL 2 s, SPUTNIK 3 s.</summary>
+    public const float FuelStep = 1f;
+
+    /// <summary>A track's ladder for a fuel: the track's diesel ladder minus one second per fuel step (diesel, petrol, jet fuel, Sputnik).
+    /// A track without a diesel ladder falls back to the factors on the petrol ladder.</summary>
     public static float[] LadderFor(Track.NormsDef def, Race.FuelGrade fuel)
     {
         float[] baseLadder = def?.Ladder is { Length: > 1 } l ? l : DefaultLadder;
-        // A hand-tuned ladder of the fuel (the same number of steps) beats the factor.
-        float[] own = fuel switch { Race.FuelGrade.Diesel => def?.DieselLadder, Race.FuelGrade.Rocket => def?.RocketLadder, _ => null };
-        if (own != null && own.Length == baseLadder.Length) return own;
+        if (def?.DieselLadder is { } diesel && diesel.Length == baseLadder.Length)
+            return Array.ConvertAll(diesel, t => t - (int)fuel * FuelStep);
         float f = FactorFor(def, fuel);
         return f == 1f ? baseLadder : Array.ConvertAll(baseLadder, t => MathF.Round(t * f * 2f) / 2f);
     }

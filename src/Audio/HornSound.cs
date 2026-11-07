@@ -13,7 +13,7 @@ public partial class HornSound : Node
     const float LowHz = 335f, HighHz = 400f;
 
     public bool Pressed;
-    public float Volume = 0.6f;
+    public float Volume = 1.2f;      // doubled from 0.6; the peak stays under the clamp
 
     AudioStreamPlayer _player;
     AudioStreamGeneratorPlayback _pb;

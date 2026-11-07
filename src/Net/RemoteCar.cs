@@ -57,9 +57,13 @@ public class RemoteCar
         parent.AddChild(Sound);
     }
 
+    /// <summary>The fuel this car runs on (its exhaust smoke).</summary>
+    public Race.FuelGrade Fuel { get; private set; } = Race.FuelGrade.Petrol;
+
     public void ConfigureFuel(int id)
     {
         var grade = LanRace.Grade(id);
+        Fuel = grade;
         LanRace.ConfigureCar(Puppet, id);
         LanRace.ConfigureCar(ContactProxy, id);
         Race.FuelGrades.ApplyVisual(Vis, grade);

@@ -356,6 +356,7 @@ public partial class RaceScene : Node3D
             _slurryAll = new SlurryTractor { Name = "SlurryTractor" };
             AddChild(_slurryAll);
             _slurryAll.Init(_track);
+            _slurryAll.Fx = _fx;
             if (_booting) await LoadingFrame();      // LOADSLICES
             BarnDoors smallDoor = null, bigDoor = null;
             foreach (Node child in props.GetChildren())
@@ -745,6 +746,7 @@ public partial class RaceScene : Node3D
         foreach (var k in _dosimetrist?.Knocks() ?? Array.Empty<(int, Func<Vector3, bool>)>()) _scenery.AddKnock(k.Item1, k.Item2);
         foreach (var k in _kgb?.Knocks() ?? Array.Empty<(int, Func<Vector3, bool>)>()) _scenery.AddKnock(k.Item1, k.Item2);
         foreach (var k in _drunksAll?.Knocks() ?? Array.Empty<(int, Func<Vector3, bool>)>()) _scenery.AddKnock(k.Item1, k.Item2);
+        foreach (var k in _columnAll?.Knocks() ?? Array.Empty<(int, Func<Vector3, bool>)>()) _scenery.AddKnock(k.Item1, k.Item2);      // the prisoners and their guards
         _workers = FindChild("KolkhozWorkers", true, false) as KolkhozWorkers;      // the field crews, loaders and anglers
         foreach (var k in _workers?.Knocks() ?? Array.Empty<(int, Func<Vector3, bool>)>()) _scenery.AddKnock(k.Item1, k.Item2);
         if (_campGate != null)
@@ -1096,6 +1098,7 @@ public partial class RaceScene : Node3D
         _sessionLapArchives.Clear(); _sessionLapOrder.Clear(); _sessionLapSequence = 0;
         _replayListTask = null; _replayInfos.Clear(); _replayKnownLaps = -1;
         _sessionBest = -1f;      // a run's start or a restart opens a new session; a norm advancing, a pause or a viewer visit never reaches here
+        if (!InLanRace) { _sessionGhost = null; _timer.ClearLast(); }      // ...and so do its ghost (born with the first valid lap) and LAST: nothing of the previous run (e.g. before the gulag) carries over
         StakhanovSessionReset();
         _state = State.Countdown;
         _hud.Mode = HudMode.Countdown;
@@ -1399,7 +1402,7 @@ public partial class RaceScene : Node3D
             SceneryFeedback();
             UpdateBackfire(dt);
             _fx.Emit(_car, dt);
-            if (EngineFuel == FuelGrade.Diesel) _fx.DieselSoot(_car, dt);
+            if (EngineFuel == FuelGrade.Diesel) _fx.DieselSoot(_car, dt); else _fx.PetrolSmoke(_car, dt, EngineFuel is FuelGrade.Rocket or FuelGrade.Sputnik ? 1.5f : 1f);
             if (_tapeObsCount != null) _tapeReplayQueries += _tapeObsCount.Queries - queries0;
             return;
         }
@@ -1550,7 +1553,7 @@ public partial class RaceScene : Node3D
         UpdateBackfire(dt);
 
         _fx.Emit(_car, dt);
-        if (EngineFuel == FuelGrade.Diesel) _fx.DieselSoot(_car, dt);
+        if (EngineFuel == FuelGrade.Diesel) _fx.DieselSoot(_car, dt); else _fx.PetrolSmoke(_car, dt, EngineFuel is FuelGrade.Rocket or FuelGrade.Sputnik ? 1.5f : 1f);
 
 
         if (_car.UpsideDownTime > 1.5f && !_rescue.Active && !FateHasCar && !_towCalled)

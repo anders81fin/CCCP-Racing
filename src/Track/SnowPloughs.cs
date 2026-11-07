@@ -38,6 +38,7 @@ public partial class SnowPloughs : Node3D
         public Node3D Drum;
         public int Obs;
         public Node3D Model, Beacon, PileL, PileR;
+        public float Soot;
         public DieselSound Sound;
         public Vector2 Pos, Fwd;
     }
@@ -247,6 +248,13 @@ public partial class SnowPloughs : Node3D
             _t.Obstacles[p.Obs + k] = new Obstacle(at, r * Size, vel, Material: ImpactMaterial.Metal);
         }
 
+        if (_fx != null && dt > 0)
+        {
+            // The player's diesel smoke from the stack behind the cab, a big truck engine.
+            Vector3 pipe = p.Model.GlobalTransform * (p.Mixer ? MixerSootPipe : SootPipe);
+            Vector3 f3 = new(fwd.X, 0, fwd.Y);
+            _fx.EngineSoot(pipe, -f3, f3 * p.Speed, Mathf.Clamp(p.Speed / 8f, 0.25f, 1f), 2f, ref p.Soot, dt);
+        }
         if (p.Mixer)
         {
             // The drum turns all the way, mixing.
@@ -354,6 +362,7 @@ public partial class SnowPloughs : Node3D
         foreach (float s in new[] { -1f, 1f })
             m.AddChild(Props.Part(Props.Box(0.05f, 0.7f, 1.2f), Glass, new Vector3(s * 1.36f, 2.75f, -2.3f)));
         m.AddChild(Props.Part(Props.Box(1.6f, 0.12f, 0.6f), Black, new Vector3(0, 3.36f, -2.4f)));
+        m.AddChild(Props.Part(Props.Cyl(0.09f, 1.9f, 8), Black, new Vector3(1.1f, 3.0f, -1.2f)));      // the exhaust stack behind the cab
         beacon = new MeshInstance3D
         {
             Mesh = Props.Box(0.4f, 0.3f, 0.4f),
@@ -450,4 +459,9 @@ public partial class SnowPloughs : Node3D
 
     /// <summary>The models of the ploughs that throw snow (not the mixers), for the replay's emitters.</summary>
     internal IEnumerable<Node3D> TapePloughs() { foreach (var p in _ploughs) if (!p.Mixer) yield return p.Model; }
+    /// <summary>The concrete mixers' models (they throw no snow but smoke like the ploughs), for the replay's emitters.</summary>
+    internal IEnumerable<Node3D> TapeMixers() { foreach (var p in _ploughs) if (p.Mixer) yield return p.Model; }
+    /// <summary>The exhaust stack behind the cab (the model's own space) and the engine's size against the player's car.</summary>
+    internal static readonly Vector3 SootPipe = new(1.1f, 3.95f, -1.2f), MixerSootPipe = new(1.0f, 3.95f, -1.9f);
+    internal const float SootPower = 1.2f;      // 60 % of the first guess (2): the ploughs and mixers smoked too much
 }

@@ -127,7 +127,7 @@ public partial class RaceScene
         return k switch
         {
             "bus-passenger" => Track.SovietBus.BuildReplayPassenger(arg),
-            "hind" => Track.HindSorties.BuildReplayAircraft(arg),
+            "hind" => Track.HindSorties.BuildReplayAircraft(arg, fx),
             "buk-missile" => Track.Buk21Battery.BuildReplayMissile(),
             "jet" => Track.BalalaikaSorties.BuildReplayJet(fx),
             "missile" => Track.Missile.BuildReplay(fx),

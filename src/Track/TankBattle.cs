@@ -39,7 +39,7 @@ public partial class TankBattle : Node3D
         public Node3D Hull, Turret, Barrel;
         public readonly List<Node3D> Wheels=new();
         public readonly List<Node3D> Belts=new();
-        public float PreviousSpeed, PreviousYaw, PitchMotion, RollMotion, MotionTime;
+        public float Soot, PreviousSpeed, PreviousYaw, PitchMotion, RollMotion, MotionTime;
         public float LeftTravel,RightTravel,TraverseVelocity,FlashLeft;
         public MeshInstance3D Flash;
         public DieselSound Sound;
@@ -589,10 +589,10 @@ public partial class TankBattle : Node3D
             Vector2 back = k.Pos - f * 3.2f * MathF.Sign(k.Speed) + new Vector2(-f.Y, f.X) * _rng.RandfRange(-1.6f, 1.6f);
             DustFx(_fx, _t, back);
         }
-        if (_rng.Randf() < dt * (speed > 0.1f || turn != 0 ? 5f : 2f))
         {
-            Vector3 ex = k.Hull.GlobalTransform * new Vector3(1.2f, 1.3f, 3.3f);
-            ExhaustFx(_fx, ex);
+            // The player's diesel smoke from the exhaust at the back, a tank's big engine (TapeEmitters makes the same in a replay).
+            Vector3 fwd3 = -k.Hull.GlobalTransform.Basis.Z.Normalized();
+            _fx.EngineSoot(k.Hull.GlobalTransform * SootPipe, -fwd3, fwd3 * k.Speed, Mathf.Clamp(speed / SpeedRef, 0.25f, 1f), SootPower, ref k.Soot, dt);
         }
         k.Sound.Speed = speed + MathF.Abs(turn) * 6f;
     }
@@ -601,6 +601,8 @@ public partial class TankBattle : Node3D
     internal static void DustFx(TyreEffects fx, TrackData t, Vector2 back) =>
         fx.Smoke(new Vector3(back.X, t.MeshHeight(back.X, back.Y) + 0.3f, back.Y), Vector3.Up * 0.6f, new Color(0.55f, 0.46f, 0.34f), 0.12f, 0.38f, 1.8f, 1f);
     /// <summary>One puff of diesel smoke at the exhaust (live play and the replay).</summary>
+    internal static readonly Vector3 SootPipe = new(1.2f, 1.3f, 3.3f);
+    internal const float SootPower = 3f;
     internal static void ExhaustFx(TyreEffects fx, Vector3 ex) => fx.Smoke(ex, Vector3.Up * 1.5f, new Color(0.1f, 0.1f, 0.1f), 0.6f, 0.6f, 2.2f, 1.6f);
     /// <summary>The tanks' hulls, for the replay's dust emitters.</summary>
     internal IEnumerable<Node3D> TapeHulls() { foreach (var k in _tanks) yield return k.Hull; }

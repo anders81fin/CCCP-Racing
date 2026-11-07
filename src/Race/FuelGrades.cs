@@ -15,8 +15,8 @@ public static class FuelGrades
     public static readonly string[] Ids = { "diesel", "petrol", "rocket", "sputnik" };
     /// <summary>The engine's power in percent of the factory's. 100 is the game as it has always been.</summary>
     public static readonly int[] Percent = { 50, 100, 200, 200 };      // Sputnik shares jet fuel power; the ballot uses a separate stable ID.
-    /// <summary>The tank's consumption against the tuned one: the diesel sips, the rocket fuel drinks.</summary>
-    public static readonly float[] Burn = { 0.6f, 1f, 1.7f, 1.9f };
+    /// <summary>The tank's consumption factor by fuel (against the tuned base rate; 1 = the tuned one): the diesel sips, the Sputnik drinks.</summary>
+    public static readonly float[] Burn = { 0.5f, 0.8f, 1.0f, 1.2f };
     /// <summary>The line on the FUEL card.</summary>
     public static readonly string[] Lines =
     {

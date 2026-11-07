@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using CCCPRacing.Track;
 using Godot;
 
@@ -367,14 +368,18 @@ public partial class TyreEffects : Node3D
     static readonly Color[] FlameCols = { new(1f, 0.92f, 0.5f), new(1f, 0.6f, 0.15f), new(1f, 0.35f, 0.05f) };
     static readonly Color ExhaustSmoke = new(0.3f, 0.3f, 0.3f);
 
-    float _sootAcc, _sootSpread;
+    // The diesel soot of each car (slot 0 the player's, the LAN cars have their own slots like their tyre marks): the puff accumulator and how far its cloud has spread.
+    readonly float[] _sootAccs = new float[MaxCars + 1], _sootSpreads = new float[MaxCars + 1];      // (the last slot is the player's own car: slot < 0)
 
     /// <summary>
     /// A diesel's black smoke: an exaggerated thick dark cloud from the pipes whenever the pedal is down (more when it is floored and the revs are still low, an old
     /// engine pumping in more fuel than it can burn), nothing on a lift. Driven by the car's state, so the replay and the tape draw it again by themselves.
     /// </summary>
-    public void DieselSoot(CarSim car, float dt)
+    public void DieselSoot(CarSim car, float dt, int slot = -1)
     {
+        int si = slot < 0 ? MaxCars : slot;
+        ref float _sootAcc = ref _sootAccs[si];
+        ref float _sootSpread = ref _sootSpreads[si];
         // Always sooty, even with the pedal up (an old diesel never burns clean); the throttle multiplies it.
         float th = Math.Clamp(car.Throttle, 0f, 1f);
         float lowRev = 1f - Math.Clamp((car.Rpm - 1500f) / 3000f, 0f, 1f);
@@ -402,6 +407,80 @@ public partial class TyreEffects : Node3D
         }
     }
     static readonly Color SootBlack = new(0.04f, 0.04f, 0.04f);
+
+    readonly float[] _petrolAccs = new float[MaxCars + 1];
+    static readonly Color PetrolHaze = new(0.66f, 0.67f, 0.7f);
+
+    /// <summary>
+    /// A petrol engine's exhaust (petrol, jet fuel and Sputnik; the diesel has DieselSoot): a thin pale blue-grey haze from the twin pipes, a few puffs a second at idle and more under
+    /// load, never black and never a wall. <paramref name="strength"/> 1 is petrol; the hotter fuels have more of it. Driven by the car's state like DieselSoot, so a replay draws it too.
+    /// </summary>
+    public void PetrolSmoke(CarSim car, float dt, float strength = 1f, int slot = -1)
+    {
+        ref float _petrolAcc = ref _petrolAccs[slot < 0 ? MaxCars : slot];
+        float th = Math.Clamp(car.Throttle, 0f, 1f);
+        _petrolAcc += (3f + 16f * th) * strength * dt;
+        Vector3 back = -car.Forward;
+        float still = 1f - Math.Clamp(car.Vel.Length() / 8f, 0f, 1f);
+        while (_petrolAcc >= 1f)
+        {
+            _petrolAcc -= 1f;
+            float px = _rng.Randf() < 0.5f ? 0.33f : 0.47f;
+            Vector3 pipe = car.Pos + car.Rot * new Vector3(px, -0.40f, 2.02f) + back * 0.15f;
+            Add(pipe, car.Vel * 0.6f + back * _rng.RandfRange(Mathf.Lerp(1.5f, 0.3f, still), Mathf.Lerp(3.5f, 0.8f, still)) + Rand(0.3f, 0.25f, 0.3f) + Vector3.Up * (0.4f + 0.8f * still),
+                _rng.RandfRange(1.0f, 1.9f), 0.12f + 0.1f * th, 0.9f + 0.7f * th, -0.3f, 1.2f, PetrolHaze, 0.2f + 0.18f * th, false);
+        }
+    }
+
+    /// <summary>
+    /// The player's diesel smoke for any other vehicle: the same black cloud from its pipe, <paramref name="power"/> times the player's car (1 = a car, more for a
+    /// bigger engine: more puffs and a bigger cloud). <paramref name="throttle"/> 0..1 (a moving vehicle: how hard it works), <paramref name="acc"/> its own puff
+    /// accumulator. Far from the player (beyond 150 m) it makes nothing, so a whole fleet does not use up the particles.
+    /// </summary>
+    public void EngineSoot(Vector3 pipe, Vector3 back, Vector3 vel, float throttle, float power, ref float acc, float dt, bool kerosene = false)
+    {
+        if (dt <= 0f) return;
+        if (CollectSources) Collect(new SootSource(pipe, back, vel, throttle, power, kerosene));
+        if (pipe.DistanceSquaredTo(CCCPRacing.Track.SeeThrough.Car) > 150f * 150f) { acc = 0; return; }
+        float th = Math.Clamp(throttle, 0f, 1f);
+        float rate = (9f + 75f * MathF.Pow(th, 1.2f) * 0.8f) * power;
+        acc += rate * dt;
+        float size = MathF.Sqrt(power), k = 0.5f + 0.5f * th;
+        float still = 1f - Math.Clamp(vel.Length() / 8f, 0f, 1f);
+        while (acc >= 1f)
+        {
+            acc -= 1f;
+            Add(pipe + back * 0.15f, vel * 0.6f + back * _rng.RandfRange(Mathf.Lerp(2f, 0.3f, still), Mathf.Lerp(5f, 1.2f, still)) + Rand(0.5f, 0.4f, 0.5f) + Vector3.Up * (0.8f + 1.4f * still),
+                _rng.RandfRange(2.2f, 3.4f) * (1f + 0.5f * still), 0.7f * k * size, 5.5f * k * size * (1f + 0.4f * still), -0.4f, 0.9f,
+                kerosene ? KeroseneHaze : SootBlack, (kerosene ? 0.4f : 0.85f) * k, false);
+        }
+    }
+    /// <summary>One smoking pipe as the LAN host sends it to the other machines: where, which way back, how fast it moves, the throttle, the engine's size and the fuel.</summary>
+    public readonly record struct SootSource(Vector3 Pipe, Vector3 Back, Vector3 Vel, float Throttle, float Power, bool Kerosene);
+    /// <summary>The LAN host collects the pipes every vehicle smoked from in the last physics step (TakeSootSources); everything else leaves it off.</summary>
+    public bool CollectSources;
+    List<SootSource> _srcCur = new(), _srcLast = new();
+    ulong _srcFrame;
+    void Collect(SootSource s)
+    {
+        ulong frame = Engine.GetPhysicsFrames();
+        if (frame != _srcFrame) { (_srcLast, _srcCur) = (_srcCur, _srcLast); _srcCur.Clear(); _srcFrame = frame; }
+        _srcCur.Add(s);
+    }
+    /// <summary>The pipes of the last complete physics step that <paramref name="wanted"/> accepts (the ones near a driver); empty when nothing smoked lately.</summary>
+    public List<SootSource> TakeSootSources(Func<Vector3, bool> wanted)
+    {
+        var result = new List<SootSource>();
+        ulong now = Engine.GetPhysicsFrames();
+        var list = _srcFrame == now ? _srcLast : _srcFrame + 1 == now ? _srcCur : null;
+        if (list != null) foreach (var s in list) if (wanted(s.Pipe)) result.Add(s);
+        return result;
+    }
+    /// <summary>A pipe the LAN host reported, smoked here (the same puffs as the host's own; far from this player nothing).</summary>
+    public void SootFrom(in SootSource s, Vector3 pipe, ref float acc, float dt) => EngineSoot(pipe, s.Back, s.Vel, s.Throttle, s.Power, ref acc, dt, s.Kerosene);
+
+    /// <summary>A jet or turbine's kerosene smoke: a thin pale grey-brown haze, not the diesel's black soot.</summary>
+    static readonly Color KeroseneHaze = new(0.56f, 0.54f, 0.51f);
 
     /// <summary>Backfire: a short tongue of flame and a puff of dark smoke from the twin pipes.</summary>
     public void ExhaustFlame(CarSim car, float strength)
