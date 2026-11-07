@@ -95,7 +95,7 @@ public partial class RaceScene : ISchoolHost
         NewRunPower();
         _carRadio.SetOn(false, false);
         _hud.SetComments(true, false);
-        _watching = _showBoard = _showLog = _showFiles = _showLessons = _showKeys = _replaySelected = false;
+        _watching = _showBoard = _boardScoped = _showLog = _showFiles = _showLessons = _showKeys = _replaySelected = false;
         _hud.TitleNotice = null;
         _radio.Stop();
         AudioMix.MuteSfx(false);

@@ -24,7 +24,6 @@ public partial class Hud
         var r = new Rect2(Mathf.Floor(cx - w / 2), Mathf.Floor((s.Y - h) / 2), w, h);
         Panel(r, 0.88f);
         DrawHeading("DRIVING SCHOOL", cx, r.Position.Y + 7, _menuTextClock);
-        PixelFont.DrawCentered(this, "CAR HANDLING AND TRACK INSTRUCTIONS", cx, r.Position.Y + 25, Grey);
         float x0 = r.Position.X + 20, y = r.Position.Y + 40;
         for (int i = top; i < top + rows; i++, y += RowH)
         {

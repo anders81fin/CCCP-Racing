@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CCCPRacing.Race;
 using Godot;
 
@@ -55,6 +56,10 @@ public partial class Hud
     public string CardNote;
     /// <summary>The highlighted track has a scenic tour (T / Y opens it).</summary>
     public bool CardTour;
+    /// <summary>The track card offers the highlighted track's leaderboards (L / X).</summary>
+    public bool CardBoards;
+    /// <summary>The keys line the card drew last (for the windowed tests).</summary>
+    public string CardKeysDrawn { get; private set; }
     public string[] CardOptions = Array.Empty<string>();
     public int CardSelection;
     /// <summary>Options not open yet (a locked track): drawn in black and white. Null: all open.</summary>
@@ -357,7 +362,11 @@ public partial class Hud
         float opts = Opts();
         if (opts > s.X - 48 && scale == 2) { scale = 1; pad = 28; opts = Opts(); }
         int titleScale = compact ? 1 : 2;
+        // The keys line: T TOUR and L LEADERBOARDS (the pad's Y and X) in gold where the card offers them.
+        string tour = P("T TOUR", "Y TOUR"), boards = P("L LEADERBOARDS", "X LEADERBOARDS");
+        string keys = string.Join("   ", new[] { "< > CHOOSE", P("ENTER OK", "A OK"), CardTour ? tour : null, CardBoards ? boards : null, P("ESC BACK", "B BACK") }.Where(k => k != null));
         float w = Math.Min(s.X - 8, Math.Max(Math.Max(PixelFont.Measure(CardTitle, titleScale), opts), Math.Max(PixelFont.Measure(CardSub ?? ""), PixelFont.Measure(CardNote ?? ""))) + 40);
+        if (CardBoards) w = Math.Min(s.X - 8, Math.Max(w, PixelFont.Measure(keys) + 16));      // (the longer keys line stays inside the card)
         float h = compact ? Math.Min(note ? 66 : 56, room) : note ? 93 : 82;
         var r = new Rect2(Mathf.Floor(cx - w / 2), top, w, h);
         Panel(r, 0.94f);
@@ -377,16 +386,15 @@ public partial class Hud
         if (note && h >= (compact ? 66 : 93)) PixelFont.DrawCentered(this, CardNote, cx, r.Position.Y + oy + oh + (compact ? 3 : 5), Paper);
         DrawLapsReward(r, oy, compact);
         if (LapsRewardSource != null) return;
-        string keys = CardTour ? P("< > CHOOSE   ENTER OK   T TOUR   ESC BACK", "< > CHOOSE   A OK   Y TOUR   B BACK")
-            : P("< > CHOOSE   ENTER OK   ESC BACK", "< > CHOOSE   A OK   B BACK");
         float keysY = r.End.Y - (compact ? 11 : 13);
         PixelFont.DrawCentered(this, keys, cx, keysY, Grey);
-        if (CardTour)
+        CardKeysDrawn = keys;
+        foreach (var (on, key) in new[] { (CardTour, tour), (CardBoards, boards) })
         {
-            string tour = P("T TOUR", "Y TOUR");
-            float tourX = Mathf.Floor(cx - PixelFont.Measure(keys) / 2f)
-                + keys.IndexOf(tour, StringComparison.Ordinal) * PixelFont.Advance;
-            PixelFont.Draw(this, tour, new Vector2(tourX, keysY), Gold);
+            if (!on) continue;
+            float keyX = Mathf.Floor(cx - PixelFont.Measure(keys) / 2f)
+                + keys.IndexOf(key, StringComparison.Ordinal) * PixelFont.Advance;
+            PixelFont.Draw(this, key, new Vector2(keyX, keysY), Gold);
         }
     }
 

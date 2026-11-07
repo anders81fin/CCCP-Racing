@@ -128,36 +128,32 @@ public partial class RaceScene
         return i >= 0 ? OfficeLabels[i] : null;
     }
 
-    /// <summary>What a mode is, in a few lines for the hint box (the pad's words when a pad is in use).</summary>
+    /// <summary>What a mode is: explanatory lines; the shared HUD leaves a blank row below the heading.</summary>
     (string title, string[] lines)? MenuHint(MenuItem m) => m switch
     {
         MenuItem.Training => (Hud.TrainingLabel, new[]
         {
             "TRACK PRACTICE ON AN EMPTY ROAD.",
             "NO DAMAGE, NO FUEL, NO NORMS. JUST SPEED.",
-            _padMode ? "D-PAD: DIESEL / PETROL / JET FUEL / SPUTNIK." : "1 DIESEL  2 PETROL  3 JET FUEL  4 SPUTNIK.",
             "BEAT THE RECORD ON THE BOARD OF HONOUR.",
         }),
         MenuItem.Race => (Hud.RaceLabel, new[]
         {
-            "SOCIALISM AS IT WAS MEANT TO WORK.",
             "A PEASANT CHOSEN TO BECOME A HERO OF THE STATE.",
             "BRUTAL QUALIFYING. THE WINNER TAKES IT ALL.",
             "THE GULAG HAS ROOM FOR THE REST.",
         }),
         MenuItem.School => ("DRIVING SCHOOL", new[]
         {
-            "CAR HANDLING: CLUTCH STARTS, STEERING,",
-            "BRAKING AND DRIFTING, SHOWN BY THE TEACHER.",
-            "TRACK INSTRUCTIONS FOR EVERY OPEN TRACK.",
-            "WATCH IT ALL, OR ONLY THE LESSON YOU NEED.",
+            "INSTRUCTIONS FOR CAR HANDLING,",
+            "GAME MECHANICS AND TRACKS. WATCH IT ALL,",
+            "OR ONLY THE LESSONS YOU NEED.",
         }),
         MenuItem.Lan => (Hud.LanLabel, new[]
         {
-            "RACE UP TO 5 COMRADES ON THE SAME NETWORK.",
-            "VOTE FOR TRACK AND RULES WITH YOUR COMRADES.",
-            "VOTE FOR THE POWER. RACE 3, 5 OR 10 LAPS.",
-            "SHARED WORLD. CAR-TO-CAR COLLISIONS.",
+            "RACE AGAINST UP TO 5 COMRADES ON YOUR",
+            "LOCAL NETWORK, OR ONLINE THROUGH A",
+            "VIRTUAL NETWORK.",
         }),
         MenuItem.Files => ("KGB FILES", new[]
         {
@@ -167,10 +163,9 @@ public partial class RaceScene
         }),
         MenuItem.Personnel => ("PERSONNEL", new[]
         {
-            "FIVE PERSONNEL FILES IN THE ARCHIVE.",
-            "EACH DRIVER KEEPS HIS OWN NAME, MEDALS,",
-            "LESSONS SEEN AND SPEED RECORDS.",
-            "OPEN YOURS, START A NEW ONE, OR ERASE ONE.",
+            "MAX. 5 PLAYER FILES IN THE ARCHIVE.",
+            "EACH KEEPS NAME, MEDALS, LESSONS SEEN",
+            "AND SPEED RECORDS.",
         }),
         MenuItem.Board => ("LEADERBOARDS", new[]
         {

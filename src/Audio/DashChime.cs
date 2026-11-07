@@ -103,7 +103,7 @@ public partial class DashChime : Node
     void Alarm()
     {
         double t = _clock + 0.02;
-        for (int i = 0; i < 3; i++) _notes.Add(new Note { Start = t + i * 0.16, Len = 0.09, Hz = 1250f, Amp = 0.7f, Sharp = true });
+        for (int i = 0; i < 3; i++) _notes.Add(new Note { Start = t + i * 0.16, Len = 0.09, Hz = 1250f, Amp = 0.35f, Sharp = true });
     }
 
     public override void _Process(double delta)

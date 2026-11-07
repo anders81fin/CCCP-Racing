@@ -131,20 +131,18 @@ public partial class Hud
     void DrawLanMenu()
     {
         var v = Lan;
-        var r = LanPanel(250, 40 + v.Items.Count * 13 + 22 + 75);
+        string[] help = {
+            "USE ZEROTIER OR PORTHOLE (ON STEAM)",
+            "TO CREATE A VIRTUAL LAN.",
+            $"HOST FIREWALL: ALLOW UDP {Net.LanSession.Port}.",
+            $"JOINERS: ALLOW UDP {Net.LanDiscovery.Port} (GAME LIST)."
+        };
+        var r = LanPanel(250, 40 + v.Items.Count * 13 + 22 + 21 + help.Length * 9);
         LanHeading(r, LanLabel, "COMRADE: " + v.Text + " / " + v.Track);
         float cx = r.Position.X + r.Size.X / 2;
         for (int i = 0; i < v.Items.Count; i++) MenuItem(v.Items[i], v.Sel == i, cx, r.Position.Y + 42 + i * 13);
         float y = r.Position.Y + 48 + v.Items.Count * 13;
         PixelFont.DrawCentered(this, "PLAY OVER THE INTERNET", cx, y, Gold);
-        string[] help = {
-            "TRY LAN VIA ZEROTIER.",
-            "JOIN THE SAME VIRTUAL NETWORK,",
-            "THEN HOST OR JOIN A LAN GAME.",
-            "IF NEEDED, ENTER THE HOST'S",
-            "ZEROTIER IP IN JOIN GAME.",
-            "PLAYTESTED - STUTTER MAY OCCUR."
-        };
         for (int i = 0; i < help.Length; i++)
             PixelFont.DrawCentered(this, help[i], cx, y + 13 + i * 9, Grey);
         LanFooter(r, P("ENTER SELECT  ESC BACK", "A SELECT  B BACK"));
@@ -214,17 +212,17 @@ public partial class Hud
     {
         var v = Lan;
         var r = LanPanel(Math.Min(290,Screen.X-8), 44 + Math.Max(4,v.Players.Count) * 11 + 50 + LanBoardsLobbyHeight);
-        LanHeading(r, "THE LOBBY", v.Track);
+        LanHeading(r, "THE LOBBY", null);      // leave the former track subtitle row empty
         PixelFont.DrawCentered(this,v.Address!=null?"IP: "+v.Address:v.Sub,r.GetCenter().X,r.Position.Y+33,Grey);
         LanPlayerRows(r, r.Position.Y + 44, false);
         float cx = r.Position.X + r.Size.X / 2, y = r.Position.Y + 40 + Math.Max(4,v.Players.Count) * 11 + 6;
         string laps = v.IsHost ? $"LAPS  < {v.Laps} >" : $"LAPS  {v.Laps}";
-        PixelFont.DrawCentered(this, laps, cx, y, v.IsHost ? Gold : Paper);
+        PixelFont.DrawCentered(this, laps, cx, y, v.IsHost && !LanBoards.Focused ? Gold : Paper);
         string go = v.IsHost ?  (v.Players.Count >= 2 ? P("ENTER", "A") + " - TO THE BALLOT BOX" : "WAITING FOR COMRADES...") : "WAITING FOR THE HOST...";
         if (v.IsHost && v.Players.Count >= 2 || (int)(_clock * 2) % 2 == 0)
             PixelFont.DrawCentered(this, go, cx, y + 14, v.IsHost && v.Players.Count >= 2 ? Gold : Grey);
         DrawLanLobbyBoards(r, y + 28);      // SHARE BOARDS (HudLanBoards.cs)
-        LanFooter(r, v.IsHost ? "< > LAPS  " + P("ESC", "B") + " CLOSE THE GAME" : P("ESC", "B") + " LEAVE");
+        LanFooter(r, P("UP/DOWN SELECT  < > CHANGE  ", "D-PAD SELECT/CHANGE  ") + P("ESC", "B") + (v.IsHost ? " CLOSE" : " LEAVE"));
     }
 
     const float ChoicePitch = 14;

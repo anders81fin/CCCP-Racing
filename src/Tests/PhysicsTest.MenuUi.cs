@@ -52,10 +52,10 @@ public partial class PhysicsTest
         }
         {
             var hud = new Hud { Rumble = true };
-            hud.SettingsRowTexts(SettingsRowId.Rumble, out string on, out _);
+            hud.SettingsRowTexts(SettingsRowId.Rumble, out string on, out string onValue);
             hud.Rumble = false;
-            hud.SettingsRowTexts(SettingsRowId.Rumble, out string off, out _);
-            Check(on.EndsWith("RUMBLE ON") && off.EndsWith("RUMBLE OFF"), "the rumble row shows its state");
+            hud.SettingsRowTexts(SettingsRowId.Rumble, out string off, out string offValue);
+            Check(on == "RUMBLE" && off == on && onValue == "ON" && offValue == "OFF", "rumble keeps a stable label and separate switch state");
             hud.Free();
         }
 
@@ -102,6 +102,7 @@ public partial class PhysicsTest
             {
                 new[] { SettingsRowId.Sounds, SettingsRowId.Visuals, SettingsRowId.Keys, SettingsRowId.Back },
                 new[] { SettingsRowId.Sounds, SettingsRowId.Visuals, SettingsRowId.Rumble, SettingsRowId.Keys, SettingsRowId.Back },
+                new[] { SettingsRowId.Sounds, SettingsRowId.Visuals, SettingsRowId.Lab, SettingsRowId.LabTune, SettingsRowId.Rumble, SettingsRowId.Keys, SettingsRowId.Back },
             };
             foreach (var set in settingsSets)
                 foreach (bool pad in new[] { false, true })
@@ -113,7 +114,7 @@ public partial class PhysicsTest
                     {
                         hud.SettingsRowTexts(id, out string label, out string value);
                         float x = hud.SettingsLabelX(r);
-                        fit &= x + PixelFont.Measure(label) + (value != null ? PixelFont.Measure(value) + 8 : 0) <= r.End.X - 12;
+                        fit &= x + PixelFont.Measure(label) + (hud.SettingsToggleValue(id) != null ? Hud.OnOffSwitchWidth + 8 : value != null ? PixelFont.Measure(value) + 8 : 0) <= r.End.X - 12;
                         if (hud.SettingsRowKey(id) is { } k) fit &= r.Position.X + (r.Size.X < 240 ? 10 : 18) + PixelFont.Measure(k) < x;      // (the shortcut ends before the label column)
                     }
                     Check(fit, $"{sz}: settings screen with {set.Length} rows fits (pad {pad})");
@@ -121,6 +122,15 @@ public partial class PhysicsTest
                     for (int i = 0; i < set.Length; i++) ok &= hud.SettingsRowAt(new Vector2(r.Position.X + r.Size.X / 2, r.Position.Y + 38 + i * 16 + 4)) == i;
                     ok &= hud.SettingsRowAt(new Vector2(r.Position.X + r.Size.X / 2, r.Position.Y + 38 + set.Length * 16 + 4)) == -1 && hud.SettingsRowAt(new Vector2(r.Position.X - 1, r.Position.Y + 40)) == -1;
                     Check(ok, $"{sz}: SettingsRowAt maps {set.Length} rows");
+                    for (int i = 0; i < set.Length; i++)
+                    {
+                        if (hud.SettingsToggleValue(set[i]) == null) continue;
+                        var cell = Hud.OnOffRowRect(r, r.Position.Y + 38 + i * 16);
+                        Check(hud.SettingsSwitchValueAt(i, cell.Position + new Vector2(5, 3)) == false
+                            && hud.SettingsSwitchValueAt(i, cell.End - new Vector2(5, 3)) == true
+                            && hud.SettingsSwitchValueAt(i, new Vector2(r.Position.X + 5, cell.GetCenter().Y)) == null,
+                            $"{sz}: {set[i]} OFF/ON cells and label hit region are distinct");
+                    }
                     string hint = pad ? "D-PAD CHOOSE  A SELECT" : "UP/DOWN CHOOSE  ENTER SELECT";
                     Check(PixelFont.Measure(hint) <= r.Size.X - 12, $"{sz}: settings footer fits (pad {pad})");
                 }
@@ -145,7 +155,7 @@ public partial class PhysicsTest
                     {
                         hud.VisualRowTexts(id, out string label, out string value);
                         float x = r.Position.X + (r.Size.X < 240 ? 10 : 18);
-                        fit &= x + PixelFont.Measure(label) + (value != null ? PixelFont.Measure(value) + 8 : 0) <= r.End.X - 12;
+                        fit &= x + PixelFont.Measure(label) + (hud.VisualToggleValue(id) != null ? Hud.OnOffSwitchWidth + 8 : value != null ? PixelFont.Measure(value) + 8 : 0) <= r.End.X - 12;
                     }
                     Check(fit, $"{sz}: visuals screen with {set.Length} rows fits (pad {pad})");
                     Check(r.End.Y - 12 >= r.Position.Y + 38 + set.Length * 16, $"{sz}: visuals footer below the last row");

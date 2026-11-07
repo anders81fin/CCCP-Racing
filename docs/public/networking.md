@@ -32,13 +32,15 @@ setting and adds no recording traffic to the network. After the finish, KEEP
 retains a copy of the completed race instead of opening a viewer during the
 session. Offline playback and MP4 export are available after the host ends it.
 
-## Sharing single-player leaderboards
+## Synchronizing single-player leaderboards
 
-In the lobby, B SHARE BOARDS (controller Y) asks for consent. It starts NO in
-every session. YES shares board times, names and attached recordings with
-other participants who also choose YES, and adds their results locally.
+The lobby's SYNC LEADERBOARDS switch starts OFF in every session.
+Up/Down selects LAPS or the switch; Left/Right sets OFF/ON (controller: D-pad).
+ON shares board times, names and attached recordings with other participants
+who also choose ON, and adds their results locally. Clicking OFF/ON works too.
 R RESYNC / CANCEL (controller X) starts another sync or cancels ongoing work.
-B while sharing withdraws consent. Results already merged remain on disk.
+B (controller Y) also opens the consent question or turns sharing off.
+OFF withdraws consent; results already merged remain on disk.
 
 Only the lobby before the ballot permits synchronization. The host waits for
 all transfers and disk workers before starting the ballot. A host choosing NO

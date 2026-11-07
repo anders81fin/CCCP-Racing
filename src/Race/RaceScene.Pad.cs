@@ -276,7 +276,7 @@ public partial class RaceScene
                     if (b == JoyButton.DpadLeft) { TitleSide(-1); return true; }
                     if (b == JoyButton.DpadRight) { TitleSide(1); return true; }
                 }
-                key = b == JoyButton.A || b == JoyButton.Start ? Key.Enter : b == JoyButton.Y ? Key.T : DpadKey(b);   // Y: a track's tour
+                key = b == JoyButton.A || b == JoyButton.Start ? Key.Enter : b == JoyButton.Y ? Key.T : b == JoyButton.X && TrackCardBoardsOffered ? Key.L : DpadKey(b);   // Y: a track's tour, X: its leaderboards
                 if (b == JoyButton.Back && _card == TitleCard.None && !echo) { PadBackButtonOnTitle(); return true; }
                 if (b == JoyButton.B && _menuParent != null) key = Key.Escape;       // back one level (at the top Esc would quit the game)
                 break;

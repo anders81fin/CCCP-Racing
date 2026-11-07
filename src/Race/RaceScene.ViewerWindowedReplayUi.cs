@@ -554,6 +554,7 @@ public partial class RaceScene
                 }
             }
         }
+        foreach (var x in VwPartySwitches()) yield return x;
     }
 
     /// <summary>

@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <!-- Broad sickle blade, a separate socket and a wrapped handle. -->
+  <!-- The smaller sickle sits behind the dominant mechanic's spanner. -->
+  <g transform="translate(32 34) scale(0.70) translate(-32 -34)">
   <path d="M20 6 C39 2 58 15 58 32 C58 45 48 53 35 52 L26 45 C40 47 49 39 48 28 C47 17 34 8 20 6 Z"
         fill="#e9bd4d" stroke="#381b23" stroke-width="2.5" stroke-linejoin="round"/>
   <path d="M24 8 C40 9 53 20 54 31 C54 41 47 47 37 49"
@@ -9,9 +10,11 @@
   <path d="M16 52 L22 58 M20 49 L26 55" fill="none" stroke="#8f6028" stroke-width="1.7"/>
   <path d="M12 55 L17 59" fill="none" stroke="#ffe39a" stroke-width="1.5"/>
 
+  </g>
+
   <!-- A proper open-ended spanner: two jaws, hexagonal throat, slim recessed shaft,
        and a ring end. Keeping the jaw open is essential at minimap size. -->
-  <g transform="rotate(-45 32 32)" stroke-linejoin="round">
+  <g transform="translate(32 32) scale(1.08) translate(-32 -32) rotate(-45 32 32)" stroke-linejoin="round">
     <path d="M22 5 L27 7 L27 17 L32 20 L37 17 L37 7 L42 5 L46 13 L45 22 L37 29 L37 50
              C44 56 39 63 32 63 C25 63 20 56 27 50 L27 29 L19 22 L18 13 Z
              M32 52 L35.5 54 L35.5 58 L32 60 L28.5 58 L28.5 54 Z"

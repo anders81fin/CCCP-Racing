@@ -58,6 +58,20 @@ public partial class Hud
         }
     }
 
+    internal bool? VisualToggleValue(VisualRowId id) => id switch
+    {
+        VisualRowId.Map => MapOn,
+        VisualRowId.Comments => Comments,
+        VisualRowId.Softening => SofteningName == "ON",
+        VisualRowId.CarInstruments => CarInstrumentsOn,
+        VisualRowId.LapInfo => LapInfoOn,
+        VisualRowId.NormsCard => NormsCardOn,
+        _ => null,
+    };
+
+    internal bool? VisualSwitchValueAt(int row, Vector2 p) => row >= 0 && row < VisualRowIds.Length && VisualToggleValue(VisualRowIds[row]) != null
+        ? OnOffValueAt(OnOffRowRect(VisualRect, VisualRect.Position.Y + 38 + row * 16), p) : null;
+
     internal void DrawVisual()
     {
         if (CameraHintOpen) { DrawCameraHint(); return; }
@@ -74,7 +88,8 @@ public partial class Hud
             Color c = selected ? Gold : Paper;
             VisualRowTexts(VisualRowIds[i], out string label, out string value);
             PixelFont.Draw(this, label, new Vector2(x, y), c);
-            if (value != null) PixelFont.Draw(this, value, new Vector2(r.End.X - 12 - PixelFont.Measure(value), y), c);
+            if (VisualToggleValue(VisualRowIds[i]) is bool on) DrawOnOffSwitch(OnOffRowRect(r, y).Position, on, selected);
+            else if (value != null) PixelFont.Draw(this, value, new Vector2(r.End.X - 12 - PixelFont.Measure(value), y), c);
         }
         string hint = P("UP/DOWN CHOOSE  LEFT/RIGHT CHANGE", "D-PAD CHOOSE / CHANGE  A SELECT");
         if (PixelFont.Measure(hint) > r.Size.X - 12) hint = P("UP/DOWN SELECT  < > CHANGE", "D-PAD SELECT / CHANGE");

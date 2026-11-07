@@ -67,13 +67,33 @@ public partial class RaceScene
     /// </summary>
     bool LanBoardsReadyForAutostart => _lanBoardExpect <= 0 || _net.BoardSharersOffered(_lanBoardExpect);
 
-    /// <summary>The lobby's board keys: B / pad Y share (question) or withdraw, R / pad X resync or cancel. True: taken.</summary>
+    /// <summary>Up/Down chooses laps or sync, Left/Right sets sync OFF/ON. B/Y keeps the consent question shortcut; R/X resyncs or cancels.</summary>
     bool LanBoardsLobbyKey(Key key, bool first)
     {
-        if (!first || _net.State != LanSession.Phase.Lobby) return key is Key.B or Key.R;
+        bool sync = _lanSel == 1 || !_net.IsHost;
+        bool horizontal = key is Key.Left or Key.Right or Key.A or Key.D;
+        bool vertical = key is Key.Up or Key.Down or Key.W or Key.S;
+        if (_net.State != LanSession.Phase.Lobby) return key is Key.B or Key.R || horizontal || vertical;
+        if (!first) return key is Key.B or Key.R || vertical || sync && horizontal;
+        if (key is Key.Up or Key.Down or Key.W or Key.S)
+        {
+            _lanSel = _net.IsHost ? 1 - Math.Clamp(_lanSel, 0, 1) : 1;
+            return true;
+        }
+        if (sync && horizontal)
+        {
+            LanBoardsSetSwitch(key is Key.Right or Key.D);
+            return true;
+        }
         if (key == Key.B) { LanBoardsToggle(); return true; }
         if (key == Key.R) { LanBoardsAction(); return true; }
         return false;
+    }
+
+    void LanBoardsSetSwitch(bool on)
+    {
+        if (_net.State != LanSession.Phase.Lobby || on == _net.BoardShareMine) return;
+        if (!_net.SetBoardShare(on)) LanBoardsHostSay("NOT NOW: ONLY IN THE LOBBY");
     }
 
     void LanBoardsToggle()
@@ -126,6 +146,12 @@ public partial class RaceScene
         }
         if (_lanPage == LanPage.Lobby && click && _net.State == LanSession.Phase.Lobby)
         {
+            if (_hud.LanBoardsSwitchValueAt(at) is bool on)
+            {
+                _lanSel = 1;
+                LanBoardsSetSwitch(on);
+                return;
+            }
             int line = _hud.LanBoardsLobbyLineAt(at);
             if (line == 0) LanBoardsToggle();
             else if (line == 1) LanBoardsAction();
@@ -147,6 +173,7 @@ public partial class RaceScene
         var b = _hud.LanBoards;
         b.Ask = _lanBoardAskYes;
         b.On = _net.BoardShareMine; b.Busy = _net.BoardBusyLocal;
+        b.Focused = _lanSel == 1 || !_net.IsHost;
         var (done, total, failed, bytes, of) = _net.BoardProgress;
         b.Progress = b.Busy && total > 0 ? $"RECORDINGS {Math.Min(done + 1, total)}/{total}" + (of > 0 ? $"  {bytes / 1048576.0:F1}/{of / 1048576.0:F1} MB" : "") : null;
         double now = LanSession.Now;

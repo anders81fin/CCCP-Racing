@@ -21,9 +21,9 @@ public partial class RaceScene
         if (Input.IsActionJustPressed("pause")) CloseMixer();
         else if (Input.IsActionJustPressed("accelerate")) _hud.MixerSelection = (_hud.MixerSelection + _hud.MixerRowCount - 1) % _hud.MixerRowCount;
         else if (Input.IsActionJustPressed("brake")) _hud.MixerSelection = (_hud.MixerSelection + 1) % _hud.MixerRowCount;
-        else if (Input.IsActionJustPressed("steer_left")) ChooseMixer(_hud.MixerSelection, -1);
-        else if (Input.IsActionJustPressed("steer_right") || Input.IsActionJustPressed("start") && !alt)
-            ChooseMixer(_hud.MixerSelection);
+        else if (Input.IsActionJustPressed("steer_left")) ChooseMixer(_hud.MixerSelection, -1, false);
+        else if (Input.IsActionJustPressed("steer_right")) ChooseMixer(_hud.MixerSelection, 1, true);
+        else if (Input.IsActionJustPressed("start") && !alt) ChooseMixer(_hud.MixerSelection);
         return true;
     }
 
@@ -49,10 +49,10 @@ public partial class RaceScene
     /// <summary>SOUND SETTINGS: first the radio (on/off), then its station (only while the radio is on), then the balance rows as before.</summary>
     int MixerLead => _carRadio.On ? 2 : 1;
 
-    void ChooseMixer(int row, int step = 1)
+    void ChooseMixer(int row, int step = 1, bool? toggleValue = null)
     {
         _hud.MixerSelection = row;
-        if (row == 0) { _carRadio.Toggle(); RememberRadio(); }
+        if (row == 0) ApplyOnOff(_carRadio.On, toggleValue, () => { _carRadio.Toggle(); RememberRadio(); });
         else if (_carRadio.On && row == 1) _carRadio.StepStation(step < 0 ? -1 : 1);
         else
         {

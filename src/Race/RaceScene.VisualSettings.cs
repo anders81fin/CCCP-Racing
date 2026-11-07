@@ -43,8 +43,9 @@ public partial class RaceScene
         if (Input.IsActionJustPressed("pause")) CloseVisual();
         else if (Input.IsActionJustPressed("accelerate")) _hud.VisualSelection = (_hud.VisualSelection + n - 1) % n;
         else if (Input.IsActionJustPressed("brake")) _hud.VisualSelection = (_hud.VisualSelection + 1) % n;
-        else if (Input.IsActionJustPressed("steer_left")) ChooseVisual(_hud.VisualSelection, -1);
-        else if (Input.IsActionJustPressed("steer_right") || Input.IsActionJustPressed("start") && !alt) ChooseVisual(_hud.VisualSelection);
+        else if (Input.IsActionJustPressed("steer_left")) ChooseVisual(_hud.VisualSelection, -1, false);
+        else if (Input.IsActionJustPressed("steer_right")) ChooseVisual(_hud.VisualSelection, 1, true);
+        else if (Input.IsActionJustPressed("start") && !alt) ChooseVisual(_hud.VisualSelection);
         return true;
     }
 
@@ -66,22 +67,22 @@ public partial class RaceScene
         _overlayExitFrame = Engine.GetProcessFrames();
     }
 
-    void ChooseVisual(int row, int step = 1)
+    void ChooseVisual(int row, int step = 1, bool? toggleValue = null)
     {
         var rows = _hud.VisualRowIds;
         if (row < 0 || row >= rows.Length) return;
         _hud.VisualSelection = row;
         switch (rows[row])
         {
-            case VisualRowId.Map: ToggleMinimap(); break;
-            case VisualRowId.Comments: _hud.SetComments(!_hud.Comments, confirm: true); break;
+            case VisualRowId.Map: ApplyOnOff(_minimapOn, toggleValue, ToggleMinimap); break;
+            case VisualRowId.Comments: ApplyOnOff(_hud.Comments, toggleValue, () => _hud.SetComments(!_hud.Comments, confirm: true)); break;
             case VisualRowId.Camera: ChooseCamera(step); break;
             case VisualRowId.Rendering: StepRendering(); break;
             case VisualRowId.Edges: StepAntialiasing(step); _hud.AntialiasingName = AaNames[_aaMode]; break;
-            case VisualRowId.Softening: StepSoftening(step); _hud.SofteningName = SoftNames[_softLevel]; break;
-            case VisualRowId.CarInstruments: SetHudChoice("car", _hud.CarInstrumentsOn = !_hud.CarInstrumentsOn); break;
-            case VisualRowId.LapInfo: SetHudChoice("lap", _hud.LapInfoOn = !_hud.LapInfoOn); break;
-            case VisualRowId.NormsCard: SetHudChoice("norms", _hud.NormsCardOn = !_hud.NormsCardOn); break;
+            case VisualRowId.Softening: ApplyOnOff(_softLevel > 0, toggleValue, () => StepSoftening(1)); _hud.SofteningName = SoftNames[_softLevel]; break;
+            case VisualRowId.CarInstruments: ApplyOnOff(_hud.CarInstrumentsOn, toggleValue, () => SetHudChoice("car", _hud.CarInstrumentsOn = !_hud.CarInstrumentsOn)); break;
+            case VisualRowId.LapInfo: ApplyOnOff(_hud.LapInfoOn, toggleValue, () => SetHudChoice("lap", _hud.LapInfoOn = !_hud.LapInfoOn)); break;
+            case VisualRowId.NormsCard: ApplyOnOff(_hud.NormsCardOn, toggleValue, () => SetHudChoice("norms", _hud.NormsCardOn = !_hud.NormsCardOn)); break;
             case VisualRowId.Back: CloseVisual(); break;
         }
     }

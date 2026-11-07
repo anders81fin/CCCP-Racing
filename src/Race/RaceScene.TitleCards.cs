@@ -66,6 +66,7 @@ public partial class RaceScene
         if (CarTourInput()) return true;     // a car's tour is up (RaceScene.CarTour.cs)
         if (TourInput()) return true;        // a track's tour is up (RaceScene.TrackPreview.cs)
         if (_card == TitleCard.Track && _trackFor != MenuItem.Lan && Input.IsActionJustPressed("tour")) { OpenTour(); return true; }
+        if (TrackCardBoardsOffered && Input.IsActionJustPressed("track_boards")) { OpenTrackCardBoards(); return true; }      // L / X: the highlighted track's boards (RaceScene.TrackCardBoards.cs)
         if (_card == TitleCard.RallyFuel && Input.IsActionJustPressed("tour")) { OpenCarTour(); return true; }      // the car of the highlighted fuel
         // One step at a time: the track card has more than two.
         if (Input.IsActionJustPressed("steer_left")) _cardSel = Math.Max(0, _cardSel - 1);
@@ -197,6 +198,7 @@ public partial class RaceScene
         _hud.LapsRewardAge = _lapsRewardAge;
         _hud.CardTour = _card == TitleCard.Track && _trackFor != MenuItem.Lan && HasTour(Tracks[Math.Clamp(_cardSel, 0, Tracks.Length - 1)].id)
             || _card == TitleCard.RallyFuel;
+        _hud.CardBoards = TrackCardBoardsOffered;
     }
 
     /// <summary>Every menu-started run shows its controls while loading, then waits for a press.</summary>

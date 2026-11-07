@@ -26,14 +26,15 @@ public partial class Hud
         DrawTitleBanner();
         if (StartupArchivePending) return;
         const int RowH = 16;
-        float w = 330, h = 40 + Files.Length * RowH + 30;
+        const int TextGap = 10;
+        float w = 330, h = 40 + TextGap + Files.Length * RowH + 30;
         var r = new Rect2(Mathf.Floor(cx - w / 2), Mathf.Floor((s.Y - h) / 2 + 14), w, h);
         DrawRect(r, new Color(0.05f, 0.03f, 0.03f, 0.88f));
         DrawRect(r, new Color(Red, 0.9f), false, 1f);
         DrawTypewriter("KGB ARCHIVE", cx, r.Position.Y + 7, Gold, _menuTextClock, HeadingRate, 2, HeadingShadow);
         PixelFont.DrawCentered(this, FilesAtLaunch ? "OPEN YOUR FILE, TOVARISH, OR A NEW ONE" : "PERSONNEL FILES - THE PARTY KNOWS EVERY DRIVER",
-            cx, r.Position.Y + 25, Grey);
-        float x0 = r.Position.X + 14, y = r.Position.Y + 40;
+            cx, r.Position.Y + 25 + TextGap, Grey);
+        float x0 = r.Position.X + 14, y = r.Position.Y + 40 + TextGap;
         for (int i = 0; i < Files.Length; i++, y += RowH)
         {
             var f = Files[i];

@@ -30,9 +30,11 @@ public partial class RaceScene
         foreach (var x in VrTap(Key.Enter)) yield return x;      // the track card
         for (int i = 0; i < 6; i++) yield return null;
         VwCheck(_card == TitleCard.Track, "the track card");
+        if (!resume) foreach (var x in VtbTrackCardBoards(false)) yield return x;      // L LEADERBOARDS on the card (RaceScene.ViewerWindowedTrackBoards.cs), back on KOLKHOZ
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
         VwCheck(_card == (resume ? TitleCard.RallyResume : TitleCard.RallyFuel), $"the next card is {(resume ? "SAVED RALLY" : "FUEL")} (and no time of day card at all) ({_card})");
+        VwCheck(!_hud.CardBoards, "L LEADERBOARDS belongs to CHOOSE TRACK only, not the next card");
         foreach (var x in VrTap(Key.Enter)) yield return x;      // CONTINUE (resume) / the chosen fuel
         bool modal = false, countdown = false, racing = false; int frames = 0;
         int readyFor = 0, controlOff = -1; bool clutchHeld = false;

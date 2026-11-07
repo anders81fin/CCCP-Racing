@@ -3,7 +3,7 @@
 Rally-Sport-inspired time trial on a Soviet kolkhoz. Power: ACCORDING TO PLAN. Suspension: NYET.
 
 Source code: [anders81fin/CCCP-Racing](https://github.com/anders81fin/CCCP-Racing).
-Source for version **0.855**: [v0.855](https://github.com/anders81fin/CCCP-Racing/tree/v0.855).
+Source for version **0.856**: [v0.856](https://github.com/anders81fin/CCCP-Racing/tree/v0.856).
 GitHub account: [anders81fin](https://github.com/anders81fin).
 
 Source code is offered under **GPL-3.0-or-later** and game models, images, track
@@ -60,6 +60,8 @@ Horn: hold Ctrl. It wakes the mechanic asleep on the first bus stop's bench (wit
 shelter with a damaged car and he comes over and beats it with a sledgehammer for 10 seconds (the race
 clock keeps running): the engine's health climbs evenly meanwhile and the bodywork is straightened blow by blow, as new
 at the end. Pressing the throttle breaks the repair off at any point and the engine keeps the health it got so far.
+PARTY MEETING settings use compact OFF/ON switches for boolean choices: Left selects OFF, Right selects ON, and Enter toggles. You can also click either half of a switch. Camera, rendering, antialiasing, stations and volume levels keep their named selections.
+
 Car radio: Backspace on/off; choose the SONG row in PARTY MEETING and use left/right to change stations. Stations are the mp3 files in
 `assets/music/radio/` (sorted by file name; the file name is shown as the song title).
 
@@ -116,6 +118,9 @@ lap, ghost, board and medals (a medal on any fuel opens the next track). Note th
 the fuels differ in how the car pulls out of corners (the diesel with torque from the bottom, the jet fuel with power).
 STAKHANOV LAPS ask CHOOSE FUEL after the track and before TIME OF DAY: the same four fuels and locks (no medals, no tour, not saved);
 keys 1-4 (a pad: D-pad up/down) still switch the fuel while driving, as the card says.
+On CHOOSE TRACK, L (pad: X) opens only the highlighted track's boards for the chosen mode.
+Rally shows its four fuel boards; Stakhanov uses Left/Right to browse fuel top tens. Esc (pad: B) returns to the same track card.
+T (pad: Y) still opens the track tour.
 BEST and LAST show the current session's times for the fuel currently selected; starting or restarting a run clears them.
 Each track keeps a separate Stakhanov top 10 for each fuel. A mixed-fuel lap belongs to the highest fuel used during that lap.
 The small board at the top right shows places 1, 2, 3 and 10. PARTY MEETING > LEADERBOARDS opens the current track and fuel;

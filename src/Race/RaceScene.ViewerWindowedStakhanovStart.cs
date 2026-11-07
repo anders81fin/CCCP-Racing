@@ -10,6 +10,7 @@ namespace CCCPRacing.Race;
 // "stakhanov-start": SINGLE PLAYER > STAKHANOV LAPS > CHOOSE TRACK > CHOOSE FUEL > TIME OF DAY (no THE LIGHT card) on a fresh profile: a locked fuel does not start,
 //   Esc on either card goes back to the menu with nothing started or saved, the pad's words on the card, the chosen JET FUEL drives the run on the same track, the run starts
 //   at the chosen phase and the light then advances lap by lap, keys 1-4 and the D-pad still switch the fuel on the move, and a restart keeps the fuel driven.
+//   On its CHOOSE TRACK first: L / X LEADERBOARDS of the highlighted tracks, read only (RaceScene.ViewerWindowedTrackBoards.cs).
 // "stakhanov-fuel-reload" (--unlock-all --power=50): SPUTNIK chosen for another track survives the real ReloadCurrentScene (the new scene parses --power=50 again) with its AWD.
 // "stakhanov-legacy" (--start --training --power=201 --unlock-all): the command line start still drives the --power fuel.
 public partial class RaceScene
@@ -39,7 +40,7 @@ public partial class RaceScene
         VwCheck(_menuParent == MenuItem.Single && _menu == MenuItem.Training, $"STAKHANOV LAPS is selected ({(pad ? "pad" : "keyboard")})");
     }
 
-    bool VwFuelCardUp(bool pad) => _card == TitleCard.LapsFuel && _hud.CardTitle == "CHOOSE FUEL" && _hud.CardOptions.SequenceEqual(FuelGrades.Names) && !_hud.CardTour
+    bool VwFuelCardUp(bool pad) => _card == TitleCard.LapsFuel && _hud.CardTitle == "CHOOSE FUEL" && _hud.CardOptions.SequenceEqual(FuelGrades.Names) && !_hud.CardTour && !_hud.CardBoards
         && _hud.CardNote == (pad ? "D-PAD UP/DOWN SWITCHES FUEL WHILE DRIVING" : "KEYS 1-4 SWITCH FUEL WHILE DRIVING");
 
     bool VwNothingStarted() => _state == State.Title && TrackLoadingScreen.Active == null && _lapsFuelStart == null;
@@ -82,6 +83,7 @@ public partial class RaceScene
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
         VwCheck(_card == TitleCard.Track, "the track card comes first");
+        foreach (var x in VtbTrackCardBoards(true)) yield return x;      // L LEADERBOARDS on the card (RaceScene.ViewerWindowedTrackBoards.cs), back on KOLKHOZ
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
         // 1. a fresh profile: only DIESEL is open (PETROL needs a silver on the bonus track on DIESEL), the card opens on it

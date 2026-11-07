@@ -70,6 +70,16 @@ public partial class RaceScene
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 8; i++) yield return null;
         VwCheck(_showBoard && _hud.Mode == HudMode.Board, "LEADERBOARDS opens the board of honour");
+        // the office board stays the unrestricted one (not CHOOSE TRACK's scoped view): the built track, a selected row, Left/Right the run, W/S the track
+        int built = Array.FindIndex(Tracks, t => t.id == _trackId), page0 = _boardPage;
+        VwCheck(!_boardScoped && !_hud.BoardScoped && _boardTrack == built && _hud.BoardSelected == 0 && _hud.BoardReplayNotice != "", $"the office board is unrestricted: built track {_hud.BoardTrack}, row selected, replay line '{_hud.BoardReplayNotice}'");
+        foreach (var x in VrTap(Key.Right)) yield return x;
+        VwCheck(_showBoard && _boardPage != page0 && _hud.BoardStakhanov == (_boardPage == 1), $"office board: Right switches the run (page {page0} -> {_boardPage})");
+        foreach (var x in VrTap(Key.S)) yield return x;
+        VwCheck(_showBoard && _boardTrack == (built + 1) % Tracks.Length && _hud.BoardTrack == Tracks[_boardTrack].name, $"office board: S goes to the next track ({_hud.BoardTrack})");
+        foreach (var x in VrTap(Key.W)) yield return x;
+        foreach (var x in VrTap(Key.Left)) yield return x;
+        VwCheck(_showBoard && _boardTrack == built && _boardPage == page0, $"office board: W and Left go back (track {_boardTrack}, page {_boardPage})");
         foreach (var x in VrShot("title-leaderboards")) yield return x;
         foreach (var x in VrTap(Key.Escape)) yield return x;
         for (int i = 0; i < 8; i++) yield return null;

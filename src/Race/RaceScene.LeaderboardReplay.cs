@@ -118,7 +118,7 @@ public partial class RaceScene
         }
         if (_boardReplayOpen is not { IsCompleted: true } task) return;
         _boardReplayOpen = null;
-        if (!_showBoard || Tracks[_boardTrack].id != _boardReplayOpenTrack || BoardReplayRow().Entry?.RecordingId != _boardReplayOpenId) return;
+        if (!_showBoard || _boardScoped || Tracks[_boardTrack].id != _boardReplayOpenTrack || BoardReplayRow().Entry?.RecordingId != _boardReplayOpenId) return;
         if (task.IsFaulted) { BoardReplayNotice("COULD NOT OPEN RECORDING"); return; }
         var (source, reason) = task.Result;
         if (source == null) { BoardReplayNotice((reason ?? "RECORDING NOT AVAILABLE").ToUpperInvariant()); return; }
@@ -127,7 +127,7 @@ public partial class RaceScene
         var info = archive.List().FirstOrDefault(x => x.Id == _boardReplayOpenId);
         Callable.From(() =>
         {
-            if (!_showBoard || Tracks[_boardTrack].id != source.Meta.TrackId || BoardReplayRow().Entry?.RecordingId != source.Meta.Id) return;
+            if (!_showBoard || _boardScoped || Tracks[_boardTrack].id != source.Meta.TrackId || BoardReplayRow().Entry?.RecordingId != source.Meta.Id) return;
             var session = OpenReplayViewer(source, out string error);
             if (session == null) { BoardReplayNotice((error ?? "CANNOT OPEN RECORDING").ToUpperInvariant()); return; }
             session.SetEditContext(archive, info);

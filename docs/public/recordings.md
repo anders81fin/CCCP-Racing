@@ -27,6 +27,16 @@ The free camera can place shots with tracking, helicopter, crane, dolly and
 zoom motion. Export uses the saved camera framing. Check the viewer's on-screen
 controls for keyboard and controller actions.
 
+## Boards from track selection
+
+On SOCIALIST RALLY or STAKHANOV LAPS > CHOOSE TRACK, L (controller X)
+opens only the highlighted track's results for that mode. Rally shows all
+four fuel boards in Diesel, Petrol, Jet Fuel, Sputnik order. Stakhanov always
+opens on Diesel and uses Left/Right (controller D-pad) to browse each fuel's
+top 10 in the same order. Empty boards stay empty. Esc, Enter or controller B
+returns to the same highlighted track without starting a run. T (controller Y)
+still opens the track tour.
+
 ## Stakhanov leaderboards
 
 Each track keeps a separate top 10 for each fuel. A lap using more than one

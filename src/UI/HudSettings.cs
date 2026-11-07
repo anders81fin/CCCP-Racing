@@ -44,11 +44,21 @@ public partial class Hud
             case SettingsRowId.Visuals: label = "VISUALS"; value = ">"; break;
             case SettingsRowId.Lab: label = "LAB MODE"; value = LabModeOn ? "ON" : "OFF"; break;
             case SettingsRowId.LabTune: label = "LAB TUNING"; value = ">"; break;
-            case SettingsRowId.Rumble: label = Rumble ? "RUMBLE ON" : "RUMBLE OFF"; break;
+            case SettingsRowId.Rumble: label = "RUMBLE"; value = Rumble ? "ON" : "OFF"; break;
             case SettingsRowId.Keys: label = "KEYS"; break;
             default: label = "BACK"; break;
         }
     }
+
+    internal bool? SettingsToggleValue(SettingsRowId id) => id switch
+    {
+        SettingsRowId.Lab => LabModeOn,
+        SettingsRowId.Rumble => Rumble,
+        _ => null,
+    };
+
+    internal bool? SettingsSwitchValueAt(int row, Vector2 p) => row >= 0 && row < SettingsRowIds.Length && SettingsToggleValue(SettingsRowIds[row]) != null
+        ? OnOffValueAt(OnOffRowRect(SettingsRect, SettingsRect.Position.Y + 38 + row * 16), p) : null;
 
     /// <summary>A row's shortcut (keyboard or pad button), or null: drawn in its own column, left of the label column that every row's label starts in.</summary>
     internal string SettingsRowKey(SettingsRowId id) => id switch
@@ -79,9 +89,11 @@ public partial class Hud
             string key = SettingsRowKey(SettingsRowIds[i]);
             if (key != null) PixelFont.Draw(this, key, new Vector2(x, y), selected ? Gold : Grey);
             PixelFont.Draw(this, label, new Vector2(SettingsLabelX(r), y), c);
-            if (value != null) PixelFont.Draw(this, value, new Vector2(r.End.X - 12 - PixelFont.Measure(value), y), c);
+            if (SettingsToggleValue(SettingsRowIds[i]) is bool on) DrawOnOffSwitch(OnOffRowRect(r, y).Position, on, selected);
+            else if (value != null) PixelFont.Draw(this, value, new Vector2(r.End.X - 12 - PixelFont.Measure(value), y), c);
         }
-        string hint = P("UP/DOWN CHOOSE  ENTER SELECT", "D-PAD CHOOSE  A SELECT");
+        string hint = P("UP/DOWN SELECT  < > CHANGE  ENTER OK", "D-PAD SELECT/CHANGE  A SELECT");
+        if (PixelFont.Measure(hint) > r.Size.X - 12) hint = P("UP/DOWN SELECT  < > CHANGE", "D-PAD SELECT / CHANGE");
         PixelFont.DrawCentered(this, hint, Screen.X / 2, r.End.Y - 12, Grey);
     }
 }

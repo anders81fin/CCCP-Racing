@@ -863,7 +863,7 @@ public partial class RaceScene : Node3D
         _run = RunMode.Title;     // the title replay runs in the full rally world
         ResetMenu();             // the top row, on the parent of the mode played last
         if (_menuSingleTest) OpenMenu(MenuItem.Single);
-        _watching = _showBoard = _showLog = _showFiles = _showLessons = _showKeys = _replaySelected = false;
+        _watching = _showBoard = _boardScoped = _showLog = _showFiles = _showLessons = _showKeys = _replaySelected = false;
         if (!_hud.Clean) SetSaturation(0f);     // the menu's world is a faded poster (PosterGrade)
         ApplyTrainingPower();
         PlaceAtStart();
@@ -951,6 +951,7 @@ public partial class RaceScene : Node3D
     void EnterBoard()
     {
         _showBoard = true;
+        _boardScoped = false;      // (the office board is the unrestricted one)
         _boardReplaySelected = 0;
         _boardTrack = Math.Max(0, Array.FindIndex(Tracks, t => t.id == (_boardTrackArg ?? _trackId)));
         string bid = Tracks[_boardTrack].id;
@@ -991,6 +992,7 @@ public partial class RaceScene : Node3D
         if (ViewerMode) return;      // a viewer takes no input of its own; the session owner drives it
         if (StakhanovBoardRawInput(e)) return;
         if (_replayViewer is { State: not ReplayViewerState.Closed } rv) { rv.RouteInput(e); return; }      // an open viewer owns the input: the frozen live scene gets none (RaceScene.ReplayViewer.cs)
+        if (TrackCardBoardsRawInput(e)) return;        // RaceScene.TrackCardBoards.cs: CHOOSE TRACK's read-only boards, before the office board's replay keys
         if (_showBoard && LeaderboardReplayInput(e)) return;
         if (_lanLeaveAsk) { if (!PadRawInput(e)) LanLeaveRawInput(e); return; }
         if (TrackLoadingScreen.Active != null) return;
@@ -1012,7 +1014,7 @@ public partial class RaceScene : Node3D
             else if (_hud.VisualOpen)
             {
                 if (_hud.CameraHintOpen) CloseCameraHint();
-                else if (_hud.VisualRowAt(_hud.GetLocalMousePosition()) is >= 0 and var visualRow) ChooseVisual(visualRow);
+                else if (_hud.VisualRowAt(_hud.GetLocalMousePosition()) is >= 0 and var visualRow) ChooseVisual(visualRow, toggleValue: _hud.VisualSwitchValueAt(visualRow, _hud.GetLocalMousePosition()));
             }
             else if (_hud.ReplayListOpen)
             {
@@ -1020,11 +1022,11 @@ public partial class RaceScene : Node3D
             }
             else if (_hud.MixerOpen)
             {
-                if (_hud.MixerRowAt(_hud.GetLocalMousePosition()) is >= 0 and var mixerRow) ChooseMixer(mixerRow);
+                if (_hud.MixerRowAt(_hud.GetLocalMousePosition()) is >= 0 and var mixerRow) ChooseMixer(mixerRow, toggleValue: _hud.MixerSwitchValueAt(mixerRow, _hud.GetLocalMousePosition()));
             }
             else if (_hud.SettingsOpen)
             {
-                if (_hud.SettingsRowAt(_hud.GetLocalMousePosition()) is >= 0 and var settingsRow) ChooseSettings(settingsRow);
+                if (_hud.SettingsRowAt(_hud.GetLocalMousePosition()) is >= 0 and var settingsRow) ChooseSettings(settingsRow, _hud.SettingsSwitchValueAt(settingsRow, _hud.GetLocalMousePosition()));
             }
             else if (_hud.PauseNormsOpen) ClosePauseNorms();
             else if (_hud.PauseRowAt(_hud.GetLocalMousePosition()) is >= 0 and var row)
@@ -2519,6 +2521,8 @@ public partial class RaceScene : Node3D
         _hud.BoardFuel = page switch { 2 => "DIESEL", 3 => "JET FUEL", 4 => "SPUTNIK", 0 => "PETROL", _ => "" };
         _hud.BoardTrack = TrackName(boardTrack);
         _hud.BoardSpeed = SpeedText(page switch { 1 => "stakhanov", 2 => "rally_diesel", 3 => "rally_rocket", 4 => "rally_sputnik", _ => "rally" }, boardTrack);
+        _hud.BoardScoped = false;
+        if (BoardScoped) TrackCardBoardsHud();      // RaceScene.TrackCardBoards.cs: the track card's own boards replace every field above
         _hud.Pad = _padMode;
         _hud.PadConnected = _padMode || Input.GetConnectedJoypads().Count > 0;
         _hud.Rumble = _rumble.Enabled;

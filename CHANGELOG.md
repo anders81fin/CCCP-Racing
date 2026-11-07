@@ -3,6 +3,14 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.856
+
+- CHOOSE TRACK offers L LEADERBOARDS (controller X) for the highlighted track and mode. Rally boards follow Diesel, Petrol, Jet Fuel, Sputnik. Stakhanov always opens on Diesel and browses each fuel's top 10
+- The lobby uses a compact SYNC LEADERBOARDS OFF/ON switch. Left selects OFF and Right selects ON. Consent still applies only to the current session, and synchronization remains limited to the lobby
+- PARTY MEETING uses matching OFF/ON switches for visual visibility choices, softening, LAB MODE, RUMBLE and RADIO. Arrows select the state directly, Enter toggles, and either half can be clicked
+- Menu cards leave an empty row between the heading and help text. Mode descriptions, Driving School, KGB ARCHIVE and LAN / INTERNET instructions are clearer and shorter, with firewall ports shown in the network menu
+- The mechanic emblem has a larger spanner and smaller sickle. Red dashboard alarm beeps use half their previous signal level
+
 ## 0.855
 
 - PARTY OFFICE groups PERSONNEL, LEADERBOARDS and RECORDINGS under KGB FILES. Multiplayer is named LAN / INTERNET

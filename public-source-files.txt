@@ -457,6 +457,8 @@ src/Race/RaceScene.TitleMusic.cs
 src/Race/RaceScene.TitleMusic.cs.uid
 src/Race/RaceScene.TraceProbe.cs
 src/Race/RaceScene.TraceProbe.cs.uid
+src/Race/RaceScene.TrackCardBoards.cs
+src/Race/RaceScene.TrackCardBoards.cs.uid
 src/Race/RaceScene.TrackPreview.cs
 src/Race/RaceScene.TrackPreview.cs.uid
 src/Race/RaceScene.TrackTour.cs
@@ -515,6 +517,8 @@ src/Race/RaceScene.ViewerWindowedNative.cs
 src/Race/RaceScene.ViewerWindowedNative.cs.uid
 src/Race/RaceScene.ViewerWindowedNormCard.cs
 src/Race/RaceScene.ViewerWindowedNormCard.cs.uid
+src/Race/RaceScene.ViewerWindowedPartySwitches.cs
+src/Race/RaceScene.ViewerWindowedPartySwitches.cs.uid
 src/Race/RaceScene.ViewerWindowedRallyStart.cs
 src/Race/RaceScene.ViewerWindowedRallyStart.cs.uid
 src/Race/RaceScene.ViewerWindowedRecordings.cs
@@ -533,6 +537,8 @@ src/Race/RaceScene.ViewerWindowedTest.cs
 src/Race/RaceScene.ViewerWindowedTest.cs.uid
 src/Race/RaceScene.ViewerWindowedTitle.cs
 src/Race/RaceScene.ViewerWindowedTitle.cs.uid
+src/Race/RaceScene.ViewerWindowedTrackBoards.cs
+src/Race/RaceScene.ViewerWindowedTrackBoards.cs.uid
 src/Race/RaceScene.VisualSettings.cs
 src/Race/RaceScene.VisualSettings.cs.uid
 src/Race/RaceScene.World.cs
@@ -1277,6 +1283,8 @@ src/UI/HudNormCard.cs
 src/UI/HudNormCard.cs.uid
 src/UI/HudNormMiss.cs
 src/UI/HudNormMiss.cs.uid
+src/UI/HudOnOffSwitch.cs
+src/UI/HudOnOffSwitch.cs.uid
 src/UI/HudPad.cs
 src/UI/HudPad.cs.uid
 src/UI/HudPauseNorms.cs

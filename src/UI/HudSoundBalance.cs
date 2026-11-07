@@ -13,6 +13,9 @@ public partial class Hud
     public int MixerLeadRows => 1 + (RadioOn ? 1 : 0);
     public int MixerRowCount => MixerLeadRows + 5 + 2;
 
+    internal bool? MixerSwitchValueAt(int row, Vector2 p) => row == 0
+        ? OnOffValueAt(OnOffRowRect(MixerRect, MixerRect.Position.Y + 38), p) : null;
+
     public void SetMixerOpen(bool open)
     {
         MixerOpen = open;
@@ -57,7 +60,8 @@ public partial class Hud
             {
                 string value = i == 0 ? (RadioOn ? "ON" : "OFF") : RadioStation + " / " + RadioStationCount;
                 PixelFont.Draw(this, i == 0 ? "RADIO" : "STATION", new Vector2(x, y), c);
-                PixelFont.Draw(this, value, new Vector2(r.End.X - 12 - PixelFont.Measure(value), y), c);
+                if (i == 0) DrawOnOffSwitch(OnOffRowRect(r, y).Position, RadioOn, selected);
+                else PixelFont.Draw(this, value, new Vector2(r.End.X - 12 - PixelFont.Measure(value), y), c);
             }
             else if (k < 5)
             {

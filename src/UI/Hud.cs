@@ -64,6 +64,8 @@ public partial class Hud : Control
     public FuelBoard[] BoardFuels = Array.Empty<FuelBoard>();
     /// <summary>Board is the STAKHANOV LAPS one (a power column), else SOCIALIST RALLY.</summary>
     public bool BoardStakhanov;
+    /// <summary>CHOOSE TRACK's read-only boards: one track and mode, no selection, replay or track keys (Stakhanov: one fuel's group, Left/Right the fuel).</summary>
+    public bool BoardScoped;
     /// <summary>The rally board's fuel (PETROL, DIESEL, JET FUEL; empty on the Stakhanov board).</summary>
     public string BoardFuel = "";
     /// <summary>The GAI's record on the board's track and run ("GAI 128 KM/H"), or "".</summary>
@@ -368,16 +370,18 @@ public partial class Hud : Control
     /// <summary>The selected mode's hint card, centred between top and bottom (not above top): its bottom edge.</summary>
     float DrawMenuHint(string title, string[] lines, float cx, float top, float bottom, bool typed = true)
     {
+        // Menu cards leave one empty text row between the heading and the help.
+        const int HelpTop = 34, RowPitch = 10;
         float w = PixelFont.Measure(title, 2);
         foreach (var l in lines) w = Math.Max(w, PixelFont.Measure(l));
         w += 20;
-        float h = 24 + lines.Length * 10 + 2;
+        float h = HelpTop + lines.Length * RowPitch + 2;
         float y = Mathf.Floor(Math.Max(top, (top + bottom) / 2 - h / 2));
         Panel(new Rect2(Mathf.Floor(cx - w / 2), y, Mathf.Ceil(w), h), 0.88f);
         // A new hint types out, unless another panel is the active one (a card under it): then it is just there.
         if (_hintTitle != title) { _hintTitle = title; _hintTextClock = typed ? 0 : 999f; }
         DrawHeading(title, cx, y + 5, _hintTextClock);
-        for (int i = 0; i < lines.Length; i++) PixelFont.DrawCentered(this, lines[i], cx, y + 24 + i * 10, Paper);
+        for (int i = 0; i < lines.Length; i++) PixelFont.DrawCentered(this, lines[i], cx, y + HelpTop + i * RowPitch, Paper);
         return y + h;
     }
 
@@ -405,7 +409,7 @@ public partial class Hud : Control
         const int RowH = 11, TimeX = 24 + 13 * 6 + 8, MarkX = TimeX + 7 * 6 + 4, PowerX = MarkX + InputMarkW + 8;
         int dateX = BoardStakhanov ? PowerX + 4 * 6 + 12 : PowerX + 13;    // the rally's gap: a moon (night) and a bolt (OCTANE BOOSTER)
         float rowW = dateX + 10 * 6;     // the rows, centred in a panel as wide for both boards
-        bool fuels = !BoardStakhanov && BoardFuels.Length > 0;
+        bool fuels = (!BoardStakhanov || BoardScoped) && BoardFuels.Length > 0;      // (the scoped Stakhanov board: its one fuel as a group)
         int groups = fuels ? BoardFuels.Length : 1;
         int places = BoardStakhanov ? Race.Leaderboard.StakhanovSize : Race.Leaderboard.Size;
         float w = Math.Max(320, rowW + 16), h = 38 + groups * (places * RowH + (fuels ? 13 : 0)) + 40;
@@ -451,6 +455,12 @@ public partial class Hud : Control
                 }
                 else PixelFont.Draw(this, "-", new Vector2(x0 + 24, y), Grey);
             }
+        }
+        if (BoardScoped)
+        {
+            if (BoardStakhanov) PixelFont.DrawCentered(this, Pad ? "D-PAD < > FUEL" : "< > FUEL", cx, r.End.Y - 22, Gold);
+            PixelFont.DrawCentered(this, Pad ? "B BACK" : "ESC BACK", cx, r.End.Y - 12, Grey);
+            return;
         }
         PixelFont.DrawCentered(this, Pad ? "D-PAD SELECT/BOARD  LB/RB TRACK" : "< > BOARD   W/S TRACK   UP/DOWN SELECT", cx, r.End.Y - 32, Grey);
         PixelFont.DrawCentered(this, string.IsNullOrEmpty(BoardReplayNotice) ? "ENTER REPLAY" : BoardReplayNotice, cx, r.End.Y - 22, Gold);
