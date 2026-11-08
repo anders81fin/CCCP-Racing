@@ -24,6 +24,7 @@ public class Wheel
     public Vector3 ContactPoint;    // world, on the ground
     public Vector3 ContactVel;     // world velocity of the contact patch
     public float HitCooldown;      // one pothole = one bang
+    public float Slick;            // slurry or oil on the tread, 0..1: picked up at once from the road, wiped off over SlickClean seconds of driving (more in water)
     public float ForceLong, VelLong, LongLimit;   // last longitudinal tyre force, patch speed along the wheel, and the grip it was held to (diagnostics)
 }
 
@@ -175,6 +176,8 @@ public partial class CarSim
     public static readonly float[] CollisionCircleZ = { -1.3f, 0f, 1.3f };
     public const float CollisionRadius = 0.92f;
     const float G = 9.81f;
+    /// <summary>Seconds of driving that wipe slurry or oil off a tyre completely (CarSim: Wheel.Slick).</summary>
+    public const float SlickClean = 7f;
 
     public Vector3 Forward => -Rot.Z;
     public Vector3 Right => Rot.X;
@@ -222,6 +225,7 @@ public partial class CarSim
         foreach (var w in Wheels)
         {
             w.Compression = w.PrevCompression = w.SlipLong = 0;
+            w.Slick = 0;
             w.SpinSpeed = w.SpinAngle = 0;
             w.Contact = w.Spinning = w.HandbrakeHeld = false;
         }
@@ -335,6 +339,8 @@ public partial class CarSim
         float pedal = Math.Clamp(ThrottleTarget, 0, 1);
         float throttle = pedal * (1 - P.ThrottleProgression + P.ThrottleProgression * pedal);
         Throttle = throttle < Throttle ? throttle : Math.Min(throttle, Throttle + P.ThrottleRise * dt);
+        // A fuel switched in the middle of a run can give the car fewer gears (the diesel's four): the gearbox drops to the highest one it has.
+        if (Gear > P.Gears.Length) Gear = P.Gears.Length;
         UpdateSteering(dt);
         UpdateFrontShare(dt);
         float driveForce = UpdateEngine(dt);
@@ -464,7 +470,12 @@ public partial class CarSim
             Vector3 vc = Vel + AngVel.Cross(rel);
             float vLong = vc.Dot(f), vLat = vc.Dot(r);
             float wheelSpeed = new Vector2(vc.X, vc.Z).Length();
-            float mu = (w.Front ? P.FrontGrip : P.RearGrip) * SlurryTrail.Grip(si.GripAt(wheelSpeed), g.SlurryWetness) * (1-.45f*g.OilFilm);
+            // Slurry and oil: the road's film makes the tyre almost as slippery as grease, and the tread keeps it for a while after the car has left the patch (it wipes off over
+            // SlickClean seconds of driving, three times faster through water).
+            float roadSlick = Math.Max(g.SlurryWetness, g.OilFilm);
+            if (roadSlick >= w.Slick) w.Slick = roadSlick;
+            else w.Slick = Math.Max(0f, w.Slick - dt / SlickClean * (g.Surface is SurfaceType.Water or SurfaceType.Shallow or SurfaceType.Puddle ? 3f : 1f));
+            float mu = (w.Front ? P.FrontGrip : P.RearGrip) * SlurryTrail.Grip(si.GripAt(wheelSpeed), Math.Max(roadSlick, w.Slick));
             float max = mu * fs;
             // HandbrakeForce is the equivalent braking force per rear wheel. While it holds the wheel
             // against the engine the wheel is locked; if the engine overpowers it, the wheel turns and

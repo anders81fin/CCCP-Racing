@@ -146,6 +146,7 @@ public partial class RaceScene
     void PlanLap(float time, bool ranked)
     {
         FuelLap(time);
+        _slurry?.RevengeLapDone();      // (the slurry tractor's grandmother revenge lasts three laps)
         bool labLap = _labRun;
         if (labLap && !_labMode) LabRunStarts();      // (LAB was switched off during this lap: the lap stays a lab lap, the run is a normal one from the next, and the red stamp goes)
         if (!_norms.Enabled || labLap) return;      // (a lab lap is judged by no norm: it is unranked and must not fail the rally)

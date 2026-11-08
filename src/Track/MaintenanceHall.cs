@@ -187,6 +187,7 @@ public partial class MaintenanceHall : Node3D
             FloorQuad(strips,-site.HalfWidth+.7f,z,site.HalfWidth-.7f,z+.1f,new(.65f,.61f,.44f),.04f);
         root._daylight.AddChild(new MeshInstance3D {Mesh=strips.Commit(),MaterialOverride=new StandardMaterial3D {
             VertexColorUseAsAlbedo=true,Roughness=1,CullMode=BaseMaterial3D.CullModeEnum.Disabled}});
+        // (The patch was almost black, albedo .06: a headlight beam, which has no specular, lit it to nothing and the lamps seemed to fail over the oil. Dark but lit now.)
         // The only slippery patches sit at the margins; a generous dry middle line stays clear.
         foreach(var stain in MaintenanceHallSite.Stains) {
             var st=new SurfaceTool();st.Begin(Mesh.PrimitiveType.Triangles);
@@ -194,7 +195,7 @@ public partial class MaintenanceHall : Node3D
             for(int i=0;i<boundary.Length;i++) {float a=i*MathF.Tau/boundary.Length;boundary[i]=stain.Center+new Vector2(MathF.Cos(a),MathF.Sin(a))*stain.Size;}
             GroundPolygon(st,boundary,Colors.White,.045f);
             root.AddChild(new MeshInstance3D {Name="OilStain",Mesh=st.Commit(),MaterialOverride=new StandardMaterial3D {
-                AlbedoColor=new(.055f,.065f,.052f),Roughness=.23f,CullMode=BaseMaterial3D.CullModeEnum.Disabled}});
+                AlbedoColor=new(.15f,.16f,.14f),Roughness=.23f,CullMode=BaseMaterial3D.CullModeEnum.Disabled}});
         }
         // Shallow maintenance bays: tyres, drums, engine stand, toolbox and coiled air hose.
         foreach(float side in new[]{-1f,1f}) {

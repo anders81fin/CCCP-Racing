@@ -2517,7 +2517,7 @@ public partial class RaceScene : Node3D
         _hud.Board = built ? _boards[page].Entries : OtherBoard(boardTrack, page).Entries;
         _hud.BoardHighlight = built ? _boardHighlights[page] : -1;
         _hud.BoardStakhanov = page == 1;
-        _hud.BoardFuels = new[] { 0, 2, 3, 4 }.Select(f => new Hud.FuelBoard(
+        _hud.BoardFuels = new[] { 2, 0, 3, 4 }.Select(f => new Hud.FuelBoard(
             f switch { 2 => "DIESEL", 3 => "JET FUEL", 4 => "SPUTNIK", _ => "PETROL" }, BoardFor(boardTrack, f),
             built ? _boardHighlights[f] : -1,
             SpeedText(f switch { 2 => "rally_diesel", 3 => "rally_rocket", 4 => "rally_sputnik", _ => "rally" }, boardTrack))).ToArray();

@@ -14,6 +14,18 @@ public partial class PhysicsTest
     {
         GD.Print("Fuel grades: power, norms, records, resume and medals");
         Check(FuelGrades.Percent.SequenceEqual(new[] { 50, 100, 200, 200 }) && Training.Count == 3 && FuelGrades.Count == 4, "diesel 50, petrol 100, jet fuel 200 percent; the Sputnik has the jet fuel's; the LAN keeps three");
+        {
+            // A fuel switched in the middle of a run: a petrol car in fifth gear gets the diesel's four gears (this threw IndexOutOfRange every physics tick in 0.861).
+            var engine = new CarParams();
+            var car = NewCar(new FlatGround(), engine);
+            car.PowerScale = 1f;
+            Run(car, 25f, () => car.SetControls(true, false, 0, false));
+            bool fifth = car.Gear == engine.Gears.Length;
+            FuelGrades.ApplyEngine(engine, FuelGrade.Diesel);
+            bool ok = true;
+            try { Run(car, 3f, () => car.SetControls(true, false, 0, false)); } catch (IndexOutOfRangeException) { ok = false; }
+            Check(fifth && ok && car.Gear <= engine.Gears.Length && engine.Gears.Length == 4, "switching to the diesel's four gears from fifth gear in a run does not crash and drops to its top gear");
+        }
         Check(Training.LapsCount == 4 && Training.PercentForKey(4) == Training.SputnikPercent && Training.GradeOf(201) == FuelGrade.Sputnik && Training.GradeOf(200) == FuelGrade.Rocket
             && Training.FuelShort(201) == "SPUT" && Training.FuelName(201) == "SPUTNIK" && Training.Overdrive(201) == 0f && !Training.Valid(201), "Stakhanov laps offer the Sputnik as the fourth fuel (201), the LAN does not");
         Check(Enumerable.Range(0, 3).Select(i => FuelGrades.BoostPercent((FuelGrade)i)).SequenceEqual(new[] { 175, 350, 500 }),

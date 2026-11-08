@@ -35,11 +35,8 @@ public static class FuelGrades
         ("Redline", 5000f), ("ShiftUp", 4600f), ("ShiftDown", 2200f), ("PeakRpm", 2600f), ("TorqueCurveFalloff", 0.82f), ("MaxTorque", 200f), ("Mass", 1050f), ("FinalDrive", 4.6f), ("FuelRevKnee", 3200f),
     };
 
-    /// <summary>The jet fuel's (and the SPUTNIK's) peak torque in Nm, the slider value; the 175 % power and the turbo are applied on top of it.</summary>
-    public const float JetTorque = 180f;
-
-    /// <summary>The SPUTNIK's own peak torque (Nm) and mass (kg), a lighter and gentler car than the jet fuel's.</summary>
-    public const float SputnikTorque = 200f, SputnikMass = 900f;
+    /// <summary>The SPUTNIK's own mass (kg), lighter than the other cars. Jet fuel and Sputnik keep the petrol car's torque: the 175 % power and the turbo are applied on top of it.</summary>
+    public const float SputnikMass = 900f;
 
     /// <summary>The engine's power as the physics gets it (percent): the diesel's character is its torque curve, so it has the whole of it.</summary>
     public static int PhysicsPercent(FuelGrade g) => g switch { FuelGrade.Diesel => 100, FuelGrade.Rocket or FuelGrade.Sputnik => 175, _ => Percent[(int)g] };
@@ -73,7 +70,6 @@ public static class FuelGrades
             var prop = typeof(CarParams).GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
             prop.SetValue(p, g == FuelGrade.Diesel ? value : prop.GetValue(defaults));
         }
-        if (g is FuelGrade.Rocket or FuelGrade.Sputnik) p.MaxTorque = g == FuelGrade.Sputnik ? SputnikTorque : JetTorque;
         if (g == FuelGrade.Sputnik) p.Mass = SputnikMass;
         p.Gears = GearsFor(g);
         p.DriveFront = DriveFrontFor(g);

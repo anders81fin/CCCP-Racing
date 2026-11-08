@@ -22,13 +22,62 @@ public partial class SlurryTractor : Node3D
     BarnDoors _barnDoor;
     Vector2 _barnCenter;
     float _departureDelay, _doorOpen;
-    int _departureStage = 4; // 0 wait, 1 open, 2 leave, 3 reach field, 4 spread
+    int _departureStage = 4; // 0 wait, 1 open, 2 leave, 3 reach field, 4 spread, 5 revenge: drive to the road, 6 revenge: spread along the road
+    // The driver's grandmother (a babushka the car has run over): the tractor leaves its fields, follows the road in the lap's direction spreading slurry for RevengeLaps laps.
+    public const int RevengeLaps = 3;
+    float _roadAt;
+    int _revengeLapsLeft;
+    Vector2 _roadTarget;
+    /// <summary>The revenge is on: the tractor is on its way to the road or spreading along it.</summary>
+    public bool Avenging => _departureStage is 5 or 6;
+    /// <summary>The tractor's revenge laps still to be driven by the car.</summary>
+    public int RevengeLapsLeft => _revengeLapsLeft;
+    /// <summary>The revenge is over: the tractor drives back to its fields.</summary>
+    public event Action RevengeOver;
+    /// <summary>The tractor starts on the road (the spreading itself comes with the first tick).</summary>
+    public event Action RevengeOnTheRoad;
     public Node3D Model => _tractor;
     public Vector2 Position2D => _pos;
     public bool Spraying { get; private set; }
     public SlurryTrail Trail { get; } = new();
+    /// <summary>The world tape's host for the patches this tractor lays.</summary>
+    public ITapeFxHost TapeFx;
+    int _tapeSpray;
+    /// <summary>The title replay's tape shows the tractor, its spray and its patches: it lays and moves none of its own.</summary>
+    public bool TapeDriven
+    {
+        get => _tapeDriven;
+        set { if (_tapeDriven == value) return; _tapeDriven = value; if (value) { Trail.Clear(); _trailMesh?.ClearSurfaces(); Spraying = false; _spray.Visible = false; _tapeSpray = 0; } }
+    }
+    bool _tapeDriven;
+    /// <summary>The replay lays a patch the tape recorded (the sink's effect, restored by age on a seek).</summary>
+    public void ReplayPatch(Vector2 at, bool revenge, float age) => Trail.DepositAged(at, revenge, age);
+    /// <summary>A seek or the end of the replay: the patches the tape laid go.</summary>
+    public void ReplayClear() { Trail.Clear(); _trailMesh?.ClearSurfaces(); }
     public bool HasDeparted => _departureStage == 4;
     public bool CrossingBarnRoad => _departureStage == 2 || (_departureStage == 3 && _pos.Y < 62f);
+
+    /// <summary>The driver's grandmother has been run over: the tractor drives to the road and spreads slurry along it for <see cref="RevengeLaps"/> laps. False if it is already on it or still in the barn.</summary>
+    public bool StartRevenge()
+    {
+        if (_departureStage != 4) return false;
+        _revengeLapsLeft = RevengeLaps;
+        int k = _track.NearestCenter(_pos, out _);
+        _roadAt = k;
+        _roadTarget = _track.Center[k];
+        _departureStage = 5;
+        return true;
+    }
+
+    /// <summary>The car finished a lap: the third one ends the revenge.</summary>
+    public void RevengeLapDone()
+    {
+        if (!Avenging || _revengeLapsLeft <= 0) return;
+        if (--_revengeLapsLeft > 0) return;
+        _departureStage = 3;      // back to the fields (the departure's last leg)
+        Spraying = false; _spray.Visible = false; _depositDistance = 0.8f;
+        RevengeOver?.Invoke();
+    }
     public int BodyObstacle => _bodySlot;
     public int TankObstacle => _tankSlot;
 
@@ -90,7 +139,9 @@ public partial class SlurryTractor : Node3D
         };
         _tank.AddChild(_spray);
         // The world tape: tractor, driver's head and tanker. (The spray's drops are redrawn each tick and the trail is live state: not recorded.)
-        Tape.Version(this, 1); Tape.Part(this, "root"); Tape.Part(_tractor, "tractor"); Tape.Part(_head, "head"); Tape.Part(_tank, "tank");
+        Tape.Version(this, 2); Tape.Part(this, "root"); Tape.Part(_tractor, "tractor"); Tape.Part(_head, "head"); Tape.Part(_tank, "tank");
+        // Version 2: the spray (0 off, 1 spreading, 2 spreading in the revenge) is a sound channel; each patch is a 'slurry-patch' effect event (TapeFx), so the replay shows both.
+        Tape.Sound(_tractor, TapeSoundChannel.SlurrySpray, () => Spraying ? (Avenging ? 2f : 1f) : 0f, v => _tapeSpray = (int)MathF.Round(v));
         Tape.Sound(_tractor, TapeSoundChannel.DieselSpeed, () => _sound.Speed, v => _sound.Speed = v);
         Reset();
     }
@@ -98,6 +149,7 @@ public partial class SlurryTractor : Node3D
     public void Reset()
     {
         _angle = -0.6f; _clock = _renderClock = _depositDistance = _lateOff = 0;
+        _revengeLapsLeft = 0;
         _pos = Route(_angle);
         Vector2 forward = new(-32f * MathF.Sin(_angle), 20f * MathF.Cos(_angle));
         _trailer = _pos - forward.Normalized() * TowLength;
@@ -123,9 +175,21 @@ public partial class SlurryTractor : Node3D
     public void Tick(float dt, bool raceActive = true, SovietBus bus = null)
     {
         _sootDt = dt;
+        if (_tapeDriven)
+        {
+            _clock += dt;
+            Trail.Tick(dt);
+            Spraying = _tapeSpray > 0;
+            SprayStep(dt, _tapeSpray == 2, deposit: false);
+            return;
+        }
+        if (Avenging) { RevengeTick(dt, raceActive, bus); return; }
         if (_departureStage != 4)
         {
             if (!raceActive) return;
+            Trail.Tick(dt);      // (the revenge's strip keeps drying while the tractor drives home)
+            _renderClock += dt;
+            if (_renderClock >= 0.1f) { _renderClock %= 0.1f; DrawTrail(); }
             if (_departureStage == 0)
             {
                 _departureDelay -= dt;
@@ -179,6 +243,12 @@ public partial class SlurryTractor : Node3D
         _wasField = field;
         // Short runs of spreading; the late shutoff leaves a readable tail on the road.
         Spraying = (field && _clock % 14f < 5f) || _lateOff > 0;
+        SprayStep(dt, false);
+    }
+
+    /// <summary>The spray's drops, a patch under the nozzle every 0.8 m (every metre, bigger and longer lasting, in the revenge) and the trail's drawing.</summary>
+    void SprayStep(float dt, bool revenge, bool deposit = true)
+    {
         _spray.Visible = Spraying;
         if (Spraying)
             for (int i = 0; i < _spray.Multimesh.InstanceCount; i++)
@@ -191,15 +261,73 @@ public partial class SlurryTractor : Node3D
         Vector2 nozzle = Nozzle();
         _depositDistance += nozzle.DistanceTo(_previousNozzle);
         _previousNozzle = nozzle;
-        if (Spraying && _depositDistance >= 0.8f)
+        if (deposit && Spraying && _depositDistance >= (revenge ? 1.0f : 0.8f))
         {
             _depositDistance = 0;
             var surface = _track.TileSurface((int)(nozzle.X / _track.Tile), (int)(nozzle.Y / _track.Tile));
-            if (surface is not (SurfaceType.Water or SurfaceType.Shallow)) Trail.Deposit(nozzle);
+            if (surface is not (SurfaceType.Water or SurfaceType.Shallow))
+            {
+                Trail.Deposit(nozzle, revenge);
+                TapeFx?.Fx(new TapeEvent(0f, TapeEventType.Effect, Kind: TapeFxKind.SlurryPatch, Effect: TapeEffect.Smoke, Pos: new Vector3(nozzle.X, 0, nozzle.Y), Param: revenge ? 1f : 0f,
+                    Life: revenge ? SlurryTrail.RevengeLifetime : SlurryTrail.Lifetime));
+            }
         }
         if (!Spraying) _depositDistance = 0.8f;
         _renderClock += dt;
         if (_renderClock >= 0.1f) { _renderClock %= 0.1f; DrawTrail(); }
+    }
+
+
+    /// <summary>The revenge: on the way to the road (5), then along the centre line in the lap's direction, spreading all the time (6).</summary>
+    void RevengeTick(float dt, bool raceActive, SovietBus bus)
+    {
+        if (!raceActive) return;
+        _clock += dt;
+        Trail.Tick(dt);
+        Vector2 forward; float speed;
+        if (_departureStage == 5)
+        {
+            forward = (_roadTarget - _pos).Normalized();
+            speed = 4.1f;
+            Move(forward, speed, dt, bus, ref speed);
+            if (_pos.DistanceTo(_roadTarget) < 1.5f) { _departureStage = 6; RevengeOnTheRoad?.Invoke(); }
+            Place(speed, forward);
+            Spraying = false;
+            SprayStep(dt, true);
+        }
+        else
+        {
+            int n = _track.Center.Length;
+            int i0 = (int)_roadAt % n, i1 = (i0 + 1) % n;
+            Vector2 a = _track.Center[i0], b = _track.Center[i1];
+            forward = (b - a).Normalized();
+            speed = 3.2f;
+            float step = speed * dt / Math.Max(0.2f, a.DistanceTo(b));
+            float nextAt = (_roadAt + step) % n;
+            int j0 = (int)nextAt % n, j1 = (j0 + 1) % n;
+            Vector2 nextPos = _track.Center[j0].Lerp(_track.Center[j1], nextAt - (int)nextAt);
+            Vector2 hitch = nextPos - forward * 1.9f;
+            Vector2 tow = _trailer - hitch;
+            Vector2 nextTrailer = hitch + (tow.LengthSquared() > 0.001f ? tow.Normalized() : -forward) * (TowLength - 1.9f);
+            bool blocked = bus?.Blocks(nextPos, 1.3f) == true || bus?.Blocks(nextTrailer, 1.5f) == true
+                || GulagTruck.BlocksAt(nextPos, 1.3f) || GulagTruck.BlocksAt(nextTrailer, 1.5f);
+            if (!blocked) { _roadAt = nextAt; _pos = nextPos; _trailer = nextTrailer; }
+            else speed = 0;
+            Place(speed, forward);
+            Spraying = speed > 0;
+            SprayStep(dt, true);
+        }
+    }
+
+    /// <summary>A straight move toward a target (the way to the road), held back by a bus or the lorry in the way.</summary>
+    void Move(Vector2 forward, float wanted, float dt, SovietBus bus, ref float speed)
+    {
+        Vector2 next = _pos + forward * wanted * dt;
+        Vector2 hitch = next - forward * 1.9f;
+        Vector2 tow = _trailer - hitch;
+        Vector2 nextTrailer = hitch + (tow.LengthSquared() > 0.001f ? tow.Normalized() : -forward) * (TowLength - 1.9f);
+        if (bus?.Blocks(next, 1.3f) == true || bus?.Blocks(nextTrailer, 1.5f) == true || GulagTruck.BlocksAt(next, 1.3f) || GulagTruck.BlocksAt(nextTrailer, 1.5f)) { speed = 0; return; }
+        _pos = next; _trailer = nextTrailer;
     }
 
     Vector2 Nozzle() => _trailer + (_trailer - _pos).Normalized() * 3.1f;
@@ -241,7 +369,7 @@ public partial class SlurryTractor : Node3D
                 Vector2 Rim(int j)
                 {
                     float a = j * MathF.Tau / 12f;
-                    float radius = SlurryTrail.Radius * (0.94f + 0.06f * MathF.Sin(j * 2.3f + patch.Born));
+                    float radius = patch.Radius * (0.94f + 0.06f * MathF.Sin(j * 2.3f + patch.Born));
                     return patch.Center + new Vector2(MathF.Cos(a), MathF.Sin(a)) * radius;
                 }
                 st.SetColor(color); st.SetNormal(Vector3.Up);

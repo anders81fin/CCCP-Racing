@@ -219,7 +219,7 @@ public partial class DrunkMen : Node3D
         f.ArmR = new Node3D { Position = new Vector3(0.3f, 1.3f, 0) };
         f.Body.AddChild(f.ArmR);
         f.ArmR.AddChild(Props.Part(Props.Box(0.12f, 0.5f, 0.12f), coat, new Vector3(0, -0.25f, 0)));
-        f.Bottle = Props.Part(Props.Cyl(0.05f, 0.3f, 6), new Color(0.2f, 0.5f, 0.25f), new Vector3(0, -0.55f, -0.05f));
+        f.Bottle = Props.Part(Props.Cyl(0.05f, 0.3f, 6), new Color(0.2f, 0.5f, 0.25f), new Vector3(0, -0.55f, -0.08f), new Vector3(90, 0, 0));      // gripped across the fist: 90 degrees to the arm, not an extension of it
         f.ArmR.AddChild(f.Bottle);
         f.Body.AddChild(Props.Part(Props.Box(0.12f, 0.5f, 0.12f), coat, new Vector3(-0.3f, 1.05f, 0)));
         return f;

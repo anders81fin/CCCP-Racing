@@ -3,6 +3,19 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.862
+
+- Fixed a crash: switching the fuel to Diesel from fifth gear in the middle of a run threw an error every frame (the diesel has four gears). The gearbox now drops to the highest gear it has
+- Kolkhoz: one of the babushkas is the slurry tractor driver's grandmother. Run her over and the tractor leaves its fields, drives along the road and spreads slurry for three laps, then goes back to work
+- The replay shows the slurry tractor's spray and its patches on the road (a patch is restored by its age when you seek)
+- Slurry and the oil patches in the Poligon hall are now really slippery (far under the ice), and the film stays on the tyres for a few seconds after you have left the patch. Water washes it off faster
+- The oil patches in the Poligon hall are no longer pitch black under the headlights
+- The bottles of the drunks and the mechanic are held across the fist, at a right angle to the arm
+- The leaderboards list Diesel first. Jet Fuel and Sputnik have the petrol car's torque again, with their 175 % power and turbo on top
+- New gold norms: Kolkhoz 0:44 / 0:41 / 0:39 / 0:36, Siberia 1:07 / 1:00 / 0:58 / 0:56, Atomgrad 0:45 / 0:40 / 0:35 / 0:33, Poligon 0:57 / 0:52 / 0:49 / 0:46 (Diesel, Petrol, Jet Fuel, Sputnik), and the other norms follow in the same proportion
+- Poligon: the tanks hold their fire while you are inside the base. The camp gate opens for a horn heard from 45 m, even when the car is still moving
+- Atomgrad: the switchyard box no longer stands in the road
+
 ## 0.861
 
 - The cars changed so much that the records of the earlier versions no longer compare: on the first start the ghosts, leaderboards and replays of every track are archived (renamed, not deleted) and the boards start empty

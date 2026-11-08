@@ -21,6 +21,16 @@ public partial class PhysicsTest
     void PropRoadReport(string id)
     {
         var track = TrackBuilder.Build(TrackDef.Load($"res://tracks/{id}.json"));
+        if (Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--slurry-route"))
+        {
+            for (int i = 0; i < 48; i++)
+            {
+                var rp = SlurryTractor.Route(i * MathF.Tau / 48);
+                int kk = track.NearestCenter(rp, out float rd);
+                GD.Print($"ROUTE {i}: ({rp.X:F0}, {rp.Y:F0}) {rd - track.HalfWidth[kk]:F1} m from the road edge, centre-line index {kk} of {track.Center.Length}");
+            }
+            return;
+        }
         var probe = Array.Find(OS.GetCmdlineUserArgs(), a => a.StartsWith("--probe="));
         if (probe != null)
         {

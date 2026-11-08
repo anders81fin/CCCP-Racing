@@ -52,6 +52,8 @@ public partial class RaceScene
             },
             Lens = (e, age) => _hud?.RestoreTapeLensEvent(e, age),
             Radar = (e, age) => _trap?.RestoreTapeReading(e, age),
+            Slurry = (at, revenge, age) => _slurryAll?.ReplayPatch(at, revenge, age),
+            SlurryClear = () => _slurryAll?.ReplayClear(),
         };
         _tapeFx.Wood = _wood;
         _tapeEmit = new TapeEmitters(_fx, _track);
@@ -66,6 +68,7 @@ public partial class RaceScene
             else if (a.Node == _busAll) _busAll.TapeFx = new TapeFxHost(this, key);
             else if (a.Node == _babushkasAll) _babushkasAll.TapeFx = new TapeFxHost(this, key);
             else if (a.Node == _drunksAll) _drunksAll.TapeFx = new TapeFxHost(this, key);
+            else if (a.Node == _slurryAll) _slurryAll.TapeFx = new TapeFxHost(this, key);
             else if (a.Node == _trap) _trap.TapeFx = new TapeFxHost(this, key);
         }
         if (_busAll != null) _busAll.TapeReset += () => _tapeFxLive.RemoveAll(x => x.E.Kind == TapeFxKind.BusFire);

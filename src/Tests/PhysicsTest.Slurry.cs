@@ -1,4 +1,7 @@
 using System;
+using System.Linq;
+using CCCPRacing.Car;
+using CCCPRacing.Race;
 using Godot;
 using CCCPRacing.Track;
 
@@ -32,6 +35,27 @@ public partial class PhysicsTest
         GD.Print($"  stopping distances: clean {clean:F1}, half dried {faded:F1}, fresh slurry {slippery:F1} m");
         Check(slippery > clean * 1.4f && faded > clean && faded < slippery, "wheel physics loses grip on fresh slurry and recovers as it fades");
 
+        {
+            // The film stays on the tread after the car leaves the patch and wipes off over CarSim.SlickClean seconds (faster through water).
+            var ground = new FlatGround { SlurryWetness = 1f };
+            var car = NewCar(ground);
+            Run(car, 1f);
+            car.Vel = car.Forward * 15f;
+            Run(car, 0.5f);
+            bool soaked = car.Wheels.All(w => w.Slick > 0.99f);
+            ground.SlurryWetness = 0f;
+            Run(car, 0.2f);
+            bool stillSlick = car.Wheels.All(w => w.Slick > 0.9f);
+            Run(car, CarSim.SlickClean * 0.5f);
+            bool half = car.Wheels.All(w => w.Slick is > 0.3f and < 0.7f);
+            Run(car, CarSim.SlickClean);
+            bool wiped = car.Wheels.All(w => w.Slick == 0f);
+            Check(soaked && stillSlick && half && wiped, "slurry or oil on the tread is picked up at once, stays after the patch and is wiped off over the clean-up time");
+            car = NewCar(new FlatGround { Surface = SurfaceType.Puddle });
+            foreach (var w in car.Wheels) w.Slick = 1f;
+            Run(car, CarSim.SlickClean / 3f * 1.05f);
+            Check(car.Wheels.All(w => w.Slick < 0.05f), "water washes the tyres three times faster");
+        }
         var t = TrackBuilder.Build(TrackDef.Load("res://tracks/ilyich.json"));
         var actor = new SlurryTractor(); AddChild(actor); actor.Init(t);
         int staticCount = t.Obstacles.Count - 2;
@@ -61,6 +85,67 @@ public partial class PhysicsTest
         Check(t.Slurry == actor.Trail && actor.Trail.Patches.Count <= SlurryTrail.Capacity, "track samples the bounded temporary slurry overlay");
         actor.Reset();
         Check(t.Slurry.Patches.Count == 0, "reset clears both visual and physical deposits");
+
+        // The world tape: every patch is an effect event, the spray a sound channel; a tape-driven tractor lays none of its own and shows what the tape says.
+        {
+            var host = new SlurryEventLog();
+            actor.TapeFx = host;
+            for (int i = 0; i < 700; i++) actor.Tick(0.1f);
+            int made = host.Events.Count;
+            bool allKind = host.Events.TrueForAll(e => e.Kind == TapeFxKind.SlurryPatch && e.Life == SlurryTrail.Lifetime && e.Param == 0f);
+            Check(made > 20 && allKind, "every patch the live tractor lays is a slurry-patch event with its life");
+            var reg = System.Linq.Enumerable.FirstOrDefault(Tape.SoundsOf(actor.Model) ?? new System.Collections.Generic.List<TapeSoundReg>(), r => r.Channel == TapeSoundChannel.SlurrySpray);
+            Check(reg != null && TapeSoundRange.Of(TapeSoundChannel.SlurrySpray) == (0f, 2f) && TapeSoundRange.FromByte(TapeSoundChannel.SlurrySpray, TapeSoundRange.ToByte(TapeSoundChannel.SlurrySpray, 2f)) == 2f
+                && actor.GetMeta(WorldTapeConst.VersionMeta, 0).AsInt32() == 2, "the spray is a registered sound channel with an exact 0, 1, 2 range");
+            actor.TapeDriven = true;
+            Check(actor.Trail.Patches.Count == 0 && !actor.Spraying, "a tape-driven tractor starts with a clean trail");
+            reg.Set(1f);
+            for (int i = 0; i < 10; i++) actor.Tick(0.1f);
+            bool sprays = actor.Spraying;
+            reg.Set(0f);
+            actor.Tick(0.1f);
+            Check(sprays && !actor.Spraying && actor.Trail.Patches.Count == 0, "the tape's spray channel shows the fan and lays no patch of its own");
+            var last = host.Events[^1];
+            actor.ReplayPatch(new Vector2(last.Pos.X, last.Pos.Z), false, 4f);
+            actor.ReplayPatch(new Vector2(last.Pos.X + 50f, last.Pos.Z), true, 10f);
+            actor.ReplayPatch(new Vector2(last.Pos.X + 100f, last.Pos.Z), false, 20f);      // dried long ago: none
+            float w0 = actor.Trail.Wetness(new Vector2(last.Pos.X, last.Pos.Z)), w1 = actor.Trail.Wetness(new Vector2(last.Pos.X + 50f, last.Pos.Z));
+            Check(actor.Trail.Patches.Count == 2 && Math.Abs(w0 - (1f - 4f / SlurryTrail.Lifetime)) < 0.01f && Math.Abs(w1 - (1f - 10f / SlurryTrail.RevengeLifetime)) < 0.01f,
+                "a patch restored from the tape has the wetness of its age (the revenge's lasts longer)");
+            actor.ReplayClear();
+            Check(actor.Trail.Patches.Count == 0, "a seek takes the replay's patches away");
+            actor.TapeDriven = false;
+            actor.TapeFx = null;
+            actor.Reset();
+        }
+
+        // The driver's grandmother: the tractor goes to the road, spreads along it for three laps, then drives home.
+        for (int i = 0; i < 100; i++) actor.Tick(0.1f);
+        bool started = actor.StartRevenge() && actor.Avenging && actor.RevengeLapsLeft == SlurryTractor.RevengeLaps;
+        bool onRoad = false, wetRoad = false, bounded = true;
+        float worstEdge = 0;
+        for (int i = 0; i < 4000; i++)
+        {
+            actor.Tick(0.1f);
+            bounded &= actor.Trail.Patches.Count <= SlurryTrail.Capacity;
+            if (!onRoad && actor.Avenging && actor.Spraying) onRoad = true;
+            if (onRoad)
+            {
+                int ci = t.NearestCenter(actor.Position2D, out float dist);
+                worstEdge = Math.Max(worstEdge, dist - t.HalfWidth[ci]);
+                wetRoad |= t.Sample(actor.Position2D.X, actor.Position2D.Y).SlurryWetness > 0 || actor.Trail.Patches.Count > 20;
+            }
+            if (onRoad && i > 600) break;
+        }
+        Check(started && onRoad && wetRoad && bounded, "the revenge: the tractor reaches the road and spreads slurry along it (bounded patches)");
+        Check(worstEdge < 0.5f, "while avenging the tractor stays on the road");
+        actor.RevengeLapDone(); actor.RevengeLapDone();
+        bool twoLaps = actor.Avenging;
+        actor.RevengeLapDone();
+        Check(twoLaps && !actor.Avenging, "the revenge lasts exactly three laps");
+        for (int i = 0; i < 6000 && !actor.HasDeparted; i++) actor.Tick(0.1f);
+        Check(actor.HasDeparted, "after the revenge the tractor drives back to its fields");
+        actor.Reset();
         RemoveChild(actor); actor.Free();
     }
 
@@ -91,5 +176,11 @@ public partial class PhysicsTest
         RemoveChild(bus); bus.Free();
         RemoveChild(tractor); tractor.Free();
         RemoveChild(fx); fx.Free();
+    }
+
+    sealed class SlurryEventLog : ITapeFxHost
+    {
+        public readonly System.Collections.Generic.List<TapeEvent> Events = new();
+        public void Fx(in TapeEvent e) => Events.Add(e);
     }
 }

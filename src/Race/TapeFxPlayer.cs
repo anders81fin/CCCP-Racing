@@ -40,6 +40,9 @@ public sealed partial class TapeFxPlayer
     public Action<TapeEvent, float> Feel;
     public Action<TapeEvent?, float> Lens;
     public Action<TapeEvent?, float> Radar;
+    /// <summary>A slurry patch of the tape (where, whether it is the revenge's, how old); the tractor lays it. SlurryClear takes the laid ones away (a seek, the end of the replay).</summary>
+    public Action<Vector2, bool, float> Slurry;
+    public Action SlurryClear;
     TapeEvent? _lensHit;
     TapeEvent? _radarReading;
 
@@ -131,6 +134,7 @@ public sealed partial class TapeFxPlayer
                     if (age <= .00001f) Feel?.Invoke(e, age);
                     break;
                 case TapeFxKind.CanisterBurst: Feel?.Invoke(e, age); break;      // (the splash restores by age through the tagged particles; its thump the host skips when old)
+                case TapeFxKind.SlurryPatch: Slurry?.Invoke(new Vector2(e.Pos.X, e.Pos.Z), e.Param > .5f, age); break;
                 case TapeFxKind.RunWarning: Warning(e, age); break;
                 case TapeFxKind.BukLaunch: Buk21Battery.LaunchFx(_fx, _track, SoundParent(age), e.Pos, e.Dir); break;
                 case TapeFxKind.BukTrail: Buk21Battery.TrailFx(_fx, e.Pos); break;
@@ -291,6 +295,7 @@ public sealed partial class TapeFxPlayer
     public void Clear()
     {
         _radarReading = null; Radar?.Invoke(null, 0);
+        SlurryClear?.Invoke();
         _lensHit = null; Lens?.Invoke(null, 0);
         _busFires.Clear();
         if (WoodReplay) Wood?.ReplayClear();

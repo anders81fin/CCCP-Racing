@@ -32,5 +32,5 @@ public static class TapeFxKind
         HindDebris = "hind-debris", HindCrash = "hind-crash", RunWarning = "run-warning", BukLaunch = "buk-launch", BukTrail = "buk-trail", BukBurst = "buk-burst",
         TankBlast = "tank-blast", TankShell = "tank-shell", TankImpact = "tank-impact", TankRicochet = "tank-ricochet", BtrTracer = "btr-tracer", Marker = "tape-fx",
         BusFire = "bus-fire", WoodBreak = "wood-break", Breakable = "breakable", JetCrash = "jet-crash", MissileBurst = "missile-burst", BabushkaLaunch = "babushka-launch", CanisterBurst = "canister-burst",
-        BabushkaLens = "babushka-lens", MechanicWhack = "mechanic-whack", RadarReading = "radar-reading";
+        BabushkaLens = "babushka-lens", MechanicWhack = "mechanic-whack", RadarReading = "radar-reading", SlurryPatch = "slurry-patch";
 }

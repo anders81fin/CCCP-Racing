@@ -58,6 +58,17 @@ public partial class RaceScene
             };
             _jets.AvengerGone += () => { if (RevengeDbg) GD.Print($"revenge Balalaika over at {_clock:F1} s"); };
         }
+        if (_slurryAll != null)
+        {
+            _slurryAll.RevengeOnTheRoad += () =>
+            {
+                if (_state == State.Racing) _hud.Alert("THE TRACTOR IS ON THE ROAD", "SLURRY AHEAD. DO NOT BRAKE IN IT", 3f, Hud.Red, Prio.Important);
+            };
+            _slurryAll.RevengeOver += () =>
+            {
+                if (_state == State.Racing) _hud.Alert("THE TRACTOR GOES BACK TO ITS FIELDS", "THE FAMILY HAS MADE ITS POINT", 3f, Hud.Gold, Prio.Important);
+            };
+        }
         if (_tanks != null)
         {
             _tanks.ChaseShot += n => { if (RevengeDbg) GD.Print($"revenge tanks: shot {n} at {_clock:F1} s"); };
@@ -77,7 +88,11 @@ public partial class RaceScene
         if (_state != State.Racing || _babushkas == null || FateHasCar) return;
         if (RevengeDbg) GD.Print($"revenge: babushka {i} hit at {_clock:F1} s (pilot's mother {_babushkas.PilotMother}, tank driver's mother {_babushkas.TankMother})");
         if (i == _babushkas.PilotMother) StartJetRevenge();
-        else if (i == _babushkas.TankMother) StartTankRevenge();
+        else if (i == _babushkas.TankMother)
+        {
+            if (_slurry != null && _tanks == null) StartSlurryRevenge();      // (Kolkhoz has no tanks: the second grandmother belongs to the slurry tractor's driver)
+            else StartTankRevenge();
+        }
     }
 
     void StartJetRevenge()
@@ -96,6 +111,13 @@ public partial class RaceScene
         if (_tanks == null || !_tanks.StartChase()) return;
         Reveal(_trackId=="bonus"?"THAT WAS THE TANK CREW'S COMRADE!":"THAT WAS THE TANK DRIVER'S GRANDMA!", "THE 1ST GUARDS TANK ARMY OPENS FIRE");
         CardRevenge(jet: false);
+    }
+
+    /// <summary>The slurry tractor driver's grandmother: the tractor leaves its fields, follows the road and spreads slurry for three laps.</summary>
+    void StartSlurryRevenge()
+    {
+        if (_slurry == null || !_slurry.StartRevenge()) return;
+        Reveal("THAT WAS THE TRACTOR DRIVER'S GRANDMA!", "HE WILL SPREAD HIS GRIEF ON THE ROAD FOR THREE LAPS");
     }
 
     void Reveal(string title, string sub)

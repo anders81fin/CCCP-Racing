@@ -99,7 +99,7 @@ public partial class RaceScene
         CarSim Seen() => _state == State.Title ? null : _car;    // (a replay is on the title too)
         Add(_tractorAll, () => new() { Who = Actors.Tractor, Node = _tractorAll, Reset = _tractorAll.Reset,
             Tick = (dt, replay) => _tractorAll.Tick(dt, !replay && _state == State.Racing, _bus) });
-        Add(_slurryAll, () => new() { Who = Actors.Slurry, Node = _slurryAll, Reset = _slurryAll.Reset,
+        Add(_slurryAll, () => new() { Who = Actors.Slurry, Node = _slurryAll, Reset = _slurryAll.Reset, TapeDrive = on => _slurryAll.TapeDriven = on,
             Tick = (dt, replay) => _slurryAll.Tick(dt, !replay && _state == State.Racing, _bus) });
         Add(_busAll, () => new() { Who = Actors.Bus, Node = _busAll, Reset = _busAll.Reset, TapeDrive = on => _busAll.TapeDriven = on, Shouts = _busAll.ActiveShouts,
             Tick = (dt, replay) => _busAll.Tick(dt, _scEnvironment ? null : Seen(), !replay && WorldHorn, _tractor, _slurry) });
