@@ -1424,3 +1424,5 @@ tracks/atomgrad.json
 tracks/bonus.json
 tracks/ilyich.json
 tracks/siberia.json
+src/Tests/PhysicsTest.GearSweep.cs
+src/Tests/PhysicsTest.GearSweep.cs.uid

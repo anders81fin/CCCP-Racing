@@ -36,14 +36,19 @@ public class NormPlan
         _ => 1f,
     };
 
-    /// <summary>Seconds each better fuel takes off every norm: DIESEL is the reference, PETROL 1 s tighter, JET FUEL 2 s, SPUTNIK 3 s.</summary>
+    /// <summary>Seconds each better fuel takes off every norm when a track has only a diesel ladder: DIESEL is the reference, PETROL 1 s tighter, JET FUEL 2 s, SPUTNIK 3 s.</summary>
     public const float FuelStep = 1f;
 
-    /// <summary>A track's ladder for a fuel: the track's diesel ladder minus one second per fuel step (diesel, petrol, jet fuel, Sputnik).
-    /// A track without a diesel ladder falls back to the factors on the petrol ladder.</summary>
+    /// <summary>
+    /// A track's ladder for a fuel: the fuel's own ladder when the track states one (tracks/ID.json: "ladder" is petrol's, then dieselLadder, rocketLadder, sputnikLadder; hand-tuned,
+    /// each norm in the same ratio to the next lower fuel's as before the 8 November retune); a track with only a diesel ladder gets one second less per fuel step; a track
+    /// without a diesel ladder falls back to the factors on the petrol ladder.
+    /// </summary>
     public static float[] LadderFor(Track.NormsDef def, Race.FuelGrade fuel)
     {
         float[] baseLadder = def?.Ladder is { Length: > 1 } l ? l : DefaultLadder;
+        float[] own = fuel switch { Race.FuelGrade.Diesel => def?.DieselLadder, Race.FuelGrade.Rocket => def?.RocketLadder, Race.FuelGrade.Sputnik => def?.SputnikLadder, _ => baseLadder };
+        if (own != null && own.Length == baseLadder.Length && (fuel == Race.FuelGrade.Petrol ? def?.DieselLadder != null : true)) return own;
         if (def?.DieselLadder is { } diesel && diesel.Length == baseLadder.Length)
             return Array.ConvertAll(diesel, t => t - (int)fuel * FuelStep);
         float f = FactorFor(def, fuel);

@@ -3,6 +3,15 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.86
+
+- The launch card is now BALANCED LEARNING CURVE VERSION, V. 0.86
+- New engines: Diesel 200 Nm, 1050 kg. Petrol 175 Nm, 1050 kg. Jet Fuel 180 Nm with the 175 % power and the turbo on top. Sputnik 200 Nm, 900 kg, four-wheel drive
+- Diesel norms: the last norm (gold) is 5 s slower on every track and the rest of the ladder follows in the same proportion. Petrol, Jet Fuel and Sputnik keep their old ratio to the next slower fuel on every norm
+- LAB: switching the fuel in the middle of a run loads that fuel's own preset as the sliders, not the last fuel's values. Jet Fuel has a preset of its own
+- Diesel gearbox: four close gears and a shorter final drive (top speed about 117 km/h), so the engine can climb the hills of Siberia and Poligon in third and fourth. Jet Fuel and Sputnik have their own, shorter first gears
+- Smoke is drawn over water, and the diesel smoke is more see-through, so the car shows through the cloud
+
 ## 0.857
 
 - Diesel sets the norms on every track: each better fuel (Petrol, Jet Fuel, Sputnik) is exactly 1 s tighter on every norm. Siberia Diesel runs from 1:30.00 down to 1:03.00

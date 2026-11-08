@@ -24,16 +24,22 @@ public static class FuelGrades
     };
 
     /// <summary>The line of the FUEL card before the norms: the power of petrol and rocket fuel; the diesel is an engine of its own.</summary>
-    public static string CardLine(int grade) => grade == (int)FuelGrade.Diesel ? "400 NM, 5000 RPM, ECONOMICAL" : grade == (int)FuelGrade.Rocket ? "175% POWER, 250% ON TURBO" : grade == (int)FuelGrade.Sputnik ? "TOP SECRET: AWD PROTOTYPE" : "THE STANDARD";
+    public static string CardLine(int grade) => grade == (int)FuelGrade.Diesel ? "200 NM, 1050 KG, 5000 RPM, ECONOMICAL" : grade == (int)FuelGrade.Rocket ? "175% POWER, 250% ON TURBO" : grade == (int)FuelGrade.Sputnik ? "TOP SECRET: AWD PROTOTYPE" : "THE STANDARD";
 
     /// <summary>
-    /// The diesel's engine, a diesel and not a petrol engine at half the power (tried out in LAB, 2 November): a lower redline with taller gears (the same top speed
+    /// The diesel's engine, a diesel and not a petrol engine at half the power (tried out in LAB, 2 November): a lower redline with four close gears (a lower top speed, 8 November: the hills before the speed; was five taller gears at the same top speed
     /// at 5000 rpm), the torque low and wide instead of high and peaky, and more of it. Petrol and rocket fuel use the car's own defaults.
     /// </summary>
     public static readonly (string Name, float Value)[] DieselEngine =
     {
-        ("Redline", 5000f), ("ShiftUp", 4600f), ("ShiftDown", 2200f), ("PeakRpm", 2600f), ("TorqueCurveFalloff", 0.82f), ("MaxTorque", 400f), ("FinalDrive", 3.62f), ("FuelRevKnee", 3200f),
+        ("Redline", 5000f), ("ShiftUp", 4600f), ("ShiftDown", 2200f), ("PeakRpm", 2600f), ("TorqueCurveFalloff", 0.82f), ("MaxTorque", 200f), ("Mass", 1050f), ("FinalDrive", 4.6f), ("FuelRevKnee", 3200f),
     };
+
+    /// <summary>The jet fuel's (and the SPUTNIK's) peak torque in Nm, the slider value; the 175 % power and the turbo are applied on top of it.</summary>
+    public const float JetTorque = 180f;
+
+    /// <summary>The SPUTNIK's own peak torque (Nm) and mass (kg), a lighter and gentler car than the jet fuel's.</summary>
+    public const float SputnikTorque = 200f, SputnikMass = 900f;
 
     /// <summary>The engine's power as the physics gets it (percent): the diesel's character is its torque curve, so it has the whole of it.</summary>
     public static int PhysicsPercent(FuelGrade g) => g switch { FuelGrade.Diesel => 100, FuelGrade.Rocket or FuelGrade.Sputnik => 175, _ => Percent[(int)g] };
@@ -47,6 +53,17 @@ public static class FuelGrades
     /// <summary>The turbo's gain for the car on this fuel (the rocket fuel's, otherwise none).</summary>
     public static float TurboGainFor(FuelGrade g) => g is FuelGrade.Rocket or FuelGrade.Sputnik ? RocketTurboGain : 0f;
 
+    /// <summary>
+    /// The gears of each fuel (the diesel four, the others five), found by a sweep of the first gear and the spacing against the 0-100, the 80-140 and the 400 m (PhysicsTest --gear-sweep, 8 November). The top gear and
+    /// the redline stay as they were, so every fuel has the same top speed; only the gears between them differ. Petrol keeps the car's own gears (the sweep gained 1 % there).
+    /// </summary>
+    public static float[] GearsFor(FuelGrade g) => g switch
+    {
+        FuelGrade.Diesel => new[] { 4.60f, 2.63f, 1.64f, 1.18f },
+        FuelGrade.Rocket or FuelGrade.Sputnik => new[] { 3.60f, 2.44f, 1.75f, 1.36f, 1.18f },
+        _ => (float[])new CarParams().Gears.Clone(),
+    };
+
     /// <summary>The car's engine for this fuel: the diesel's, or the car's own defaults for any other.</summary>
     public static void ApplyEngine(CarParams p, FuelGrade g)
     {
@@ -56,6 +73,9 @@ public static class FuelGrades
             var prop = typeof(CarParams).GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
             prop.SetValue(p, g == FuelGrade.Diesel ? value : prop.GetValue(defaults));
         }
+        if (g is FuelGrade.Rocket or FuelGrade.Sputnik) p.MaxTorque = g == FuelGrade.Sputnik ? SputnikTorque : JetTorque;
+        if (g == FuelGrade.Sputnik) p.Mass = SputnikMass;
+        p.Gears = GearsFor(g);
         p.DriveFront = DriveFrontFor(g);
         p.CenterLock = g == FuelGrade.Sputnik ? SputnikCenterLock : 0f;
         p.TurboSpool = g == FuelGrade.Sputnik ? SputnikTurboSpool : defaults.TurboSpool;

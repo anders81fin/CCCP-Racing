@@ -1128,6 +1128,7 @@ public partial class RaceScene : Node3D
     void ApplyTrainingPower()
     {
         ApplyFuelEngine();
+        if (_labRun) LabApplyFuelPreset();      // (a fuel switched mid-run in LAB: the new fuel's own preset becomes the sliders, not the last fuel's)
         if (_powerTape?.Driven == true)
         { _timer.BestLap = _bestLaps[RecordSet]; return; }
         // Stakhanov: the chosen power; the rally: the fuel's (50, 100 or 200 %), or OCTANE BOOSTER's 3.5 times that while a golden can lasts.
@@ -1159,6 +1160,7 @@ public partial class RaceScene : Node3D
         if (_ghostVis != null) _ghostVis.Wing = wing;
         if (_carVis != null) _carVis.FuelPaint = _run == RunMode.Lan ? null : EngineFuel switch { FuelGrade.Diesel => FuelOlive, FuelGrade.Rocket => FuelRed, FuelGrade.Sputnik => FuelWhite, _ => null };
         if (_params != null && !_labRun) FuelGrades.ApplyEngine(_params, EngineFuel);
+        else if (_params != null) _params.Gears = FuelGrades.GearsFor(EngineFuel);      // (the gears are not LAB sliders: they follow the fuel there too)
     }
 
     /// <summary>A run started from the title (or --start): Stakhanov laps begin on the CHOOSE FUEL card's fuel (start), else at 100 % (or --power).</summary>

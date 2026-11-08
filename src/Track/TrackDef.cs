@@ -314,6 +314,7 @@ public class NormsDef
     /// <summary>A fuel's own ladder (seconds, as many steps as Ladder) instead of the factor's: set when its norms are tuned by hand.</summary>
     public float[] DieselLadder { get; set; }
     public float[] RocketLadder { get; set; }
+    public float[] SputnikLadder { get; set; }
 }
 
 /// <summary>The start/finish barn (Village.StartBarn): its length along the road, how far the line is

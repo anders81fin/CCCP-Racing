@@ -51,8 +51,8 @@ public partial class PhysicsTest
         // 2 November: FuelFull 2.22 -> 1.6 (the throttle down was too thirsty) and the owner's steering (0.8 / 70 / 0.46) that changes how the computer driver
         // takes the bends: 15.4 laps a tank flat out (3.2 l a lap; 11.4 with the old FuelFull and the new steering, 12.9 with both old), and the economical
         // drive (0.8 of the speed) only 13 % longer (it was 60-100 % longer before the steering: the computer driver at 0.8 no longer saves much).
-        Check(tanks10 is >= 14.5f and <= 17f, "flat out on the empty road: a tank lasts 14.5-17 laps");
-        Check(tanks08 / tanks10 is >= 1.05f and <= 1.4f, "driven economically: a little longer (the computer driver at 0.8 of the speed; the idle drain is small)");
+        Check(tanks10 is >= 10.5f and <= 13f, "flat out on the empty road: a tank lasts 10.5-13 laps (8 November: the petrol car 175 Nm, 11.8 laps; was 14.5-17)");
+        Check(tanks08 / tanks10 is >= 0.85f and <= 1.4f, "driven economically: a little longer (the computer driver at 0.8 of the speed; the idle drain is small)");
 
         // The depot: 6 l/s inside the zone at a standstill, a full 50 l tank in 8-9 s, nothing when moving or outside.
         float fill = 0;

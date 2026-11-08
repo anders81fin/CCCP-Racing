@@ -241,7 +241,7 @@ public partial class RaceScene
     {
         string power = g switch
         {
-            FuelGrade.Diesel => "400 NM, REDLINE 5000",
+            FuelGrade.Diesel => "200 NM, 1050 KG, REDLINE 5000",
             FuelGrade.Petrol => "100% - THE FACTORY ENGINE",
             _ => "175%, 250% ON TURBO",
         };

@@ -70,7 +70,7 @@ sealed class CarTourScript
             S(5, new Vector3(1.6f, 0.9f, -4.2f), new Vector3(-1.2f, 0.7f, -3.2f), Bonnet, Nose, 48, "THE BUMPERS ARE CHROME. THE MANNERS ARE NOT."),
             S(6, new Vector3(1.5f, -0.1f, 4.8f), new Vector3(0.9f, -0.2f, 3.2f), Exhaust, Exhaust, 42, "TWO PIPES. BLACK SMOKE ALL THE TIME. THE ENGINEER CALLS IT PROGRESS.", TourRev.Idle),
             S(6, new Vector3(2.6f, 0.9f, 4.6f), new Vector3(-2.0f, 1.0f, 4.2f), new Vector3(0, 0.4f, 1.7f), new Vector3(0, 0.4f, 1.7f), 45, "NO WING. A LITTLE LIP ON THE BOOT FOR AERODYNAMICS. OR FOR A SANDWICH."),
-            S(7, new Vector3(2.4f, 0.1f, 3.6f), new Vector3(1.4f, 0.0f, 2.9f), Exhaust, Exhaust, 42, "400 NM LOW DOWN. IT DOES NOT REV. IT PUSHES. PRESS THE PEDAL.", TourRev.Sweep),
+            S(7, new Vector3(2.4f, 0.1f, 3.6f), new Vector3(1.4f, 0.0f, 2.9f), Exhaust, Exhaust, 42, "200 NM LOW DOWN. IT DOES NOT REV. IT PUSHES. PRESS THE PEDAL.", TourRev.Sweep),
             S(5, new Vector3(2.6f, 0.2f, 4.2f), new Vector3(1.6f, 0.0f, 3.4f), Exhaust, Exhaust, 42, "AND LIFT. A KNOCK, A GRUNT, A FRESH CLOUD.", TourRev.Lift),
             Orbit(9, 130, 230, 7.0f, 1.6f, "VERDICT: SLOW, HONEST, FILTHY. THE POLITBURO IS PLEASED.", 52, TourRev.Blip, specs: true),
         },

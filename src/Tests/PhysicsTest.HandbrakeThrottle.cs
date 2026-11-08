@@ -131,7 +131,7 @@ public partial class PhysicsTest
         string keys=KeyPathNoHandbrake();
         GD.Print($"keypath-no-handbrake: {keys}");
         // Recorded on 2b2fde0, before the handbrake change: every handbrake branch is dormant without the key. Re-recorded 2026-11-02 for the steering defaults and the petrol's extra 25 % torque (the branches are still dormant: only the car's own numbers moved).
-        Check(keys=="24.447323 -57.16206 -6.776509 -2.5477874 0 1","handbrake change: the keyboard path without the handbrake is bit for bit the base trajectory");
+        Check(keys=="23.315125 -25.338913 -0.03218558 -2.6341937 0 1","handbrake change: the keyboard path without the handbrake is bit for bit the base trajectory");
         var at=new[]{5f,10f,20f,40f,60f};
         string F(HandbrakeResult r)=>$"km/h@5/10/20/40/60s [{string.Join(" ",Array.ConvertAll(r.Speeds,s=>s.ToString("F1")))}] maxYaw {r.MaxYawRate:F2} rad/s lockedPropulsiveSteps {r.LockedPropulsive} overGripSteps {r.OverGrip} rearWheelMax {r.RearSpinMax:F0} km/h lockFlips {r.LockFlips} gearChanges {r.GearChanges}";
         foreach(float power in new[]{.5f,1f,1.5f})
@@ -166,7 +166,7 @@ public partial class PhysicsTest
             for(int i=0;i<(int)(1/Dt);i++){car.SetControls(0,0,0,false,false);car.Step(Dt);}
             float turn=Mathf.RadToDeg(Math.Abs(Mathf.Wrap(car.Forward.SignedAngleTo(Vector3.Forward,Vector3.Up)-yaw0,-Mathf.Pi,Mathf.Pi)));
             GD.Print($"handbrake-throttle flick gas={(gasOn?"on":"off")}: 1 s handbrake at half lock from 72 km/h -> heading change {turn:F0} deg, peak yaw {maxYaw:F2} rad/s, speed after release {car.Speed*3.6f:F0} km/h");
-            float expectedTurn=gasOn?100f:109f;      // (95 / 80 until HandbrakeRotate 1.2 "more dramatic", 0.82)
+            float expectedTurn=gasOn?111f:109f;      // (95 / 80 until HandbrakeRotate 1.2 "more dramatic", 0.82)
             Check(float.IsFinite(car.Speed)&&Math.Abs(turn-expectedTurn)<3f,
                 $"handbrake flick gas={(gasOn?"on":"off")}: retains the reviewed short-turn response ({turn:F0} deg, expected {expectedTurn:F0} ±3)");
         }

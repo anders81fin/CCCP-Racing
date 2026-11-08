@@ -146,7 +146,9 @@ public partial class RaceScene
     void PlanLap(float time, bool ranked)
     {
         FuelLap(time);
-        if (!_norms.Enabled || _labRun) return;      // (a lab lap is judged by no norm: it is unranked and must not fail the rally)
+        bool labLap = _labRun;
+        if (labLap && !_labMode) LabRunStarts();      // (LAB was switched off during this lap: the lap stays a lab lap, the run is a normal one from the next, and the red stamp goes)
+        if (!_norms.Enabled || labLap) return;      // (a lab lap is judged by no norm: it is unranked and must not fail the rally)
         float was = _norms.Norm;
         var outcome = _norms.OnLap(time, ranked);
         if (OS.HasEnvironment("PLANDBG")) GD.Print($"plan: lap {LapTimer.Format(time)} ranked={ranked} vs norm {NormText(was)} -> {outcome}, norm {_norms.Step + 1}/{NormPlan.Steps} {NormText(_norms.Norm)}, laps left {_norms.Left}, used {_norms.Used}");

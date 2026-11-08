@@ -62,11 +62,11 @@ public partial class PhysicsTest
             var rocket = NormPlan.LadderFor(def, FuelGrade.Rocket);
             var sputnik = NormPlan.LadderFor(def, FuelGrade.Sputnik);
             Check(petrol.Length == diesel.Length && petrol.Length == rocket.Length && petrol.Length == sputnik.Length, $"{id}: every fuel has the same number of norms");
-            Check(Enumerable.Range(0, petrol.Length).All(i => diesel[i] - petrol[i] == 1f && petrol[i] - rocket[i] == 1f && rocket[i] - sputnik[i] == 1f),
-                $"{id}: each better fuel is exactly 1 s tighter on every norm (diesel is the reference)");
-            Check(def.Ladder.SequenceEqual(petrol), $"{id}: the stored petrol ladder is the diesel's minus 1 s");
+            Check(Enumerable.Range(0, petrol.Length).All(i => diesel[i] > petrol[i] && petrol[i] > rocket[i] && rocket[i] > sputnik[i]),
+                $"{id}: each better fuel is tighter on every norm (diesel is the reference)");
+            Check(def.Ladder.SequenceEqual(petrol), $"{id}: the stored petrol ladder is petrol's");
             Check(diesel.Zip(diesel.Skip(1)).All(p => p.First > p.Second) && sputnik.Zip(sputnik.Skip(1)).All(p => p.First > p.Second), $"{id}: the ladders still descend");
-            Check(diesel.Concat(sputnik).All(t => System.MathF.Abs(t * 2f - System.MathF.Round(t * 2f)) < 1e-4f), $"{id}: norms are in half seconds");
+            Check(diesel.Concat(sputnik).All(t => System.MathF.Abs(t * 10f - System.MathF.Round(t * 10f)) < 1e-3f), $"{id}: norms are in tenths of a second");
         }
 
         var rs = new RecordStore("user://test_fuel_records/", "ilyich", "sig");

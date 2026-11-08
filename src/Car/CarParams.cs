@@ -10,7 +10,7 @@ namespace CCCPRacing.Car;
 public partial class CarParams : Resource
 {
     [ExportGroup("Body")]
-    [Export] public float Mass { get; set; } = 1000f;
+    [Export] public float Mass { get; set; } = 1050f;
     /// <summary>Inertia around local X (pitch), Y (yaw), Z (roll). Low roll inertia = tippy.</summary>
     [Export] public Vector3 Inertia { get; set; } = new(1500f, 1650f, 400f);
     [Export] public float Drag { get; set; } = 0.42f;
@@ -86,8 +86,8 @@ public partial class CarParams : Resource
     [Export] public float LockedBrakeSteering { get; set; } = 0.2f;
 
     [ExportGroup("Engine")]
-    /// <summary>Peak torque at PeakRpm (Nm). 387.5 is 25 % more than the 310 of the game until the owner raised the petrol car's power in every mode: the rally's petrol, Stakhanov, LAN and the school; every power percent follows (50 % diesel in the LAN, 200 % rocket fuel). The rally's DIESEL has an engine of its own (FuelGrades.DieselEngine).</summary>
-    [Export] public float MaxTorque { get; set; } = 387.5f;
+    /// <summary>Peak torque at PeakRpm (Nm). 175 (owner's choice, 8 November; it was 387.5, then 200, 310 before 2 November), with the mass 1050 kg (was 1000). The petrol car is the base of every mode: the rally's petrol, Stakhanov, LAN and the school; every power percent follows (50 % diesel in the LAN, 200 % rocket fuel). The rally's DIESEL has an engine of its own (FuelGrades.DieselEngine).</summary>
+    [Export] public float MaxTorque { get; set; } = 175f;
     /// <summary>The share of the engine's force that goes to the front wheels: 0 is the rear-wheel drive of the Pyatyorka, 0.4 the four-wheel drive of the SPUTNIK fuel (40 front, 60 rear).</summary>
     [Export] public float DriveFront { get; set; } = 0f;
     /// <summary>The viscous centre lock of the four-wheel drive: how far the split moves from DriveFront towards the axle that grips (0: fixed split; 0.35: up to 35 points of the engine go to the front when the rear spins faster, and to the rear when the front does).</summary>

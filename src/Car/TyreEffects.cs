@@ -86,6 +86,9 @@ public partial class TyreEffects : Node3D
                 AlbedoTexture = BlobTexture(),
                 TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
                 CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+                // Alpha objects sort by AABB centre; this one has a huge cull margin, so the water sheets
+                // could be drawn over (or the puffs hidden under) them. Draw puffs after all water.
+                RenderPriority = 2,
             }, 0.25f),
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             ExtraCullMargin = 10000f,
@@ -403,7 +406,7 @@ public partial class TyreEffects : Node3D
                 at = car.Pos + car.Rot * new Vector3(_rng.RandfRange(-w, w), _rng.RandfRange(-0.3f, 0.3f + 0.8f * _sootSpread), Mathf.Lerp(2.1f, _rng.RandfRange(-1.4f, 2.2f), _sootSpread));
             }
             Add(at, car.Vel * 0.6f + back * _rng.RandfRange(Mathf.Lerp(2f, 0.3f, still), Mathf.Lerp(5f, 1.2f, still)) + Rand(0.5f, 0.4f, 0.5f) + Vector3.Up * (0.8f + 1.4f * still),
-                _rng.RandfRange(2.2f, 3.4f) * (1f + 0.5f * still), 0.7f * k, 5.5f * k * (1f + 0.4f * still), -0.4f, 0.9f, SootBlack, 0.85f * k, false);      // exaggerated on purpose: a rolling-coal wall
+                _rng.RandfRange(2.2f, 3.4f) * (1f + 0.5f * still), 0.7f * k, 5.5f * k * (1f + 0.4f * still), -0.4f, 0.9f, SootBlack, 0.5f * k, false);      // translucent so the car shows through; exaggerated on purpose: a rolling-coal wall
         }
     }
     static readonly Color SootBlack = new(0.04f, 0.04f, 0.04f);
@@ -452,7 +455,7 @@ public partial class TyreEffects : Node3D
             acc -= 1f;
             Add(pipe + back * 0.15f, vel * 0.6f + back * _rng.RandfRange(Mathf.Lerp(2f, 0.3f, still), Mathf.Lerp(5f, 1.2f, still)) + Rand(0.5f, 0.4f, 0.5f) + Vector3.Up * (0.8f + 1.4f * still),
                 _rng.RandfRange(2.2f, 3.4f) * (1f + 0.5f * still), 0.7f * k * size, 5.5f * k * size * (1f + 0.4f * still), -0.4f, 0.9f,
-                kerosene ? KeroseneHaze : SootBlack, (kerosene ? 0.4f : 0.85f) * k, false);
+                kerosene ? KeroseneHaze : SootBlack, (kerosene ? 0.4f : 0.5f) * k, false);
         }
     }
     /// <summary>One smoking pipe as the LAN host sends it to the other machines: where, which way back, how fast it moves, the throttle, the engine's size and the fuel.</summary>
