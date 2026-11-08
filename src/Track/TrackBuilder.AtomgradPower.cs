@@ -17,7 +17,7 @@ public static partial class TrackBuilder
         Span(incoming, approach);
         Span(approach, source);
 
-        int plantBox = Cabinet(new Vector2(264, 68), "plant switchyard");
+        int plantBox = Cabinet(new Vector2(270, 62), "plant switchyard");      // (was 264,68: 1 m inside the road edge)
         Cable(source, plantBox, new Vector2(272, 58));
         int townBox = Cabinet(new Vector2(139, 77), "town distribution");
         Cable(plantBox, townBox,

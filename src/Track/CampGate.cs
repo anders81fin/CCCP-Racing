@@ -7,7 +7,7 @@ using Godot;
 namespace CCCPRacing.Track;
 
 /// <summary>
-/// The camp's barrier boom at the middle-pad gate: closed by default. Stop in front of it and honk and the guard raises it
+/// The camp's barrier boom at the middle-pad gate: closed by default. Honk within earshot of the guard hut, standing or still rolling, and the guard raises it
 /// (it comes down again by itself five seconds later); a car that hits it hard enough breaks it and drives on through.
 /// The barrier is a row of solid circles across the gate mouth (never any other part of the arch).
 /// </summary>
@@ -17,7 +17,7 @@ public partial class CampGate : Node3D
     public const float BreakSpeed = 8f;
     /// <summary>Speed the car loses going through a broken boom (m/s).</summary>
     public const float PloughLoss = 3f;
-    const float Reach = 16f, StopSpeed = 2.5f, OpenTime = 1.5f, HoldTime = 5f;
+    const float HornReach = 45f, OpenTime = 1.5f, HoldTime = 5f;      // (HornReach: the guard hears the horn this far from the gate, whatever the car's speed)
     static readonly Obstacle Away = new(new Vector2(-1e4f, -1e4f), .1f);
     public enum State { Closed, Opening, Open, Closing, Broken }
     public State Now { get; private set; } = State.Closed;
@@ -110,7 +110,7 @@ public partial class CampGate : Node3D
         switch (Now)
         {
             case State.Closed:
-                if (honking && car != null && distance < Reach && car.Speed < StopSpeed) { Now = State.Opening; Opened?.Invoke(); }
+                if (honking && car != null && distance < HornReach) { Now = State.Opening; Opened?.Invoke(); }
                 break;
             case State.Opening:
                 _angle = Math.Min(1f, _angle + dt / OpenTime);

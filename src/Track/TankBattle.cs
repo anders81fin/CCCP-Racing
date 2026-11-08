@@ -935,6 +935,7 @@ public partial class TankBattle : Node3D
         _revengeCd -= dt;
         if(Exercise!=null && !Exercise.GroundAllowed) return;
         if (_car == null || _shotsLeft <= 0 || _revengeCd > 0) return;
+        if (BonusCampLayout.Inside(_lastCar)) return;      // (the car is inside the base: the tanks hold their fire, the shots wait until it is out again)
         for (int j = 0; j < _tanks.Count; j++)
         {
             int i = (_turn + j) % _tanks.Count;

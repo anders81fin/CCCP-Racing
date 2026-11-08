@@ -47,6 +47,8 @@ public partial class PhysicsTest : Node
     {
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--grade-gears")){GradeGearSearch();GetTree().Quit();return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--grade-surfaces")){GradeSurfaces();GetTree().Quit();return;}
+        var propId=Array.Find(OS.GetCmdlineUserArgs(),a=>a.StartsWith("--prop-road="));
+        if(propId!=null){PropRoadReport(propId["--prop-road=".Length..]);GetTree().Quit();return;}
         var gradeId=Array.Find(OS.GetCmdlineUserArgs(),a=>a.StartsWith("--grade-report="));
         if(gradeId!=null){GradeReport(gradeId["--grade-report=".Length..]);GetTree().Quit();return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--gear-sweep")){GearSweep();GetTree().Quit();return;}

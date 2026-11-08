@@ -14,7 +14,7 @@ public class RecordStore
 {
     /// <summary>Suffix for archived records: they were made on the v0.2 terrain.</summary>
     public const string ArchiveTag = "_v02";
-    public const string ArchivedNotice = "NEW TERRAIN. OLD RECORDS ARCHIVED BY THE MINISTRY";
+    public const string ArchivedNotice = "NEW CARS OR TERRAIN. OLD RECORDS ARCHIVED BY THE MINISTRY";
     /// <summary>Suffix for records from before the two record sets (v0.3 and older, one board for both runs).</summary>
     public const string LayoutTag = "_v03";
     public const string LayoutNotice = "TWO BOARDS NOW. OLD RECORDS ARCHIVED BY THE MINISTRY";

@@ -106,12 +106,22 @@ public partial class PhysicsTest
         car.Reset(new Vector3(136,.6f,124.7f+60),0);
         for(int i=0;i<30*14;i++) gate.Tick(1f/30,car,false);
         bool closes=gate.Now==CampGate.State.Closed && track.Obstacles[slots].Center.X>0;
+        // 8 November: the guard hears the horn from the hut's earshot while the car still rolls; far away he does not.
+        car.Reset(new Vector3(136,.6f,124.7f+60),0);car.Vel=new Vector3(0,0,-20);
+        gate.Tick(1f/30,car,true);
+        bool deaf=gate.Now==CampGate.State.Closed;
+        car.Reset(new Vector3(136,.6f,124.7f+40),0);car.Vel=new Vector3(0,0,-20);
+        gate.Tick(1f/30,car,true);
+        bool hears=gate.Now==CampGate.State.Opening;
+        for(int i=0;i<30*14;i++) gate.Tick(1f/30,car,false);
+        gate.Reset();
         var knocks=new System.Collections.Generic.List<(int,System.Func<Vector3,bool>)>(gate.Knocks());
         bool broke=knocks[0].Item2(new Vector3(0,0,-14)) && gate.Now==CampGate.State.Broken && track.Obstacles[slots].Center.X<-1000;
         gate.Reset();
         bool restored=gate.Now==CampGate.State.Closed && track.Obstacles[slots].Center.X>0;
         Check(circles>=8 && closed && silent,"the camp barrier starts closed with a solid row across the gate mouth, and a quiet car does not open it");
         Check(opening && open && closes,"stopping at the gate and honking raises the barrier; it comes down again once the car has gone");
+        Check(deaf && hears,"the guard opens the barrier for a horn heard within 45 m even from a moving car, and not from farther away");
         Check(broke && restored,"a hard hit breaks the barrier and drives on through; a restart puts it back");
         gate.Free();
     }

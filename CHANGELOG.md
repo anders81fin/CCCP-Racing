@@ -3,6 +3,13 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.861
+
+- The cars changed so much that the records of the earlier versions no longer compare: on the first start the ghosts, leaderboards and replays of every track are archived (renamed, not deleted) and the boards start empty
+- Atomgrad: the power plant's switchyard box no longer stands in the road at the north-east corner of the plant
+- Poligon: the revenge tanks hold their fire while the car is inside the base, and fire again once it is out
+- Poligon: the guard opens the barrier as soon as he hears the horn, 45 m from the gate, even when the car is still moving
+
 ## 0.86
 
 - The launch card is now BALANCED LEARNING CURVE VERSION, V. 0.86

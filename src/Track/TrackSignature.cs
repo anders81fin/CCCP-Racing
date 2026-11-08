@@ -62,6 +62,9 @@ public static class TrackSignature
         // Poligon's new passing places change competitive lines without moving the centreline.
         if(t.Id=="bonus") foreach(float width in t.HalfWidth) Mix(Q(width));
         if(t.MaintenanceHall is {} hall) {Mix(0x48414c4c);Mix(Q(hall.Center.X));Mix(Q(hall.Center.Y));Mix(Q(hall.HalfWidth));Mix(Q(hall.HalfLength));}
+        // The cars' generation: 8 November 2026 (0.86) the engines, masses and gearboxes of every fuel changed a lot, so laps made on the earlier cars no longer compare.
+        // Bump the second number when the cars change that much again.
+        Mix(0x43415253); Mix(2);
         return h.ToString("x16");
     }
 }

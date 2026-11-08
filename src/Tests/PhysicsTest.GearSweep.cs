@@ -18,6 +18,30 @@ public partial class PhysicsTest
     }
 
     /// <summary>--grade-report: the steepest 30 m, 60 m and 100 m grades along a track's centre line, and the share of the lap above 5 and 8 %.</summary>
+    void PropRoadReport(string id)
+    {
+        var track = TrackBuilder.Build(TrackDef.Load($"res://tracks/{id}.json"));
+        var probe = Array.Find(OS.GetCmdlineUserArgs(), a => a.StartsWith("--probe="));
+        if (probe != null)
+        {
+            foreach (var pt in probe["--probe=".Length..].Split(';'))
+            {
+                var xy = pt.Split(',');
+                var q = new Vector2(float.Parse(xy[0], System.Globalization.CultureInfo.InvariantCulture), float.Parse(xy[1], System.Globalization.CultureInfo.InvariantCulture));
+                int k = track.NearestCenter(q, out float dd);
+                GD.Print($"PROBE inside-camp {BonusCampLayout.Inside(q)} ({q.X:F0}, {q.Y:F0}): {dd:F1} m from the centre line at ({track.Center[k].X:F0}, {track.Center[k].Y:F0}), {dd - track.HalfWidth[k]:F1} m from the road edge");
+            }
+            return;
+        }
+        foreach (var pr in track.Props)
+        {
+            if (pr.Type is not ("powercabinet" or "powerconsumer" or "pole" or "reactor" or "turbinehall" or "sarcophagus" or "stack" or "gaiservice")) continue;
+            int i = track.NearestCenter(new Vector2(pr.Position.X, pr.Position.Z), out float d);
+            float edge = d - track.HalfWidth[i];
+            if (edge < 6f) GD.Print($"PROP {pr.Type} '{pr.Text}' at ({pr.Position.X:F0}, {pr.Position.Z:F0}): {d:F1} m from the centre line, {edge:F1} m from the road edge (half width {track.HalfWidth[i]:F1})");
+        }
+    }
+
     void GradeReport(string id)
     {
         var track = TrackBuilder.Build(TrackDef.Load($"res://tracks/{id}.json"));

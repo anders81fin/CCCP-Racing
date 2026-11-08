@@ -17,6 +17,8 @@ public static class BonusCampLayout
         new(-6,20),new(-8.5f,22.5f),new(-36,22.5f),new(-64,22),new(-64,-12),
         new(-35,-12),new(-14,-14),new(9,-14),new(17,-23),new(29,-22),
         new(45,-11),new(58,-11),new(78,-17),new(78,16),new(49,16),new(24,14),new(8,15),new(6,20)};
+    /// <summary>The point (world XZ) is inside the camp's perimeter, the gate included (the tanks do not fire at a car in the base).</summary>
+    public static bool Inside(Vector2 world) => Geometry2D.IsPointInPolygon(world-Origin,PerimeterLine);
     internal static readonly Vector2[] Towers={new(74,-10),new(-61,19),new(74,13)};
 
     public static void Apply(TrackDef definition)
