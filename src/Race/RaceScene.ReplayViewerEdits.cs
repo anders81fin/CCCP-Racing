@@ -30,7 +30,7 @@ public partial class RaceScene
         float? _wIn, _wOut;
         readonly List<(float T, ViewerCameraMode Mode)> _wKeys = new();
         readonly Dictionary<float, LapFreeCamera> _wFreeKeys = new();
-        float _wSpeed = 1f; ViewerCameraMode _wCamera = ViewerCameraMode.TopDown;
+        float _wSpeed = 1f; ViewerCameraMode _wCamera = ViewerCameraMode.Auto;
         bool _editOpen; int _editSel;
         enum EditPrompt { None, KeepFirst, Unsaved, Reset }
         EditPrompt _prompt;
@@ -121,6 +121,7 @@ public partial class RaceScene
             }
             _wLoop = e.Playback.Loop; _wOverlay = e.Playback.Overlay; _wSpeed = Speeds.Contains(e.Playback.Speed) ? e.Playback.Speed : 1f;
             var cam = ModeOf(e.Playback.Camera);
+            if (cam == ViewerCameraMode.TopDown) cam = ViewerCameraMode.Auto;      // (a replay always opens in the automatic broadcast: the old saved default, top-down, is that now)
             if (!avail.Contains(cam)) { cam = ViewerCameraMode.TopDown; lost = true; }
             _wCamera = cam;
             if (lost) SetNotice("A SAVED CAMERA IS NOT FOUND YET - TOP-DOWN USED", 6f);

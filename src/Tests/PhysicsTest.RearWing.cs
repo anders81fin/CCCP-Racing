@@ -45,6 +45,28 @@ public partial class PhysicsTest
         Check(!Part("front bumper").Visible && !Part("rear bumper").Visible && Part("roof rack").Visible, "equipment: jet fuel runs without bumpers, with the rack");
         visual.Equip(false, false, true);
         Check(!Part("roof rack").Visible && Part("sputnik kit").Visible && !Part("twin exhaust").Visible, "equipment: the sputnik has no rack and no twin pipes, but its kit");
+        // The tail pipes: the petrol the body's twin pipes, the diesel one wide pipe, the jet fuel four; the sputnik's kit hides them all. The built ones dent and fall off in a hard hit from behind.
+        visual.Equip(true, true, false, CarDamage.PipeSet.Twin);
+        Check(Part("twin exhaust").Visible && !Part("single exhaust").Visible && !Part("quad exhaust").Visible, "pipes: the petrol wears the body's twin pipes only");
+        visual.Equip(true, true, false, CarDamage.PipeSet.Single);
+        Check(!Part("twin exhaust").Visible && Part("single exhaust").Visible && !Part("quad exhaust").Visible, "pipes: the diesel wears one pipe");
+        visual.Equip(false, true, false, CarDamage.PipeSet.Quad);
+        Check(!Part("twin exhaust").Visible && !Part("single exhaust").Visible && Part("quad exhaust").Visible, "pipes: the jet fuel wears four");
+        visual.Equip(false, false, true, CarDamage.PipeSet.Quad);
+        Check(!Part("twin exhaust").Visible && !Part("single exhaust").Visible && !Part("quad exhaust").Visible, "pipes: the sputnik's kit hides them all");
+        Check(damage.BodyTriangles("Pipe1_", "Pipe4_") == 0, "pipes: the built pipes' triangles are all in their parts, none in the body");
+        damage.Reset();
+        visual.Equip(true, true, false, CarDamage.PipeSet.Single);
+        car.Pos = new(0, 2, 0);
+        for (int k = 0; k < 4; k++) damage.Hit(24f + k, new(0.4f, -0.4f, 2.05f), Vector3.Forward, car, fx);
+        Check(Part("single exhaust").TopLevel && !Part("quad exhaust").TopLevel, "pipes: a hard hit from behind tears the diesel's pipe off");
+        damage.Reset();
+        Check(!Part("single exhaust").TopLevel && Part("single exhaust").Visible, "pipes: the restart puts the pipe back");
+        visual.Equip(false, true, false, CarDamage.PipeSet.Quad);
+        for (int k = 0; k < 4; k++) damage.Hit(24f + k, new(0.4f, -0.4f, 2.05f), Vector3.Forward, car, fx);
+        Check(Part("quad exhaust").TopLevel && !Part("single exhaust").TopLevel, "pipes: and the jet fuel's four");
+        damage.Reset();
+        visual.Equip(true, true, false);
         car.Pos = new(0, 2, 0);
         for (int k = 0; k < 4; k++) damage.Hit(24f + k, new(0, 0.5f, 0), Vector3.Forward, car, fx);
         Check(!Part("sputnik kit").TopLevel, "equipment: a hit never tears the kit off");

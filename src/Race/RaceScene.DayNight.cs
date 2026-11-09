@@ -114,8 +114,9 @@ public partial class RaceScene
         // The title's replay is lit as its lap was driven (records from before 0.51 stay in the plain day).
         bool replayLit = Replaying && TitleGhost.HasDayClock;
         bool schoolLit = (InSchool || TrackPreviewActive) && _scLightClock.HasValue;
+        if (_titleRec && active) TitleRecLightTick(dt);
         _dayNight.PinnedClock = schoolLit ? _scLightClock : replayLit ? TitleGhost.DayClockAt(_replayClock)
-            : _dnTestPin ?? (active && InLanRace && _lanReveal != null ? LanLightClock(_lanSharedLightProgress,_lanReveal.Seed)
+            : _titleRec && active ? _titleRecClock : _dnTestPin ?? (active && InLanRace && _lanReveal != null ? LanLightClock(_lanSharedLightProgress,_lanReveal.Seed)
             : null);
         if (_dnDraw && active && !_dnPinned)
         {

@@ -261,4 +261,28 @@ public static partial class PartyDacha
         }
         finally { if (!handedOver) root.Free(); }
     }
+
+    /// <summary>Where the lantern posts stand on the pond's bank: round it, dry ground, off the estate, the drive and the road.</summary>
+    public static IEnumerable<Vector2> PondLampSites(TrackData t)
+    {
+        if (t.Id != "ilyich" || float.IsNaN(t.WaterLevel) || t.Water?.Ponds == null) yield break;
+        foreach (var pond in t.Water.Ponds)
+        {
+            var centre = new Vector2(pond.X, pond.Z);
+            for (int k = 0; k < 8; k++)
+            {
+                float angle = (k + 0.5f) * MathF.Tau / 8f;
+                for (float r = pond.R + 2f; r <= pond.R + 7f; r += 1.5f)
+                {
+                    var p = centre + new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * r;
+                    if (InGrounds(p) || OnDrive(p, 3)) break;
+                    int road = t.NearestCenter(p, out float roadDistance);
+                    if (roadDistance < t.HalfWidth[road] + 3f) break;
+                    if (t.Sample(p.X, p.Y) is var g && (g.WaterDepth > 0f || g.Surface is SurfaceType.Water or SurfaceType.Shallow)) continue;      // still wet: a little further out
+                    yield return p;
+                    break;
+                }
+            }
+        }
+    }
 }

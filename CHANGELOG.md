@@ -3,6 +3,41 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.87
+
+- The launch card says DEVELOPMENT BUILD (was BALANCED LEARNING CURVE VERSION)
+- Replays opened from the leaderboards play the right recording: the Diesel and Petrol columns had swapped places (the Diesel rows opened the Petrol laps and the other way round)
+- A replay car has its own paint: it no longer takes the colour of the car that was on the title background when the replay was opened (the Petrol car looked white or olive)
+- Siberia: the automatic replay camera no longer stands behind a snow bank or inside a tree, it climbs a mound or leaves the shot to a moving camera
+- Atomgrad: the crawler crane jib points forwards along the tracks and no longer cuts through the sarcophagus wall, and the sarcophagus roof rests on its walls (the high end hung in the air)
+- Poligon: the earth firing positions of the tank exercise are a low earth bank with rounded ends and two track marks (they were a chain of balls and sleeper-like strips)
+- The mechanic marker in the world is mirrored
+- Replay: F12 takes a screenshot in every camera mode, not only in the free camera
+- A replay always opens in the automatic broadcast camera
+- Main menu background: a recorded lap on the kolkhoz with the rally´s moving world, the car damage and the Stakhanov laps´ fuel keys. Each change of the car (diesel, petrol, jet fuel, Sputnik) brings the next hour of the day, from noon to night. The title plays it with its world and the car of each moment (the older demonstration is the fallback). Recording tool: --title-rec=DIR, then the promote script in tools/title
+- The replay´s AUTO camera is a rally TV broadcast. The cuts of the lap are planned from its path and come on the action: a roadside telephoto on the outside of corners and hairpins (it pans with the car and zooms to hold its size), a head-on camera and a wide low fly-by on the straights, a camera at the lip of every jump, one on the bank of the ford, a camera beside a slide, and between them the bonnet, a close chase, a low spoiler camera, a helicopter circling the car and the top-down view. Works on every track, a seek, a pause and the movie export show the same picture
+- Siberia: the ZIL that comes for a wrecked car in the labour camp stays on the road and no longer drives over the barracks, towers and wire
+- The mechanic´s map symbol is the spanner alone (the sickle is gone)
+- Kolkhoz: the grain delivery by the church stands on a level bench instead of the knoll´s slope, and the trailer is one rigid body (it tilted board by board and left the sacks under the bed)
+- Kolkhoz: the camera at the Lenin monument is turned to face the church, and the bonnet camera of the duck stands on its tripod on the duck´s back until found
+- Kolkhoz: lantern posts round the dacha´s pond light the bank at night
+- The Socialist Rally and the Stakhanov laps ask for the fuel first, then the track. In the rally each fuel has a progression of its own: a track opens by a silver on the previous track with the chosen fuel (what the Diesel opened is not open on the Petrol), the Poligon by a gold with it. In the Stakhanov laps a bronze with the chosen fuel opens the next track for that fuel
+- New fuel unlocks: the Petrol opens with a silver on all of the first three tracks on the Diesel, the Jet Fuel with a silver on all four tracks on the Petrol, the Sputnik with a silver on all four tracks on the Jet Fuel. The lock texts tell this
+- The tractors´ wheels turn as they drive (also in the replay), and the bus wheel´s top no longer flickers through the body
+- The drunks drink in a smooth movement (the arm lifts, the head tips back, the bottle turns neck up) and the bottle has the shape of a bottle
+- Atomgrad: the radiation eats the engine. The stronger it is, the faster the health goes: the background costs nothing, a pass through a hot spot a few per cent, and standing in the hottest one off the road kills a new engine in half a minute. Only in the rally
+- The Sputnik´s engine sounds are 30 % louder than the other cars´
+- Every car trembles at idle in the tour and on the road, in the way of its engine: the Diesel´s four slow and lumpy, the Petrol´s and the Jet Fuel´s four even and fine, both at half the strength of the Sputnik´s five-cylinder
+- The BONNET camera lives with the speed too: a fine shake, a slow sway, a lean into corners and a dip for braking, none of it standing and the most at a high speed (the camera shake setting turns it off)
+- In a slide the CINEMATIC camera swings round hard with the car like a rubber band (a little late), so the car is easier to keep under control
+- The CINEMATIC camera is a close chase camera behind the car, so you see where you are among the others and how the car slides. It follows with a soft delay (it lags in corners and on a launch), leans into corners, dips when you brake, and shakes and sways with the speed: almost still when you stand, at its most at a high speed (a slide and the ground add to it)
+- The radio is on by default in the Stakhanov laps and in a LAN race, as in the rally (what you have chosen yourself is kept)
+- The Jet Fuel car weighs 1000 kg (was 1050)
+- Tail pipes: the Diesel has one (wider) pipe, the Jet Fuel four, two on each side of the rear. The smoke and the backfire flames come out of the same pipes, and the pipes dent, hang crooked and fall off in a hard hit from behind
+- The fuel cards and the car tour give the cars in real units: torque in Nm, mass in kg, revs in rpm, and the tour´s data card also tells the gearbox (four-speed for the Diesel, five-speed for the others). No more power percentages
+- The slurry revenge has a card of its own (what is coming, what to do) and a counter in the corner: SLURRY: 3 LAPS LEFT, then 2, then LAST LAP
+- LAN: the secret ballot offers the tracks and fuels of the player who has opened the most of both (each player sends what he has opened when he joins, a tie goes to the host, then to the lowest slot). The ballot shows only the offered fuels, and the offer follows who is in the lobby. LAN protocol 17: every player needs the same version
+
 ## 0.863
 
 - Engines: Petrol 200 Nm (was 175). Jet Fuel and Sputnik have 140 % of the power and 200 % on the turbo (was 175 % and 250 %)

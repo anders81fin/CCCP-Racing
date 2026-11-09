@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using CCCPRacing.Track;
 using CCCPRacing.UI;
@@ -25,15 +26,52 @@ public partial class RaceScene
     FuelGrade _lapsFuelPick;
     static FuelGrade? _lapsFuelStart, _lapsFuelLast;
 
+    /// <summary>
+    /// The SOCIALIST RALLY asks for the car first and the track after it: CHOOSE FUEL, then CHOOSE TRACK (the tracks are opened by the medals on any fuel, so what a diesel opened is open
+    /// on the petrol too). _rallyFuelPicked: the fuel is chosen already; _rallyTrackHighlight: the track the card should come up on.
+    /// </summary>
+    bool _rallyFuelFirst, _rallyFuelPicked;
+    int _rallyTrackHighlight = -1;
+
+    /// <summary>The STAKHANOV LAPS ask for the car first as well: CHOOSE FUEL, then CHOOSE TRACK, then the time of day.</summary>
+    bool _lapsFuelFirst, _lapsFuelPicked;
+
+    void OpenLapsStart()
+    {
+        _trackFor = MenuItem.Training;
+        _lapsFuelFirst = true; _lapsFuelPicked = false;
+        _chosenRunTrack = null;
+        OpenCard(TitleCard.LapsFuel);
+    }
+
+    void OpenRallyStart(int highlightTrack = -1)
+    {
+        _trackFor = MenuItem.Race;
+        _rallyTrackHighlight = highlightTrack;
+        _rallyFuelFirst = true; _rallyFuelPicked = false;
+        _chosenRunTrack = null;
+        OpenCard(TitleCard.RallyFuel);
+    }
+
+    /// <summary>The rally begins on the fuel chosen: a new rally starts at DAY, and a saved one on the track is replaced.</summary>
+    void StartRallyRun()
+    {
+        _rallyFuelFirst = _rallyFuelPicked = false;
+        _rallyPhase = DayNight.Phase.Day;      // a new SOCIALIST RALLY always starts at DAY, whatever an earlier mode or run left here (the cycle then goes on lap by lap)
+        if (RallyResume.Exists(FileDir, _chosenRunTrack ?? _trackId)) _newRallyTrack = _chosenRunTrack ?? _trackId;
+        StartRun(MenuItem.Race);
+    }
+
     /// <summary>Before either run its time of day (RaceScene.DayNight.cs).</summary>
     void AskOrRun(MenuItem mode)
     {
-        if (mode == MenuItem.Training) { OpenCard(TitleCard.LapsFuel); return; }     // Stakhanov laps: the fuel, then the time of day
+        if (mode == MenuItem.Training) { OpenCard(_lapsFuelPicked ? TitleCard.LapsTime : TitleCard.LapsFuel); return; }     // Stakhanov laps: the fuel came first, then the track and the time of day (a track card reached without the fuel asks for it here)
         if (mode == MenuItem.Race)
         {
             _newRallyTrack = null;
             if (RallyResume.Exists(FileDir, _chosenRunTrack ?? _trackId)) OpenCard(TitleCard.RallyResume);
-            else OpenCard(TitleCard.RallyFuel);
+            else if (_rallyFuelPicked) StartRallyRun();      // (the fuel came first)
+            else OpenCard(TitleCard.RallyFuel);              // (the track card was reached without the fuel: the fuel after the track, as before)
             return;
         }
         StartRun(mode);
@@ -71,7 +109,7 @@ public partial class RaceScene
         // One step at a time: the track card has more than two.
         if (Input.IsActionJustPressed("steer_left")) _cardSel = Math.Max(0, _cardSel - 1);
         else if (Input.IsActionJustPressed("steer_right")) _cardSel = Math.Min(CardCount - 1, _cardSel + 1);
-        else if (Input.IsActionJustPressed("pause")) _card = TitleCard.None;
+        else if (Input.IsActionJustPressed("pause")) { _card = TitleCard.None; _rallyFuelFirst = _rallyFuelPicked = _lapsFuelFirst = _lapsFuelPicked = false; }
         else if (Input.IsActionJustPressed("start") && !Input.IsKeyPressed(Key.Alt))
         {
             if (_card is TitleCard.RallyFuel or TitleCard.LapsFuel && FuelLocked((FuelGrade)_cardSel)) return true;      // (the card says what opens it)
@@ -89,9 +127,16 @@ public partial class RaceScene
         else if (c == TitleCard.RallyFuel)
         {
             _rallyFuel = (FuelGrade)_cardSel; FuelGrades.Save(_records.Dir, _rallyFuel);
-            _rallyPhase = DayNight.Phase.Day;      // a new SOCIALIST RALLY always starts at DAY, whatever an earlier mode or run left here (the cycle then goes on lap by lap)
-            if (RallyResume.Exists(FileDir, _chosenRunTrack ?? _trackId)) _newRallyTrack = _chosenRunTrack ?? _trackId;
-            StartRun(MenuItem.Race);
+            if (_rallyFuelFirst)
+            {
+                // The car first, the track next.
+                _rallyFuelFirst = false; _rallyFuelPicked = true;
+                OpenTrackCard(MenuItem.Race);
+                if (_rallyTrackHighlight >= 0 && _lapsRewardIndex < 0) _cardSel = _rallyTrackHighlight;
+                _rallyTrackHighlight = -1;
+                return;
+            }
+            StartRallyRun();
         }
         else if (c == TitleCard.RallyResume)
         {
@@ -100,14 +145,21 @@ public partial class RaceScene
                 _rallyFuel = _savedRallyFuel;
                 StartRun(MenuItem.Race);
             }
+            else if (_rallyFuelPicked) StartRallyRun();      // (a new rally on the fuel chosen first)
             else OpenCard(TitleCard.RallyFuel);
         }
-        else if (c == TitleCard.LapsFuel) { _lapsFuelPick = (FuelGrade)_cardSel; OpenCard(TitleCard.LapsTime); }      // (Esc on TIME OF DAY drops the pick)
+        else if (c == TitleCard.LapsFuel)
+        {
+            _lapsFuelPick = (FuelGrade)_cardSel;
+            if (_lapsFuelFirst) { _lapsFuelFirst = false; _lapsFuelPicked = true; OpenTrackCard(MenuItem.Training); return; }      // the car first, the track next
+            OpenCard(TitleCard.LapsTime);
+        }      // (Esc on TIME OF DAY drops the pick)
         else if (c == TitleCard.LapsTime)
         {
             _lapsPhase = (DayNight.Phase)_cardSel;      // the light then always goes on, lap by lap
             bool free = TrackLoadingScreen.Active == null && _replayViewer is not { State: not ReplayViewerState.Closed };      // (StartRun's own guard: a refused start leaves no pick behind)
             if (free) _lapsFuelStart = _lapsFuelLast = _lapsFuelPick;
+            _lapsFuelFirst = _lapsFuelPicked = false;
             StartRun(MenuItem.Training);
         }
     }
@@ -119,7 +171,7 @@ public partial class RaceScene
         return FuelLocked(g) ? FuelLockedLine(g) : FuelGrades.CardLine((int)g);
     }
 
-    string FuelLockedLine(FuelGrade g) => $"LOCKED: A SILVER ON {TrackName(TrainingTrack)} IN THE RALLY ON {FuelGrades.Names[(int)FuelKey(g).Value]} OPENS IT";
+    string FuelLockedLine(FuelGrade g) => $"LOCKED: SILVER ON {FuelTracksText(g)} IN THE RALLY ON {FuelGrades.Names[(int)FuelKey(g).Value]} OPENS IT";
 
     /// <summary>The power the card's fuel starts this run on (taken once), or null: --power or 100 (NewRunPower).</summary>
     int? TakeLapsFuelStart()
@@ -132,10 +184,18 @@ public partial class RaceScene
     // The FUEL card's line: the power and the chosen track's norms at that pace.
     (string track, int fuel, string text) _fuelLine;
 
-    /// <summary>The fuel that has to win a silver on the bonus track in the rally to open this one: PETROL needs it on DIESEL, JET FUEL on PETROL, SPUTNIK on JET FUEL (null: open).</summary>
+    /// <summary>The fuel that has to win a silver on every track needed (FuelTracks) in the rally to open this one: PETROL needs it on DIESEL, JET FUEL on PETROL, SPUTNIK on JET FUEL (null: open).</summary>
     static FuelGrade? FuelKey(FuelGrade g) => g switch { FuelGrade.Petrol => FuelGrade.Diesel, FuelGrade.Rocket => FuelGrade.Petrol, FuelGrade.Sputnik => FuelGrade.Rocket, _ => null };
 
-    bool FuelLocked(FuelGrade g) => !CheatUnlock && FuelKey(g) is FuelGrade k && _campaign.BestOn(TrainingTrack, k) < NormPlan.Medal.Silver;
+    /// <summary>The tracks that need a rally silver on the key fuel to open this one: the three plan tracks for PETROL, all four for JET FUEL and SPUTNIK.</summary>
+    static System.Collections.Generic.IEnumerable<string> FuelTracks(FuelGrade g) => Tracks.Select(t => t.id).Take(g == FuelGrade.Petrol ? 3 : Tracks.Length);
+
+    string FuelTracksText(FuelGrade g) => FuelGrade.Petrol == g ? "ALL THREE FIRST TRACKS" : "ALL FOUR TRACKS";
+
+    /// <summary>The key fuel's silvers are all there (the cheat does not count).</summary>
+    bool FuelOpenByMedals(FuelGrade g) => FuelKey(g) is not FuelGrade k || FuelTracks(g).All(t => _campaign.BestOn(t, k) >= NormPlan.Medal.Silver);
+
+    bool FuelLocked(FuelGrade g) => !CheatUnlock && !FuelOpenByMedals(g);
 
     /// <summary>The fuel the card opens on: the saved one, or the best open one below it.</summary>
     FuelGrade OpenFuel(FuelGrade g) { while (FuelLocked(g)) g = FuelKey(g).Value; return g; }
@@ -143,13 +203,12 @@ public partial class RaceScene
     string FuelCardLine()
     {
         if (FuelLocked((FuelGrade)Math.Clamp(_cardSel, 0, FuelGrades.Count - 1)))
-            return $"LOCKED: A SILVER ON {TrackName(TrainingTrack)} IN THE RALLY ON {FuelGrades.Names[(int)FuelKey((FuelGrade)Math.Clamp(_cardSel, 0, FuelGrades.Count - 1)).Value]} OPENS IT";
+            return FuelLockedLine((FuelGrade)Math.Clamp(_cardSel, 0, FuelGrades.Count - 1));
         string track = _chosenRunTrack ?? _trackId;
         int sel = Math.Clamp(_cardSel, 0, FuelGrades.Count - 1);
         if (_fuelLine.text == null || _fuelLine.track != track || _fuelLine.fuel != sel)
         {
-            var medal = _campaign.BestOn(track, (FuelGrade)sel);
-            _fuelLine = (track, sel, FuelGrades.CardLine(sel) + (medal > NormPlan.Medal.None ? ". " + Campaign.Name(medal) + " MEDAL" : ""));
+            _fuelLine = (track, sel, FuelGrades.CardLine(sel));      // (gears, torque, revs and mass and nothing else; the medal is on the car's technical data)
         }
         return _fuelLine.text;
     }

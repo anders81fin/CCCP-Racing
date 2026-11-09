@@ -185,7 +185,8 @@ public partial class RaceScene
         }
         // The shipped demonstration stays separate from all player records and racing ghosts.
         const string demo = "res://assets/replays/ilyich-stakhanov-petrol";
-        if (_track.Id == "ilyich" && FileAccess.FileExists(demo + ".sig")
+        if (LoadBundledRallyTake()) { }      // RaceScene.TitleRec.cs: the recorded background lap with its moving world, when there is one
+        else if (_track.Id == "ilyich" && FileAccess.FileExists(demo + ".sig")
             && FileAccess.GetFileAsString(demo + ".sig").StripEdges() == _records.Signature)
             _bundledTitleGhost = Ghost.Load(demo + ".bin", _params, _track);
         if (_rallyBoard.LastName == "" && lastName != "")

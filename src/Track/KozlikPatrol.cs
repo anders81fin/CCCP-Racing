@@ -33,6 +33,9 @@ public partial class KozlikPatrol : Node3D
 
     // The chase: flat out on the straights, quicker than on patrol through the bends, closing in to
     // TailGap metres behind the car; caught after CatchTime there, given up after GiveUpTime or GiveUpGap.
+    /// <summary>The duty officer's UAZ in a chase has this much of the car's own performance: 120 % of the top speed and of the pull it has shown in this run (never less than the fixed ChaseMax and 4 m/s²).</summary>
+    public const float ChasePerformance = 1.2f;
+    float _carTopSeen, _carPullSeen;
     const float ChaseBrake = 9f;
     const float ChaseMax = 40f, ChaseBend = 13f, ChaseOut = 12f, TailGap = 6.5f, CatchTime = 1.5f, GiveUpTime = 30f, GiveUpGap = 170f;
 
@@ -183,6 +186,7 @@ public partial class KozlikPatrol : Node3D
 
     public void Reset()
     {
+        _carTopSeen = _carPullSeen = 0f;
         int n = _t.Center.Length;
         _s = ((StartS % n) + n) % n;
         _mode = Mode.Road;
@@ -442,6 +446,11 @@ public partial class KozlikPatrol : Node3D
         _clock += dt;
         _driveDt = dt;
         _previousSpeed = _speed;
+        if (car != null)
+        {
+            _carTopSeen = Math.Max(_carTopSeen, car.Speed);
+            _carPullSeen = Math.Max(_carPullSeen - 0.05f * dt, car.DriveAcceleration);      // (the peak pull, forgotten slowly)
+        }
         int n = _t.Center.Length;
         switch (_mode)
         {
@@ -732,7 +741,9 @@ public partial class KozlikPatrol : Node3D
         Vector2 d0 = _t.CenterDir(i);
         for (int k = 5; k < 40; k += 5)
             turn = Math.Max(turn, MathF.Abs(d0.AngleTo(_t.CenterDir((i + k) % n))));
-        float target = Mathf.Lerp(ChaseMax, ChaseBend, Math.Clamp(turn / 0.9f, 0, 1));
+        float chaseMax = Math.Max(ChaseMax, ChasePerformance * _carTopSeen);
+        float chasePull = Math.Max(4f, ChasePerformance * _carPullSeen);
+        float target = Mathf.Lerp(chaseMax, ChaseBend, Math.Clamp(turn / 0.9f, 0, 1));
         // Closing in: never faster than could still stop TailGap behind the car if it stopped dead
         // (it brakes, spins, lands from a jump), and no closer than that.
         float carSpeed = car.Speed;
@@ -740,7 +751,7 @@ public partial class KozlikPatrol : Node3D
         target = Math.Min(target, carSpeed + MathF.Sqrt(2f * ChaseBrake * room) * 0.8f);
         if (gap < TailGap) target = Math.Max(0f, carSpeed - 2f);
         if (gap < 0f) target = 0f;                           // the car is behind us (spun, thrown back): wait for it
-        _speed = Mathf.MoveToward(_speed, target, (target < _speed ? ChaseBrake : 4f) * dt);
+        _speed = Mathf.MoveToward(_speed, target, (target < _speed ? ChaseBrake : chasePull) * dt);
         _s = (_s + _speed * dt) % n;
         // Right behind the car, across the road as it is.
         float hw = _t.HalfWidth[i];

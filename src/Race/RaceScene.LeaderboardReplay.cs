@@ -20,7 +20,7 @@ public partial class RaceScene
     ulong _boardReplayNoticeUntil;
     Task<(LapSource Source, string Reason)> _boardReplayOpen;
     string _boardReplayOpenTrack, _boardReplayOpenId;
-    static readonly int[] RallyBoardSets = { 0, 2, 3, 4 };
+    static readonly int[] RallyBoardSets = { 2, 0, 3, 4 };      // (the board lists DIESEL, PETROL, JET FUEL, SPUTNIK: the same order as RaceScene.cs' BoardFuels)
 
     (Leaderboard.Entry Entry, int Set) BoardReplayRow()
     {

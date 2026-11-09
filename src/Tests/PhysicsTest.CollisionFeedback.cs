@@ -95,6 +95,14 @@ public partial class PhysicsTest
         Check(mix.All(float.IsFinite) && mix.Count(v => Math.Abs(v) >= .999f) == 0,
             "collision: production engine/tyre mix keeps headroom without clipped samples at default gains");
         mixed.Free();
+        // The Sputnik's engine is 30 % louder than the others': same state, its mix is louder (the five-cylinder's character adds to the gain) and still has headroom.
+        var other = new EngineSound { Rpm = 5800, Throttle = .9f, Speed = 28, Gear = 3, Ground = SurfaceType.Gravel, Grade = 2 };
+        var sput = new EngineSound { Rpm = 5800, Throttle = .9f, Speed = 28, Gear = 3, Ground = SurfaceType.Gravel, Grade = 2, FiveCylinder = true };
+        var otherMix = Render(other, () => { }); var sputMix = Render(sput, () => { });
+        double rmsOther = Math.Sqrt(otherMix.Average(v => (double)v * v)), rmsSput = Math.Sqrt(sputMix.Average(v => (double)v * v));
+        Check(EngineSound.SputnikLoudness == 1.3f && rmsSput > rmsOther * 1.15 && sputMix.All(float.IsFinite) && sputMix.Count(v => Math.Abs(v) >= .999f) == 0,
+            $"sound: the Sputnik's engine is louder than the jet fuel's at the same state, with headroom (RMS {rmsSput:F3} against {rmsOther:F3})");
+        other.Free(); sput.Free();
 
         float PhysicalHit(Vector3 velocity, Vector2 obstacleVelocity)
         {

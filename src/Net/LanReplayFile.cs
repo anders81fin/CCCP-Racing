@@ -23,7 +23,7 @@ public static class LanReplayFile
 
     public static void Validate(Header h)
     {
-        if(h==null || h.Protocol is not (11 or 12 or 13 or 14 or 15 or 16) || (h.Protocol >= 12 && h.Fuel is not (50 or 100 or 200 or 201)) || h.Track is not ("ilyich" or "siberia" or "atomgrad" or "bonus") ||
+        if(h==null || h.Protocol is not (11 or 12 or 13 or 14 or 15 or 16 or 17) || (h.Protocol >= 12 && h.Fuel is not (50 or 100 or 200 or 201)) || h.Track is not ("ilyich" or "siberia" or "atomgrad" or "bonus") ||
             string.IsNullOrWhiteSpace(h.Signature) || h.Signature.Length>256 || h.Players==null || h.Players.Length is <1 or >6 ||
             h.Players.Select(p=>p.Id).Distinct().Count()!=h.Players.Length || !h.Players.Any(p=>p.Id==h.LocalId) ||
             h.Players.Any(p=>p.Id<=0 || p.Slot is <0 or >5 || p.Name==null || p.Name.Length>80) ||

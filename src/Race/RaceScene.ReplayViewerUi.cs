@@ -88,6 +88,8 @@ public partial class RaceScene
         void UiInput(InputEvent e)
         {
             if (_state == ReplayViewerState.Closing || _state == ReplayViewerState.Closed) return;
+            // F12 takes a screenshot of the replay picture in every camera mode (the world only, as the free camera always did), whatever panel is open.
+            if (e is InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.F12 }) { SaveViewerScreenshot(); return; }
             if (FreeCameraInput(e)) return;
             if (ViewerKeepInput(e)) return;
             if (ExportInput(e)) return;      // the MP4 export card / progress (src/Export/ExportUiController.cs)

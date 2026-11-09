@@ -23,8 +23,46 @@ public partial class PhysicsTest
         LanGridLapsTest();
     }
 
+    /// <summary>The secret ballot offers what the comrade with the most opened tracks and fuels has opened.</summary>
+    void LanUnlocksTest()
+    {
+        var rookie = new LanUnlocks(new[] { "ilyich" }, 1);
+        var veteran = new LanUnlocks(new[] { "ilyich", "siberia", "atomgrad" }, 0b0111);
+        var other = new LanUnlocks(new[] { "ilyich", "siberia" }, 0b1111);
+        Check(rookie.Score == 2 && veteran.Score == 6 && other.Score == 6 && LanUnlocks.AllFuels == 15, "unlocks: the score is opened tracks plus opened fuels");
+        Check(LanUnlocks.Best(new[] { rookie, veteran }) == veteran && LanUnlocks.Best(new[] { veteran, other }) == veteran && LanUnlocks.Best(new[] { other, veteran }) == other,
+            "unlocks: the highest score wins, a tie goes to the first (the lowest slot)");
+        var read = LanUnlocks.Read("ilyich,nonsense,siberia,siberia", 0);
+        Check(read.Tracks.SequenceEqual(new[] { "ilyich", "siberia" }) && read.Fuels == 1 && LanUnlocks.Read(null, 7).Tracks.SequenceEqual(new[] { "ilyich" }), "unlocks: a hello's fields keep known tracks once, and at least the first track and the diesel");
+
+        var host = LanSession.BallotFixture("ilyich");
+        host.Players[1].Unlocks = rookie;
+        host.Players.Remove(2);
+        host.FixtureHello(2, "VETERAN", veteran);
+        Check(host.TrackOptions.SequenceEqual(new[] { "ilyich", "siberia", "atomgrad" }) && host.FuelMask == 0b0111, "ballot: a veteran joins, the host's rookie ballot offers the veteran's three tracks and three fuels");
+        host.FixtureHello(3, "OTHER", other);
+        Check(host.TrackOptions.SequenceEqual(new[] { "ilyich", "siberia", "atomgrad" }) && host.FuelMask == 0b0111, "ballot: a tie in the score keeps the lowest slot's set");
+        var wire = LanSession.FixtureOptionsRoundTrip(host);
+        Check(wire.tracks.SequenceEqual(host.TrackOptions) && wire.fuels == host.FuelMask, "ballot: the options and the fuel mask travel in the lobby message");
+        host.FixtureLeave(2);
+        Check(host.TrackOptions.SequenceEqual(new[] { "ilyich", "siberia" }) && host.FuelMask == 0b1111, "ballot: the veteran leaves, the options follow the best who is left");
+        host.FixtureLeave(3);
+        Check(host.TrackOptions.SequenceEqual(new[] { "ilyich" }) && host.FuelMask == 1, "ballot: the host alone offers his own");
+        Check(host.OfferedFuels.SequenceEqual(new[] { Training.PercentForKey(1) }), "ballot: the drum's candidates are the offered fuels only");
+
+        host.FixtureHello(4, "NEW", rookie);
+        host.FixtureOpenBallot();
+        host.FixtureVote(4, Training.PercentForKey(2), true, false, "ilyich");
+        bool refused = !host.Players[4].Voted;
+        host.FixtureVote(4, Training.PercentForKey(1), true, false, "ilyich");
+        Check(refused && host.Players[4].Voted, "ballot: a vote for a fuel that is not on offer does not count, one for an offered fuel does");
+        var tied = LanBallot.Tally(new[] { LanBallot.Abstain }, out _, host.OfferedFuels);
+        Check(tied.SequenceEqual(host.OfferedFuels), "ballot: with no vote the drum has only the offered fuels");
+    }
+
     void LanBallotTest()
     {
+        LanUnlocksTest();
         var tied = LanBallot.Tally(new[] { 50, 50, 200 }, out var counts);
         Check(tied.SequenceEqual(new[] { 50 }) && counts[50] == 2 && counts[200] == 1, "ballot: the majority wins outright (50, 50, 200 -> 50)");
         tied = LanBallot.Tally(new[] { 200, 50 }, out _);

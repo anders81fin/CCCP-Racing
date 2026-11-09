@@ -264,14 +264,28 @@ public static partial class Atomgrad
                 Add(solid, Props.Box(0.16f, 22f, 0.18f), RustDark, s * 15.1f, 14.5f, k * 1.5f);
         foreach (float y in new[] { 8f, 14f, 20f })
             Add(solid, Props.Box(30.2f, 0.4f, 32.2f), ConcreteStain, 0, y, 0);
-        // The roof: a sloped slab with seams along it, a striped parapet along the lower edge, a vent stack with a cowl.
-        var roofTilt = new Vector3(-12f, 0, 0);
-        Add(solid, Props.Box(32f, 1.2f, 36f), RustDark, 0, 29f, -2f, roofTilt.X, 0, 0);
-        for (int k = -5; k <= 5; k++) Add(solid, Props.Box(0.2f, 0.25f, 35f), Rust, k * 2.8f, 29.8f, -2f, roofTilt.X, 0, 0);
+        // The roof: a mono-pitch slab with seams along it. Its low edge rests on the front wall (the striped parapet along it), its high edge on the taller back wall, and the side
+        // walls are carried up under it, so nothing hangs in the air; a vent stack with a cowl and three ventilators stand on its surface.
+        const float roofTilt = 8f, roofMid = 28.3f, roofHalf = 0.6f;
+        float tan = MathF.Tan(Mathf.DegToRad(roofTilt));
+        float Under(float z) => roofMid - z * tan - roofHalf;      // (the slab's underside at this z; the high side is the back, z < 0)
+        float Top(float z) => roofMid - z * tan + roofHalf;
+        Add(solid, Props.Box(32f, 1.2f, 33.2f), RustDark, 0, roofMid, 0, roofTilt, 0, 0);
+        for (int k = -5; k <= 5; k++) Add(solid, Props.Box(0.2f, 0.25f, 33f), Rust, k * 2.8f, roofMid + roofHalf + 0.1f, 0, roofTilt, 0, 0);
         for (int k = 0; k < 16; k++) Add(solid, Props.Box(2f, 0.7f, 0.5f), k % 2 == 0 ? Red : White, -15f + k * 2f, 26.9f, 15.6f);
-        Add(solid, Props.Cyl(1.1f, 5f, 10), pipe, 8f, 32f, -8f);
-        Add(solid, Props.Cyl(1.6f, 0.5f, 10, 0.2f), Rust, 8f, 34.8f, -8f);
-        for (int k = 0; k < 3; k++) Add(solid, Props.Box(1.2f, 0.9f, 1.2f), ConcreteDark, -9f + k * 3.2f, 31.3f - k * 0.2f, -2f);
+        // The back wall rises to the high edge of the roof; the side walls follow the slope up to it.
+        float backTop = Under(-16f) + 0.3f;
+        Add(solid, Props.Box(30.4f, backTop - 26f, 0.8f), Steel, 0, 26f + (backTop - 26f) / 2f, -15.6f);
+        for (float z = -16f; z < 16f; z += 2f)
+        {
+            float top = Under(z + 1f) + 0.3f;
+            if (top - 26f < 0.15f) continue;
+            foreach (float side in new[] { -1f, 1f })
+                Add(solid, Props.Box(0.5f, top - 26f, 2f), Steel, side * 14.9f, 26f + (top - 26f) / 2f, z + 1f);
+        }
+        Add(solid, Props.Cyl(1.1f, 5f, 10), pipe, 8f, Top(-8f) + 2.4f, -8f);
+        Add(solid, Props.Cyl(1.6f, 0.5f, 10, 0.2f), Rust, 8f, Top(-8f) + 5.2f, -8f);
+        for (int k = 0; k < 3; k++) Add(solid, Props.Box(1.2f, 0.9f, 1.2f), ConcreteDark, -9f + k * 3.2f, Top(-2f) + 0.4f, -2f);
         // Buttresses on the long sides, braced to the roof edge by girders.
         for (int k = -3; k <= 3; k++)
             foreach (float s in new[] { -1f, 1f })
@@ -320,7 +334,7 @@ public static partial class Atomgrad
         Add(cs, Props.Box(5.2f, 0.4f, 6.2f), Black, 0, 5.9f, 0);
         Add(cs, Props.Box(5f, 2.4f, 2.4f), Steel, 0, 3f, -4.3f);                                          // the counterweight
         Add(cs, Props.Box(0.7f, 5f, 0.7f), Yellow, 0, 8.4f, 1.6f, -15f, 0, 0);                             // the A-frame mast
-        var jib = new Node3D { Position = new Vector3(0, 5f, 1.8f), RotationDegrees = new Vector3(0, 0, 58f) };
+        var jib = new Node3D { Position = new Vector3(0, 5f, 1.8f), RotationDegrees = new Vector3(58f, 0, 0) };      // (raised forwards over the cab, along the tracks, and away from the wall: it used to lean sideways through the cascade steps)
         crane.AddChild(jib);
         var lat = new Node3D();
         jib.AddChild(lat);

@@ -3,7 +3,7 @@
 Rally-Sport-inspired time trial on a Soviet kolkhoz. Power: ACCORDING TO PLAN. Suspension: NYET.
 
 Source code: [anders81fin/CCCP-Racing](https://github.com/anders81fin/CCCP-Racing).
-Source for version **0.863**: [v0.863](https://github.com/anders81fin/CCCP-Racing/tree/v0.863).
+Source for version **0.87**: [v0.87](https://github.com/anders81fin/CCCP-Racing/tree/v0.87).
 GitHub account: [anders81fin](https://github.com/anders81fin).
 
 Source code is offered under **GPL-3.0-or-later** and game models, images, track
@@ -109,9 +109,9 @@ to do. The rally ghost drives the session's best lap. Day and night come round e
 every mode. Fuel: a 50 l tank, babushkas'
 20 l canisters (a rare golden OCTANE BOOSTER canister gives 3.5 times the fuel's power for 20 s), the depot by the start line.
 The rally's FUEL is chosen after the track: DIESEL (a tractor engine of its own: 200 Nm low and wide, a 1050 kg car, a 5000 rpm
-redline with four close gears, a duller knocking voice; drinks 0.6 times as much), PETROL (100 %, as the game has always been) or
-JET FUEL (140 % power and an 80s turbo that lifts it to 200 %, a CCCP red car; drinks 1.7 times as much) or SPUTNIK (the jet fuel's engine
-on all four wheels, 40 % of the force to the front and 60 % to the rear, a white car; drinks 1.9 times as much). PETROL opens with a silver on the
+redline with four close gears, a duller knocking voice; drinks 0.6 times as much), PETROL (200 Nm, a 1050 kg car, a 7000 rpm redline, five gears, as the game has always been) or
+JET FUEL (280 Nm and an 80s turbo that lifts it to 400 Nm, a 1000 kg CCCP red car; drinks 1.7 times as much) or SPUTNIK (the jet fuel's engine
+on all four wheels, 40 % of the force to the front and 60 % to the rear, 900 kg, a white car; drinks 1.9 times as much). PETROL opens with a silver on the
 bonus track in the rally on DIESEL, JET FUEL with a silver there on PETROL and SPUTNIK with a silver there on JET FUEL. The norms are set at each fuel's pace
 (the ladder times 1.02 for diesel, 0.97 for jet fuel and 0.95 for the Sputnik, per track in `tracks/ID.json` "norms"), and each fuel has its own record
 lap, ghost, board and medals (a medal on any fuel opens the next track). Note that the top speed is about the same on all three (155-159 km/h):

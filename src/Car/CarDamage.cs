@@ -150,14 +150,29 @@ public partial class CarDamage : Node3D
             Name = "sputnik kit", Materials = new[] { "Kit_Dark", "Kit_Lamp", "Kit_Chrome", "Kit_Red" }, Fixed = true,
             Box = new Aabb(new Vector3(-1.2f, -0.6f, -2.3f), new Vector3(2.4f, 2f, 4.6f)),
         });
-        // The twin exhaust pipes of every car but the SPUTNIK (it has one fat pipe in its kit).
+        // The body's twin exhaust pipes: the Petrol wears them (the Diesel has one pipe and the Jet fuel four, built by CarVisual.SetPipes; the Sputnik one fat pipe in its kit).
         _parts.Add(new Part
         {
             Name = "twin exhaust", Materials = new[] { "Pipe_Chrome", "Pipe_Dark" }, Fixed = true,
             Box = new Aabb(new Vector3(0.2f, -0.5f, 1.7f), new Vector3(0.5f, 0.2f, 0.6f)),
         });
 
+        // The tail pipes the Diesel (one) and the Jet fuel (four) wear: no part of the model, built here as triangles (PipeTris) with the colours of the body's own pipes. They dent with
+        // the body, hang crooked and fall off in a hard hit from behind, like the bumper. The Petrol wears the body's twin pipes above; the Sputnik its kit's fat one.
+        var pipeParts = new[]
+        {
+            new Part { Name = "single exhaust", Materials = new[] { "Pipe1_Chrome", "Pipe1_Dark" }, Detach = 1.8f, Box = new Aabb(new Vector3(0.30f, -0.50f, 1.90f), new Vector3(0.20f, 0.20f, 0.35f)) },
+            new Part { Name = "quad exhaust", Materials = new[] { "Pipe4_Chrome", "Pipe4_Dark" }, Detach = 1.8f, Box = new Aabb(new Vector3(-0.55f, -0.50f, 1.90f), new Vector3(1.10f, 0.20f, 0.35f)) },
+        };
+        _parts.AddRange(pipeParts);
+
         var src = _body.Mesh;
+        Material pipeChrome = null, pipeDark = null;
+        for (int si = 0; si < src.GetSurfaceCount(); si++)
+        {
+            var m0 = _body.GetSurfaceOverrideMaterial(si) ?? src.SurfaceGetMaterial(si);
+            if (m0?.ResourceName == "Pipe_Chrome") pipeChrome = m0; else if (m0?.ResourceName == "Pipe_Dark") pipeDark = m0;
+        }
         for (int si = 0; si < src.GetSurfaceCount(); si++)
         {
             var arrays = src.SurfaceGetArrays(si);
@@ -188,6 +203,17 @@ public partial class CarDamage : Node3D
             var body = ToSurf(fine ? Subdivide(rest) : rest, mat);
             foreach (var (p, list) in groups) p.Surfs.Add(ToSurf(fine ? Subdivide(list) : list, mat));
             _surfs.Add(body);
+        }
+        // The pipes' own triangles (same subdivision as the body, so a dent bends them): the lone wide pipe and the four.
+        foreach (var (part, xs, radius, tag) in new[] { (pipeParts[0], PipeSingleXs, 0.06f, "Pipe1_"), (pipeParts[1], PipeQuadXs, 0.045f, "Pipe4_") })
+        {
+            var chrome = new List<Tri>(); var dark = new List<Tri>();
+            foreach (float x in xs) PipeTris(x, radius, chrome, dark);
+            Material mc = pipeChrome?.Duplicate() as Material ?? new StandardMaterial3D { AlbedoColor = new Color(0.84f, 0.85f, 0.86f), Metallic = 0.6f, Roughness = 0.3f };
+            Material md = pipeDark?.Duplicate() as Material ?? new StandardMaterial3D { AlbedoColor = new Color(0.13f, 0.13f, 0.14f) };
+            mc.ResourceName = tag + "Chrome"; md.ResourceName = tag + "Dark";
+            part.Surfs.Add(ToSurf(Subdivide(chrome), mc));
+            part.Surfs.Add(ToSurf(Subdivide(dark), md));
         }
         foreach (var s in AllSurfs()) s.Off = new Vector3[s.Orig.Count];
 
@@ -262,15 +288,18 @@ public partial class CarDamage : Node3D
     }
 
     bool _bumpers = true, _rack = true, _kit;
+    PipeSet _pipes = PipeSet.Twin;
+    /// <summary>Which tail pipes the car wears: the body's twin pipes (Petrol), one wide pipe (Diesel) or four (Jet fuel). The Sputnik's kit has its own and hides them all.</summary>
+    public enum PipeSet { Twin, Single, Quad }
 
     /// <summary>The SPUTNIK's kit is on (its four auxiliary lamps light up after dark: CarLights).</summary>
     public bool KitWorn => _kit;
 
     /// <summary>What the car wears besides its wing: the bumpers (the JET FUEL and the SPUTNIK run without them), the roof rack with the spare tyre (not the SPUTNIK) and the SPUTNIK's kit. What is not worn is hidden and takes no damage.</summary>
-    public void Equip(bool bumpers, bool roofRack, bool kit)
+    public void Equip(bool bumpers, bool roofRack, bool kit, PipeSet pipes = PipeSet.Twin)
     {
-        if (_bumpers == bumpers && _rack == roofRack && _kit == kit) return;
-        _bumpers = bumpers; _rack = roofRack; _kit = kit;
+        if (_bumpers == bumpers && _rack == roofRack && _kit == kit && _pipes == pipes) return;
+        _bumpers = bumpers; _rack = roofRack; _kit = kit; _pipes = pipes;
         ApplyEquip();
     }
 
@@ -278,7 +307,7 @@ public partial class CarDamage : Node3D
     {
         foreach (var p in _parts)
         {
-            bool? worn = p.Name switch { "front bumper" or "rear bumper" => _bumpers, "roof rack" => _rack, "sputnik kit" => _kit, "twin exhaust" => !_kit, _ => null };
+            bool? worn = p.Name switch { "front bumper" or "rear bumper" => _bumpers, "roof rack" => _rack, "sputnik kit" => _kit, "twin exhaust" => !_kit && _pipes == PipeSet.Twin, "single exhaust" => !_kit && _pipes == PipeSet.Single, "quad exhaust" => !_kit && _pipes == PipeSet.Quad, _ => null };
             if (worn is bool w && p.Node != null) { p.Hidden = !w; p.Node.Visible = w; }
         }
     }
@@ -293,6 +322,28 @@ public partial class CarDamage : Node3D
     }
 
     readonly record struct Tri(Vector3 A, Vector3 B, Vector3 C, Vector3 N);
+
+    /// <summary>Where the Diesel's pipe and the Jet fuel's four stand (x in the body frame; FuelGrades.PipeXs says the same to the smoke and the flames).</summary>
+    static readonly float[] PipeSingleXs = { 0.40f }, PipeQuadXs = { -0.47f, -0.33f, 0.33f, 0.47f };
+    const float PipeY = -0.40f, PipeZ0 = 1.95f, PipeZ1 = 2.115f;      // (the pipe stands 0.055 m out of the rear panel)
+
+    /// <summary>One tail pipe as triangles: a chrome tube along z with a closed end and a dark mouth on it.</summary>
+    static void PipeTris(float x, float r, List<Tri> chrome, List<Tri> dark)
+    {
+        const int seg = 8;
+        var c0 = new Vector3(x, PipeY, PipeZ0); var c1 = new Vector3(x, PipeY, PipeZ1);
+        for (int k = 0; k < seg; k++)
+        {
+            float a0 = Mathf.Tau * k / seg, a1 = Mathf.Tau * (k + 1) / seg;
+            Vector3 d0 = new(MathF.Cos(a0), MathF.Sin(a0), 0), d1 = new(MathF.Cos(a1), MathF.Sin(a1), 0);
+            Vector3 p00 = c0 + d0 * r, p01 = c0 + d1 * r, p10 = c1 + d0 * r, p11 = c1 + d1 * r;
+            Vector3 n = (d0 + d1).Normalized();
+            chrome.Add(new Tri(p00, p10, p11, n)); chrome.Add(new Tri(p00, p11, p01, n));
+            chrome.Add(new Tri(c1, p10, p11, Vector3.Back));      // the closed end
+            Vector3 m0 = c1 + d0 * r * 0.68f, m1 = c1 + d1 * r * 0.68f, e = c1 + Vector3.Back * 0.004f;
+            dark.Add(new Tri(e, m0 + Vector3.Back * 0.004f, m1 + Vector3.Back * 0.004f, Vector3.Back));      // the dark mouth, a hair proud of the end
+        }
+    }
 
     static Surf ToSurf(List<Tri> tris, Material mat)
     {

@@ -92,7 +92,10 @@ public partial class RaceScene : Node3D
     float _titleReplayStart;
     bool Replaying => !PresentationActive && _state == State.Title && TitleGhost != null && TitleGhost.Count > 30;
     Ghost _bundledTitleGhost;
-    bool BundledTitleReplay => _bundledTitleGhost != null && Array.TrueForAll(_ghosts, g => g == null);
+    /// <summary>The title shows the bundled lap: always the recorded background take (RaceScene.TitleRec.cs) except while the player watches their own replay; the older demonstration only for a profile with no record.</summary>
+    bool BundledTitleReplay => _bundledTitleGhost != null && (BundledTitleOnly || (_bundledRallyTake && !_watching));
+    /// <summary>The bundled lap stands in for a profile with no record of its own (the best lap and the record holder of the title are then the demonstration's).</summary>
+    bool BundledTitleOnly => _bundledTitleGhost != null && Array.TrueForAll(_ghosts, g => g == null);
     /// <summary>Personal replay takes priority; the bundled lap is title-only.</summary>
     Ghost TitleGhost => BundledTitleReplay ? _bundledTitleGhost : _ghosts[TitleSet];
     /// <summary>Which record set the title replays: the petrol rally's, else Stakhanov's, else the diesel's or the rocket fuel's.</summary>
@@ -131,6 +134,10 @@ public partial class RaceScene : Node3D
     // Training laps (chosen on the title screen): keys 1-4 pick the power (Training.cs); a lap is
     // ranked at the highest power used during it (_lapPeak). A restart keeps the power.
     int _power = Training.DefaultPercent, _powerStart = Training.DefaultPercent, _lapPeak;
+    /// <summary>--title-rec=DIR: a take for the title's background. A rally run on the kolkhoz with its moving world and its car damage, no norms, and Stakhanov's fuel keys 1-4 (the diesel
+    /// first): each fuel brings the next hour of the day (TitleRecLight). One lap is recorded as a pair (ghost, world tape) with its fuel list into DIR/lap-001, and the game quits.</summary>
+    bool _titleRec;
+    float _titleRecClock = TitleRecLights[0];
     bool _heroNodded;
     bool? _commentsForce;
     // Title menu (RaceScene.Menu.cs): two levels of rows, plus the replay line under them while a record lap replays.
@@ -570,6 +577,12 @@ public partial class RaceScene : Node3D
         foreach (string a in InstructionTrack == null ? CmdArgs() : Array.Empty<string>())
         {
             if (a == "--start") start = true;
+            else if (a.StartsWith("--title-rec="))
+            {
+                _titleRec = true; start = true; intro = false; _noRecord = true;      // (never a record: the take goes to its own folder)
+                _tapeSessionLapsDir = a["--title-rec=".Length..]; _tapeQuitLaps = 1;
+                _rallyFuel = FuelGrade.Diesel; _powerStart = Training.PercentForKey(1); _trackId = "ilyich";
+            }
             else if (a == "--no-record") _noRecord = true;                // test: ignore the saved record lap (and never save one)
             else if (a.StartsWith("--rng-seed=")) _rng.Seed = ulong.Parse(a["--rng-seed=".Length..]);   // test: the same backfires and sputters each run (a backfire's camera jolt can decide a babushka in the lens)
             else if (a == "--watch") watch = true;                        // test: start on the title in replay focus
@@ -857,13 +870,12 @@ public partial class RaceScene : Node3D
         _titleReplayStart = TapeStart(TitleReplayStart());
         _replayClock = _titleReplayStart;
         if (TrackLoadingScreen.Active is not { HasMusic: true }) _radio.Play();     // (a loading card already carries the music on)
-        AudioMix.MuteSfx(!_tapeShoot);   // a tape shoot needs the replay's engine and world sound
         _carRadio.Suspend(true);
         _timer.Stop();
         _ghostVis.Visible = false;
-        _snd.Volume = _tapeShoot ? 1f : 0.1f;      // demo car stays under the radio unless shooting
         _run = RunMode.Title;     // the title replay runs in the full rally world
         ResetMenu();             // the top row, on the parent of the mode played last
+        TitleSoundApply();       // RaceScene.TitleRec.cs: music only, or the recorded background lap's sounds at half volume
         if (_menuSingleTest) OpenMenu(MenuItem.Single);
         _watching = _showBoard = _boardScoped = _showLog = _showFiles = _showLessons = _showKeys = _replaySelected = false;
         if (!_hud.Clean) SetSaturation(0f);     // the menu's world is a faded poster (PosterGrade)
@@ -920,6 +932,7 @@ public partial class RaceScene : Node3D
     {
         if (!Replaying) return;
         _watching = _replaySelected = true;
+        TitleSoundApply();
         _overlayFrame = Engine.GetProcessFrames();
         _hud.Mode = HudMode.Watch;
     }
@@ -1052,7 +1065,7 @@ public partial class RaceScene : Node3D
             return;
         }
         // Stakhanov laps: 1-4 pick the power (the rally is always 100 %).
-        if (press && StakhanovRules && _state is (State.Countdown or State.Racing or State.Paused)
+        if (press && (StakhanovRules || _titleRec) && _state is (State.Countdown or State.Racing or State.Paused)
             && e is InputEventKey pk && PowerKey(pk) is > 0 and var n && n <= Training.LapsCount)
         {
             SetPower(Training.PercentForKey(n));
@@ -1067,6 +1080,7 @@ public partial class RaceScene : Node3D
         if (!press || _hud.Mode == HudMode.Intro && e is InputEventKey { Keycode: Key.Alt }) return;   // Alt(+Enter) keeps the card
         if (_watching && e is not InputEventKey { Keycode: Key.Enter or Key.KpEnter or Key.Escape, AltPressed: false }) return;
         _watching = _showBoard = _showLog = false;
+        TitleSoundApply();
         _overlayExitFrame = Engine.GetProcessFrames();
         _hud.Mode = HudMode.Title;      // the replay just carries on behind the menu
     }
@@ -1147,7 +1161,7 @@ public partial class RaceScene : Node3D
     FuelGrade? _engineFuelApplied;
 
     /// <summary>The fuel whose engine the car has now: the rally's, or (in a replay, the title's demonstration) the one the recorded lap was driven on; petrol otherwise.</summary>
-    FuelGrade EngineFuel => CarTourActive ? _carTourFuel : (_run is RunMode.Training or RunMode.Lan) && !Replaying && !ViewerMode ? Training.GradeOf(_power) ?? FuelGrade.Petrol : Replaying || ViewerMode ? ViewerFuelNow() ?? TitleSet switch { 2 => FuelGrade.Diesel, 3 => FuelGrade.Rocket, 4 => FuelGrade.Sputnik, _ => FuelGrade.Petrol } : _run == RunMode.Rally ? _rallyFuel : FuelGrade.Petrol;
+    FuelGrade EngineFuel => CarTourActive ? _carTourFuel : (_run is RunMode.Training or RunMode.Lan) && !Replaying && !ViewerMode ? Training.GradeOf(_power) ?? FuelGrade.Petrol : Replaying || ViewerMode ? ViewerFuelNow() ?? BundledFuelNow() ?? TitleSet switch { 2 => FuelGrade.Diesel, 3 => FuelGrade.Rocket, 4 => FuelGrade.Sputnik, _ => FuelGrade.Petrol } : _run == RunMode.Rally ? _rallyFuel : FuelGrade.Petrol;
 
     /// <summary>The car's engine for the fuel (the diesel's, FuelGrades.ApplyEngine); a lab run's sliders are the owner's, a lab diesel's come from the LAB preset.</summary>
     static readonly Color FuelOlive = new(0.33f, 0.37f, 0.2f), FuelRed = new(0.78f, 0.05f, 0.05f), FuelWhite = new(0.93f, 0.94f, 0.95f);      // diesel: the duty officer's UAZ olive (KozlikPatrol)
@@ -1159,6 +1173,7 @@ public partial class RaceScene : Node3D
         if (_carVis != null) FuelGrades.ApplyVisual(_carVis, EngineFuel);
         if (_ghostVis != null) _ghostVis.Wing = wing;
         if (_carVis != null) _carVis.FuelPaint = _run == RunMode.Lan ? null : EngineFuel switch { FuelGrade.Diesel => FuelOlive, FuelGrade.Rocket => FuelRed, FuelGrade.Sputnik => FuelWhite, _ => null };
+        _carVis?.Repaint();      // (the paint materials are shared by every car of the game: this car's colour is put on them now, whoever painted them last)
         if (_params != null && !_labRun) FuelGrades.ApplyEngine(_params, EngineFuel);
         else if (_params != null) _params.Gears = FuelGrades.GearsFor(EngineFuel);      // (the gears are not LAB sliders: they follow the fuel there too)
     }
@@ -1184,9 +1199,10 @@ public partial class RaceScene : Node3D
     {
         if (_run == RunMode.Training && Training.GradeOf(pct) is FuelGrade lg && FuelLocked(lg))
         {
-            _hud.ShowAlways(FuelGrades.Names[(int)lg] + " IS CLOSED", $"A SILVER ON {TrackName(TrainingTrack)} IN THE RALLY ON {FuelGrades.Names[(int)FuelKey(lg).Value]} OPENS IT", 3f, Hud.Red);
+            _hud.ShowAlways(FuelGrades.Names[(int)lg] + " IS CLOSED", $"SILVER ON {FuelTracksText(lg)} IN THE RALLY ON {FuelGrades.Names[(int)FuelKey(lg).Value]} OPENS IT", 3f, Hud.Red);
             return;
         }
+        if (_titleRec && Training.GradeOf(pct) is FuelGrade take) _rallyFuel = take;      // (the rally's car is the fuel's: its engine, gears, kit and voice)
         _power = pct;
         _lapPeak = Math.Max(_lapPeak, pct);
         LapFuelsNote();
@@ -1404,7 +1420,7 @@ public partial class RaceScene : Node3D
             SceneryFeedback();
             UpdateBackfire(dt);
             _fx.Emit(_car, dt);
-            if (EngineFuel == FuelGrade.Diesel) _fx.DieselSoot(_car, dt); else _fx.PetrolSmoke(_car, dt, EngineFuel is FuelGrade.Rocket or FuelGrade.Sputnik ? 1.5f : 1f);
+            if (EngineFuel == FuelGrade.Diesel) _fx.DieselSoot(_car, dt); else _fx.PetrolSmoke(_car, dt, EngineFuel is FuelGrade.Rocket or FuelGrade.Sputnik ? 1.5f : 1f, -1, FuelGrades.PipeXs(EngineFuel));
             if (_tapeObsCount != null) _tapeReplayQueries += _tapeObsCount.Queries - queries0;
             return;
         }
@@ -1555,7 +1571,7 @@ public partial class RaceScene : Node3D
         UpdateBackfire(dt);
 
         _fx.Emit(_car, dt);
-        if (EngineFuel == FuelGrade.Diesel) _fx.DieselSoot(_car, dt); else _fx.PetrolSmoke(_car, dt, EngineFuel is FuelGrade.Rocket or FuelGrade.Sputnik ? 1.5f : 1f);
+        if (EngineFuel == FuelGrade.Diesel) _fx.DieselSoot(_car, dt); else _fx.PetrolSmoke(_car, dt, EngineFuel is FuelGrade.Rocket or FuelGrade.Sputnik ? 1.5f : 1f, -1, FuelGrades.PipeXs(EngineFuel));
 
 
         if (_car.UpsideDownTime > 1.5f && !_rescue.Active && !FateHasCar && !_towCalled)
@@ -1933,7 +1949,7 @@ public partial class RaceScene : Node3D
             {
                 float shiftStrength = _car.PowerUpshiftStrength;
                 _snd.PowerShift(shiftStrength);
-                _fx.ExhaustFlame(_car, shiftStrength * 0.7f);
+                _fx.ExhaustFlame(_car, shiftStrength * 0.7f, FuelGrades.PipeXs(EngineFuel));
                 _cam.Shake(0.1f * shiftStrength);
             }
         }
@@ -1957,8 +1973,8 @@ public partial class RaceScene : Node3D
                 _antiLagBeat = (_antiLagBeat + 1) % 5;      // the five-cylinder's beat: four quick ones and a longer breath
                 bool big = _rng.Randf() < (_antiLagBeat == 4 ? 0.5f : 0.08f);
                 float s = Math.Clamp(0.3f + 0.4f * load * _rng.RandfRange(0.5f, 1f), 0.3f, 0.7f);
-                if (big) { _snd.Explosion(0.55f + 0.25f * load); _fx.ExhaustFlame(_car, 1f); _cam.Shake(0.05f * load); }
-                else { _snd.Bang(s); if (_rng.Randf() < 0.5f) _fx.ExhaustFlame(_car, 0.5f); }
+                if (big) { _snd.Explosion(0.55f + 0.25f * load); _fx.ExhaustFlame(_car, 1f, FuelGrades.PipeXs(EngineFuel)); _cam.Shake(0.05f * load); }
+                else { _snd.Bang(s); if (_rng.Randf() < 0.5f) _fx.ExhaustFlame(_car, 0.5f, FuelGrades.PipeXs(EngineFuel)); }
                 _antiLagTimer = AntiLagBeats[_antiLagBeat] * (1.5f - 0.6f * load) * _rng.RandfRange(0.85f, 1.15f);
             }
         }
@@ -1970,11 +1986,11 @@ public partial class RaceScene : Node3D
         if (_popTimer > 0) return;
         float strength = _popStrength * _rng.RandfRange(0.6f, 1f);
         if (_popBoom) _snd.Explosion(strength); else _snd.Bang(strength);
-        if (_popBoom) { _fx.ExhaustFlame(_car, 1f); _cam.Shake(0.12f * strength); }
+        if (_popBoom) { _fx.ExhaustFlame(_car, 1f, FuelGrades.PipeXs(EngineFuel)); _cam.Shake(0.12f * strength); }
         if (_pops == 1) _popBoom = false;
         if (OS.HasEnvironment("DAMAGEDBG")) GD.Print($"feedback: exhaust pop at {(Replaying ? _replayClock : _raceClock):F3}");
         _cam.Shake(0.06f * strength);
-        _fx.ExhaustFlame(_car, strength);
+        _fx.ExhaustFlame(_car, strength, FuelGrades.PipeXs(EngineFuel));
         _pops--;
         _popTimer = _rng.RandfRange(0.06f, 0.22f);
     }
@@ -2502,7 +2518,7 @@ public partial class RaceScene : Node3D
         _hud.LapTime = _timer.Running ? _timer.LapTime : 0;
         _hud.SessionBestLap = _sessionBest;
         _hud.BestIsSession = _run == RunMode.Rally && _state != State.Title && !InSchool && !InLanRace && !ViewerMode;
-        _hud.BestLap = _state == State.Title && BundledTitleReplay ? TitleGhost.LapTime : _state == State.Title && TitleSet != 0 ? _bestLaps[TitleSet] : _timer.BestLap;
+        _hud.BestLap = _state == State.Title && BundledTitleOnly ? TitleGhost.LapTime : _state == State.Title && TitleSet != 0 ? _bestLaps[TitleSet] : _timer.BestLap;
         _hud.LastLap = _timer.LastLap;
         _hud.LapVoid = _state == State.Countdown ? _falseStart : _timer.LapVoid;
         _hud.LastLapVoid = _timer.LastLapVoid;
@@ -2547,7 +2563,7 @@ public partial class RaceScene : Node3D
         _hud.PadLost = _padLost;
         // The record holder: the board's top name when it holds the record time.
         var holderBoard = _state == State.Title ? _boards[TitleSet] : _board;
-        _hud.RecordHolder = _state == State.Title && BundledTitleReplay ? "ANTTI" : holderBoard.Entries.Count > 0 && _hud.BestLap > 0 && Math.Abs(holderBoard.Entries[0].Time - _hud.BestLap) < 0.005f
+        _hud.RecordHolder = _state == State.Title && BundledTitleOnly ? "ANTTI" : holderBoard.Entries.Count > 0 && _hud.BestLap > 0 && Math.Abs(holderBoard.Entries[0].Time - _hud.BestLap) < 0.005f
             ? holderBoard.Entries[0].Name : null;
         _hud.EntryName = _entryName;
         RecordingsTick();      // (every frame in every state: the physics tick does not run in the Party Meeting)
@@ -2623,7 +2639,7 @@ public partial class RaceScene : Node3D
         _snd.FiveCylinder = EngineFuel == FuelGrade.Sputnik;
         // The five-cylinder shows: the whole car trembles in a beat of five at idle and the fat pipe glows under boost (cosmetic only: RaceScene.cs, CarVisual.cs).
         bool five = EngineFuel == FuelGrade.Sputnik && !paused;
-        _carVis.Shudder = five ? Math.Clamp(1f - (_car.Rpm - _params.IdleRpm) / 2500f, 0f, 1f) * (_car.Throttle < 0.4f ? 1f : 0.35f) : 0f;
+        _carVis.Shudder = paused ? 0f : Math.Clamp(1f - (_car.Rpm - _params.IdleRpm) / 2500f, 0f, 1f) * (_car.Throttle < 0.4f ? 1f : 0.35f) * FuelGrades.IdleShudder(EngineFuel);      // (every engine trembles at idle, the others half as hard as the Sputnik's five)
         _carVis.PipeGlow(five ? Math.Clamp(_car.Boost * 0.9f, 0f, 1f) : 0f);
         _snd.Grade = EngineFuel == FuelGrade.Sputnik ? (int)FuelGrade.Rocket : (int)EngineFuel;      // (the Sputnik has the jet fuel's voice)
         _snd.Boosted = !paused && !Replaying && !ViewerMode && _boostLeft > 0;

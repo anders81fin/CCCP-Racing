@@ -4,7 +4,7 @@ using Godot;
 namespace CCCPRacing.UI;
 
 /// <summary>
-/// The BALANCED LEARNING CURVE VERSION card at launch: version and a development notice, over the modern loading cover; any
+/// The DEVELOPMENT BUILD card at launch: version and a development notice, over the modern loading cover; any
 /// other key closes it (the changelog is the title menu's CHANGELOG).
 /// </summary>
 public partial class Hud
@@ -21,7 +21,7 @@ public partial class Hud
         foreach (string line in IntroNotice) rows += System.Linq.Enumerable.Count(Wrap(line, cols));
         var r = LogPanel(38 + rows * 10 + 22);
         float cx = Screen.X / 2;
-        PixelFont.DrawCentered(this, "BALANCED LEARNING CURVE VERSION", cx, r.Position.Y + 7, Gold, 2, new Color(0.35f, 0, 0));
+        PixelFont.DrawCentered(this, "DEVELOPMENT BUILD", cx, r.Position.Y + 7, Gold, 2, new Color(0.35f, 0, 0));
         string version = "V. " + ProjectSettings.GetSetting("application/config/version").AsString();
         PixelFont.DrawCentered(this, version, cx, r.Position.Y + 25, Grey);
 

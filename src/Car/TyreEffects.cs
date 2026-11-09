@@ -386,7 +386,7 @@ public partial class TyreEffects : Node3D
         // Always sooty, even with the pedal up (an old diesel never burns clean); the throttle multiplies it.
         float th = Math.Clamp(car.Throttle, 0f, 1f);
         float lowRev = 1f - Math.Clamp((car.Rpm - 1500f) / 3000f, 0f, 1f);
-        float rate = 9f + 75f * MathF.Pow(th, 1.2f) * (0.6f + 0.4f * lowRev);        // puffs per second, both pipes together
+        float rate = 9f + 75f * MathF.Pow(th, 1.2f) * (0.6f + 0.4f * lowRev);        // puffs per second, from the one pipe
         _sootAcc += rate * dt;
         Vector3 back = -car.Forward;
         // A car that stands still is wrapped in its own smoke: the puffs hang about and rise over it instead of streaming away.
@@ -396,7 +396,7 @@ public partial class TyreEffects : Node3D
         while (_sootAcc >= 1f)
         {
             _sootAcc -= 1f;
-            float px = _rng.Randf() < 0.5f ? 0.33f : 0.47f;
+            float px = 0.40f;      // (the diesel has one pipe)
             Vector3 pipe = car.Pos + car.Rot * new Vector3(px, -0.40f, 2.02f);
             float k = 0.5f + 0.5f * th;
             Vector3 at = pipe + back * 0.15f;
@@ -415,10 +415,10 @@ public partial class TyreEffects : Node3D
     static readonly Color PetrolHaze = new(0.66f, 0.67f, 0.7f);
 
     /// <summary>
-    /// A petrol engine's exhaust (petrol, jet fuel and Sputnik; the diesel has DieselSoot): a thin pale blue-grey haze from the twin pipes, a few puffs a second at idle and more under
+    /// A petrol engine's exhaust (petrol, jet fuel and Sputnik; the diesel has DieselSoot): a thin pale blue-grey haze from the pipes of the car (two for the Petrol, four for the Jet fuel, the Sputnik's one fat one), a few puffs a second at idle and more under
     /// load, never black and never a wall. <paramref name="strength"/> 1 is petrol; the hotter fuels have more of it. Driven by the car's state like DieselSoot, so a replay draws it too.
     /// </summary>
-    public void PetrolSmoke(CarSim car, float dt, float strength = 1f, int slot = -1)
+    public void PetrolSmoke(CarSim car, float dt, float strength = 1f, int slot = -1, float[] pipes = null)
     {
         ref float _petrolAcc = ref _petrolAccs[slot < 0 ? MaxCars : slot];
         float th = Math.Clamp(car.Throttle, 0f, 1f);
@@ -428,7 +428,8 @@ public partial class TyreEffects : Node3D
         while (_petrolAcc >= 1f)
         {
             _petrolAcc -= 1f;
-            float px = _rng.Randf() < 0.5f ? 0.33f : 0.47f;
+            pipes ??= new[] { 0.33f, 0.47f };
+            float px = pipes[_rng.RandiRange(0, pipes.Length - 1)];
             Vector3 pipe = car.Pos + car.Rot * new Vector3(px, -0.40f, 2.02f) + back * 0.15f;
             Add(pipe, car.Vel * 0.6f + back * _rng.RandfRange(Mathf.Lerp(1.5f, 0.3f, still), Mathf.Lerp(3.5f, 0.8f, still)) + Rand(0.3f, 0.25f, 0.3f) + Vector3.Up * (0.4f + 0.8f * still),
                 _rng.RandfRange(1.0f, 1.9f), 0.12f + 0.1f * th, 0.9f + 0.7f * th, -0.3f, 1.2f, PetrolHaze, 0.2f + 0.18f * th, false);
@@ -485,11 +486,11 @@ public partial class TyreEffects : Node3D
     /// <summary>A jet or turbine's kerosene smoke: a thin pale grey-brown haze, not the diesel's black soot.</summary>
     static readonly Color KeroseneHaze = new(0.56f, 0.54f, 0.51f);
 
-    /// <summary>Backfire: a short tongue of flame and a puff of dark smoke from the twin pipes.</summary>
-    public void ExhaustFlame(CarSim car, float strength)
+    /// <summary>Backfire: a short tongue of flame and a puff of dark smoke from the pipes of the fuel's car (FuelGrades.PipeXs).</summary>
+    public void ExhaustFlame(CarSim car, float strength, float[] pipes = null)
     {
         Vector3 back = -car.Forward;
-        foreach (float px in new[] { 0.33f, 0.47f })
+        foreach (float px in pipes ?? new[] { 0.33f, 0.47f })
         {
             Vector3 pipe = car.Pos + car.Rot * new Vector3(px, -0.40f, 2.02f);
             // Exaggerated on purpose so it reads at 480×270: a fat fireball, bright core first.

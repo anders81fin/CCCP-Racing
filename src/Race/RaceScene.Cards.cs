@@ -215,6 +215,17 @@ public partial class RaceScene
         }
     }
 
+    /// <summary>The slurry tractor driver's grandmother: what is coming on the road and what to do about it.</summary>
+    void CardSlurryRevenge() =>
+        QueueCard("revenge_slurry", "THAT WAS THE TRACTOR DRIVER'S GRANDMA!", Hud.Red,
+            "SLURRY ON THE ROAD!", "NO BRAKING IN IT. LIFT OFF AND STEER!",
+            "THE TRACTOR LEAVES ITS FIELDS.",
+            "IT DRIVES THE ROAD AND SPREADS SLURRY.",
+            "SLURRY IS SLIPPERIER THAN ICE.",
+            "IT STAYS ON YOUR TYRES FOR A WHILE.",
+            "A PUDDLE OF WATER WASHES THEM FASTER.",
+            "IT STOPS AFTER THREE LAPS.");
+
     /// <summary>A revenge has begun: what is coming and what to do about it.</summary>
     void CardRevenge(bool jet)
     {

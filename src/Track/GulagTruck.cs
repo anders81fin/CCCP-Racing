@@ -183,10 +183,18 @@ public partial class GulagTruck : Node3D
         _path.Clear();
         for (int k = (int)ApproachFrom; k >= 16; k -= 3)
             _path.Add(InLane((_carIndex - k + n) % n));
-        _path.Add(c + lane - dir * 9f);      // past the car on that side...
-        _path.Add(c + lane + dir * 4f);
-        for (int k = 10; k <= (int)StopAhead; k += 3)      // ...and back onto the road ahead of it
-            _path.Add(InLane((_carIndex + k) % n));
+        // Off the road past the car, if the ground there is free of anything solid (the labour camp's huts, towers and wire, a building,
+        // a wreck): a ZIL-131 goes anywhere, but not over a barracks. Otherwise it keeps to its lane and stops on the road short of the car.
+        Vector2 detourA = c + lane - dir * 9f, detourB = c + lane + dir * 4f, backOn = InLane((_carIndex + 10) % n);
+        if (DetourClear(_path[^1], detourA, detourB, backOn))
+        {
+            _path.Add(detourA);      // past the car on that side...
+            _path.Add(detourB);
+            for (int k = 10; k <= (int)StopAhead; k += 3)      // ...and back onto the road ahead of it
+                _path.Add(InLane((_carIndex + k) % n));
+        }
+        else
+            for (int k = -13; k <= (int)StopAhead; k += 3) _path.Add(InLane((_carIndex + k + n) % n));
         _path.Add(InLane((_carIndex + (int)StopAhead) % n));
         _seenAt = null;
         if (_onRoad != this) _shadowed = _onRoad;
@@ -205,6 +213,23 @@ public partial class GulagTruck : Node3D
         _sound.Dozing = false;
         _sound.Honk();
         Place();
+    }
+
+    /// <summary>The off-road detour (from the last road point through a and b to the road again) keeps clear of every solid, standing obstacle: the truck's body is about 1.6 m across.</summary>
+    bool DetourClear(Vector2 from, Vector2 a, Vector2 b, Vector2 backOn)
+    {
+        var line = new[] { from, a, b, backOn };
+        foreach (var o in _t.Obstacles)
+        {
+            if (o.Radius < .9f || o.Velocity != Vector2.Zero || o.Center.X < -1000f) continue;
+            for (int i = 0; i + 1 < line.Length; i++)
+            {
+                var seg = line[i + 1] - line[i];
+                float u = Math.Clamp((o.Center - line[i]).Dot(seg) / Math.Max(.01f, seg.LengthSquared()), 0f, 1f);
+                if (o.Center.DistanceTo(line[i] + seg * u) < o.Radius + HalfWidth + 1.3f) return false;
+            }
+        }
+        return true;
     }
 
     public void Tick(float dt, CarSim car)

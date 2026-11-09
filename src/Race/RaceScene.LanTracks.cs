@@ -17,6 +17,25 @@ public partial class RaceScene
     int[] LanBallotOrder => _net.TrackOptions.Count>1
         ? new[]{3,0,1,2,4}
         : _net.TrackOptions.Any(t=>t!="ilyich") ? new[]{0,1,2,4} : new[]{0,1,4};
+    /// <summary>Fuel key 1..4 is a grade: is it on the ballot (the comrade with the most opened offers his fuels)?</summary>
+    bool LanFuelKeyOffered(int key) => key is >= 1 and <= LanRace.FuelCount && (_net.FuelMask >> (key - 1) & 1) != 0;
+    /// <summary>The offered key nearest to this one (the key itself when it is offered).</summary>
+    int LanFuelKeyNear(int key)
+    {
+        key = Math.Clamp(key, 1, LanRace.FuelCount);
+        for (int d = 0; d < LanRace.FuelCount; d++)
+        {
+            if (LanFuelKeyOffered(key - d)) return key - d;
+            if (LanFuelKeyOffered(key + d)) return key + d;
+        }
+        return 1;
+    }
+    /// <summary>One step left or right on the fuel row, over the fuels that are not offered; at the end it stays.</summary>
+    int LanFuelStep(int dir)
+    {
+        for (int k = _lanChoice + dir; k >= 1 && k <= LanRace.FuelCount; k += dir) if (LanFuelKeyOffered(k)) return k;
+        return _lanChoice;
+    }
     void StepLanBallotRow(bool up)
     {
         var order=LanBallotOrder;
@@ -27,6 +46,19 @@ public partial class RaceScene
     string _lanTrackVoteFlag;
     float _lanLoadDelay;
     double _lanReadyAt=-1;
+
+    /// <summary>What this machine has opened, for the LAN lobby: the tracks the campaign has opened and the fuels opened (silvers on the fuel below); a test host offers the tracks of --lan-tracks and every fuel.</summary>
+    Net.LanUnlocks LanUnlocksNow()
+    {
+        if(_lanTestTracks!=null) return new Net.LanUnlocks(LanHostTracks().ToList(),Net.LanUnlocks.AllFuels);
+        int fuels=0;
+        for(int g=0;g<FuelGrades.Count;g++)
+        {
+            var grade=(FuelGrade)g;
+            if(CheatUnlock || FuelOpenByMedals(grade)) fuels|=1<<g;
+        }
+        return new Net.LanUnlocks(LanHostTracks().ToList(),fuels);
+    }
 
     IEnumerable<string> LanHostTracks()
     {

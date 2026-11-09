@@ -96,7 +96,7 @@ public partial class PhysicsTest
             Check(made > 20 && allKind, "every patch the live tractor lays is a slurry-patch event with its life");
             var reg = System.Linq.Enumerable.FirstOrDefault(Tape.SoundsOf(actor.Model) ?? new System.Collections.Generic.List<TapeSoundReg>(), r => r.Channel == TapeSoundChannel.SlurrySpray);
             Check(reg != null && TapeSoundRange.Of(TapeSoundChannel.SlurrySpray) == (0f, 2f) && TapeSoundRange.FromByte(TapeSoundChannel.SlurrySpray, TapeSoundRange.ToByte(TapeSoundChannel.SlurrySpray, 2f)) == 2f
-                && actor.GetMeta(WorldTapeConst.VersionMeta, 0).AsInt32() == 2, "the spray is a registered sound channel with an exact 0, 1, 2 range");
+                && actor.GetMeta(WorldTapeConst.VersionMeta, 0).AsInt32() == 3, "the spray is a registered sound channel with an exact 0, 1, 2 range");
             actor.TapeDriven = true;
             Check(actor.Trail.Patches.Count == 0 && !actor.Spraying, "a tape-driven tractor starts with a clean trail");
             reg.Set(1f);
@@ -139,14 +139,49 @@ public partial class PhysicsTest
         }
         Check(started && onRoad && wetRoad && bounded, "the revenge: the tractor reaches the road and spreads slurry along it (bounded patches)");
         Check(worstEdge < 0.5f, "while avenging the tractor stays on the road");
+        var lapsLeft = new System.Collections.Generic.List<int>();
+        actor.RevengeLapPassed += n => lapsLeft.Add(n);
         actor.RevengeLapDone(); actor.RevengeLapDone();
         bool twoLaps = actor.Avenging;
         actor.RevengeLapDone();
         Check(twoLaps && !actor.Avenging, "the revenge lasts exactly three laps");
+        Check(lapsLeft.SequenceEqual(new[] { 2, 1 }), "the laps left are reported after the first and the second lap");
         for (int i = 0; i < 6000 && !actor.HasDeparted; i++) actor.Tick(0.1f);
         Check(actor.HasDeparted, "after the revenge the tractor drives back to its fields");
         actor.Reset();
         RemoveChild(actor); actor.Free();
+        SlurryBusMeetTest();
+    }
+
+    /// <summary>The grandmother's revenge on the road meets the bus coming the other way: they pass each other in their lanes instead of standing nose to nose.</summary>
+    void SlurryBusMeetTest()
+    {
+        var t = TrackBuilder.Build(TrackDef.Load("res://tracks/ilyich.json"));
+        var fx = new TyreEffects(); AddChild(fx); fx.Init(t);
+        int staticObstacles = t.Obstacles.Count;
+        var actor = new SlurryTractor(); AddChild(actor); actor.Init(t);
+        var bus = new SovietBus(); AddChild(bus);
+        int n = t.Center.Length;
+        bus.Init(t, fx, 0, null, staticObstacles);
+        for (int i = 0; i < 100; i++) actor.Tick(0.1f);
+        actor.StartRevenge();
+        // Get the tractor onto the road, then put the bus 80 m ahead of it on its own way (the bus drives against the lap).
+        for (int i = 0; i < 1200 && !(actor.Avenging && actor.Spraying); i++) { actor.Tick(0.1f, true, bus); bus.Tick(0.1f, null); }
+        if (!actor.Spraying) { Check(false, "the revenge tractor reaches the road with a bus on the route"); RemoveChild(bus); bus.Free(); RemoveChild(actor); actor.Free(); RemoveChild(fx); fx.Free(); return; }
+        int k = t.NearestCenter(actor.Position2D, out _);
+        bus.Warp(k + 90);
+        float standing = 0f, worst = 0f; bool passed = false;
+        Vector2 dir = t.CenterDir(k);
+        for (int i = 0; i < 3600; i++)      // six minutes
+        {
+            actor.Tick(0.1f, true, bus); bus.Tick(0.1f, null, false, null, actor);
+            bool both = actor.Position2D.DistanceTo(bus.Position2D) < 20f && bus.Speed < 0.2f;
+            standing = both ? standing + 0.1f : 0f;
+            worst = Math.Max(worst, standing);
+            if ((bus.Position2D - actor.Position2D).Dot(t.CenterDir(t.NearestCenter(actor.Position2D, out _))) < -3f) { passed = true; break; }
+        }
+        Check(passed && worst < 8f, $"the revenge tractor and the bus pass each other on the road (longest standstill face to face {worst:F1} s)");
+        RemoveChild(bus); bus.Free(); RemoveChild(actor); actor.Free(); RemoveChild(fx); fx.Free();
     }
 
     void VehicleTrafficTest()

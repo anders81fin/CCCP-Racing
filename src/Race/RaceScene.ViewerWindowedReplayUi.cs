@@ -159,7 +159,7 @@ public partial class RaceScene
         if (s == null) yield break;
         var v = s.Scene;
         v.ViewerSetPaused(true);
-        VwCheck(v.ViewerCamera == ViewerCameraMode.TopDown, "the viewer's default camera is the gameplay top-down");
+        VwCheck(v.ViewerCamera == ViewerCameraMode.Auto, "the viewer's default camera is the automatic broadcast");
         bool cfg = v._cam.Offset == _cam.Offset && v._cam.FollowRate == _cam.FollowRate && v._cam.LookAhead == _cam.LookAhead && v._cam.ShakeEnabled == _cam.ShakeEnabled;
         VwLog("camera-config", ("live_offset", _cam.Offset), ("viewer_offset", v._cam.Offset), ("live_follow_rate", _cam.FollowRate), ("viewer_follow_rate", v._cam.FollowRate), ("live_lookahead", _cam.LookAhead), ("viewer_lookahead", v._cam.LookAhead),
             ("live_fov", _cam.Fov), ("viewer_fov", v._cam.Fov), ("live_near_far", $"{_cam.Near}/{_cam.Far}"), ("viewer_near_far", $"{v._cam.Near}/{v._cam.Far}"), ("live_shake", _cam.ShakeEnabled), ("viewer_shake", v._cam.ShakeEnabled));
@@ -712,7 +712,7 @@ public partial class RaceScene
         foreach (var x in VrUntil(() => s.State == ReplayViewerState.Playing, 60 * 120, "the viewer reached Playing")) yield return x;
         for (int i = 0; i < 90; i++) yield return null;
         VwCheck(!s.Scene.ViewerPaused && s.Scene.ViewerClock > 0.5f, $"it plays on its own (clock {s.Scene.ViewerClock:0.0})");
-        VwCheck(s.Scene.ViewerCamera == ViewerCameraMode.TopDown && s.Scene.ViewerSpeed == 1f, "default camera is the gameplay top-down, speed 1x");
+        VwCheck(s.Scene.ViewerCamera == ViewerCameraMode.Auto && s.Scene.ViewerSpeed == 1f, "default camera is the automatic broadcast, speed 1x");
         // the default camera is the gameplay one: sampled while the lap plays at several places, against the live camera at the same speed
         var viewCam = new List<CamSample>();
         foreach (float at in new[] { 0.1f, 0.3f, 0.5f, 0.7f, 0.9f })

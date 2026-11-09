@@ -15,6 +15,8 @@ public partial class Hud
     public string RevengeJet;
     /// <summary>"TANKS: N SHOTS LEFT" while the tanks chase the car, else null.</summary>
     public string RevengeTanks;
+    /// <summary>"SLURRY: N LAPS LEFT" while the slurry tractor's revenge is on, else null.</summary>
+    public string RevengeSlurry;
     /// <summary>Screen points of missiles flying at the car (far off the edge when behind the camera).</summary>
     public readonly List<Vector2> MissileMarks = new();
 
@@ -22,7 +24,7 @@ public partial class Hud
     {
         var s = Screen;
         float y = 20;
-        foreach (var text in new[] { RevengeJet, RevengeTanks })
+        foreach (var text in new[] { RevengeJet, RevengeTanks, RevengeSlurry })
         {
             if (text == null) continue;
             float w = PixelFont.Measure(text) + 8;

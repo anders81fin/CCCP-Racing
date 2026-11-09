@@ -26,6 +26,26 @@ public partial class PhysicsTest
             try { Run(car, 3f, () => car.SetControls(true, false, 0, false)); } catch (IndexOutOfRangeException) { ok = false; }
             Check(fifth && ok && car.Gear <= engine.Gears.Length && engine.Gears.Length == 4, "switching to the diesel's four gears from fifth gear in a run does not crash and drops to its top gear");
         }
+        Check(FuelGrades.IdleShudder(FuelGrade.Sputnik) == 1f && FuelGrades.IdleShudder(FuelGrade.Diesel) == 0.5f && FuelGrades.IdleShudder(FuelGrade.Petrol) == 0.5f && FuelGrades.IdleShudder(FuelGrade.Rocket) == 0.5f
+            && FuelGrades.IdleBeats(FuelGrade.Sputnik).Length == 5 && FuelGrades.IdleBeats(FuelGrade.Diesel).Length == 4 && FuelGrades.IdleBeats(FuelGrade.Petrol).Length == 4
+            && FuelGrades.IdleBeats(FuelGrade.Diesel).Max() == 1f && FuelGrades.IdleRate(FuelGrade.Diesel) < FuelGrades.IdleRate(FuelGrade.Petrol),
+            "idle shudder: every engine trembles, the others at half the Sputnik's strength, the Diesel slower and lumpier than the petrol's four");
+        {
+            // The body takes the kick: the same shudder moves a car with the Sputnik's setting twice as far as the Diesel's.
+            var parameters = new CarParams(); var sim = new CarSim(parameters, new FlatGround()); sim.Reset(new(0, 2, 0), 0);
+            float Travel(FuelGrade g)
+            {
+                var vis = CarVisual.Create(parameters, Godot.Colors.Red); AddChild(vis);
+                FuelGrades.ApplyVisual(vis, g);
+                vis.Shudder = FuelGrades.IdleShudder(g);
+                float top = 0f;
+                for (int i = 0; i < 90; i++) { vis.Sync(sim, new FlatGround()); top = Math.Max(top, Math.Abs(vis.Transform.Origin.Y - sim.Transform.Origin.Y)); }
+                RemoveChild(vis); vis.Free();
+                return top;
+            }
+            float sput = Travel(FuelGrade.Sputnik), diesel = Travel(FuelGrade.Diesel);
+            Check(sput > 0f && diesel > 0f && diesel < sput * 0.7f, $"idle shudder: the body really moves, the diesel less than the sputnik ({diesel:F4} / {sput:F4} m)");
+        }
         Check(Training.LapsCount == 4 && Training.PercentForKey(4) == Training.SputnikPercent && Training.GradeOf(201) == FuelGrade.Sputnik && Training.GradeOf(200) == FuelGrade.Rocket
             && Training.FuelShort(201) == "SPUT" && Training.FuelName(201) == "SPUTNIK" && Training.Overdrive(201) == 0f && !Training.Valid(201), "Stakhanov laps offer the Sputnik as the fourth fuel (201), the LAN does not");
         Check(Enumerable.Range(0, 3).Select(i => FuelGrades.BoostPercent((FuelGrade)i)).SequenceEqual(new[] { 175, 350, 500 }),

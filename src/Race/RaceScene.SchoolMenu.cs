@@ -36,7 +36,7 @@ public partial class RaceScene
         }
         Course("driving", "CAR HANDLING", SchoolCourse.Driving, SchoolScript.DrivingTrack);
         for (int i = 0; i < Tracks.Length; i++)
-            if (SchoolScript.For(SchoolCourse.Rally, Tracks[i].id) != null && !Locked(i, MenuItem.Race))
+            if (SchoolScript.For(SchoolCourse.Rally, Tracks[i].id) != null && !Locked(i, MenuItem.Race, anyFuel: true))
                 Course(Tracks[i].id, Tracks[i].name, SchoolCourse.Rally, Tracks[i].id);
         return rows;
     }

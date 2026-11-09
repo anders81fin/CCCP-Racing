@@ -14,6 +14,7 @@ public partial class PhysicsTest
         Check(n.Players.Count==6 && n.Players.Values.Select(p=>p.Slot).OrderBy(x=>x).SequenceEqual(Enumerable.Range(0,6)),"LAN six: production hello admits six unique player slots including host");
         n.CapacityHello(7);
         Check(n.Players.Count==6 && !n.Players.ContainsKey(7) && n.Scores.Count()==6,"LAN six: seventh hello cannot enter or add a score entry");
+        n.FixtureHostOpenedAll();
         n.StartBallot();n.Vote(100,true,false,"ilyich");
         for(long id=2;id<=6;id++)n.CapacityVote(id);
         Check(n.State==LanSession.Phase.Loading && n.Reveal.Ballots.Count==6 && n.Reveal.Grid.Distinct().Count()==6,"LAN six: six submitted ballots close the actual ballot and draw six grid positions");

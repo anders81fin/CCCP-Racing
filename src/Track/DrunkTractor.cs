@@ -27,7 +27,8 @@ public partial class DrunkTractor : Node3D
     float _startYaw;
 
     Vector2 _pos, _goal;
-    float _yaw, _speed, _targetSpeed;
+    float _yaw, _speed, _targetSpeed, _travel;      // (_travel: metres driven, the wheels turn by it)
+    readonly System.Collections.Generic.List<TractorWheel> _wheels = new();
     float _soot, _speedTimer, _napTimer, _hicTimer, _puffTimer, _clodAcc, _t0, _drift, _segDist;
     int _obsBody = -1, _obsPlough = -1;
     readonly List<(Vector2 p, float r)> _avoid = new();
@@ -100,8 +101,9 @@ public partial class DrunkTractor : Node3D
         AddChild(furrows);
         _sound = new CCCPRacing.Audio.DieselSound();
         _model.AddChild(_sound);
-        Tape.Version(this, 1);
+        Tape.Version(this, 2);      // (2: the four wheels are parts, with their angles as spinners)
         Tape.Part(this, "root"); Tape.Part(_model, "model"); Tape.Part(_driver, "driver"); Tape.Part(_head, "head");
+        TapeWheels(_wheels, () => _travel);
         Tape.Sound(_model, TapeSoundChannel.DieselSpeed, () => _sound.Speed, v => _sound.Speed = v);
         Tape.Sound(_model, TapeSoundChannel.DieselDozing, () => _sound.Dozing ? 1f : 0f, v => _sound.Dozing = v > 0.5f);
         Reset();
@@ -113,6 +115,7 @@ public partial class DrunkTractor : Node3D
         _pos = _start;
         _yaw = _startYaw;
         _speed = 0;
+        _travel = 0;
         _targetSpeed = 2.5f;
         _napTimer = 0;
         _hicTimer = 5f;
@@ -137,11 +140,11 @@ public partial class DrunkTractor : Node3D
     {
         _model = new Node3D { Name = "MT-Agro" };
         AddChild(_model);
-        BuildMtAgro(_model, plough: true, out _driver, out _head);
+        BuildMtAgro(_model, plough: true, out _driver, out _head, null, false, _wheels);
     }
 
     /// <summary>The blue MT-Agro with its tractorist; the plough is optional (the rescue tractor has a tow rope instead).</summary>
-    public static void BuildMtAgro(Node3D model, bool plough, out Node3D driver, out Node3D head, Color? bodyColor = null, bool batchStatic = false)
+    public static void BuildMtAgro(Node3D model, bool plough, out Node3D driver, out Node3D head, Color? bodyColor = null, bool batchStatic = false, System.Collections.Generic.List<TractorWheel> wheels = null)
     {
         var blue = bodyColor ?? Props.TractorBlue;
         var rubber = Props.Rubber;
@@ -200,10 +203,11 @@ public partial class DrunkTractor : Node3D
         }
 
         // Road wheels with agricultural lugs, pressed rims, hubs and visible wheel nuts.
-        AddWheel(model, -0.95f, 0.85f, 0.45f, 0.9f, true, rubber, darkSteel, steel);
-        AddWheel(model,  0.95f, 0.85f, 0.45f, 0.9f, true, rubber, darkSteel, steel);
-        AddWheel(model, -0.75f, 0.45f, 0.3f, -1.5f, false, rubber, darkSteel, steel);
-        AddWheel(model,  0.75f, 0.45f, 0.3f, -1.5f, false, rubber, darkSteel, steel);
+        var rolling = wheels ?? new System.Collections.Generic.List<TractorWheel>();
+        rolling.Add(new TractorWheel(AddWheel(model, -0.95f, 0.85f, 0.45f, 0.9f, true, rubber, darkSteel, steel), 0.85f));
+        rolling.Add(new TractorWheel(AddWheel(model,  0.95f, 0.85f, 0.45f, 0.9f, true, rubber, darkSteel, steel), 0.85f));
+        rolling.Add(new TractorWheel(AddWheel(model, -0.75f, 0.45f, 0.3f, -1.5f, false, rubber, darkSteel, steel), 0.45f));
+        rolling.Add(new TractorWheel(AddWheel(model,  0.75f, 0.45f, 0.3f, -1.5f, false, rubber, darkSteel, steel), 0.45f));
 
         // Enclosed cab frame, broad glazed panes, roof lip and mirrors.
         foreach (float sx in new[] { -0.7f, 0.7f })
@@ -268,7 +272,7 @@ public partial class DrunkTractor : Node3D
 
         if (!plough)
         {
-            if (batchStatic) BatchStatic(model, driver);
+            if (batchStatic) BatchStatic(model, driver, rolling);
             return;
         }
         // Plough: drawbar, cross beam and four angled shares, dug into the ground.
@@ -282,13 +286,13 @@ public partial class DrunkTractor : Node3D
             model.AddChild(Props.Part(Props.Box(0.12f, 0.08f, 0.28f), darkSteel,
                 new Vector3(x, 0.08f, PloughBack + 0.3f), new Vector3(0, 25, 0)));
         }
-        if (batchStatic) BatchStatic(model, driver);
+        if (batchStatic) BatchStatic(model, driver, rolling);
     }
 
     /// <summary>Combines the stationary opaque tractor parts into one vertex-coloured surface.</summary>
-    internal static void BatchStatic(Node3D model, Node3D driver)
+    internal static void BatchStatic(Node3D model, Node3D driver, System.Collections.Generic.IEnumerable<TractorWheel> keep = null)
     {
-        foreach (var _ in BatchStaticSteps(model, driver)) { }
+        foreach (var _ in BatchStaticSteps(model, driver, keep)) { }
     }
 
     /// <summary>Test aid: true merges through SurfaceTool vertex by vertex (the reference the managed merge below must equal).</summary>
@@ -383,8 +387,9 @@ public partial class DrunkTractor : Node3D
 
     /// <summary>BatchStatic in slices: every item is a point where a frame may go by (a loading card keeps running). The vertices are gathered
     /// in managed arrays (one native call builds the surface, where a SurfaceTool costs three native calls per vertex) and the gathering is cut into time slices.</summary>
-    internal static System.Collections.Generic.IEnumerable<int> BatchStaticSteps(Node3D model, Node3D driver)
+    internal static System.Collections.Generic.IEnumerable<int> BatchStaticSteps(Node3D model, Node3D driver, System.Collections.Generic.IEnumerable<TractorWheel> keep = null)
     {
+        var kept = new System.Collections.Generic.HashSet<Node>(); if (keep != null) foreach (var w in keep) kept.Add(w.Pivot);      // (the wheels turn: they stay as they are)
         var slice = System.Diagnostics.Stopwatch.StartNew(); var dbg = System.Diagnostics.Stopwatch.StartNew(); int dbgMiss = 0; long dbgMissTicks = 0;
         bool reference = BatchReference;
         var st = new SurfaceTool();
@@ -398,7 +403,7 @@ public partial class DrunkTractor : Node3D
         var meshes = new System.Collections.Generic.List<(MeshInstance3D Instance, Transform3D Xf)>();
         void Collect(Node node, Transform3D parent)
         {
-            if (node == driver) return;
+            if (node == driver || kept.Contains(node)) return;
             Transform3D xf = parent;
             if (node is Node3D n3d) xf *= n3d.Transform;
             if (node is MeshInstance3D mi) meshes.Add((mi, xf));
@@ -471,7 +476,7 @@ public partial class DrunkTractor : Node3D
         }
         yield return 0;
         foreach (Node child in model.GetChildren())
-            if (child != driver) { model.RemoveChild(child); child.Free(); }
+            if (child != driver && !kept.Contains(child)) { model.RemoveChild(child); child.Free(); }
         model.AddChild(new MeshInstance3D
         {
             Name = "BatchedMTAgro",
@@ -495,35 +500,61 @@ public partial class DrunkTractor : Node3D
         st.AddVertex(xf * vertices[index]);
     }
 
-    static void AddWheel(Node3D model, float side, float radius, float width, float z, bool rear,
+    /// <summary>One wheel on a pivot at its axle (so it can turn: the tractors roll their wheels by the distance driven, and the world tape records the angle); returns the pivot.</summary>
+    static Node3D AddWheel(Node3D model, float side, float radius, float width, float z, bool rear,
         Color rubber, Color darkSteel, Color steel)
     {
         float y = radius;
         int lugs = rear ? 14 : 10;
-        model.AddChild(Props.Part(Props.Cyl(radius, width, 12), rubber, new Vector3(side, y, z), new Vector3(0, 0, 90)));
+        var pivot = new Node3D { Position = new Vector3(side, y, z), Name = "Wheel" };
+        model.AddChild(pivot);
+        pivot.AddChild(Props.Part(Props.Cyl(radius, width, 12), rubber, Vector3.Zero, new Vector3(0, 0, 90)));
         for (int i = 0; i < lugs; i++)
         {
             float a = i * MathF.Tau / lugs;
-            var pos = new Vector3(side, y + MathF.Cos(a) * radius * 0.93f, z + MathF.Sin(a) * radius * 0.93f);
+            var pos = new Vector3(0, MathF.Cos(a) * radius * 0.93f, MathF.Sin(a) * radius * 0.93f);
             float lugWidth = rear ? 0.23f : 0.16f;
-            model.AddChild(Props.Part(Props.Box(width * 0.92f, lugWidth, rear ? 0.27f : 0.19f), darkSteel,
+            pivot.AddChild(Props.Part(Props.Box(width * 0.92f, lugWidth, rear ? 0.27f : 0.19f), darkSteel,
                 pos, new Vector3(Mathf.RadToDeg(a), 0, 0)));
         }
         foreach (float s in new[] { -1f, 1f })
         {
-            float face = side + s * (width * 0.5f + 0.025f);
-            model.AddChild(Props.Part(Props.Cyl(radius * (rear ? 0.48f : 0.54f), 0.08f, 10), steel,
-                new Vector3(face, y, z), new Vector3(0, 0, 90)));
+            float face = s * (width * 0.5f + 0.025f);
+            pivot.AddChild(Props.Part(Props.Cyl(radius * (rear ? 0.48f : 0.54f), 0.08f, 10), steel,
+                new Vector3(face, 0, 0), new Vector3(0, 0, 90)));
             float outer = face + s * 0.05f;
-            model.AddChild(Props.Part(Props.Cyl(radius * 0.22f, 0.06f, 8), darkSteel,
-                new Vector3(outer, y, z), new Vector3(0, 0, 90)));
+            pivot.AddChild(Props.Part(Props.Cyl(radius * 0.22f, 0.06f, 8), darkSteel,
+                new Vector3(outer, 0, 0), new Vector3(0, 0, 90)));
             int bolts = rear ? 8 : 6;
             for (int b = 0; b < bolts; b++)
             {
                 float a = b * MathF.Tau / bolts;
-                model.AddChild(Props.Part(Props.Ball(0.035f), new Color(0.72f, 0.68f, 0.52f),
-                    new Vector3(outer + s * 0.045f, y + MathF.Cos(a) * radius * 0.32f, z + MathF.Sin(a) * radius * 0.32f)));
+                pivot.AddChild(Props.Part(Props.Ball(0.035f), new Color(0.72f, 0.68f, 0.52f),
+                    new Vector3(outer + s * 0.045f, MathF.Cos(a) * radius * 0.32f, MathF.Sin(a) * radius * 0.32f)));
             }
+        }
+        return pivot;
+    }
+
+    /// <summary>The wheels of a MT-Agro tractor (BuildMtAgro): the pivot and the wheel's radius, for rolling it by the distance driven.</summary>
+    public readonly record struct TractorWheel(Node3D Pivot, float Radius);
+
+    /// <summary>Rolls the wheels by the distance driven (m, signed along the nose, -z): a wheel turns travel / radius.</summary>
+    public static void RollWheels(System.Collections.Generic.IReadOnlyList<TractorWheel> wheels, float travel)
+    {
+        if (wheels == null) return;
+        foreach (var w in wheels) if (GodotObject.IsInstanceValid(w.Pivot)) w.Pivot.Rotation = new Vector3(-travel / w.Radius, 0, 0);
+    }
+
+    /// <summary>Registers the wheels with the world tape as real, unwrapped spinners (names "wheel0".."wheel3"); the actor bumps its own tape version.</summary>
+    public static void TapeWheels(System.Collections.Generic.IReadOnlyList<TractorWheel> wheels, Func<float> travel)
+    {
+        if (wheels == null) return;
+        for (int i = 0; i < wheels.Count; i++)
+        {
+            float r = wheels[i].Radius;
+            Tape.Part(wheels[i].Pivot, "wheel" + i);
+            Tape.Spin(wheels[i].Pivot, Vector3.Right, () => -travel() / r);
         }
     }
 
@@ -634,6 +665,8 @@ public partial class DrunkTractor : Node3D
 
     void Place(float dt)
     {
+        _travel += _speed * dt;
+        RollWheels(_wheels, _travel);
         float y = _t.MeshHeight(_pos.X, _pos.Y, out Vector3 n);
         var b = new Basis(Vector3.Up, _yaw);
         Vector3 axis = Vector3.Up.Cross(n);

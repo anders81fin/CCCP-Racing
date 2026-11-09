@@ -112,7 +112,20 @@ public static class AudioMix
     /// <summary>Mutes or unmutes every sound effect at once (the title screen plays music only).</summary>
     public static bool SfxMuted => AudioServer.IsBusMute(EnsureBus(Sfx, "Master"));
 
-    public static void MuteSfx(bool mute) => AudioServer.SetBusMute(EnsureBus(Sfx, "Master"), mute);
+    public static void MuteSfx(bool mute)
+    {
+        int bus = EnsureBus(Sfx, "Master");
+        AudioServer.SetBusMute(bus, mute);
+        AudioServer.SetBusVolumeDb(bus, 0f);      // (a level given by Backdrop never outlives the title)
+    }
+
+    /// <summary>The title's background lap is heard at this level (dB below normal): the sound effects open, under the music.</summary>
+    public static void Backdrop(float db)
+    {
+        int bus = EnsureBus(Sfx, "Master");
+        AudioServer.SetBusMute(bus, false);
+        AudioServer.SetBusVolumeDb(bus, db);
+    }
 
     static int EnsureBus(string name, string send)
     {

@@ -104,7 +104,7 @@ public partial class DrunkMen : Node3D
     {
         public Node3D Root, Body, Head, ArmR, LegL, LegR, Bottle;
         public Vector2 Pos;
-        public float Yaw, Phase, SwayRate, DrinkTimer, Drinking, Cheer;
+        public float Yaw, Phase, SwayRate, DrinkTimer, Drinking, Cheer, CheerK;      // (CheerK: 0..1, how far into the cheering pose)
         public string Shout;
         public bool Lying;
         public int Obstacle = -1;
@@ -126,7 +126,7 @@ public partial class DrunkMen : Node3D
     public void Init(TrackData t)
     {
         _t = t;
-        Tape.Version(this, 1); Tape.Part(this, "root");
+        Tape.Version(this, 2); Tape.Part(this, "root");
         bool someoneLying = false;
         foreach (var stop in t.BusStops)
         {
@@ -197,6 +197,22 @@ public partial class DrunkMen : Node3D
     public static Color RandomCoat(RandomNumberGenerator rng) => Coats[rng.RandiRange(0, Coats.Length - 1)];
 
     /// <summary>Builds a drunk (not yet in the tree), cartoon-sized like the others.</summary>
+    /// <summary>
+    /// A bottle, not a tube: a round body, a sloping shoulder, a long neck, a cap and a paper label, the neck at the +y end and the middle of the bottle at the origin. Gripped across the
+    /// fist (the node is turned 90 degrees to the arm); the drinker turns it neck-up to the mouth (Place).
+    /// </summary>
+    static Node3D Bottle()
+    {
+        var b = new Node3D { Name = "Bottle" };
+        var glass = new Color(0.16f, 0.40f, 0.20f);
+        b.AddChild(Props.Part(Props.Cyl(0.045f, 0.17f, 10), glass, new Vector3(0, -0.075f, 0)));                       // the body
+        b.AddChild(Props.Part(Props.Cyl(0.045f, 0.055f, 10, 0.019f), glass, new Vector3(0, 0.0375f, 0)));              // the sloping shoulder
+        b.AddChild(Props.Part(Props.Cyl(0.019f, 0.085f, 8), glass, new Vector3(0, 0.1075f, 0)));                       // the neck
+        b.AddChild(Props.Part(Props.Cyl(0.023f, 0.022f, 8), new Color(0.78f, 0.78f, 0.74f), new Vector3(0, 0.1613f, 0)));      // the cap
+        b.AddChild(Props.Part(Props.Cyl(0.0465f, 0.07f, 10), new Color(0.88f, 0.84f, 0.68f), new Vector3(0, -0.07f, 0)));       // the paper label
+        return b;
+    }
+
     public static Figure BuildFigure(Color coat)
     {
         var f = new Figure { Root = new Node3D { Scale = Vector3.One * SizeScale }, Body = new Node3D() };
@@ -219,7 +235,9 @@ public partial class DrunkMen : Node3D
         f.ArmR = new Node3D { Position = new Vector3(0.3f, 1.3f, 0) };
         f.Body.AddChild(f.ArmR);
         f.ArmR.AddChild(Props.Part(Props.Box(0.12f, 0.5f, 0.12f), coat, new Vector3(0, -0.25f, 0)));
-        f.Bottle = Props.Part(Props.Cyl(0.05f, 0.3f, 6), new Color(0.2f, 0.5f, 0.25f), new Vector3(0, -0.55f, -0.08f), new Vector3(90, 0, 0));      // gripped across the fist: 90 degrees to the arm, not an extension of it
+        f.Bottle = Bottle();
+        f.Bottle.Position = new Vector3(0, -0.55f, -0.08f);
+        f.Bottle.RotationDegrees = new Vector3(270, 0, 0);      // gripped across the fist: 90 degrees to the arm, not an extension of it
         f.ArmR.AddChild(f.Bottle);
         f.Body.AddChild(Props.Part(Props.Box(0.12f, 0.5f, 0.12f), coat, new Vector3(-0.3f, 1.05f, 0)));
         return f;
@@ -273,11 +291,17 @@ public partial class DrunkMen : Node3D
             m.Down.Tick(dt);
             m.Phase += dt * m.SwayRate;
             m.DrinkTimer -= dt;
-            if (m.DrinkTimer <= 0) { m.Drinking = 1.4f; m.DrinkTimer = _rng.RandfRange(6f, 12f); }
+            if (m.DrinkTimer <= 0) { m.Drinking = DrinkTime; m.DrinkTimer = _rng.RandfRange(6f, 12f); }
+            m.CheerK = Mathf.MoveToward(m.CheerK, m.Cheer > 0 ? 1f : 0f, 4f * dt);      // (the cheer melts in and out)
             m.Drinking -= dt;
             Place(m);
         }
     }
+
+    /// <summary>A swig takes this long (s): the arm comes up, the bottle tips, a few gulps, the arm goes down.</summary>
+    const float DrinkTime = 2.4f;
+
+    static float Smooth(float a, float b, float x) { float u = Math.Clamp((x - a) / (b - a), 0f, 1f); return u * u * (3f - 2f * u); }
 
     void Place(Man m)
     {
@@ -291,22 +315,27 @@ public partial class DrunkMen : Node3D
         }
         // Swaying from the ankles, a little stagger in a slow circle.
         float s1 = MathF.Sin(m.Phase * 1.3f), s2 = MathF.Sin(m.Phase * 0.9f + 1.7f);
-        m.Body.Rotation = new Vector3(s2 * 0.12f, 0, s1 * 0.16f);
-        if (m.Cheer > 0)
+        // The poses melt into each other: the idle sway, the cheer (CheerK) and a swig (a timeline of its own), none of them a switch.
+        Vector3 arm = new(0.3f + s1 * 0.2f, 0, 0), head = new(0.2f, s2 * 0.3f, s1 * 0.2f), body = new(s2 * 0.12f, 0, s1 * 0.16f);
+        float cheer = m.CheerK * m.CheerK * (3f - 2f * m.CheerK);
+        arm = arm.Lerp(new Vector3(2.8f + MathF.Sin(_clock * 14f) * 0.25f, 0, 0.3f), cheer);      // the bottle raised high
+        head = head.Lerp(new Vector3(-0.3f, 0, 0), cheer);
+        float raise = 0, tip = 0;
+        if (m.Drinking > 0)
         {
-            m.ArmR.Rotation = new Vector3(2.8f + MathF.Sin(_clock * 14f) * 0.25f, 0, 0.3f);   // bottle raised high
-            m.Head.Rotation = new Vector3(-0.3f, 0, 0);
+            // t runs from 0 to DrinkTime: the arm up (0..0.6), the bottle tipped (0.5..1.0), gulping, the bottle back (to DrinkTime-0.4), the arm down.
+            float t = DrinkTime - m.Drinking;
+            raise = Smooth(0f, 0.6f, t) * (1f - Smooth(DrinkTime - 0.65f, DrinkTime, t)) * (1f - cheer);
+            tip = Smooth(0.5f, 1.0f, t) * (1f - Smooth(DrinkTime - 1.05f, DrinkTime - 0.5f, t)) * (1f - cheer);
+            float gulp = tip > 0.9f ? MathF.Sin((t - 1.0f) * 9f) * 0.06f * tip : 0f;      // the throat works
+            arm = arm.Lerp(new Vector3(2.2f, 0, -0.5f), raise);                              // to the mouth
+            head = head.Lerp(new Vector3(-0.6f + gulp, 0, 0), tip);                           // the head back
+            body += new Vector3(-0.1f * tip, 0, 0);                                          // leaning back a little
         }
-        else if (m.Drinking > 0)
-        {
-            m.ArmR.Rotation = new Vector3(2.2f, 0, -0.5f);                                     // to the mouth
-            m.Head.Rotation = new Vector3(-0.6f, 0, 0);
-        }
-        else
-        {
-            m.ArmR.Rotation = new Vector3(0.3f + s1 * 0.2f, 0, 0);
-            m.Head.Rotation = new Vector3(0.2f, s2 * 0.3f, s1 * 0.2f);
-        }
+        m.Body.Rotation = body; m.ArmR.Rotation = arm; m.Head.Rotation = head;
+        // The bottle across the fist at rest; to drink it turns neck-up towards the mouth, whatever the arm's angle then is (its axis pointing up and a little back).
+        float armDeg = Mathf.RadToDeg(arm.X);
+        m.Bottle.RotationDegrees = new Vector3(Mathf.Lerp(-90f, 20f - armDeg, tip), 0, 0);
     }
 }
 
@@ -362,7 +391,7 @@ public partial class SovietBus : Node3D
         _sound = new DieselSound { BaseRate = 10f, RatePerSpeed = 2.5f, Body = 0.04f, Loudness = 3f, Reach = 110f };
         AddChild(_sound);     // not on the model: a burnt-out model is left behind as the wreck
         // The world tape: the in-service model (it moves, the Bus node does not), its doors and bumper, the engine sound node (its position follows the model) and speed.
-        Tape.Version(this, 2); Tape.Part(this, "root"); Tape.Part(_model, "model"); Tape.Part(_doorL, "doorL"); Tape.Part(_doorR, "doorR");
+        Tape.Version(this, 3); Tape.Part(this, "root"); Tape.Part(_model, "model"); Tape.Part(_doorL, "doorL"); Tape.Part(_doorR, "doorR");
         Tape.Part(_bumper, "bumper"); Tape.Part(_sound, "sound");
         Tape.Sound(_model, TapeSoundChannel.DieselSpeed, () => _sound.Speed, v => _sound.Speed = v);
         // For the bus DieselDozing carries the engine pause state (ignition through the spare departure).
@@ -497,9 +526,11 @@ public partial class SovietBus : Node3D
         foreach (float z in new[] { -2.4f, 2.4f })
         foreach (float x in new[] { -1f, 1f })
         {
-            _model.AddChild(Props.Part(Props.Cyl(0.5f, 0.3f, 10), dark, new Vector3(x * 1.1f, 0.5f, z), new Vector3(0, 0, 90)));
-            _model.AddChild(Props.Part(Props.Cyl(0.25f, 0.035f, 12), chrome, new Vector3(x * 1.27f, 0.5f, z), new Vector3(0, 0, 90)));
-            _model.AddChild(Props.Part(Props.Cyl(0.095f, 0.04f, 10), new Color(0.18f, 0.2f, 0.2f), new Vector3(x * 1.3f, 0.5f, z), new Vector3(0, 0, 90)));
+            // (The tyre's outer face stood exactly in the plane of the body's side wall, x = 1.25, so the two fought over the pixels and the top of the wheel flickered through the body:
+            // the wheel is 3 cm further out now, its outer face clear of the wall.)
+            _model.AddChild(Props.Part(Props.Cyl(0.5f, 0.3f, 10), dark, new Vector3(x * 1.13f, 0.5f, z), new Vector3(0, 0, 90)));
+            _model.AddChild(Props.Part(Props.Cyl(0.25f, 0.035f, 12), chrome, new Vector3(x * 1.30f, 0.5f, z), new Vector3(0, 0, 90)));
+            _model.AddChild(Props.Part(Props.Cyl(0.095f, 0.04f, 10), new Color(0.18f, 0.2f, 0.2f), new Vector3(x * 1.33f, 0.5f, z), new Vector3(0, 0, 90)));
         }
         return _model;
     }

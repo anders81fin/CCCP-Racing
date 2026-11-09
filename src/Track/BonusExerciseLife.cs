@@ -327,13 +327,19 @@ public partial class BonusExerciseLife : Node3D
         Box(kitchen,new(.75f,.43f,.05f),new(0,.95f,-.82f),Steel);
         for(int k=0;k<5;k++) Box(kitchen,new(.07f,.04f,.02f),new(-.22f+k*.11f,.98f,-.85f),new Color(.07f,.07f,.06f));
         for(int k=0;k<4;k++) Box(kitchen,new(.7f,.4f,.5f),new(-2,.2f+k%2*.4f,1+k/2*.6f),new Color(.47f,.4f,.27f));
-        // Earth firing positions for the tank exercise.
+        // Earth firing positions for the tank exercise: a low, long earth parapet with rounded ends (a flattened half-buried bank, not a chain of balls) and the scraped ground in front of it
+        // with the two long track marks of the tank that drove up to it.
         foreach(var at in new[]{new Vector2(73,198),new Vector2(103,289)})
         {
             var site=Site(at.X,at.Y);
-            for(int k=0;k<9;k++) site.AddChild(Props.Part(Props.Ball(1.5f,8),new Color(.32f,.29f,.18f),new Vector3(-5+k*1.3f,.15f,5)));
-            foreach(float side in new[]{-1f,1f}) for(int k=0;k<16;k++)
-                Box(site,new(.65f,.025f,.18f),new(side*1.5f,.035f,-5+k*.6f),new Color(.17f,.16f,.12f));
+            var earth=new Color(.32f,.29f,.18f);
+            var bank=Props.Part(Props.Cyl(1.25f,12.4f,12),earth,new Vector3(.8f,-.18f,5),new Vector3(0,0,90));bank.Scale=new Vector3(.5f,1f,1f);site.AddChild(bank);      // (along x, flattened to a 0.6 m bank)
+            foreach(float end in new[]{-5.4f,7f})
+            {
+                var cap=Props.Part(Props.Ball(1.25f,10),earth,new Vector3(end,-.18f,5));cap.Scale=new Vector3(1f,.5f,1f);site.AddChild(cap);
+            }
+            Box(site,new(3.6f,.02f,10f),new(0,.02f,-.4f),new Color(.26f,.23f,.15f));      // the scraped ground the tank drove over
+            foreach(float side in new[]{-1f,1f}) Box(site,new(.6f,.03f,10f),new(side*1.5f,.04f,-.4f),new Color(.17f,.16f,.12f));      // its two track marks
         }
         Vector2 radioDirection=(new Vector2(281,155)-RadioOperatorPost).Normalized();
         Vector2 radioTable=RadioOperatorPost+radioDirection*1.6f;

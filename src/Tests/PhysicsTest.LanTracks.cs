@@ -130,7 +130,7 @@ public partial class PhysicsTest
         foreach(int proto in new[]{12,LanSession.Protocol})
             try{LanReplayFile.Validate(new LanReplayFile.Header("siberia","0123456789abcdef","0.853",proto,5,1,new[]{new LanReplayFile.Player(1,"HOST",0),new LanReplayFile.Player(2,"CLIENT",1)},201));}catch(InvalidDataException){header=false;}
         try{LanReplayFile.Validate(new LanReplayFile.Header("siberia","0123456789abcdef","0.853",LanSession.Protocol,5,1,new[]{new LanReplayFile.Player(1,"HOST",0)},0));header=false;}catch(InvalidDataException){}
-        Check(header && LanSession.Protocol==16,"LAN abstention: current and stored 12 replay headers pass; a NOT VOTED marker is never a replay fuel");
+        Check(header && LanSession.Protocol==17,"LAN abstention: current and stored 12 replay headers pass; a NOT VOTED marker is never a replay fuel");
         Check(footer,"LAN abstention: the ballot footer explains the deadline as NOT VOTED, claims no defaults and fits 208 and 480 cards");
     }
 }

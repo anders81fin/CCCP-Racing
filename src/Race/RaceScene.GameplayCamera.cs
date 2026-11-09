@@ -6,7 +6,8 @@ namespace CCCPRacing.Race;
 
 public partial class RaceScene
 {
-    readonly GameplayCinematicCamera _gameplayCamera = new();
+    readonly GameplayRearCamera _gameplayCamera = new();
+    readonly GameplayBonnetFeel _bonnetFeel = new();      // the bonnet view's shake, sway, roll and pitch (they grow with the speed)
     GameplayView _gameplayView;     // Choices never leak into another track or personnel file.
     CameraDiscoveries _cameraDiscoveries;
     PartyPondDuck _cameraDuck;
@@ -63,6 +64,7 @@ public partial class RaceScene
     }
     void UpdateCameraSecretModels()
     {
+        _cameraDuck?.SetCameraVisible(!_cameraDiscoveries.Has(_track.Id, GameplayView.Bonnet));
         if (_cameraSecretModels == null) return;
         foreach (var child in _cameraSecretModels.GetChildren())
             if (child is Node3D model && System.Enum.TryParse<GameplayView>(model.Name, out var view))
@@ -90,7 +92,7 @@ public partial class RaceScene
         if (_cameraDiscoveries?.Has(_track.Id, _gameplayView) != true) _gameplayView = GameplayView.TopDown;
         if (!_gameplayCameraActive || _gameplayView != GameplayView.TopDown && GameplayCameraAllowed) return;
         _gameplayCameraActive = false;
-        _gameplayCamera.Reset();
+        _gameplayCamera.Reset(); _bonnetFeel.Reset();
         _cam.Fov = _gameplayOldFov;
         _cam.Near = _gameplayOldNear;
         _cam.Far = _gameplayOldFar;
@@ -108,7 +110,7 @@ public partial class RaceScene
             _gameplayCameraActive = true;
         }
         else if (_state == State.Paused && _gameplayLastView == _gameplayView) return true;
-        if (_gameplayLastView != _gameplayView) _gameplayCamera.Reset();
+        if (_gameplayLastView != _gameplayView) { _gameplayCamera.Reset(); _bonnetFeel.Reset(); }
         _gameplayLastView = _gameplayView;
         if (_gameplayView == GameplayView.Bonnet)
         {
@@ -116,15 +118,19 @@ public partial class RaceScene
             _cam.Fov = 75f;
             _cam.Near = 0.06f;
             _cam.Far = 600f;
-            _cam.Pose(bonnet.eye, bonnet.target, _car.Pos, dt);
+            if (_cam.ShakeEnabled)
+            {
+                var felt = _bonnetFeel.Apply(bonnet.eye, bonnet.target, _car.Rot, _car.Vel, dt, _cam.Rumble);
+                _cam.Pose(felt.eye, felt.target, _car.Pos, dt, felt.roll);
+            }
+            else _cam.Pose(bonnet.eye, bonnet.target, _car.Pos, dt);
             return true;
         }
-        var frame = _gameplayCamera.Frame(_car.Pos, _car.Vel, _car.Forward, dt, _track.MeshHeight,
-            GameplayCinematicCamera.RoadForward(_track, _car.Pos));
-        _cam.Fov = 60f;
-        _cam.Near = 0.3f;
+        var frame = _gameplayCamera.Frame(_car.Pos, _car.Vel, _car.Forward, dt, _track.MeshHeight, _cam.Rumble);
+        _cam.Fov = 68f;      // (a wide lens: the speed shows in a close chase)
+        _cam.Near = 0.2f;
         _cam.Far = 600f;
-        _cam.Pose(frame.eye, frame.target, _car.Pos, dt);
+        _cam.Pose(frame.eye, frame.target, _car.Pos, dt, frame.roll);
         return true;
     }
 }

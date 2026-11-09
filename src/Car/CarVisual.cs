@@ -25,6 +25,17 @@ public partial class CarVisual : Node3D
 
     // The body paint materials (Paint_Olive*) with their factory colour, for the golden car.
     readonly System.Collections.Generic.List<(StandardMaterial3D mat, Color color, float metallic)> _paint = new();
+
+    /// <summary>
+    /// The factory paint of a shared paint material, remembered the first time the material is met. Every car of the game shares these materials, and another car may have painted them (the olive
+    /// diesel, the red jet fuel, the white Sputnik, the gold) before this car is made: its factory colour is what the material was before anyone touched it, never the colour it has now.
+    /// </summary>
+    static readonly System.Collections.Generic.Dictionary<StandardMaterial3D, (Color color, float metallic)> FactoryPaints = new();
+    static (Color color, float metallic) FactoryPaint(StandardMaterial3D m)
+    {
+        if (!FactoryPaints.TryGetValue(m, out var factory)) FactoryPaints[m] = factory = (m.AlbedoColor, m.Metallic);
+        return factory;
+    }
     bool _golden;
 
     /// <summary>
@@ -48,8 +59,12 @@ public partial class CarVisual : Node3D
     StandardMaterial3D _pipeGlowMat;
     double _shudderPhase;
     static readonly float[] FiveBeat = { 1f, .45f, .85f, .35f, .65f };
+    float[] _idleBeats = FiveBeat;
+    double _idleRate = 8.0;
+    /// <summary>The engine's character at idle: the strength of each beat and the beats per second (FuelGrades.IdleBeats); the fuel sets it with the car.</summary>
+    public void SetIdleCharacter(float[] beats, double rate) { if (beats == null || beats.Length == 0) return; _idleBeats = beats; _idleRate = rate; _shudderPhase = 0; }
 
-    /// <summary>The five-cylinder's idle: 0..1, how hard the whole car trembles (a beat of five, uneven: it shows from behind). The SPUTNIK sets it; cosmetic only.</summary>
+    /// <summary>The engine's idle: 0..1, how hard the whole car trembles (the Sputnik's five-cylinder beats uneven, the others half as strong; it shows from behind). Cosmetic only.</summary>
     public float Shudder;
 
     /// <summary>The glow of the SPUTNIK's fat pipe under boost, 0..1 (the pipe mouth turns orange; 0 hides it).</summary>
@@ -79,7 +94,7 @@ public partial class CarVisual : Node3D
     }
 
     /// <summary>The bumpers, the roof rack with the spare and the SPUTNIK's kit (CarDamage.Equip); the ghost keeps its plain body.</summary>
-    public void Equip(bool bumpers, bool roofRack, bool kit) => Damage?.Equip(bumpers, roofRack, kit);
+    public void Equip(bool bumpers, bool roofRack, bool kit, CarDamage.PipeSet pipes = CarDamage.PipeSet.Twin) => Damage?.Equip(bumpers, roofRack, kit, pipes);
 
     ArrayMesh OneWing(int wing)
     {
@@ -115,6 +130,9 @@ public partial class CarVisual : Node3D
             RePaint();
         }
     }
+
+    /// <summary>Paints the shared materials in this car's own colour now. Every car of the game shares the model's paint materials, so a car that is shown after another (a replay viewer opened over the title, the title again after it) must claim them.</summary>
+    public void Repaint() => RePaint();
 
     /// <summary>The paint materials in the colour of the moment: gold, else the fuel's, else the factory's. The darker panels in proportion.</summary>
     void RePaint()
@@ -243,7 +261,7 @@ public partial class CarVisual : Node3D
                 body.Transform = Transform3D.Identity;   // authored around the centre of gravity
                 for (int si = 0; !_ghost && si < body.Mesh.GetSurfaceCount(); si++)
                     if (body.Mesh.SurfaceGetMaterial(si) is StandardMaterial3D m && m.ResourceName.StartsWith("Paint_Olive"))
-                        _paint.Add((m, m.AlbedoColor, m.Metallic));
+                        _paint.Add((m, FactoryPaint(m).color, FactoryPaint(m).metallic));
                 _bodySource = body.Mesh;
                 AddChild(Ghostify(body));
                 if (!_ghost)
@@ -371,10 +389,10 @@ public partial class CarVisual : Node3D
         Transform3D shudder = Transform3D.Identity;
         if (Shudder > 0.01f)
         {
-            // The five-cylinder at idle: the body (not the wheels: they stay on the ground) takes a kick on each of five beats of unequal strength, settling between them.
-            _shudderPhase += GetProcessDeltaTime() * 8.0;
-            int beat = (int)(_shudderPhase % 5.0);
-            float kick = FiveBeat[beat] * MathF.Exp(-(float)(_shudderPhase - Math.Floor(_shudderPhase)) * 5f) * Shudder;
+            // The engine at idle: the body (not the wheels: they stay on the ground) takes a kick on each beat of its character (the Sputnik's five of unequal strength, the others' four), settling between them.
+            _shudderPhase += GetProcessDeltaTime() * _idleRate;
+            int beat = (int)(_shudderPhase % _idleBeats.Length);
+            float kick = _idleBeats[beat] * MathF.Exp(-(float)(_shudderPhase - Math.Floor(_shudderPhase)) * 5f) * Shudder;
             shudder = new Transform3D(new Basis(Vector3.Right, kick * 0.012f), new Vector3(0, kick * 0.012f, 0));
             Transform *= shudder;
         }

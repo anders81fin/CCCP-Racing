@@ -285,7 +285,7 @@ public partial class RaceScene
     void LanCarSmoke(CarSim car, FuelGrade fuel, int slot, float dt)
     {
         if (fuel == FuelGrade.Diesel) _fx.DieselSoot(car, dt, slot);
-        else _fx.PetrolSmoke(car, dt, fuel is FuelGrade.Rocket or FuelGrade.Sputnik ? 1.5f : 1f, slot);
+        else _fx.PetrolSmoke(car, dt, fuel is FuelGrade.Rocket or FuelGrade.Sputnik ? 1.5f : 1f, slot, FuelGrades.PipeXs(fuel));
     }
     void LanSootTick(float dt)
     {

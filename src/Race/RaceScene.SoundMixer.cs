@@ -79,22 +79,25 @@ public partial class RaceScene
         SyncMixerHud();
     }
 
-    // The radio on or off is remembered for each kind of run (the rally on by default, the Stakhanov laps off).
+    // The radio on or off is remembered for each kind of run: the rally, the Stakhanov laps and a LAN race. All three are on by default (the owner's wish, 9 November: the
+    // Stakhanov laps and the LAN were off). A saved choice still wins.
+    string RadioKey => _run == RunMode.Lan ? "on_lan" : StakhanovRules ? "on_laps" : "on_rally";
+
     bool RadioPreference()
     {
         var cfg = new ConfigFile();
         cfg.Load(_records.Dir + "settings.cfg");
-        var v = cfg.GetValue("radio", StakhanovRules ? "on_laps" : "on_rally", !StakhanovRules);
-        return v.VariantType == Variant.Type.Bool ? (bool)v : !StakhanovRules;
+        var v = cfg.GetValue("radio", RadioKey, true);
+        return v.VariantType == Variant.Type.Bool ? (bool)v : true;
     }
 
     void RememberRadio()
     {
-        if (_run is not (RunMode.Rally or RunMode.Training)) return;
+        if (_run is not (RunMode.Rally or RunMode.Training or RunMode.Lan)) return;
         string path = _records.Dir + "settings.cfg";
         var cfg = new ConfigFile();
         cfg.Load(path);
-        cfg.SetValue("radio", StakhanovRules ? "on_laps" : "on_rally", _carRadio.On);
+        cfg.SetValue("radio", RadioKey, _carRadio.On);
         cfg.Save(path);
     }
 

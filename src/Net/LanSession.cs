@@ -24,6 +24,8 @@ public class LanPlayer
     internal int Vote;
     internal bool DamageVote = true, FuelVote, ObstaclesVote = true;
     internal string TrackVote;
+    /// <summary>Host only: what this comrade has opened (his hello).</summary>
+    internal LanUnlocks Unlocks = LanUnlocks.Minimum;
     internal double Offset;
     internal readonly List<(double rtt, double offset)> Sync = new();
 }
@@ -71,7 +73,7 @@ public partial class LanSession : Node
     public const int Port = 24105, MaxPlayers = 6;
     public const float BallotTime = 60f, DnfAfter = 60f;
     const int SnapChannel = 1, Channels = 6;      // 0 lobby, 1 snapshots, 2 inputs, 3 world, 4 meshes, 5 board sync (LanSession.Boards.cs)
-    public const int Protocol = 16; // 16: independent Stakhanov top tens per fuel; 15: SHARE BOARDS in the lobby; 14: shared moving obstacles; 13: abstentions; 12: four fuel engines/bodies
+    public const int Protocol = 17; // 17: the ballot offers the tracks and fuels of the comrade with the most opened (the hello carries them, the lobby the fuel mask); 16: independent Stakhanov top tens per fuel; 15: SHARE BOARDS in the lobby; 14: shared moving obstacles; 13: abstentions; 12: four fuel engines/bodies
     const float PingEvery = 0.25f, PingEveryRacing = 1f, LobbyEvery = 0.5f, HelloTimeout = 5f;
 
     public enum Phase : byte { Lobby, Ballot, Race, Results, Loading, SessionFinished }
@@ -169,7 +171,8 @@ public partial class LanSession : Node
         IsHost = InLobby = true;
         MyName = name;
         State = Phase.Lobby;
-        Players[1] = new LanPlayer { Id = 1, Name = name, Slot = 0, PingMs = 0 };
+        Players[1] = new LanPlayer { Id = 1, Name = name, Slot = 0, PingMs = 0, Unlocks = MyUnlocks };
+        RefreshOptions();
         Players[1].SessionToken=_identity; RegisterScore(1,_identity,Players[1]);
         Log($"hosting on UDP {Port} as {name}, version {Version}");
         Changed?.Invoke();
@@ -261,7 +264,7 @@ public partial class LanSession : Node
     {
         _peer.GetPeer(1)?.SetTimeout(32, 2000, 4000);     // a vanished host is noticed in a few seconds
         _myId = _mp.GetUniqueId();
-        Send(1, Msg.Hello, w => { w.Write(Version + "/lan" + Protocol); w.Write(Signature); w.Write(MyName); w.Write(TrackId); w.Write(_identity); });
+        Send(1, Msg.Hello, w => { w.Write(Version + "/lan" + Protocol); w.Write(Signature); w.Write(MyName); w.Write(TrackId); w.Write(_identity); w.Write(MyUnlocks.WriteTracks()); w.Write((byte)MyUnlocks.Fuels); });
         Log($"connected as peer {_myId}, hello sent");
     }
 
@@ -286,6 +289,7 @@ public partial class LanSession : Node
         Log($"{p.Name} left (peer {id})");
         Broadcast(Msg.Left, w => { w.Write(id); w.Write(p.Name); });
         PlayerLeft?.Invoke(id, p.Name);
+        RefreshOptions();
         if (State == Phase.Ballot && Players.Values.All(x => x.Voted)) Tally();
         if(State==Phase.Loading) TryFinishLoading();
         CheckRaceOver();
@@ -416,7 +420,9 @@ public partial class LanSession : Node
             // Older protocols have no track field; still send their explicit version rejection.
             string track=r.BaseStream.Position<r.BaseStream.Length?r.ReadString():"";
             string token=r.BaseStream.Position<r.BaseStream.Length?r.ReadString():"";
-            Hello(from, version, sig, name, track, token);
+            string openTracks=r.BaseStream.Position<r.BaseStream.Length?r.ReadString():"";
+            int openFuels=r.BaseStream.Position<r.BaseStream.Length?r.ReadByte():0;
+            Hello(from, version, sig, name, track, token, LanUnlocks.Read(openTracks, openFuels));
             return;
         }
         if (!Players.TryGetValue(from, out var p)) return;
@@ -603,7 +609,7 @@ public partial class LanSession : Node
 
     // ------------------------------------------------------------ host: the door
 
-    void Hello(long id, string version, string sig, string name, string track, string token)
+    void Hello(long id, string version, string sig, string name, string track, string token, LanUnlocks unlocks = null)
     {
         if (!_pending.Remove(id)) return;
         string why = version != Version + "/lan" + Protocol ? $"VERSION MISMATCH: HOST {Version}, YOU {version}"
@@ -622,7 +628,8 @@ public partial class LanSession : Node
         name = UniqueName(Race.Leaderboard.CleanName(name));
         int slot = _scores.TryGetValue(token,out var prior) && Players.Values.All(p=>p.Slot!=prior.Slot)
             ? prior.Slot : Enumerable.Range(0, MaxPlayers).First(s => Players.Values.All(p => p.Slot != s));
-        Players[id] = new LanPlayer { Id = id, Name = name, Slot = slot, SessionToken=token };
+        Players[id] = new LanPlayer { Id = id, Name = name, Slot = slot, SessionToken=token, Unlocks = unlocks ?? LanUnlocks.Minimum };
+        RefreshOptions();
         RegisterScore(id,token,Players[id]);
         Log($"{name} joined (peer {id}, slot {slot + 1}), {Players.Count} in the lobby");
         _dirty = true;
@@ -679,7 +686,7 @@ public partial class LanSession : Node
 
     void CastVote(LanPlayer p, int pct, bool damage, bool fuel, string track, bool obstacles)
     {
-        if (State != Phase.Ballot || p.Voted || !LanRace.ValidFuel(pct) || !TrackOptions.Contains(track)) return;
+        if (State != Phase.Ballot || p.Voted || !LanRace.ValidFuel(pct) || !FuelOffered(pct) || !TrackOptions.Contains(track)) return;
         p.Voted = true;
         p.Vote = pct;
         p.DamageVote = damage; p.FuelVote = fuel; p.TrackVote=track; p.ObstaclesVote=obstacles;
@@ -704,7 +711,7 @@ public partial class LanSession : Node
     void Tally()
     {
         var ballots = Players.Values.OrderBy(p => p.Slot).Select(p => (p.Id, p.Name, p.Slot, p.Voted ? p.Vote : LanBallot.Abstain)).ToList();
-        var tied = LanBallot.Tally(ballots.Select(b => b.Item4), out var counts);
+        var tied = LanBallot.Tally(ballots.Select(b => b.Item4), out var counts, OfferedFuels);
         int seed = TestSeed ?? (int)(GD.Randi() & 0x7fffffff);
         var rv = new LanReveal
         {

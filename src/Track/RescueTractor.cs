@@ -35,7 +35,8 @@ public partial class RescueTractor : Node3D
 
     Phase _phase, _dbgPhase;
     Vector2 _pos;
-    float _yaw, _speed, _timer, _t0, _puff, _soot;
+    float _yaw, _speed, _timer, _t0, _puff, _soot, _travel;      // (_travel: metres driven, the wheels turn by it)
+    readonly System.Collections.Generic.List<DrunkTractor.TractorWheel> _wheels = new();
     Quaternion _carFrom;
     Vector3 _carFromPos, _carToPos;
     float _carYaw, _ropeLen;
@@ -59,7 +60,7 @@ public partial class RescueTractor : Node3D
         _fx = fx;
         _model = new Node3D { Name = "RescueMtAgro", Visible = false };
         AddChild(_model);
-        DrunkTractor.BuildMtAgro(_model, plough: false, out _driver, out _head);
+        DrunkTractor.BuildMtAgro(_model, plough: false, out _driver, out _head, null, false, _wheels);
         // Tow hook on the front weight.
         _model.AddChild(Props.Part(Props.Box(0.5f, 0.2f, 0.25f), new Color(0.3f, 0.3f, 0.32f), new Vector3(0, 0.7f, -1.95f)));
         _rope = new MeshInstance3D
@@ -75,7 +76,8 @@ public partial class RescueTractor : Node3D
         _model.AddChild(_sound);
         // Keep this version-1 structure compatible with existing tractor tapes.
         // The rope's unscaled endpoints are a separate actor, not children of this index entry.
-        Tape.Version(this, 1); Tape.Part(this, "root"); Tape.Part(_model, "model"); Tape.Part(_driver, "driver"); Tape.Part(_head, "head");
+        Tape.Version(this, 2); Tape.Part(this, "root"); Tape.Part(_model, "model"); Tape.Part(_driver, "driver"); Tape.Part(_head, "head");
+        DrunkTractor.TapeWheels(_wheels, () => _travel);      // (version 2: the four wheels turn, their angles are spinners)
         Tape.Sound(_model, TapeSoundChannel.DieselSpeed, () => _sound.Speed, v => _sound.Speed = v);
         Tape.Sound(_model, TapeSoundChannel.DieselDozing, () => _sound.Dozing ? 1f : 0f, v => _sound.Dozing = v > 0.5f);
         InitTapeRope();
@@ -296,6 +298,8 @@ public partial class RescueTractor : Node3D
 
     void Place(float dt)
     {
+        _travel += _speed * dt;
+        DrunkTractor.RollWheels(_wheels, _travel);
         float y = _t.MeshHeight(_pos.X, _pos.Y, out Vector3 n);
         var b = new Basis(Vector3.Up, _yaw);
         Vector3 axis = Vector3.Up.Cross(n);

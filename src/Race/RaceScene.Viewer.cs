@@ -42,8 +42,8 @@ public partial class RaceScene
 
     /// <summary>The viewer's camera: the player's own gameplay views (top-down is the default, bonnet and cinematic only where the player has found them) or the title replay's automatic director.</summary>
     public enum ViewerCameraMode { TopDown, Bonnet, Cinematic, Auto }
-    ViewerCameraMode _viewerCamera = ViewerCameraMode.TopDown;
-    bool _viewerCamDirty;
+    ViewerCameraMode _viewerCamera = ViewerCameraMode.Auto;      // (a replay always opens in the automatic broadcast)
+    bool _viewerCamDirty = true;
     public ViewerCameraMode ViewerCamera
     {
         get => _viewerCamera;
@@ -91,7 +91,7 @@ public partial class RaceScene
         public readonly System.Collections.Generic.List<(float T, ViewerCameraMode Mode)> Keys = new();
         public readonly Dictionary<float, LapFreeCamera> FreeKeys = new();
         /// <summary>The camera before the first key (a seek or wrap there goes back to it).</summary>
-        public ViewerCameraMode DefaultCamera = ViewerCameraMode.TopDown;
+        public ViewerCameraMode DefaultCamera = ViewerCameraMode.Auto;
         public ViewerCameraMode? KeyModeAt(float clock)
         {
             ViewerCameraMode? m = null;

@@ -73,15 +73,24 @@ public static class GrainDelivery
         var sackShade = new Color(0.59f, 0.4f, 0.22f);
         var rope = new Color(0.35f, 0.27f, 0.16f);
 
-        void Box(Vector3 size, Vector3 at, Color color)
+        float GroundDy(Vector3 local)
         {
-            Vector3 rotated = new Basis(Vector3.Up, Yaw) * at;
-            var grounded = new Vector3(at.X, at.Y + (t.MeshHeight(X + rotated.X * VisualScale, Z + rotated.Z * VisualScale) - tractorY) / VisualScale, at.Z);
-            Fences.AddBox(tool, new Transform3D(Basis.Identity, grounded), size, color);
+            Vector3 rotated = new Basis(Vector3.Up, Yaw) * local;
+            return (t.MeshHeight(X + rotated.X * VisualScale, Z + rotated.Z * VisualScale) - tractorY) / VisualScale;
         }
+        // The trailer is one rigid body: it stands on its axle where the wheels meet the ground and its drawbar stays
+        // at the tractor's hitch, so on the churchyard's slope the whole bed (floor, rails and sacks) tilts together
+        // instead of every board following the ground on its own (the sacks used to stay behind at the tractor's level).
+        Vector3 axle = new(0, 0.46f, 3.92f);
+        float axleDy = (GroundDy(new Vector3(-1.02f, 0, 3.92f)) + GroundDy(new Vector3(1.02f, 0, 3.92f))) / 2f;
+        float pitch = -Mathf.Asin(Math.Clamp(axleDy / (axle.Z - 2.28f), -0.6f, 0.6f));
+        var tilt = Basis.FromEuler(new Vector3(pitch, 0, 0));
+        Vector3 Rigid(Vector3 local) => axle + new Vector3(0, axleDy, 0) + tilt * (local - axle);
+        void Box(Vector3 size, Vector3 at, Color color) => Fences.AddBox(tool, new Transform3D(tilt, Rigid(at)), size, color);
         void Part(PrimitiveMesh mesh, Vector3 at, Color color, Vector3 scale = default, Vector3 rotation = default)
         {
-            var basis = Basis.FromEuler(rotation);
+            at = Rigid(at);
+            var basis = tilt * Basis.FromEuler(rotation);
             if (scale != default) basis = basis * Basis.FromScale(scale);
             var arrays = DrunkTractor.PrimitiveArrays(mesh);
             var vertices = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();

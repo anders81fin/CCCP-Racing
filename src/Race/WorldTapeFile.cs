@@ -93,6 +93,20 @@ public static class WorldTapeFile
         catch (Exception ex) { GD.Print($"World tape: {tapePath} failed to load ({ex.Message}), ignored"); return null; }
     }
 
+    /// <summary>The same checks for a tape whose bytes the caller has read (a bundled resource inside the game's package, which has no file of its own).</summary>
+    public static WorldTape LoadBytes(string label, byte[] bytes, Ghost ghost, Func<byte[], WorldTape> decode)
+    {
+        try
+        {
+            if (bytes == null || bytes.Length == 0) return null;
+            var t = decode(bytes);
+            if (t == null || t.SampleCount < 0 || !WorldTapeCodec.Validate(t)) { GD.Print($"World tape: {label} unreadable, ignored"); return null; }
+            if (t.GhostFingerprint != WorldTapeFingerprint.Of(ghost)) { GD.Print($"World tape: {label} belongs to another ghost, ignored"); return null; }
+            return t;
+        }
+        catch (Exception ex) { GD.Print($"World tape: {label} failed to load ({ex.Message}), ignored"); return null; }
+    }
+
     /// <summary>Deletes leftover ghost/tape .tmp files of an interrupted save (cleanup only, nothing is restored); returns how many.</summary>
     public static int CleanStale(string dir)
     {
@@ -130,4 +144,5 @@ public sealed class WorldTapeStorage
     /// <summary>The same on plain data (absolute paths, the ghost's bytes and fingerprint): safe on a worker thread.</summary>
     public TapePairResult SavePairBytes(string gp, string tp, byte[] ghostBytes, ulong fingerprint, WorldTape tape, ITapeFileOps ops) => WorldTapeFile.SavePairBytes(gp, tp, ghostBytes, fingerprint, tape, ops, _encode, _decode);
     public WorldTape Load(string tapePath, Ghost ghost) => WorldTapeFile.Load(tapePath, ghost, _decode);
+    public WorldTape LoadBytes(string label, byte[] bytes, Ghost ghost) => WorldTapeFile.LoadBytes(label, bytes, ghost, _decode);
 }

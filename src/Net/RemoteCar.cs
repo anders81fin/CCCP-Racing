@@ -92,7 +92,7 @@ public class RemoteCar
         float k = Math.Clamp(1f - d / FarAway, 0f, 1f);
         Sound.Volume = paused ? 0f : MaxVolume * ownVolume * k * k;
         Sound.EngineLevel=Health.Dead || Buffer.Latest is { FuelLitres: 0 }?0:1;Sound.Misfire=Health.Smoking?.5f:0;
-        Vis.Shudder = Sound.FiveCylinder && !paused ? Math.Clamp(1f - (Puppet.Rpm - Puppet.P.IdleRpm) / 2500f, 0f, 1f) * (Puppet.Throttle < 0.4f ? 1f : 0.35f) : 0f;
+        Vis.Shudder = paused ? 0f : Math.Clamp(1f - (Puppet.Rpm - Puppet.P.IdleRpm) / 2500f, 0f, 1f) * (Puppet.Throttle < 0.4f ? 1f : 0.35f) * Race.FuelGrades.IdleShudder(Fuel);
         Vis.PipeGlow(Sound.FiveCylinder && !paused ? Math.Clamp(Puppet.Boost * 0.9f, 0f, 1f) : 0f);
         Sound.Rpm = Puppet.Rpm;
         Sound.Throttle = Puppet.Throttle;

@@ -35,7 +35,7 @@ public partial class DrunkMen
     const float HammerRest = 0.35f, HammerUp = 2.9f, HammerDown = 0.87f;
     /// <summary>Repair-clock times of the hammer blows; the last one straightens the panels out.</summary>
     static readonly float[] Whacks = { 1.6f, 2.8f, 4.0f, 5.2f, 6.4f, 7.6f };
-    const float DoneAt = 8.0f, SipFrom = 8.4f, SipTo = 9.6f;
+    const float DoneAt = 8.0f, SipFrom = 8.4f, SipTo = 9.6f, SipLift = 0.5f;
     static readonly string[] WhackShouts = { "БАМ!", "ЭХ!", "ДАВАЙ!", "БАМ!", "ОП!", "БАМ!" };
 
     /// <summary>Bonus track: a Hind stands on the mechanic's pad. Without one he sleeps on a camp cot at the pad's edge.</summary>
@@ -448,8 +448,8 @@ public partial class DrunkMen
         m.LegL.Rotation = m.LegR.Rotation = Vector3.Zero;
         m.Body.Position = Vector3.Zero;
         float s1 = MathF.Sin(_clock * 1.1f), s2 = MathF.Sin(_clock * 0.8f + 1.7f);
-        bool carrying = _mechPhase is Mech.Walking or Mech.Repairing or Mech.Servicing || (AircraftMechanic && _mechPhase == Mech.ToJob);
-        _hammer.Visible = carrying && !(_mechPhase == Mech.Repairing && RepairClock >= SipFrom);
+        bool carrying = _mechPhase is Mech.Awake or Mech.Walking or Mech.Repairing or Mech.Servicing || (AircraftMechanic && _mechPhase == Mech.ToJob);
+        _hammer.Visible = carrying && !(_mechPhase == Mech.Repairing && RepairClock >= SipFrom + SipLift * 0.5f);      // (the tools change hands in the middle of the arm's swing, not while it hangs still)
         m.Bottle.Visible = !_hammer.Visible;
 
         switch (_mechPhase)
@@ -525,15 +525,17 @@ public partial class DrunkMen
         m.ArmR.Rotation = new Vector3(ang, 0, 0);
         if (t < Whacks[_firstWhack] - 0.7f)
         {
-            // Sizing up the engine: a scratch of the head, a shake of it.
-            m.ArmR.Rotation = new Vector3(2.5f + MathF.Sin(t * 12f) * 0.2f, 0, -0.4f);
+            // Sizing up the engine: a shake of the head, the hammer hanging at his side (no scratching with it in his hand).
+            m.ArmR.Rotation = new Vector3(HammerRest, 0, 0);
             m.Head.Rotation = new Vector3(0.1f, MathF.Sin(t * 5f) * 0.4f, 0);
             m.Body.Rotation = new Vector3(0, 0, 0);
         }
         else if (t >= SipFrom && t < SipTo)
         {
-            m.ArmR.Rotation = new Vector3(2.2f, 0, -0.5f);
-            m.Head.Rotation = new Vector3(-0.6f, 0, 0);
+            // The arm swings up to the mouth (the hammer is swapped for the bottle half way), then the sip.
+            float k = Mathf.SmoothStep(0f, 1f, Math.Clamp((t - SipFrom) / SipLift, 0f, 1f));
+            m.ArmR.Rotation = new Vector3(Mathf.Lerp(HammerRest, 2.2f, k), 0, Mathf.Lerp(0f, -0.5f, k));
+            m.Head.Rotation = new Vector3(Mathf.Lerp(0.35f, -0.6f, k), 0, 0);
             m.Body.Rotation = Vector3.Zero;
         }
         else if (t >= SipTo)

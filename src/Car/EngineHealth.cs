@@ -87,6 +87,14 @@ public class EngineHealth
         return 0f;
     }
 
+    /// <summary>
+    /// ATOMGRAD-4's radiation eats the engine: health lost per second at a dose rate (mSv/s) is RadiationPerMsv times what the rate has above RadiationFloor, so the more radiation the faster
+    /// it goes. The background (0.02 on the road, 0.06 off it) costs nothing; a pass through a hot spot costs a few hundredths; standing in the hottest one off the hard road (2.8 mSv/s) kills a
+    /// new engine in about half a minute.
+    /// </summary>
+    public const float RadiationFloor = 0.1f, RadiationPerMsv = 0.012f;
+    public static float RadiationLoss(float rate, float dt) => rate <= RadiationFloor || dt <= 0 ? 0f : RadiationPerMsv * (rate - RadiationFloor) * dt;
+
     /// <summary>Health lost by a Balalaika crashing this far away (m); lethal inside JetLethal.</summary>
     public static float JetDamage(float dist)
     {

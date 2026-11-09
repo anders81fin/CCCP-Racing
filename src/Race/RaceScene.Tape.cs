@@ -284,6 +284,7 @@ public partial class RaceScene
         Directory.CreateDirectory(folder);
         File.WriteAllText(Path.Combine(folder, $"track_{_track.Id}.sig"), _records.Signature + "\n");
         File.WriteAllText(Path.Combine(folder, $"records_{_track.Id}.ver"), RecordStore.Layout + "\n");
+        TitleRecWriteFuels(folder);
         File.WriteAllText(Path.Combine(folder, "session-lap.json"),
             System.Text.Json.JsonSerializer.Serialize(new { seconds = time, ranked }) + "\n");
         var ghost = _rec.CopyWithTime(time);
@@ -399,8 +400,8 @@ public partial class RaceScene
         ClearCarFeedback();
         TapeRelease();
         _tapePlayer = null; _tapeSkip.Clear(); _tapeDriven.Clear(); _tapePlayerGhost = ghost; _tapePlayerBuilt = true; _tapeBreakables = false; _tapeWood = false; _tapeFx.WoodReplay = false;
-        if (ghost == null || BundledTitleReplay || _tapeIndex == null) return null;
-        var slot = _tapes[TitleSet];
+        if (ghost == null || _tapeIndex == null) return null;
+        var slot = BundledTitleReplay ? _bundledTapeSlot : _tapes[TitleSet];
         if (slot == null || slot.Ghost != ghost) return null;
         if (slot.Tape == null) { if (_tapeDebug) TapeLog($"replay of set {TitleSet} runs live: no usable tape"); return null; }
         // A tape saved in this session has no validated body yet (LoadTapeSlot fills it for the loaded ones): validate on first use, once.

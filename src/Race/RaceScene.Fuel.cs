@@ -149,7 +149,7 @@ public partial class RaceScene
             {
                 float k = _rng.RandfRange(0.3f, 0.6f);
                 _snd.Bang(k);
-                _fx.ExhaustFlame(_car, k);
+                _fx.ExhaustFlame(_car, k, FuelGrades.PipeXs(EngineFuel));
             }
         }
         if (_sputterCut > 0) _car.ThrottleTarget = 0;

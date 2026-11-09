@@ -35,5 +35,6 @@ public sealed class ViewerGlobals
         NormPlan.RestoreStatics(_norms);
         SeeThrough.Restore(_fade);
         live.DayNightNode?.ForceReapply();
+        live.RepaintCar();      // (the viewer's car painted the shared materials: the title's car takes its own colour back)
     }
 }

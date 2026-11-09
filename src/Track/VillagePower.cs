@@ -75,6 +75,27 @@ public static class VillagePower
         return n;
     }
 
+    /// <summary>A low lantern post for the dacha pond's bank: a round warm lantern on a short pole, lit at night (one shadow-free light over the water's edge).</summary>
+    public static Node3D PondLamp()
+    {
+        var n = new Node3D();
+        var warm = new Color(1f, 0.74f, 0.4f);
+        n.AddChild(Props.Part(Props.Cyl(0.07f, 3.4f, 8), Steel, new Vector3(0, 1.7f, 0)));
+        n.AddChild(Props.Part(Props.Cyl(0.16f, 0.4f, 8), new Color(0.57f, 0.54f, 0.47f), new Vector3(0, 0.2f, 0)));
+        n.AddChild(Props.Part(Props.Cyl(0.2f, 0.06f, 8), Steel, new Vector3(0, 3.42f, 0)));
+        n.AddChild(NightGlow.Part(Props.Ball(0.26f), new Color(0.9f, 0.86f, 0.7f), warm, 3f, new Vector3(0, 3.7f, 0)));
+        n.AddChild(Props.Part(Props.Cyl(0.04f, 0.14f, 8, 0.28f), Steel, new Vector3(0, 4.02f, 0)));
+        var light = new OmniLight3D
+        {
+            Name = "PondLight", Position = new Vector3(0, 3.7f, 0),
+            LightColor = warm, LightEnergy = 0, OmniRange = 15f, OmniAttenuation = 1.2f,
+            ShadowEnabled = false, LightSpecular = 0, Visible = false,
+        };
+        light.SetMeta("night_energy", 6f);
+        n.AddChild(light);
+        return n;
+    }
+
     public static Node3D StreetLamp()
     {
         var n = new Node3D();

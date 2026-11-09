@@ -211,13 +211,13 @@ public partial class RaceScene
 
     void LanHost()
     {
+        _net.MyUnlocks = LanUnlocksNow();
         Error err = _net.Host(_lanName);
         if (err != Error.Ok)
         {
             LanMessage("CANNOT OPEN THE KOLKHOZ", $"UDP PORT {LanSession.Port} IS TAKEN ({err.ToString().ToUpperInvariant()})", LanPage.Menu);
             return;
         }
-        _net.ConfigureTracks(LanHostTracks());
         _find.StartBeacon(() => (_lanName, _net.Players.Count, LanSession.MaxPlayers, _net.Version, _net.Signature, LanSession.Port));
         SetLanPage(LanPage.Lobby);
     }
@@ -225,6 +225,7 @@ public partial class RaceScene
     void LanConnect(string ip)
     {
         _lanIp = ip;
+        _net.MyUnlocks = LanUnlocksNow();
         Error err = _net.Join(ip, _lanName);
         if (err != Error.Ok)
         {
@@ -299,7 +300,7 @@ public partial class RaceScene
     {
         if (InLanRace) { LanCleanup(); MenuPlayed(MenuItem.Lan); EnterTitle(); OpenMenu(MenuItem.Multi, MenuItem.Lan); }
         _lanVoted = false;
-        _lanChoice = 2;
+        _lanChoice = LanFuelKeyNear(2);
         _lanBallotRow = LanBallotOrder[0]; _lanDamageVote = true; _lanFuelVote = false; _lanObstaclesVote = true;
         _lanTrackChoice=0;
         string pick=_lanTrackSequence.Length>0?_lanTrackSequence[Math.Min(_net.RoundNumber,_lanTrackSequence.Length-1)]:_lanTrackVoteFlag;
@@ -497,11 +498,11 @@ public partial class RaceScene
                 if (esc) AskLanLeave();
                 else if (_lanVoted) break;
                 else if (up || down) StepLanBallotRow(up);
-                else if (PowerKey(k) is > 0 and var pn && pn <= LanRace.FuelCount && first) { _lanChoice = pn; _lanBallotRow = 0; }
+                else if (PowerKey(k) is > 0 and var pn && pn <= LanRace.FuelCount && first) { if (LanFuelKeyOffered(pn)) _lanChoice = pn; _lanBallotRow = 0; }
                 else if (left || right)
                 {
                     if(_lanBallotRow==3) _lanTrackChoice=(_lanTrackChoice+(left?-1:1)+_net.TrackOptions.Count)%_net.TrackOptions.Count;
-                    else if (_lanBallotRow == 0) _lanChoice = Math.Clamp(_lanChoice + (left ? -1 : 1), 1, LanRace.FuelCount);
+                    else if (_lanBallotRow == 0) _lanChoice = LanFuelStep(left ? -1 : 1);
                     else if (_lanBallotRow == 1) _lanDamageVote = left;  // YES is on the left
                     else if (_lanBallotRow == 4) _lanObstaclesVote = left;
                     else _lanFuelVote = left && _net.TrackOptions.Any(t=>t!="ilyich");
@@ -576,7 +577,7 @@ public partial class RaceScene
         SetLanPage(LanPage.None);
         _power = _lapPeak = rv.Power;
         _heroNodded = true;
-        _carRadio.SetOn(false, false);
+        _carRadio.SetOn(RadioPreference(), false);      // (on by default, like the rally; the owner's saved choice for a LAN race wins)
         _hud.SetComments(_commentsForce ?? false, confirm: false);
         _lanGrid = Math.Max(0, rv.Grid.IndexOf(_net.MyId));
         if (_breakSolo == null && _car.BreakObstacle != null)
@@ -757,7 +758,7 @@ public partial class RaceScene
         if (_lanAutoVoteAt > 0 && now >= _lanAutoVoteAt && _lanPage == LanPage.Ballot)
         {
             _lanAutoVoteAt = -1;
-            _lanChoice = _lanVoteKey;
+            _lanChoice = LanFuelKeyNear(_lanVoteKey);
             _lanDamageVote = _lanTestDamage ?? _lanDamageVote; _lanFuelVote = _lanTestFuel ?? _lanFuelVote;
             _lanObstaclesVote = _lanTestObstacles ?? _lanObstaclesVote;
             if (_lanObstacleSequence != null) { var seq=_lanObstacleSequence.Split(','); _lanObstaclesVote=seq[_net.RoundNumber%seq.Length]=="1"; }
@@ -870,6 +871,7 @@ public partial class RaceScene
         if(_net.Active) v.Track=_net.TrackOptions.Count==1?TrackIds.Label(_net.TrackOptions[0]):"TRACK BY BALLOT";
         v.TrackOptions=_net.TrackOptions.Select(TrackIds.Label).ToArray();v.TrackChoice=_lanTrackChoice;
         v.FuelAvailable=_net.TrackOptions.Any(t=>t!="ilyich");
+        v.FuelMask = _net.FuelMask;
         v.Laps = _lanReveal?.Laps ?? _net.Laps;
         v.Power = _lanReveal?.Power ?? 100;
         switch (_lanPage)

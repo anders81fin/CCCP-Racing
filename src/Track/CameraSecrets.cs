@@ -7,10 +7,13 @@ namespace CCCPRacing.Track;
 /// <summary>Small abandoned cameras off the racing line. Ilyich's bonnet reward belongs to the live duck instead.</summary>
 public static class CameraSecrets
 {
-    public readonly record struct Spot(GameplayView View, Vector2 Position);
+    public readonly record struct Spot(GameplayView View, Vector2 Position, float Yaw = 0f);
+    /// <summary>The yaw that turns a camera's lens (-Z) towards a point.</summary>
+    static float Facing(Vector2 from, Vector2 to) => Mathf.Atan2(from.X - to.X, from.Y - to.Y);
     public static IReadOnlyList<Spot> Layout(string track) => track switch
     {
-        "ilyich" => new[] { new Spot(GameplayView.Cinematic, new(56, 164)) },
+        // (The monument's camera looks at the church; Ilyich's bonnet camera belongs to the live duck and stands on its back.)
+        "ilyich" => new[] { new Spot(GameplayView.Cinematic, new(56, 164), Facing(new(56, 164), new(49, 191))) },
         "siberia" => new[] { new Spot(GameplayView.Bonnet, new(188, 265)), new Spot(GameplayView.Cinematic, new(260, 156)) },
         "atomgrad" => new[] { new Spot(GameplayView.Bonnet, new(155, 249)), new Spot(GameplayView.Cinematic, new(86, 145)) },
         "bonus" => new[] { new Spot(GameplayView.Bonnet, new(94, 48)), new Spot(GameplayView.Cinematic, new(266, 159)) },
@@ -22,7 +25,17 @@ public static class CameraSecrets
         foreach (var spot in Layout(track.Id))
         {
             var camera = new Node3D { Name = spot.View.ToString(),
-                Position = new Vector3(spot.Position.X, track.MeshHeight(spot.Position.X, spot.Position.Y), spot.Position.Y) };
+                Position = new Vector3(spot.Position.X, track.MeshHeight(spot.Position.X, spot.Position.Y), spot.Position.Y), Rotation = new Vector3(0, spot.Yaw, 0) };
+            AddCameraParts(camera);
+            DrunkTractor.BatchStatic(camera, null);
+            root.AddChild(camera);
+        }
+        return root;
+    }
+
+    /// <summary>The abandoned camera on its tripod (origin at the ground, the lens towards -Z); also the one riding on the duck's back.</summary>
+    public static void AddCameraParts(Node3D camera)
+    {
             var dark = new Color(0.12f, 0.14f, 0.13f); var metal = new Color(0.57f, 0.59f, 0.54f);
             camera.AddChild(Props.Part(Props.Box(0.64f, 0.4f, 0.28f), dark, new Vector3(0, 0.65f, 0)));
             camera.AddChild(Props.Part(Props.Box(0.66f, 0.08f, 0.3f), metal, new Vector3(0, 0.89f, 0)));
@@ -33,9 +46,5 @@ public static class CameraSecrets
                 var leg = Props.Part(Props.Box(0.04f, 0.55f, 0.04f), metal, new Vector3(0, 0.26f, 0));
                 leg.RotationDegrees = new Vector3(18, angle, 0); camera.AddChild(leg);
             }
-            DrunkTractor.BatchStatic(camera, null);
-            root.AddChild(camera);
-        }
-        return root;
     }
 }

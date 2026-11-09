@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using CCCPRacing.Camera;
 using CCCPRacing.Car;
@@ -104,5 +105,43 @@ public partial class PhysicsTest
             truck.Free();
         }
         fx.Free();
+    }
+
+    /// <summary>The ZIL that comes for a wrecked car inside Siberia's labour camp stays on the road: its whole path keeps clear of the huts, towers and wire (it used to cut across the camp in a straight line to the car).</summary>
+    void GulagCampTruckTest()
+    {
+        var def = TrackDef.Load("res://tracks/siberia.json");
+        var track = TrackBuilder.Build(def);
+        var camp = new Node3D(); AddChild(camp);
+        camp.AddChild(GulagCamp.Build(track, def.Gulag, track.Obstacles));      // (the huts, towers and wire are obstacles once the camp is built)
+        var fx = new TyreEffects(); fx.Init(track); AddChild(fx);
+        var spots = new System.Collections.Generic.List<Vector2>();
+        int n = track.Center.Length, mid = ((int)(def.Gulag.From + def.Gulag.To) / 2 % n + n) % n;
+        spots.Add(track.Center[mid]);
+        foreach (var hut in GulagCamp.Huts(track, def.Gulag)) spots.Add(hut.Position + (track.Center[hut.Index] - hut.Position).Normalized() * 4.5f);
+        bool clear = true; int checkedSpots = 0; float worst = 99f;
+        foreach (var spot in spots.Take(8))
+        {
+            var car = new CarSim(new CarParams(), track);
+            car.Reset(new Vector3(spot.X, track.MeshHeight(spot.X, spot.Y) + .6f, spot.Y), 0);
+            var truck = new GulagTruck(); AddChild(truck); truck.Init(track, fx); truck.Call(car);
+            var path = (System.Collections.Generic.List<Vector2>)typeof(GulagTruck).GetField("_path", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(truck);
+            checkedSpots++;
+            foreach (var o in track.Obstacles)
+            {
+                if (o.Radius < .9f || o.Velocity != Vector2.Zero || o.Center.X < -1000f) continue;
+                for (int k = 0; k + 1 < path.Count; k++)
+                {
+                    var seg = path[k + 1] - path[k];
+                    float u = Math.Clamp((o.Center - path[k]).Dot(seg) / Math.Max(.01f, seg.LengthSquared()), 0f, 1f);
+                    float room = o.Center.DistanceTo(path[k] + seg * u) - o.Radius;
+                    worst = Math.Min(worst, room);
+                    if (room < 1.4f) clear = false;
+                }
+            }
+            truck.Free();
+        }
+        Check(clear && checkedSpots >= 2, $"Gulag camp: the truck's path keeps clear of every solid, standing obstacle ({checkedSpots} wrecks in the camp, least room {worst:0.0} m)");
+        fx.Free(); camp.Free();
     }
 }

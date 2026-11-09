@@ -29,6 +29,12 @@ public partial class CareerCardsTest : Node
     public override void _Ready() => AddChild(GD.Load<PackedScene>("res://scenes/Main.tscn").Instantiate());
     public override void _Process(double delta)
     {
+        try { Run(); }
+        catch (Exception e) { GD.PrintErr(e); _failures++; SetProcess(false); GetTree().Quit(1); }
+    }
+
+    void Run()
+    {
         if (++_frames < 4) return;
         var race = Find(this);
         if (race == null) { if (_frames > 120) GetTree().Quit(1); return; }
@@ -41,9 +47,13 @@ public partial class CareerCardsTest : Node
         Write(race, "_tutorial", memory);
         Write(race, "_countdown", -2f);
         Write(race, "_state", Enum.Parse(Read(race, "_state").GetType(), "Racing"));
+        // The cards belong to a rally run with norms (CardsOn); the scene starts on the title, where the norms are off.
+        var norms = Read(race, "_norms");
+        norms.GetType().GetMethod("Reset").Invoke(norms, new object[] { true, 0, -1 });
+        Check((bool)typeof(RaceScene).GetProperty("CardsOn", Private).GetValue(race), "the cards are on in a rally run with norms");
         Call(race, "ResetCards");
         void Queue(string kind) => Call(race, "QueueCard", kind, kind.ToUpperInvariant(), Hud.Gold, "SHORT COMMENT", "SHORT HINT", new[] { "FIRST EXPLANATION" });
-        foreach (string kind in new[] { "fuel", "engine", "headlights", "norm_beaten", "norm_missed", "last_chance", "revenge_jet", "revenge_tanks", "gai_chase", "gai_fine" })
+        foreach (string kind in new[] { "fuel", "engine", "headlights", "norm_beaten", "norm_missed", "last_chance", "revenge_jet", "revenge_tanks", "revenge_slurry", "gai_chase", "gai_fine" })
         {
             string key = (string)typeof(RaceScene).GetMethod("CardKey", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { kind });
             Queue(kind);

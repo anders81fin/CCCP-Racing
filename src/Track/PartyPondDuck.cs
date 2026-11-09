@@ -1,4 +1,5 @@
 using System;
+using CCCPRacing.Race;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -13,6 +14,9 @@ public partial class PartyPondDuck : Node3D
     Node3D _duck;
     float _clock, _tick;
     public bool Active => _duck != null;
+    Node3D _camera;
+    /// <summary>The bonnet camera standing on its tripod on the duck's back: seen until the player has found it.</summary>
+    public void SetCameraVisible(bool visible) { if (_camera != null) _camera.Visible = visible; }
     public Vector3 WorldPosition => _duck?.GlobalPosition ?? Vector3.Zero;
     public static Vector2 PositionAt(float time) => new(220 + MathF.Cos(time * 0.045f + MathF.PI) * 5.5f,
         216 + MathF.Sin(time * 0.045f + MathF.PI));
@@ -56,6 +60,11 @@ public partial class PartyPondDuck : Node3D
         foreach (float x in new[] { -0.5f, 0f, 0.5f })
             Ball(new Vector3(x, 0.65f, 2.42f), new Vector3(0.36f, 0.22f, 0.95f), dark);
         DrunkTractor.BatchStatic(_duck, null);
+        // The easter-egg camera stands on its tripod on the mallard's back, lens forward (the duck's model is scaled down, so the camera is scaled up to a size that suits the bird).
+        _camera = new Node3D { Name = GameplayView.Bonnet.ToString(), Position = new Vector3(0, 1.3f, 0.45f), Scale = Vector3.One * (0.75f / ModelScale) };
+        CameraSecrets.AddCameraParts(_camera);
+        DrunkTractor.BatchStatic(_camera, null);
+        _duck.AddChild(_camera);
     }
 
     public override void _Process(double delta)

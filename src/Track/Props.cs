@@ -110,6 +110,7 @@ public static partial class Props
                 "crossing" => Atomgrad.CrossingSign(),
                 "pole" => Pole(p.Text == "transformer"),
                 "streetlamp" => VillagePower.StreetLamp(),
+                "pondlamp" => VillagePower.PondLamp(),
                 "gaiservice" => new Node3D(),
                 "powerconsumer" => new Node3D(),
                 "powercabinet" => VillagePower.Cabinet(p.Text == "bonus main distribution"),

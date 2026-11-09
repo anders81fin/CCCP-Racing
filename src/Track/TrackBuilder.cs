@@ -714,6 +714,8 @@ public static partial class TrackBuilder
                 for (float d = 0; d <= a.DistanceTo(b); d += 1.5f)
                     occupied.Add(a.Lerp(b, d / a.DistanceTo(b)));
             }
+            // Lantern posts round the dacha's pond, for the dark.
+            foreach (var site in PartyDacha.PondLampSites(t)) AddProp(t, "pondlamp", site, 0, null, occupied);
         }
         if (t.Id == "bonus")
         {
@@ -1042,6 +1044,7 @@ public static partial class TrackBuilder
             case "birch": t.Obstacles.Add(new Obstacle(p, size > 0 ? Props.TreeObstacleRadius(type, size) : 0.35f, default, true, Breakables.BreakSpeed(type, size))); break;
             case "spruce" or "pine" or "redpine": t.Obstacles.Add(new Obstacle(p, Props.TreeObstacleRadius(type, size > 0 ? size : 1f), default, false, Breakables.BreakSpeed(type, size))); break;
             case "streetlamp": t.Obstacles.Add(new Obstacle(p, 0.16f)); break;
+            case "pondlamp": t.Obstacles.Add(new Obstacle(p, 0.14f)); break;
             case "powercabinet": t.Obstacles.Add(new Obstacle(p, 0.65f)); break;
             case "pole": t.Obstacles.Add(new Obstacle(p, 0.2f, default, false, Breakables.PoleBreak)); break;
             case "hay": t.Obstacles.Add(new Obstacle(p, 0.9f, default, false, 2f, true, 5f)); break;    // gives way: it tips over, the car ploughs on 18 km/h slower
@@ -1203,7 +1206,7 @@ public static partial class TrackBuilder
             "birch" or "spruce" or "pine" or "redpine" or "deadtree" or "pole" or "izba" => ImpactMaterial.Wood,
             "church" or "stonepost" or "statue" or "stack" or "apartments" or "culture" or "reactor" or "sarcophagus" => ImpactMaterial.Stone,
             "hay" or "fieldtent" => ImpactMaterial.Soft,
-            "streetlamp" or "powercabinet" or "silo" or "lorrywreck" or "tractor" or "hangar" or "fieldtruck"
+            "streetlamp" or "pondlamp" or "powercabinet" or "silo" or "lorrywreck" or "tractor" or "hangar" or "fieldtruck"
                 or "fieldfuel" or "fieldgenerator" or "windsock" or "flagpole" or "radar" or "wreck" or "pipebridge"
                 or "ferriswheel" or "radsign" or "crossing" => ImpactMaterial.Metal,
             _ => ImpactMaterial.Unknown,

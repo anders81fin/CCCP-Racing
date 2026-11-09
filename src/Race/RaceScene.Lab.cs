@@ -105,11 +105,12 @@ public partial class RaceScene
     readonly List<(LabParam P, float Value)> _labPreset = new();
     FuelGrade? _labPresetFuel;
     /// <summary>The SPUTNIK's preset: the four-wheel drive (the engine is the jet fuel's, 140 % and the turbo, which a lab run gets as in a normal run).</summary>
+    internal static readonly (string Name, float Value)[] JetPreset = { ("Mass", FuelGrades.JetMass) };
     internal static readonly (string Name, float Value)[] SputnikPreset = {
         ("Mass", FuelGrades.SputnikMass), ("DriveFront", FuelGrades.SputnikDriveFront), ("CenterLock", FuelGrades.SputnikCenterLock),
         ("TurboSpool", FuelGrades.SputnikTurboSpool), ("TurboKick", FuelGrades.SputnikTurboKick),
     };
-    bool LabDieselPreset => _labRun && _run is RunMode.Rally or RunMode.Training && EngineFuel is FuelGrade.Diesel or FuelGrade.Sputnik;
+    bool LabDieselPreset => _labRun && _run is RunMode.Rally or RunMode.Training && EngineFuel is FuelGrade.Diesel or FuelGrade.Rocket or FuelGrade.Sputnik;
 
     /// <summary>At the start of a run: the diesel's preset goes on the sliders (those still at their defaults) and comes off again when the fuel is another.</summary>
     void LabApplyFuelPreset()
@@ -123,7 +124,7 @@ public partial class RaceScene
         if (want)
         {
             bool first = _labPreset.Count == 0;
-            foreach (var (name, value) in fuel == FuelGrade.Sputnik ? SputnikPreset : DieselPreset)
+            foreach (var (name, value) in fuel == FuelGrade.Sputnik ? SputnikPreset : fuel == FuelGrade.Rocket ? JetPreset : DieselPreset)
             {
                 var p = _lab.Params.FirstOrDefault(x => x.Name == name);
                 if (p == null) continue;
@@ -133,7 +134,7 @@ public partial class RaceScene
                 p.Assign(value);
                 _labPreset.Add((p, value));
             }
-            if (first && _labPreset.Count > 0) _hud.ShowAlways(fuel == FuelGrade.Sputnik ? "SPUTNIK PRESET" : "DIESEL PRESET", fuel == FuelGrade.Sputnik ? "900 KG, 4WD 40-60, CENTRE LOCK, GROUP B TURBO" : "5000 RPM, 200 NM LOW AND WIDE, 1050 KG, FOUR CLOSE GEARS", 3f, Hud.Gold);
+            if (first && _labPreset.Count > 0) _hud.ShowAlways(fuel == FuelGrade.Sputnik ? "SPUTNIK PRESET" : fuel == FuelGrade.Rocket ? "JET FUEL PRESET" : "DIESEL PRESET", fuel == FuelGrade.Sputnik ? "900 KG, 4WD 40-60, CENTRE LOCK, GROUP B TURBO" : fuel == FuelGrade.Rocket ? "1000 KG, 280 NM, 400 NM ON TURBO" : "5000 RPM, 200 NM LOW AND WIDE, 1050 KG, FOUR CLOSE GEARS", 3f, Hud.Gold);
         }
         else if (!want && _labPreset.Count > 0)
         {

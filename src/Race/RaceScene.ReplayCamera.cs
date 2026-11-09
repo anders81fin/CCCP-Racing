@@ -9,6 +9,30 @@ public partial class RaceScene
     ReplayCameraDirector.Shot? _replayLastShot;
     float _replayOldFov, _replayOldNear, _replayOldFar;
     float _demoCameraClock;
+    readonly BroadcastDirector _broadcast = new();
+    int _broadcastShot = -1;
+
+    /// <summary>The replay's automatic broadcast (BroadcastDirector): the cuts of the lap are planned from its recorded path, the frame is a function of the replay clock alone.</summary>
+    bool BroadcastCamera(float dt)
+    {
+        var ghost = TitleGhost;
+        object key = (ghost, ghost.Count, _trackId);
+        if (!_broadcast.Planned(key)) { _broadcast.Build(_track, ghost.Sample, ghost.Duration, key); _broadcastShot = -1; }
+        var view = _broadcast.Frame(_replayClock);
+        bool cut = view.Index != _broadcastShot;
+        _broadcastShot = view.Index;
+        if (view.Kind == BroadcastDirector.Kind.TopDown)
+        {
+            _cam.Fov = _replayOldFov; _cam.Near = _replayOldNear; _cam.Far = _replayOldFar;
+            if (cut) _cam.SnapDriving(_car.Pos, _car.Vel);
+            CameraFeel(dt, replayDriving: true);
+            _cam.Follow(_car.Pos, _car.Vel, dt);
+            return true;
+        }
+        _cam.Fov = view.Fov; _cam.Near = view.Near; _cam.Far = 600;
+        _cam.Pose(view.Eye, view.Target, _car.Pos, dt);
+        return true;
+    }
     bool TitleCameraAllowed => _state == State.Title && !PresentationActive;
 
     void PrepareReplayCamera()
@@ -54,6 +78,7 @@ public partial class RaceScene
             _cam.Follow(_car.Pos, _car.Vel, dt);
             return true;
         }
+        if (Replaying && TitleGhost != null) return BroadcastCamera(dt);
         Godot.Vector3 future;
         float clock;
         if (Replaying)

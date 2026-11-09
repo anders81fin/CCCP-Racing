@@ -225,7 +225,7 @@ public partial class PhysicsTest : Node
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--drone-tour-tests"))
         { DroneTourTest();GetTree().Quit(_failures==0?0:1);return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--mechanic-tests"))
-        { MechanicRepairTest();GetTree().Quit(_failures==0?0:1);return; }
+        { MechanicRepairTest();DrunkAnimationTest();GetTree().Quit(_failures==0?0:1);return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--ghost-bytes-worker-tests"))
         { GhostBytesWorkerTests();GetTree().Quit(_failures==0?0:1);return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--tape-tests"))
@@ -410,6 +410,24 @@ public partial class PhysicsTest : Node
             GetTree().Quit(_failures == 0 ? 0 : 1);
             return;
         }
+        if (OS.HasEnvironment("WINGLAB"))
+        {
+            CarWingShareTest();
+            GetTree().Quit(_failures == 0 ? 0 : 1);
+            return;
+        }
+        if (OS.HasEnvironment("GULAGCAMPLAB"))
+        {
+            GulagCampTruckTest();
+            GetTree().Quit(_failures == 0 ? 0 : 1);
+            return;
+        }
+        if (OS.HasEnvironment("BROADCASTLAB"))
+        {
+            BroadcastCameraTest();
+            GetTree().Quit(_failures == 0 ? 0 : 1);
+            return;
+        }
         if (OS.HasEnvironment("CAMERALAB"))
         {
             GameplayCameraTest();
@@ -539,6 +557,11 @@ public partial class PhysicsTest : Node
         OverdriveOnTrack();
         EngineHealthTest();
         MechanicRepairTest();
+        DrunkAnimationTest();
+        BroadcastCameraTest();
+        TitleRecLightTest();
+        CarWingShareTest();
+        GulagCampTruckTest();
         StartHillAssistTest();
         HandbrakeThrottleTest();
         DroneTourTest();
@@ -1332,6 +1355,17 @@ public partial class PhysicsTest : Node
         bool mono = true;
         for (float v = 0; v < 40f; v += 0.5f)
             mono &= EngineHealth.ImpactDamage(v + 0.5f) >= EngineHealth.ImpactDamage(v);
+        {
+            // ATOMGRAD-4's radiation: nothing from the background, more health the stronger it is, a new engine dies in about half a minute in the hottest spot off the road.
+            bool grows = true;
+            for (float r = 0.1f; r < 3f; r += 0.1f) grows &= EngineHealth.RadiationLoss(r + 0.1f, 1f) > EngineHealth.RadiationLoss(r, 1f) - 1e-6f;
+            var health = new EngineHealth(); health.Reset(true);
+            float tDead = 0;
+            while (!health.Dead && tDead < 300f) { health.Damage(EngineHealth.RadiationLoss(2.8f, 0.1f), "RADIATION"); tDead += 0.1f; }
+            Check(EngineHealth.RadiationLoss(0.02f, 10f) == 0f && EngineHealth.RadiationLoss(0.06f, 10f) == 0f && EngineHealth.RadiationLoss(0.9f, 1f) > 0f && grows
+                && EngineHealth.RadiationLoss(1.8f, 1f) > EngineHealth.RadiationLoss(0.9f, 1f) * 1.8f && health.Dead && tDead > 20f && tDead < 60f,
+                $"radiation: the background costs nothing, the loss grows with the dose rate, and 2.8 mSv/s kills a new engine in {tDead:F0} s");
+        }
         float d5 = EngineHealth.ImpactDamage(5f), d12 = EngineHealth.ImpactDamage(12f), d20 = EngineHealth.ImpactDamage(20f);
         GD.Print($"  damage at 4/5/8/12/20/30 m/s: {EngineHealth.ImpactDamage(4f) * 100:F1} / {d5 * 100:F1} / {EngineHealth.ImpactDamage(8f) * 100:F1} / {d12 * 100:F1} / {d20 * 100:F1} / {EngineHealth.ImpactDamage(30f) * 100:F1} %");
         Check(mono && EngineHealth.ImpactDamage(4f) == 0f, "damage grows monotonically, nothing up to 4 m/s");

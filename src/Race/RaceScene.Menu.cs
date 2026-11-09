@@ -84,7 +84,9 @@ public partial class RaceScene
                 EnterLessons();           // the lessons' tree (RaceScene.SchoolMenu.cs)
                 break;
             case MenuItem.Training or MenuItem.Race:
-                OpenTrackCard(_menu);     // CHOOSE TRACK (RaceScene.Tracks.cs): laps go on the board under the file's name
+                if (_menu == MenuItem.Race) OpenRallyStart();      // the rally: CHOOSE FUEL, then CHOOSE TRACK
+                else if (_menu == MenuItem.Training) OpenLapsStart();      // the Stakhanov laps: the same, then the time of day
+                else OpenTrackCard(_menu);     // CHOOSE TRACK (RaceScene.Tracks.cs): laps go on the board under the file's name
                 break;
         }
     }

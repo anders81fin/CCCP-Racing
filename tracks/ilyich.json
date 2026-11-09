@@ -45,7 +45,9 @@
   ],
   // A level foundation and small yard, softly blended into the knoll. The road keeps its grade.
   "pads": [
-    { "x0": 47, "z0": 187, "x1": 67, "z1": 197, "surface": "grass", "ground": true }
+    { "x0": 47, "z0": 187, "x1": 67, "z1": 197, "surface": "grass", "ground": true },
+    // The grain delivery yard west of the church door: the tractor and its trailer stand on a level bench cut into the knoll's side (it used to slope 3 m over the rig).
+    { "x0": 35, "z0": 187.5, "x1": 47, "z1": 199.5, "surface": "grass", "ground": true, "height": 2.6 }
   ],
   "points": [
     { "x": 95,  "z": 59,  "width": 12, "surface": "dirt" },

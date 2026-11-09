@@ -27,6 +27,25 @@ public partial class LanSession
         {w.Write((byte)Msg.Vote);w.Write((ushort)fuel);w.Write(damage);w.Write(fuelCons);w.Write(track);w.Write(obstacles);}
         OnPacket(peer,m.ToArray());
     }
+    /// <summary>Test: a client says hello (the production receive handler) with what he has opened; id 2 and up.</summary>
+    internal void FixtureHello(long peer,string name,LanUnlocks unlocks)
+    {
+        _pending[peer]=Now;
+        using var m=new MemoryStream();using(var w=new BinaryWriter(m,System.Text.Encoding.UTF8,true))
+        {w.Write((byte)Msg.Hello);w.Write(Version+"/lan"+Protocol);w.Write("");w.Write(name);w.Write("");w.Write(System.Guid.NewGuid().ToString("N"));w.Write(unlocks.WriteTracks());w.Write((byte)unlocks.Fuels);}
+        OnPacket(peer,m.ToArray());
+    }
+    internal void FixtureLeave(long peer)=>OnPeerDisconnected(peer);
+    internal void FixtureOpenBallot()=>State=Phase.Ballot;
+    /// <summary>Test: the host has opened every fuel (the ballot then offers them all to a lobby of rookies).</summary>
+    internal void FixtureHostOpenedAll(){Players[1].Unlocks=new LanUnlocks(new[]{"ilyich"},LanUnlocks.AllFuels);RefreshOptions();}
+    /// <summary>The lobby message as the host writes it, read back by a fresh client (the track options and the fuel mask travel in it).</summary>
+    internal static (System.Collections.Generic.List<string> tracks,int fuels) FixtureOptionsRoundTrip(LanSession host)
+    {
+        using var m=new MemoryStream();using(var w=new BinaryWriter(m,System.Text.Encoding.UTF8,true)) host.WriteTrackOptions(w);
+        var client=new LanSession();using var rd=new BinaryReader(new MemoryStream(m.ToArray()));client.ReadTrackOptions(rd);
+        return (client.TrackOptions,client.FuelMask);
+    }
     internal static LanSession BallotFixture(params string[] options)
     {var n=LoadingFixture("ilyich");n.State=Phase.Lobby;n.Reveal=null;n.RoundNumber=0;n.ConfigureTracks(options);return n;}
     internal byte[] RevealFixturePacket(bool loading)

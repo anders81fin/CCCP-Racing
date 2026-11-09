@@ -34,6 +34,8 @@ public partial class Hud
         public readonly List<LanRow> Players = new();
         public bool IsHost, Voted, Damage = true, Fuel, Obstacles = true;
         public int Laps, Power, Choice;
+        /// <summary>The fuels the ballot offers (a bit per fuel grade; the comrade with the most opened decides).</summary>
+        public int FuelMask = 15;
         public float BallotLeft = -1;
         public string Address;
         // The count: ballots (name, colour, percent), the tally and the drum, the grid.
@@ -262,9 +264,13 @@ public partial class Hud
         // Rows top to bottom: track, fuel, damage, fuel consumption, moving obstacles. Row ids in v.Sel: 3 track, 0 fuel, 1 damage, 2 fuel consumption, 4 moving obstacles.
         int tracks = v.TrackOptions.Length;
         int trackCols = narrow ? Math.Min(2, tracks) : Math.Max(1, tracks);
-        int fuelCols = narrow ? 2 : Net.LanRace.FuelCount;
+        // Only the fuels on offer (the comrade with the most opened decides): the cards keep their key numbers.
+        var offered = new List<int>();
+        for (int g = 0; g < Net.LanRace.FuelCount; g++) if ((v.FuelMask >> g & 1) != 0) offered.Add(g);
+        if (offered.Count == 0) offered.Add(0);
+        int fuelCols = narrow ? Math.Min(2, offered.Count) : offered.Count;
         int trackLines = tracks > 1 ? (tracks + trackCols - 1) / trackCols : tracks == 1 ? 1 : 0;
-        int fuelLines = (Net.LanRace.FuelCount + fuelCols - 1) / fuelCols;
+        int fuelLines = (offered.Count + fuelCols - 1) / fuelCols;
         float choices = (trackLines + fuelLines + 3) * ChoicePitch + (trackLines > 0 ? 4 : 0) + 4;
         var r = LanPanel(w, 42 + choices + 13 + Math.Max(4, v.Players.Count) * 11 + 34);
         LanHeading(r, "SECRET BALLOT", Screen.X<330?"VOTE TOGETHER":"CHOOSE THE TRACK AND RULES FOR ALL");
@@ -278,9 +284,9 @@ public partial class Hud
             PixelFont.DrawCentered(this, "TRACK: " + v.TrackOptions[0], cx, y, Paper);
             y += ChoicePitch + 4;
         }
-        var fuels = new string[Net.LanRace.FuelCount];
-        for (int i = 0; i < fuels.Length; i++) fuels[i] = $"{i + 1} {Race.FuelGrades.Names[i]}";
-        y += DrawLanChoices(fuels, v.Choice - 1, v.Sel == 0, x0, inner, fuelCols, y) + 4;
+        var fuels = new string[offered.Count];
+        for (int i = 0; i < fuels.Length; i++) fuels[i] = $"{offered[i] + 1} {Race.FuelGrades.Names[offered[i]]}";
+        y += DrawLanChoices(fuels, Math.Max(0, offered.IndexOf(v.Choice - 1)), v.Sel == 0, x0, inner, fuelCols, y) + 4;
         // DAMAGE and FUEL CONSUMPTION: a right-aligned label, then YES / NO in the same cells.
         const float yesNo = 34, gap = 8;
         float labelW = PixelFont.Measure("FUEL CONSUMPTION"), gx = Mathf.Floor(cx - (labelW + gap + 2 * yesNo) / 2);

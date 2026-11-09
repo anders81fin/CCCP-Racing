@@ -34,6 +34,8 @@ public partial class EngineSound : Node
     public int Grade = 1;
     /// <summary>The SPUTNIK's inline five: 2.5 firings per revolution at uneven intervals and strengths (the exhaust pulses of the Quattro warble: a half-order beat under the note).</summary>
     public bool FiveCylinder;
+    /// <summary>The Sputnik's engine (the five-cylinder, the turbo, the bangs: the machinery, not the road) is this much louder than the other cars' engines (the owner's wish, 9 November: 30 % more).</summary>
+    public const float SputnikLoudness = 1.3f;
     int _fire;
     static readonly float[] FiveInterval = { 1.07f, .93f, 1.05f, .95f, 1f }, FiveAmp = { 1f, .78f, 1.12f, .72f, .93f };
     float _fiveAmp = 1f;
@@ -905,7 +907,7 @@ public partial class EngineSound : Node
             _hallJointPhase=(_hallJointPhase+Math.Abs(Speed)/(4*MixRate))%1;
             _hallJointNoise+=(noise-_hallJointNoise)*.06f;
             float joint=_hallJointNoise*MathF.Exp(-_hallJointPhase*35)*Math.Clamp(Speed/16,0,1)*.18f;
-            float dry=(machinery*SoundBalance.EngineGain+(road+joint*_hallMix)*SoundBalance.RoadGain)*Volume;
+            float dry=(machinery*SoundBalance.EngineGain*(FiveCylinder?SputnikLoudness:1f)+(road+joint*_hallMix)*SoundBalance.RoadGain)*Volume;
             float echo=_hallEcho[(_hallCursor+4096-1000)%4096]*.12f+_hallEcho[(_hallCursor+4096-2200)%4096]*.08f;
             _hallEcho[_hallCursor]=dry;_hallCursor=(_hallCursor+1)%4096;
             return Math.Clamp(dry+echo*_hallMix,-1f,1f);

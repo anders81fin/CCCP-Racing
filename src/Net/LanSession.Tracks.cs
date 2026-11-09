@@ -94,7 +94,28 @@ public partial class LanSession
         var tracks=new List<string>();
         for(int i=0;i<n;i++) {string id=r.ReadString();if(!TrackIds.Known(id)||tracks.Contains(id)) throw new InvalidDataException("track option");tracks.Add(id);}
         TrackOptions=tracks;
+        int fuels=r.ReadByte()&LanUnlocks.AllFuels;if(fuels==0) throw new InvalidDataException("fuel options");
+        FuelMask=fuels;
     }
-    void WriteTrackOptions(BinaryWriter w) {w.Write((byte)TrackOptions.Count);foreach(string id in TrackOptions)w.Write(id);}
+    void WriteTrackOptions(BinaryWriter w) {w.Write((byte)TrackOptions.Count);foreach(string id in TrackOptions)w.Write(id);w.Write((byte)FuelMask);}
+
+    /// <summary>What this machine has opened; it goes to the host with the hello (and is the host's own entry).</summary>
+    public LanUnlocks MyUnlocks=LanUnlocks.Minimum;
+    /// <summary>The fuels the ballot offers (a bit per FuelGrade): those of the comrade with the most opened tracks and fuels.</summary>
+    public int FuelMask {get;private set;}=LanUnlocks.AllFuels;
+    /// <summary>The ballot's powers for the fuels on offer (the drum's candidates when nobody voted).</summary>
+    public IReadOnlyList<int> OfferedFuels=>LanBallot.AllFuels.Where(FuelOffered).ToList();
+    public bool FuelOffered(int pct) => Race.Training.GradeOf(pct) is Race.FuelGrade g && (FuelMask>>(int)g&1)!=0;
+    /// <summary>Host, in the lobby: the ballot offers the tracks and fuels of the comrade with the most opened of both (a tie: the lowest slot); it follows who is in the lobby.</summary>
+    void RefreshOptions()
+    {
+        if(!IsHost || State!=Phase.Lobby) return;
+        var best=LanUnlocks.Best(Players.Values.OrderBy(p=>p.Slot).Select(p=>p.Unlocks));
+        var list=best.Tracks.Where(TrackIds.Known).Distinct().Take(4).ToList();
+        if(list.Count==0) list.Add("ilyich");
+        TrackOptions=list;
+        FuelMask=(best.Fuels&LanUnlocks.AllFuels)==0?1:best.Fuels&LanUnlocks.AllFuels;
+        _dirty=true;
+    }
     void ResetTrackSession() {RoundNumber=0;_loaded.Clear();_loadedWire=0;LastLoadError=null;LeavePrompt.Cancel();}
 }

@@ -17,15 +17,29 @@ public static class FuelGrades
     public static readonly int[] Percent = { 50, 100, 200, 200 };      // Sputnik shares jet fuel power; the ballot uses a separate stable ID.
     /// <summary>The tank's consumption factor by fuel (against the tuned base rate; 1 = the tuned one): the diesel sips, the Sputnik drinks.</summary>
     public static readonly float[] Burn = { 0.5f, 0.8f, 1.0f, 1.2f };
-    /// <summary>The line on the FUEL card.</summary>
-    public static readonly string[] Lines =
+    /// <summary>What a car of this fuel is, in the real units and from the engine itself (ApplyEngine), so no text can go stale: peak torque in Nm (the power factor in it), the same on full turbo, mass in kg, the redline and the number of gears.</summary>
+    public static (int Nm, int TurboNm, int Kg, int Rpm, int Gears) Spec(FuelGrade g)
     {
-        "A TRACTOR ENGINE. TORQUE AT THE BOTTOM, 5000 RPM", "100% POWER. FACTORY SPECIFICATION", "140% POWER, 200% ON TURBO. BAIKONUR SURPLUS", "140% POWER, 200% ON TURBO, FOUR-WHEEL DRIVE",
-    };
+        var p = new CarParams(); ApplyEngine(p, g);
+        float nm = p.MaxTorque * PhysicsPercent(g) / 100f;
+        return ((int)MathF.Round(nm), (int)MathF.Round(nm * (1f + TurboGainFor(g))), (int)MathF.Round(p.Mass), (int)MathF.Round(p.Redline), p.Gears.Length);
+    }
 
-    /// <summary>The line of the FUEL card before the norms: the power of petrol and rocket fuel; the diesel is an engine of its own.</summary>
-    public static string CardLine(int grade) => grade == (int)FuelGrade.Diesel ? "200 NM, 1050 KG, 5000 RPM, ECONOMICAL" : grade == (int)FuelGrade.Rocket ? "140% POWER, 200% ON TURBO" : grade == (int)FuelGrade.Sputnik ? "TOP SECRET: AWD PROTOTYPE" : "THE STANDARD";
+    /// <summary>The engine's cylinders: the Diesel a tractor four, the Petrol and the Jet fuel the Pyatyorka's four, the Sputnik the five of its warble.</summary>
+    public static int Cylinders(FuelGrade g) => g == FuelGrade.Sputnik ? 5 : 4;
 
+    /// <summary>The line of the FUEL card before the norms: gears, torque, revs and mass, nothing else (the Jet fuel's turbo torque beside its torque); the Sputnik is top secret.</summary>
+    public static string CardLine(int grade)
+    {
+        var g = (FuelGrade)Math.Clamp(grade, 0, Count - 1);
+        var s = Spec(g);
+        return g switch
+        {
+            FuelGrade.Rocket => $"{s.Gears} GEAR {s.Nm} NM ({s.TurboNm} NM TURBO) {s.Rpm} RPM {s.Kg} KG",
+            FuelGrade.Sputnik => "TOP SECRET: AWD PROTOTYPE",
+            _ => $"{s.Gears} GEAR {s.Nm} NM {s.Rpm} RPM {s.Kg} KG",
+        };
+    }
     /// <summary>
     /// The diesel's engine, a diesel and not a petrol engine at half the power (tried out in LAB, 2 November): a lower redline with four close gears (a lower top speed, 8 November: the hills before the speed; was five taller gears at the same top speed
     /// at 5000 rpm), the torque low and wide instead of high and peaky, and more of it. Petrol and rocket fuel use the car's own defaults.
@@ -37,6 +51,8 @@ public static class FuelGrades
 
     /// <summary>The SPUTNIK's own mass (kg), lighter than the other cars. Jet fuel and Sputnik keep the petrol car's torque: the 140 % power and the turbo are applied on top of it.</summary>
     public const float SputnikMass = 900f;
+    /// <summary>The jet fuel's mass (kg): a little lighter than the Petrol's 1050 (no bumpers, no rack worth speaking of).</summary>
+    public const float JetMass = 1000f;
 
     /// <summary>The engine's power as the physics gets it (percent): the diesel's character is its torque curve, so it has the whole of it.</summary>
     public static int PhysicsPercent(FuelGrade g) => g switch { FuelGrade.Diesel => 100, FuelGrade.Rocket or FuelGrade.Sputnik => 140, _ => Percent[(int)g] };
@@ -71,6 +87,7 @@ public static class FuelGrades
             prop.SetValue(p, g == FuelGrade.Diesel ? value : prop.GetValue(defaults));
         }
         if (g == FuelGrade.Sputnik) p.Mass = SputnikMass;
+        else if (g == FuelGrade.Rocket) p.Mass = JetMass;
         p.Gears = GearsFor(g);
         p.DriveFront = DriveFrontFor(g);
         p.CenterLock = g == FuelGrade.Sputnik ? SputnikCenterLock : 0f;
@@ -79,10 +96,38 @@ public static class FuelGrades
     }
 
     /// <summary>The same body equipment for solo, LAN and recorded cars; paint belongs to the caller.</summary>
+    /// <summary>
+    /// The tail pipes of each car, as x in the car's frame (the rear is +z, the pipes stand at y -0.40): the Diesel one pipe, the Petrol the twin pipes of the body (both on the right), the
+    /// Jet fuel four (two on each side of the rear) and the Sputnik its one fat pipe (the kit's). The model's pipes, the smoke and the backfire flames all come from these.
+    /// </summary>
+    public static float[] PipeXs(FuelGrade g) => g switch
+    {
+        FuelGrade.Diesel => new[] { 0.40f },
+        FuelGrade.Rocket => new[] { -0.47f, -0.33f, 0.33f, 0.47f },
+        FuelGrade.Sputnik => new[] { 0.40f },
+        _ => new[] { 0.33f, 0.47f },
+    };
+
+    /// <summary>
+    /// The idle shudder of each engine's character (cosmetic, the body only): the strength of each beat and how fast the beats come. The Sputnik's five-cylinder is the reference (unequal, quick);
+    /// the Diesel's four is slow and lumpy, the Petrol's and the Jet fuel's four even and fine.
+    /// </summary>
+    public static float[] IdleBeats(FuelGrade g) => g switch
+    {
+        FuelGrade.Sputnik => new[] { 1f, .45f, .85f, .35f, .65f },
+        FuelGrade.Diesel => new[] { 1f, .55f, .8f, .55f },
+        _ => new[] { .8f, .6f, .8f, .6f },
+    };
+    public static double IdleRate(FuelGrade g) => g switch { FuelGrade.Sputnik => 8.0, FuelGrade.Diesel => 6.5, _ => 9.0 };
+    /// <summary>How strongly the car shudders at idle against the Sputnik's: the others have half of it.</summary>
+    public static float IdleShudder(FuelGrade g) => g == FuelGrade.Sputnik ? 1f : 0.5f;
+
     public static void ApplyVisual(CarVisual visual, FuelGrade grade)
     {
+        visual.SetIdleCharacter(IdleBeats(grade), IdleRate(grade));
         visual.Wing = grade switch { FuelGrade.Diesel => 3, FuelGrade.Rocket => 1, FuelGrade.Sputnik => 2, _ => 0 };
-        visual.Equip(bumpers: grade is FuelGrade.Diesel or FuelGrade.Petrol, roofRack: grade != FuelGrade.Sputnik, kit: grade == FuelGrade.Sputnik);
+        visual.Equip(bumpers: grade is FuelGrade.Diesel or FuelGrade.Petrol, roofRack: grade != FuelGrade.Sputnik, kit: grade == FuelGrade.Sputnik,
+            pipes: grade switch { FuelGrade.Diesel => CarDamage.PipeSet.Single, FuelGrade.Rocket => CarDamage.PipeSet.Quad, _ => CarDamage.PipeSet.Twin });      // (the Sputnik's kit hides them all and has its own pipe)
     }
 
     /// <summary>The SPUTNIK is a Group B Quattro: a viscous centre lock (up to 35 points of the engine move to the axle that grips), a turbo that spools in 0.4 s but holds its power back and then surges.</summary>

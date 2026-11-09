@@ -18,13 +18,13 @@ public partial class RaceScene
     void LapFuelsReset()
     {
         _lapFuels.Clear();
-        if (_run == RunMode.Training && Training.GradeOf(_power) is FuelGrade g) _lapFuels.Add((0f, (int)g));
+        if ((_run == RunMode.Training || _titleRec) && Training.GradeOf(_power) is FuelGrade g) _lapFuels.Add((0f, (int)g));
     }
 
     /// <summary>The fuel has just changed (SetPower).</summary>
     void LapFuelsNote()
     {
-        if (_run != RunMode.Training || Training.GradeOf(_power) is not FuelGrade g) return;
+        if ((_run != RunMode.Training && !_titleRec) || Training.GradeOf(_power) is not FuelGrade g) return;
         float t = MathF.Max(0f, _lapClock);
         if (_lapFuels.Count > 0 && _lapFuels[^1].Grade == (int)g) return;
         if (_lapFuels.Count > 0 && _lapFuels[^1].T >= t) _lapFuels.RemoveAt(_lapFuels.Count - 1);      // (a change before the lap began replaces the first)

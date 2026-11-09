@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using CCCPRacing.Audio;
+using CCCPRacing.Car;
 using CCCPRacing.Track;
 using CCCPRacing.UI;
 using Godot;
@@ -26,7 +27,7 @@ public partial class RaceScene
     ZoneDosimetrist _dosimetrist;      // the figure at the checkpoint, knocked over like the other people
     GeigerSound _geiger;
     float _dose, _doseRate, _doseCheckT, _doseStart, _doseDbg;
-    bool _doseOn, _doseWarned, _doseOver, _washing, _atWash;
+    bool _doseOn, _doseWarned, _doseOver, _washing, _atWash, _radEngineWarned;
     bool _doseSchoolMock;
 
     /// <summary>At GO: the zone's word in the rally; test --at-wash: the car at the bay's north end, pointing in (south).</summary>
@@ -59,7 +60,7 @@ public partial class RaceScene
         _doseOn = rally;
         _dose = rally && !_raceRestart ? _doseStart * _rad.Limit : 0f;
         _doseCheckT = 0;
-        _doseWarned = _doseOver = _washing = false;
+        _doseWarned = _doseOver = _washing = _radEngineWarned = false;
     }
 
     /// <summary>The dose rate (mSv/s) at a point: background and the hot spots, off the hard road times OffRoad.</summary>
@@ -91,6 +92,20 @@ public partial class RaceScene
 
         bool racing = _state == State.Racing, free = racing && !_wreck && !_rescue.Active && _doseCheckT <= 0;
         if (free) _dose += _doseRate * dt;
+        // The radiation eats the engine too, the more the stronger it is (EngineHealth.RadiationLoss).
+        if (free && _health.Enabled && !_health.Dead)
+        {
+            float loss = EngineHealth.RadiationLoss(_doseRate, dt);
+            if (loss > 0f)
+            {
+                HealthChanged(_health.Damage(loss, "RADIATION"));
+                if (!_radEngineWarned && _doseRate > 0.4f)
+                {
+                    _radEngineWarned = true;
+                    _hud.Show("THE RADIATION IS EATING THE ENGINE", "GET OUT OF THE HOT SPOT, TOVARISH", 3f, Hud.Red, Prio.Important, plain: "RADIATION DAMAGE");
+                }
+            }
+        }
 
         // The wash: slow in the bay, the dose runs down; a spray over the car.
         bool wash = free && InWash(p) && _car.Speed < WashSpeed && _dose > 0f;

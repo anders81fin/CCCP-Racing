@@ -38,11 +38,11 @@ public static class LanBallot
     /// The powers with the most votes, lowest first (one: the winner; more: the drum). Counts per power.
     /// Abstentions are skipped; with no submitted vote at all every fuel is on the drum (counts stay empty).
     /// </summary>
-    public static List<int> Tally(IEnumerable<int> votes, out SortedDictionary<int, int> counts)
+    public static List<int> Tally(IEnumerable<int> votes, out SortedDictionary<int, int> counts, IReadOnlyList<int> offered = null)
     {
         counts = new SortedDictionary<int, int>();
         foreach (int v in votes) if (Voted(v)) counts[v] = counts.TryGetValue(v, out int c) ? c + 1 : 1;
-        if (counts.Count == 0) return AllFuels.ToList();
+        if (counts.Count == 0) return (offered ?? AllFuels).ToList();
         int max = counts.Values.Max();
         return counts.Where(kv => kv.Value == max).Select(kv => kv.Key).ToList();
     }

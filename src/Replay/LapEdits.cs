@@ -50,7 +50,7 @@ public sealed record LapEditsPlayback
 {
     public float Speed { get; init; } = 1f;
     public bool Loop { get; init; }
-    public string Camera { get; init; } = LapEdits.TopDown;
+    public string Camera { get; init; } = LapEdits.Auto;
     public bool Overlay { get; init; } = true;
 }
 

@@ -72,7 +72,7 @@ public partial class RaceScene
         _snd.Volume = _ctVolumeWas;
         _fx.Clear(); ClearCarFeedback();
         _radio.Play();
-        AudioMix.MuteSfx(true);
+        TitleSoundApply();      // (back to the title's sound: music only, or the background lap at half volume)
         _hud.CarTour = false; _hud.TrackPreview = false;
         _hud.PreviewCardAlpha = 0; _hud.PreviewCardWaiting = false;
         _hud.PreviewCardBig = _hud.PreviewCardSmall = Array.Empty<string>();
@@ -239,12 +239,10 @@ public partial class RaceScene
     /// <summary>The data card: what is told about the car, from the code and the loaded track's own norms (nothing measured by hand).</summary>
     string[] CarSpecRows(FuelGrade g)
     {
-        string power = g switch
-        {
-            FuelGrade.Diesel => "200 NM, 1050 KG, REDLINE 5000",
-            FuelGrade.Petrol => "100% - THE FACTORY ENGINE",
-            _ => "140%, 200% ON TURBO",
-        };
+        var sp = FuelGrades.Spec(g);
+        string power = g is FuelGrade.Rocket or FuelGrade.Sputnik ? $"{sp.Nm} NM, {sp.TurboNm} NM ON TURBO" : $"{sp.Nm} NM";
+        string engine = $"{FuelGrades.Cylinders(g)} CYLINDER, REDLINE {sp.Rpm}";
+        string gearbox = $"{sp.Gears}-SPEED MANUAL";
         string drive = g == FuelGrade.Sputnik ? "4WD 40/60 + CENTRE LOCK" : "REAR-WHEEL";
         string voice = g switch
         {
@@ -257,8 +255,11 @@ public partial class RaceScene
         var medal = _campaign.BestOn(_trackId, g);
         return new[]
         {
+            "ENGINE|" + engine,
             "POWER|" + power,
+            "GEARBOX|" + gearbox,
             "DRIVE|" + drive,
+            "WEIGHT|" + sp.Kg + " KG",
             "VOICE|" + voice,
             "FUEL USE|" + (FuelGrades.Burn[(int)g] / FuelGrades.Burn[(int)FuelGrade.Petrol]).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + " X PETROL",
             "NORMS|" + LapTimer.Format(ladder[0]) + " - " + LapTimer.Format(ladder[^1]),

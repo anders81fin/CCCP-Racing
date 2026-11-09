@@ -68,7 +68,7 @@ sealed class CarTourScript
         {
             Orbit(6, 40, 130, 7.5f, 1.4f, "THIS IS THE DIESEL. ARMY GREEN, LIKE THE UAZ OF THE DUTY OFFICER."),
             S(5, new Vector3(1.6f, 0.9f, -4.2f), new Vector3(-1.2f, 0.7f, -3.2f), Bonnet, Nose, 48, "THE BUMPERS ARE CHROME. THE MANNERS ARE NOT."),
-            S(6, new Vector3(1.5f, -0.1f, 4.8f), new Vector3(0.9f, -0.2f, 3.2f), Exhaust, Exhaust, 42, "TWO PIPES. BLACK SMOKE ALL THE TIME. THE ENGINEER CALLS IT PROGRESS.", TourRev.Idle),
+            S(6, new Vector3(1.5f, -0.1f, 4.8f), new Vector3(0.9f, -0.2f, 3.2f), Exhaust, Exhaust, 42, "ONE PIPE. BLACK SMOKE ALL THE TIME. THE ENGINEER CALLS IT PROGRESS.", TourRev.Idle),
             S(6, new Vector3(2.6f, 0.9f, 4.6f), new Vector3(-2.0f, 1.0f, 4.2f), new Vector3(0, 0.4f, 1.7f), new Vector3(0, 0.4f, 1.7f), 45, "NO WING. A LITTLE LIP ON THE BOOT FOR AERODYNAMICS. OR FOR A SANDWICH."),
             S(7, new Vector3(2.4f, 0.1f, 3.6f), new Vector3(1.4f, 0.0f, 2.9f), Exhaust, Exhaust, 42, "200 NM LOW DOWN. IT DOES NOT REV. IT PUSHES. PRESS THE PEDAL.", TourRev.Sweep),
             S(5, new Vector3(2.6f, 0.2f, 4.2f), new Vector3(1.6f, 0.0f, 3.4f), Exhaust, Exhaust, 42, "AND LIFT. A KNOCK, A GRUNT, A FRESH CLOUD.", TourRev.Lift),
@@ -86,7 +86,7 @@ sealed class CarTourScript
             S(5, new Vector3(3.6f, 0.2f, -2.0f), new Vector3(3.0f, 0.1f, -0.6f), FrontWheel, FrontWheel, 40, "STEEL WHEELS WITH VENTS, DRILLED BY HAND. YOU CAN SEE WHICH HAND."),
             S(5, new Vector3(2.4f, 1.3f, 3.9f), new Vector3(-2.4f, 1.3f, 3.9f), Wing, Wing, 45, "A LOW WING. IT DOES NOTHING. IT LOOKS LIKE IT DOES NOTHING FAST."),
             S(6, new Vector3(0.0f, 2.6f, -0.9f), new Vector3(0.7f, 2.4f, 0.4f), Roof, new Vector3(0, 1.0f, 0.2f), 50, "ROOF RACK AND A SPARE WHEEL. IN CASE THE ROAD NEVER ARRIVES."),
-            S(7, new Vector3(2.4f, 0.1f, 3.6f), new Vector3(1.4f, 0.0f, 2.9f), Exhaust, Exhaust, 42, "100% OF THE FACTORY POWER. A REAL ENGINE. LISTEN TO IT SING.", TourRev.Sweep),
+            S(7, new Vector3(2.4f, 0.1f, 3.6f), new Vector3(1.4f, 0.0f, 2.9f), Exhaust, Exhaust, 42, "200 NM OF THE FACTORY ENGINE. A REAL ENGINE. LISTEN TO IT SING.", TourRev.Sweep),
             S(5, new Vector3(2.6f, 0.2f, 4.2f), new Vector3(1.6f, 0.0f, 3.4f), Exhaust, Exhaust, 42, "LIFT, AND IT POPS. THE FACTORY SAYS THAT IS NORMAL.", TourRev.Lift),
             Orbit(9, 120, 220, 7.0f, 1.6f, "VERDICT: THE REFERENCE. EVERYTHING ELSE IS AN OPINION.", 52, TourRev.Blip, specs: true),
         },
@@ -102,8 +102,8 @@ sealed class CarTourScript
             S(5, new Vector3(1.8f, 0.2f, -4.6f), new Vector3(-1.6f, 0.1f, -3.6f), Nose, Nose, 46, "NO BUMPERS. THEY WERE REMOVED FOR WEIGHT, BY HAND, ONE EVENING."),
             S(5, new Vector3(0.0f, 2.8f, -1.0f), new Vector3(0.0f, 2.6f, 0.7f), Roof, Roof, 50, "THE RACK AND THE SPARE STAY. THE DRIVER IS AN OPTIMIST."),
             S(5, new Vector3(2.5f, 1.1f, 4.0f), new Vector3(-2.5f, 1.1f, 4.0f), Wing, Wing, 45, "A MIDDLE-SIZED WING FOR A MIDDLE-SIZED DISASTER."),
-            S(7, new Vector3(2.4f, 0.1f, 3.6f), new Vector3(1.4f, 0.0f, 2.9f), Exhaust, Exhaust, 42, "140% POWER, 200% ON TURBO. HEAR THE WHISTLE? THAT IS THE AIRBASE CALLING.", TourRev.Sweep),
-            S(6, new Vector3(2.6f, 0.2f, 4.2f), new Vector3(1.6f, 0.0f, 3.4f), Exhaust, Exhaust, 42, "LIFT OFF. THE BLOW-OFF, THEN THE BANGS. NEARLY EXPLOSIONS.", TourRev.Lift),
+            S(7, new Vector3(2.4f, 0.1f, 3.6f), new Vector3(1.4f, 0.0f, 2.9f), Exhaust, Exhaust, 42, "280 NM, 400 NM ON TURBO. HEAR THE WHISTLE? THAT IS THE AIRBASE CALLING.", TourRev.Sweep),
+            S(6, new Vector3(2.6f, 0.2f, 4.2f), new Vector3(1.6f, 0.0f, 3.4f), Exhaust, Exhaust, 42, "FOUR PIPES, TWO ON EACH SIDE. LIFT OFF: THE BLOW-OFF, THEN THE BANGS.", TourRev.Lift),
             Orbit(9, 125, 225, 7.0f, 1.6f, "VERDICT: FAST IN A STRAIGHT LINE. THE CORNERS ARE A MATTER OF FAITH.", 52, TourRev.Blip, specs: true),
         },
     };

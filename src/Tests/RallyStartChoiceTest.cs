@@ -68,7 +68,59 @@ public partial class RallyStartChoiceTest : Node
             Call(r, "ConsumeRallyCheckpoint");
             Require(!RallyResume.Exists(dir, "ilyich") && RallyResume.Exists(dir, "siberia"), "Replacement must remove only this track's save");
             Require(Read(r, "_newRallyTrack") == null, "Replacement request survived consumption");
-            GD.Print("RALLY START CHOICE PASS: continue fuel/progress, new fuel/fresh norms, safe cancellation, deferred track-only replacement");
+            // The car first, the track next, and each fuel has the progression of its own: what the diesel opened is not open on the petrol until the petrol has opened it.
+            var camp = new Campaign(null);
+            camp.Award("ilyich", NormPlan.Medal.Gold, FuelGrade.Diesel);
+            Write(r, "_campaign", camp);
+            Call(r, "OpenRallyStart", -1); ExpectCard(r, "RallyFuel");
+            Require((bool)Read(r, "_rallyFuelFirst"), "The rally must start with the fuel card");
+            Choose(r, (int)FuelGrade.Diesel); ExpectCard(r, "Track");
+            Require((FuelGrade)Read(r, "_rallyFuel") == FuelGrade.Diesel && (bool)Read(r, "_rallyFuelPicked"), "The fuel is chosen before the track");
+            var locked = (bool[])Call(r, "LockedNow", new object[] { null });
+            Require(!locked[0] && !locked[1] && locked[2] && !locked[3], "On the diesel: Kolkhoz and Siberia (the gold) and Poligon (a gold on any track) are open, Atomgrad is locked");
+            Call(r, "OpenRallyStart", -1); Choose(r, (int)FuelGrade.Petrol); ExpectCard(r, "Track");
+            locked = (bool[])Call(r, "LockedNow", new object[] { null });
+            Require(!locked[0] && locked[1] && locked[2] && locked[3], "On the petrol only Kolkhoz is open: the diesel's medals open nothing here");
+            Choose(r, 1); ExpectCard(r, "Track");      // a locked track refuses
+            camp.Award("ilyich", NormPlan.Medal.Silver, FuelGrade.Petrol);
+            locked = (bool[])Call(r, "LockedNow", new object[] { null });
+            Require(!locked[1] && locked[3] && locked[2], "A silver on the petrol opens Siberia on the petrol, and only that");
+            camp.Award("ilyich", NormPlan.Medal.Gold, FuelGrade.Petrol);
+            locked = (bool[])Call(r, "LockedNow", new object[] { null });
+            Require(!locked[3], "A gold on the petrol opens Poligon on the petrol");
+            Choose(r, 3); ExpectCard(r, "None");
+            Require((FuelGrade)Read(r, "_rallyFuel") == FuelGrade.Petrol && (string)Read(r, "_chosenRunTrack") == "bonus", "The petrol rally starts on Poligon with no second fuel card");
+            // The petrol opens by silvers on the three first tracks with the diesel (not before); the jet fuel by four silvers on the petrol, the Sputnik by four on the jet fuel.
+                        var fc = new Campaign(null); Write(r, "_campaign", fc);
+            fc.Award("ilyich", NormPlan.Medal.Silver, FuelGrade.Diesel);
+            fc.Award("siberia", NormPlan.Medal.Silver, FuelGrade.Diesel);
+            Require((bool)Call(r, "FuelLocked", FuelGrade.Petrol), "Two silvers on the diesel must not open the petrol");
+            fc.Award("atomgrad", NormPlan.Medal.Silver, FuelGrade.Diesel);
+            Require(!(bool)Call(r, "FuelLocked", FuelGrade.Petrol) && (bool)Call(r, "FuelLocked", FuelGrade.Rocket), "Three silvers on the diesel open the petrol and nothing more");
+            foreach (var t in new[] { "ilyich", "siberia", "atomgrad" }) fc.Award(t, NormPlan.Medal.Silver, FuelGrade.Petrol);
+            Require((bool)Call(r, "FuelLocked", FuelGrade.Rocket), "The jet fuel needs the Poligon too");
+            fc.Award("bonus", NormPlan.Medal.Silver, FuelGrade.Petrol);
+            Require(!(bool)Call(r, "FuelLocked", FuelGrade.Rocket) && (bool)Call(r, "FuelLocked", FuelGrade.Sputnik), "Four silvers on the petrol open the jet fuel");
+            foreach (var t in new[] { "ilyich", "siberia", "atomgrad", "bonus" }) fc.Award(t, NormPlan.Medal.Silver, FuelGrade.Rocket);
+            Require(!(bool)Call(r, "FuelLocked", FuelGrade.Sputnik), "Four silvers on the jet fuel open the Sputnik");
+            fc.Award("ilyich", NormPlan.Medal.Bronze, FuelGrade.Diesel);
+            Write(r, "_campaign", camp);
+            // The Stakhanov laps ask for the car first too: the fuel, the track, the time of day.
+            Call(r, "OpenLapsStart"); ExpectCard(r, "LapsFuel");
+            Choose(r, (int)FuelGrade.Diesel); ExpectCard(r, "Track");
+            Require((FuelGrade)Read(r, "_lapsFuelPick") == FuelGrade.Diesel, "The laps' fuel is chosen before the track");
+            var lapsCamp = new Campaign(null);
+            lapsCamp.Award("ilyich", NormPlan.Medal.Bronze, FuelGrade.Petrol);
+            Write(r, "_campaign", lapsCamp);
+            locked = (bool[])Call(r, "LockedNow", new object[] { null });
+            Require(locked[1], "A bronze on the petrol does not open Siberia for the laps on the diesel");
+            lapsCamp.Award("ilyich", NormPlan.Medal.Bronze, FuelGrade.Diesel);
+            locked = (bool[])Call(r, "LockedNow", new object[] { null });
+            Require(!locked[1], "A bronze on the diesel opens Siberia for the laps on the diesel");
+            Write(r, "_campaign", camp);
+            Choose(r, 0); ExpectCard(r, "LapsTime");
+            Choose(r, 0); ExpectCard(r, "None");
+            GD.Print("RALLY START CHOICE PASS: the fuel before the track, continue fuel/progress, new fuel/fresh norms, safe cancellation, deferred track-only replacement");
             GetTree().Quit();
         }
         catch (Exception e) { GD.PushError("RALLY START CHOICE FAIL " + e); GetTree().Quit(1); }

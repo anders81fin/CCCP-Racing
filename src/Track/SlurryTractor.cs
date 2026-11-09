@@ -15,6 +15,8 @@ public partial class SlurryTractor : Node3D
     ArrayMesh _trailMesh;
     MultiMeshInstance3D _spray;
     int _bodySlot, _tankSlot;
+    float _travel;      // metres driven: the wheels turn by it
+    readonly System.Collections.Generic.List<DrunkTractor.TractorWheel> _wheels = new();
     float _angle, _clock, _renderClock, _depositDistance, _lateOff;
     Vector2 _pos, _trailer, _previousNozzle;
     bool _wasField;
@@ -25,7 +27,10 @@ public partial class SlurryTractor : Node3D
     int _departureStage = 4; // 0 wait, 1 open, 2 leave, 3 reach field, 4 spread, 5 revenge: drive to the road, 6 revenge: spread along the road
     // The driver's grandmother (a babushka the car has run over): the tractor leaves its fields, follows the road in the lap's direction spreading slurry for RevengeLaps laps.
     public const int RevengeLaps = 3;
-    float _roadAt;
+    float _roadAt, _roadLat = RoadLane, _blockedFor;
+    /// <summary>The revenge drives in its own lane, on the right of its direction: the bus (which drives the other way, on its right) passes it instead of meeting it nose to nose on the centre line. The share of the road's half width.</summary>
+    const float RoadLane = 0.45f, VergeLane = 0.8f;
+    Vector2 RoadPoint(Vector2 centre, int i, float lat) { Vector2 d = _track.CenterDir(i); return centre + new Vector2(-d.Y, d.X) * (_track.HalfWidth[i] * lat); }
     int _revengeLapsLeft;
     Vector2 _roadTarget;
     /// <summary>The revenge is on: the tractor is on its way to the road or spreading along it.</summary>
@@ -34,6 +39,8 @@ public partial class SlurryTractor : Node3D
     public int RevengeLapsLeft => _revengeLapsLeft;
     /// <summary>The revenge is over: the tractor drives back to its fields.</summary>
     public event Action RevengeOver;
+    /// <summary>The car finished a lap of the revenge and laps are left (how many).</summary>
+    public event Action<int> RevengeLapPassed;
     /// <summary>The tractor starts on the road (the spreading itself comes with the first tick).</summary>
     public event Action RevengeOnTheRoad;
     public Node3D Model => _tractor;
@@ -64,7 +71,8 @@ public partial class SlurryTractor : Node3D
         _revengeLapsLeft = RevengeLaps;
         int k = _track.NearestCenter(_pos, out _);
         _roadAt = k;
-        _roadTarget = _track.Center[k];
+        _roadTarget = RoadPoint(_track.Center[k], k, RoadLane);
+        _roadLat = RoadLane; _blockedFor = 0f;
         _departureStage = 5;
         return true;
     }
@@ -73,7 +81,7 @@ public partial class SlurryTractor : Node3D
     public void RevengeLapDone()
     {
         if (!Avenging || _revengeLapsLeft <= 0) return;
-        if (--_revengeLapsLeft > 0) return;
+        if (--_revengeLapsLeft > 0) { RevengeLapPassed?.Invoke(_revengeLapsLeft); return; }
         _departureStage = 3;      // back to the fields (the departure's last leg)
         Spraying = false; _spray.Visible = false; _depositDistance = 0.8f;
         RevengeOver?.Invoke();
@@ -107,7 +115,7 @@ public partial class SlurryTractor : Node3D
         t.Obstacles.Add(new Obstacle(Vector2.Zero, 1.5f));
         _tractor = new Node3D { Name = "GreenMTAgro" };
         AddChild(_tractor);
-        DrunkTractor.BuildMtAgro(_tractor, false, out _, out _head, new Color(0.30f, 0.39f, 0.22f), true);
+        DrunkTractor.BuildMtAgro(_tractor, false, out _, out _head, new Color(0.30f, 0.39f, 0.22f), true, _wheels);
         // A pale replacement roof distinguishes this working tractor from the blue plough tractor.
         _tractor.AddChild(Props.Part(Props.Box(1.60f, 0.08f, 1.50f), new Color(0.70f, 0.69f, 0.56f), new Vector3(0, 3.39f, 0.8f)));
         _sound = new DieselSound { Loudness = -1f };
@@ -139,7 +147,8 @@ public partial class SlurryTractor : Node3D
         };
         _tank.AddChild(_spray);
         // The world tape: tractor, driver's head and tanker. (The spray's drops are redrawn each tick and the trail is live state: not recorded.)
-        Tape.Version(this, 2); Tape.Part(this, "root"); Tape.Part(_tractor, "tractor"); Tape.Part(_head, "head"); Tape.Part(_tank, "tank");
+        Tape.Version(this, 3); Tape.Part(this, "root"); Tape.Part(_tractor, "tractor"); Tape.Part(_head, "head"); Tape.Part(_tank, "tank");
+        DrunkTractor.TapeWheels(_wheels, () => _travel);      // (version 3: the four wheels turn, their angles are spinners)
         // Version 2: the spray (0 off, 1 spreading, 2 spreading in the revenge) is a sound channel; each patch is a 'slurry-patch' effect event (TapeFx), so the replay shows both.
         Tape.Sound(_tractor, TapeSoundChannel.SlurrySpray, () => Spraying ? (Avenging ? 2f : 1f) : 0f, v => _tapeSpray = (int)MathF.Round(v));
         Tape.Sound(_tractor, TapeSoundChannel.DieselSpeed, () => _sound.Speed, v => _sound.Speed = v);
@@ -148,7 +157,7 @@ public partial class SlurryTractor : Node3D
 
     public void Reset()
     {
-        _angle = -0.6f; _clock = _renderClock = _depositDistance = _lateOff = 0;
+        _angle = -0.6f; _clock = _renderClock = _depositDistance = _lateOff = _travel = 0;
         _revengeLapsLeft = 0;
         _pos = Route(_angle);
         Vector2 forward = new(-32f * MathF.Sin(_angle), 20f * MathF.Cos(_angle));
@@ -305,14 +314,24 @@ public partial class SlurryTractor : Node3D
             float step = speed * dt / Math.Max(0.2f, a.DistanceTo(b));
             float nextAt = (_roadAt + step) % n;
             int j0 = (int)nextAt % n, j1 = (j0 + 1) % n;
-            Vector2 nextPos = _track.Center[j0].Lerp(_track.Center[j1], nextAt - (int)nextAt);
+            Vector2 nextPos = RoadPoint(_track.Center[j0].Lerp(_track.Center[j1], nextAt - (int)nextAt), j0, _roadLat);
             Vector2 hitch = nextPos - forward * 1.9f;
             Vector2 tow = _trailer - hitch;
             Vector2 nextTrailer = hitch + (tow.LengthSquared() > 0.001f ? tow.Normalized() : -forward) * (TowLength - 1.9f);
             bool blocked = bus?.Blocks(nextPos, 1.3f) == true || bus?.Blocks(nextTrailer, 1.5f) == true
                 || GulagTruck.BlocksAt(nextPos, 1.3f) || GulagTruck.BlocksAt(nextTrailer, 1.5f);
-            if (!blocked) { _roadAt = nextAt; _pos = nextPos; _trailer = nextTrailer; }
-            else speed = 0;
+            if (!blocked) { _roadAt = nextAt; _pos = nextPos; _trailer = nextTrailer; _blockedFor = 0f; }
+            else { speed = 0; _blockedFor += dt; }
+            // Held up for a while (a bus or a lorry in the way): pull over to the verge so the road is free, and back to the lane when it moves on.
+            _roadLat = Mathf.MoveToward(_roadLat, _blockedFor > 3f ? VergeLane : RoadLane, 0.25f * dt);
+            if (speed == 0)
+            {
+                // Standing: the sideways move still happens (where it is free), so the pull-over is smooth and not a jump when it moves on.
+                Vector2 stay = RoadPoint(_track.Center[i0].Lerp(_track.Center[i1], _roadAt - (int)_roadAt), i0, _roadLat);
+                Vector2 stayHitch = stay - forward * 1.9f, stayTow = _trailer - stayHitch;
+                Vector2 stayTrailer = stayHitch + (stayTow.LengthSquared() > 0.001f ? stayTow.Normalized() : -forward) * (TowLength - 1.9f);
+                if (bus?.Blocks(stay, 1.3f) != true && bus?.Blocks(stayTrailer, 1.5f) != true && !GulagTruck.BlocksAt(stay, 1.3f) && !GulagTruck.BlocksAt(stayTrailer, 1.5f)) { _pos = stay; _trailer = stayTrailer; }
+            }
             Place(speed, forward);
             Spraying = speed > 0;
             SprayStep(dt, true);
@@ -333,6 +352,8 @@ public partial class SlurryTractor : Node3D
     Vector2 Nozzle() => _trailer + (_trailer - _pos).Normalized() * 3.1f;
     void Place(float speed, Vector2? travel = null)
     {
+        _travel += speed * _sootDt;
+        DrunkTractor.RollWheels(_wheels, _travel);
         Vector2 forward = travel ?? new Vector2(-32f * MathF.Sin(_angle), 20f * MathF.Cos(_angle));
         Ground(_tractor, _pos, forward);
         Ground(_tank, _trailer, _pos - _trailer);

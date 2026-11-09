@@ -16,6 +16,8 @@ public partial class ChaseCamera : Camera3D
     public float MaxLead = float.PositiveInfinity;
 
     public bool ShakeEnabled { get; set; } = true;
+    /// <summary>The surface's rumble now (m): the gameplay cameras of the car add it to their own shake.</summary>
+    internal float Rumble => ShakeEnabled ? _rumble : 0f;
 
     Vector3 _focus;
     float _shake, _blast;
@@ -212,12 +214,13 @@ public partial class ChaseCamera : Camera3D
     }
 
     /// <summary>Gameplay photography keeps the same car listener and shake as the standard view.</summary>
-    public void Pose(Vector3 eye, Vector3 target, Vector3 car, float dt)
+    public void Pose(Vector3 eye, Vector3 target, Vector3 car, float dt, float roll = 0f)
     {
         if (!ShakeEnabled) _shake = 0;
         _shake = Math.Max(0, _shake - dt * 1.5f);
         Vector3 jitter = _shake > 0 ? new Vector3(_rng.RandfRange(-1, 1), _rng.RandfRange(-1, 1), 0) * _shake * 0.4f : Vector3.Zero;
         Basis view = Basis.LookingAt(target - eye, Vector3.Up);
+        if (roll != 0f && ShakeEnabled) view *= new Basis(Vector3.Back, roll);      // (about the lens's own axis: + leans the picture to the left)
         GlobalTransform = CollisionPose(new Transform3D(view, eye + jitter), dt);
         Vector3 facing = new(target.X - eye.X, 0, target.Z - eye.Z);
         if (_ear != null) _ear.GlobalTransform = new Transform3D(Basis.LookingAt(facing.Normalized(), Vector3.Up), car + Vector3.Up * 1.5f);
