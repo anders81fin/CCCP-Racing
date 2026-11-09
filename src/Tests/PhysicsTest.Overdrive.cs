@@ -78,7 +78,7 @@ public partial class PhysicsTest
 
     // Five-speed rally gearing with driven-wheel slip, 60 s on concrete; no overdrive at 100/200 %.
     // (100 % was 155.5 / 3.767 s until petrol got 25 % more torque, 2026-11-02; 200 % was already traction-limited and did not change)
-    const float Base100Top = 155.5f, Base100T100 = 6.537f, Base200Top = 155.6f, Base200T100 = 3.537f;      // (8 November: the petrol car 175 Nm and 1050 kg; was 155.6 / 3.500 / 155.7 / 3.133 at 387.5 Nm and 1000 kg)
+    const float Base100Top = 155.5f, Base100T100 = 5.737f, Base200Top = 155.6f, Base200T100 = 3.525f;      // (9 November: the petrol car 200 Nm and 1050 kg; was 155.5 / 6.537 / 155.6 / 3.537 at 175 Nm, 155.6 / 3.500 / 155.7 / 3.133 at 387.5 Nm and 1000 kg)
 
     /// <summary>
     /// Stakhanov overdrive: nothing changes up to 200 %; 350 % and 500 % gear taller and grip harder,

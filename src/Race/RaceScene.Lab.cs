@@ -104,7 +104,7 @@ public partial class RaceScene
     internal static readonly (string Name, float Value)[] DieselPreset = FuelGrades.DieselEngine;
     readonly List<(LabParam P, float Value)> _labPreset = new();
     FuelGrade? _labPresetFuel;
-    /// <summary>The SPUTNIK's preset: the four-wheel drive (the engine is the jet fuel's, 175 % and the turbo, which a lab run gets as in a normal run).</summary>
+    /// <summary>The SPUTNIK's preset: the four-wheel drive (the engine is the jet fuel's, 140 % and the turbo, which a lab run gets as in a normal run).</summary>
     internal static readonly (string Name, float Value)[] SputnikPreset = {
         ("Mass", FuelGrades.SputnikMass), ("DriveFront", FuelGrades.SputnikDriveFront), ("CenterLock", FuelGrades.SputnikCenterLock),
         ("TurboSpool", FuelGrades.SputnikTurboSpool), ("TurboKick", FuelGrades.SputnikTurboKick),

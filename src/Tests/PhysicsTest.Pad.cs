@@ -80,7 +80,7 @@ public partial class PhysicsTest
         // 2 November: the owner's steering (MaxSteer 0.8, SteerSpeedFalloff 70, FastSteerAssist 0.46; before: 0.7, 50, 0.25) turns the same scenario
         // a little tighter and further (previously "25.386398 -57.631176 -3.06181 -1.9607791 0 1").
         // 2 November: the petrol car's power +25 % (MaxTorque 310 -> 387.5): previously "26.37102 -56.936016 -2.8184862 -0.68292654 0 1" (with the new steering).
-        const string Before = "23.444107 -22.816364 -0.0020068896 -0.02575276 0 1";      // (8 November: the petrol car 175 Nm and 1050 kg)
+        const string Before = "26.301962 -29.718458 -0.0014739368 0.057875082 0 1";      // (9 November: the petrol car 200 Nm and 1050 kg)
         string now = KeyPathScenario();
         GD.Print($"  key path: {now}");
         Check(now == Before, "keyboard trajectory retains the current idle/handling baseline (bit for bit)");

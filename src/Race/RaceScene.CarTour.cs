@@ -243,7 +243,7 @@ public partial class RaceScene
         {
             FuelGrade.Diesel => "200 NM, 1050 KG, REDLINE 5000",
             FuelGrade.Petrol => "100% - THE FACTORY ENGINE",
-            _ => "175%, 250% ON TURBO",
+            _ => "140%, 200% ON TURBO",
         };
         string drive = g == FuelGrade.Sputnik ? "4WD 40/60 + CENTRE LOCK" : "REAR-WHEEL";
         string voice = g switch

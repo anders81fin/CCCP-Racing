@@ -102,7 +102,7 @@ sealed class CarTourScript
             S(5, new Vector3(1.8f, 0.2f, -4.6f), new Vector3(-1.6f, 0.1f, -3.6f), Nose, Nose, 46, "NO BUMPERS. THEY WERE REMOVED FOR WEIGHT, BY HAND, ONE EVENING."),
             S(5, new Vector3(0.0f, 2.8f, -1.0f), new Vector3(0.0f, 2.6f, 0.7f), Roof, Roof, 50, "THE RACK AND THE SPARE STAY. THE DRIVER IS AN OPTIMIST."),
             S(5, new Vector3(2.5f, 1.1f, 4.0f), new Vector3(-2.5f, 1.1f, 4.0f), Wing, Wing, 45, "A MIDDLE-SIZED WING FOR A MIDDLE-SIZED DISASTER."),
-            S(7, new Vector3(2.4f, 0.1f, 3.6f), new Vector3(1.4f, 0.0f, 2.9f), Exhaust, Exhaust, 42, "175% POWER, 250% ON TURBO. HEAR THE WHISTLE? THAT IS THE AIRBASE CALLING.", TourRev.Sweep),
+            S(7, new Vector3(2.4f, 0.1f, 3.6f), new Vector3(1.4f, 0.0f, 2.9f), Exhaust, Exhaust, 42, "140% POWER, 200% ON TURBO. HEAR THE WHISTLE? THAT IS THE AIRBASE CALLING.", TourRev.Sweep),
             S(6, new Vector3(2.6f, 0.2f, 4.2f), new Vector3(1.6f, 0.0f, 3.4f), Exhaust, Exhaust, 42, "LIFT OFF. THE BLOW-OFF, THEN THE BANGS. NEARLY EXPLOSIONS.", TourRev.Lift),
             Orbit(9, 125, 225, 7.0f, 1.6f, "VERDICT: FAST IN A STRAIGHT LINE. THE CORNERS ARE A MATTER OF FAITH.", 52, TourRev.Blip, specs: true),
         },

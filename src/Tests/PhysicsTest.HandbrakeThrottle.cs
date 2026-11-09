@@ -131,7 +131,7 @@ public partial class PhysicsTest
         string keys=KeyPathNoHandbrake();
         GD.Print($"keypath-no-handbrake: {keys}");
         // Recorded on 2b2fde0, before the handbrake change: every handbrake branch is dormant without the key. Re-recorded 2026-11-02 for the steering defaults and the petrol's extra 25 % torque (the branches are still dormant: only the car's own numbers moved).
-        Check(keys=="23.315125 -25.338913 -0.03218558 -2.6341937 0 1","handbrake change: the keyboard path without the handbrake is bit for bit the base trajectory");
+        Check(keys=="25.075665 -32.78684 -1.4772868 -3.9291358 0 1","handbrake change: the keyboard path without the handbrake is bit for bit the base trajectory");
         var at=new[]{5f,10f,20f,40f,60f};
         string F(HandbrakeResult r)=>$"km/h@5/10/20/40/60s [{string.Join(" ",Array.ConvertAll(r.Speeds,s=>s.ToString("F1")))}] maxYaw {r.MaxYawRate:F2} rad/s lockedPropulsiveSteps {r.LockedPropulsive} overGripSteps {r.OverGrip} rearWheelMax {r.RearSpinMax:F0} km/h lockFlips {r.LockFlips} gearChanges {r.GearChanges}";
         foreach(float power in new[]{.5f,1f,1.5f})

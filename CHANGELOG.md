@@ -3,6 +3,10 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.863
+
+- Engines: Petrol 200 Nm (was 175). Jet Fuel and Sputnik have 140 % of the power and 200 % on the turbo (was 175 % and 250 %)
+
 ## 0.862
 
 - Fixed a crash: switching the fuel to Diesel from fifth gear in the middle of a run threw an error every frame (the diesel has four gears). The gearbox now drops to the highest gear it has

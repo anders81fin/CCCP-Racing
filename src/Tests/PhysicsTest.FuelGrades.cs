@@ -43,17 +43,17 @@ public partial class PhysicsTest
         // The SPUTNIK: the jet fuel's engine on all four wheels.
         var sp = new CarParams(); FuelGrades.ApplyEngine(sp, FuelGrade.Sputnik);
         var jp = new CarParams(); FuelGrades.ApplyEngine(jp, FuelGrade.Rocket);
-        Check(Math.Abs(sp.DriveFront - 0.4f) < 1e-6f && jp.DriveFront == 0f && FuelGrades.PhysicsPercent(FuelGrade.Sputnik) == 175
-              && FuelGrades.TurboGainFor(FuelGrade.Sputnik) == FuelGrades.RocketTurboGain, "the Sputnik: 40 % of the force to the front, the jet fuel's 175 % and turbo");
-        var jet = MeasurePower(175, FuelGrade.Rocket);
-        var spu = MeasurePower(175, FuelGrade.Sputnik);
+        Check(Math.Abs(sp.DriveFront - 0.4f) < 1e-6f && jp.DriveFront == 0f && FuelGrades.PhysicsPercent(FuelGrade.Sputnik) == 140
+              && FuelGrades.TurboGainFor(FuelGrade.Sputnik) == FuelGrades.RocketTurboGain, "the Sputnik: 40 % of the force to the front, the jet fuel's 140 % and turbo");
+        var jet = MeasurePower(140, FuelGrade.Rocket);
+        var spu = MeasurePower(140, FuelGrade.Sputnik);
         GD.Print($"  jet fuel 0-100 {jet.T100:F2} s, wheelspin {jet.SpinShare * 100:F0}%; Sputnik 0-100 {spu.T100:F2} s, wheelspin {spu.SpinShare * 100:F0}%");
         Check(spu.T100 > 0 && spu.T100 <= jet.T100 + 0.01f && spu.Top > 100f, "the Sputnik pulls away no slower than the jet fuel");
         {
             // Loose ground, where the drive axle spins: the four wheels pull harder than two.
             float Dist(FuelGrade g)
             {
-                var car = PowerCar(175, SurfaceType.Gravel, g);
+                var car = PowerCar(140, SurfaceType.Gravel, g);
                 float p0 = car.Pos.Z, t = 0;
                 Run(car, 5f, () => { car.SetControls(true, false, 0, false); t += Dt; });
                 return Math.Abs(car.Pos.Z - p0);
@@ -61,7 +61,7 @@ public partial class PhysicsTest
             float dj = Dist(FuelGrade.Rocket), ds = Dist(FuelGrade.Sputnik);
             GD.Print($"  gravel, 5 s from rest: jet fuel {dj:F1} m, Sputnik {ds:F1} m");
             Check(ds > dj * 1.03f, "on gravel the four-wheel drive gets further in 5 s");
-            var c4 = PowerCar(175, SurfaceType.Gravel, FuelGrade.Sputnik);
+            var c4 = PowerCar(140, SurfaceType.Gravel, FuelGrade.Sputnik);
             Run(c4, 3f, () => c4.SetControls(true, false, 0, false));
             Check(c4.Wheels[0].ForceLong > 0 && c4.Wheels[1].ForceLong > 0 && c4.Wheels[2].ForceLong > 0, "all four wheels push the car forward");
         }
