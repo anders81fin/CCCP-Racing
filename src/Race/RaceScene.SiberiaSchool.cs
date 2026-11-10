@@ -244,7 +244,7 @@ public partial class RaceScene
             if (_rescue.Towing && !_rescue.Arriving && !_sc.Once)
             {
                 _sc.Once = true;
-                _sc.Caption = "TOWED: THE LAP AND ONE TRY LOST.";
+                _sc.Caption = "TOWED: THE LAP IS VOID, -1 LAP.";
                 ShotSoon("tow", 0.3f);
             }
             if (_sc.Once && !_dry && _tank.Fraction > 0.99f)

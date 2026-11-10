@@ -596,6 +596,9 @@ public partial class RaceScene
             node.Visible = _tapeRest[i].Visible;
         }
         HideDepotWithoutFuel();      // (the depot was built in view: its rest is visible, and on a track without fuel it must stay out of the world)
+        // The rest is the full world: actors the run has taken out (the driving school keeps only the babushkas, the mechanic, the liaison officer)
+        // were shown again, with their collision circles back on the road (the bus parked across the school's bends). Take them out again.
+        if (_worldNow != Actors.All) { var keep = _worldNow; _worldNow = Actors.All; ApplyWorld(keep); }
         if (_tapeDebug) TapeLog($"released: covered parts back at rest; replay instances {_tapeSink.Spawned} made, {_tapeSink.Despawned} removed, {_tapeSink.Live.Count} left, nodes {TapeKindCounts()}");
         if (_tapeDebug) TapeLog($"released fx: {TapeFxState()}");
     }

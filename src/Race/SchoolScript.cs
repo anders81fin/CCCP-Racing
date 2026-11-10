@@ -37,8 +37,8 @@ public static class SchoolScript
     public const float TryTimeout = 20f;
 
     public static readonly string[] IlyichChapters = { "TRACK", "DAMAGE", "GAI RADAR" };
-    public static readonly string[] SiberiaChapters = { "TRACK", "WINTER ROAD", "FROZEN RIVER", "FUEL AND REPAIRS" };
-    public static readonly string[] AtomgradChapters = { "TRACK", "RADIATION", "FUEL AND REPAIRS" };
+    public static readonly string[] SiberiaChapters = { "TRACK", "WINTER ROAD", "FROZEN RIVER", "FUEL", "REPAIRS", "GRANDMA" };
+    public static readonly string[] AtomgradChapters = { "TRACK", "RADIATION", "FUEL", "REPAIRS" };
     public static readonly string[] DrivingChapters = { "CLUTCH START", "STEERING", "BRAKING", "DRIFTING", "RESCUE" };   // the YOU ARE READY recap closes RESCUE (only the driving school has one)
 
 
@@ -95,8 +95,8 @@ public static class SchoolScript
 
     public static readonly (int chapter, SchoolStep step)[] Ilyich =
     {
-        (0, new("tour_first_bend", new[] { "THE FIRST BEND TURNS RIGHT.", "THEN UP ONTO THE EAST RIDGE." }, None)),
-        (0, new("tour_rollers", new[] { "RIDGE JUMP: LINE UP EARLY.", "LAND DOWNHILL. BRAKE FOR STREAM." }, None)),
+        (0, new("tour_first_bend", new[] { "THE FIRST BEND TURNS RIGHT.", "THEN A FAST RUN TO THE JUMP." }, None)),
+        (0, new("tour_jump", new[] { "THE JUMP: LINE UP EARLY.", "LAND DOWNHILL. BRAKE FOR STREAM." }, None)),
         (0, new("tour_ford", new[] { "STREAM: KEEP LEFT ON THE BAR.", "THE DEEP INSIDE LINE IS SLOW." }, None)),
         (0, new("tour_bends", new[] { "LONG BENDS: A CLUTCH KICK,", "THEN HOLD THE SLIDE ON THE GAS." }, new[] { SchoolKey.Clutch, SchoolKey.Gas })),
         (0, new("tour_hairpin", new[] { "THE GRAIN STORE HAIRPIN:", "STEER AND PULL THE HANDBRAKE." }, new[] { SchoolKey.Steer, SchoolKey.Handbrake })),
@@ -160,15 +160,15 @@ public static class SchoolScript
         (3, new("snow_tank", new[] { "THE FUEL TANK HOLDS 50 LITRES.", "A LIGHT FOOT SAVES FUEL." }, None)),
         (3, new("snow_low", new[] { "FUEL LOW: THE GAUGE BLINKS.", "NEAR EMPTY, THE ENGINE SPUTTERS." }, None)),
         (3, new("snow_empty", new[] { "EMPTY: ENGINE DIES. COAST ON.", "A CAN OR THE DEPOT CAN SAVE YOU." }, new[] { SchoolKey.Steer })),
-        (3, new("snow_tow", new[] { "STOPPED: TOWED TO THE DEPOT.", "THE LAP IS VOID. ONE TRY LOST." }, None)),
-        (3, new("snow_last_try", new[] { "NO TRIES LEFT AFTER THE TOW?", "THE PLAN FAILS. THE GULAG!" }, None)),
+        (3, new("snow_tow", new[] { "STOPPED: TOWED TO THE DEPOT.", "THE LAP IS VOID. -1 LAP OF NORM." }, None)),
+        (3, new("snow_last_try", new[] { "NO LAPS LEFT IN THE NORM?", "THE PLAN FAILS. THE GULAG!" }, None)),
         (3, new("snow_refuel", new[] { "TWO WAYS TO REFUEL ON A LAP:", "BABUSHKA CANS OR A DEPOT STOP." }, None)),
         (3, new("can", new[] { "BABUSHKAS HAVE JERRYCANS.", "DRIVE PAST HER, IN HER LANE." }, new[] { SchoolKey.Steer })),
         (3, new("depot", new[] { "FUEL: RUNWAY END, ON THE RIGHT.", "STOP BY THE TANK TO FILL UP." }, new[] { SchoolKey.Brake })),
-        (3, new("golden", new[] { "OCTANE BOOSTER: GOLD CAN, 350% POWER.", "THE BOOST LASTS 20 SECONDS." }, None)),
-        (3, new("snow_grandma", new[] { "ONE GRANNY HAS A PILOT GRANDSON.", "SHE LOOKS LIKE ANY OTHER GRANNY." }, new[] { SchoolKey.Horn, SchoolKey.Brake })),
-        (3, new("snow_revenge", new[] { "HIT HER: HER GRANDSON TAKES OFF.", "HIS JET HUNTS YOU WITH MISSILES." }, None)),
-        (3, new("snow_mechanic", new[] { "CAMP: FIRST BARRACK, RIGHT SIDE.", "HONK. PARK NEAR HIM FOR REPAIRS." }, new[] { SchoolKey.Horn, SchoolKey.Brake })),
+        (3, new("golden", new[] { "OCTANE BOOSTER: GOLD CAN, 3.5X POWER.", "THE BOOST LASTS 20 SECONDS." }, None)),
+        (4, new("snow_mechanic", new[] { "CAMP: FIRST BARRACK, RIGHT SIDE.", "HONK. PARK NEAR HIM FOR REPAIRS." }, new[] { SchoolKey.Horn, SchoolKey.Brake })),
+        (5, new("snow_grandma", new[] { "ONE GRANNY HAS A PILOT GRANDSON.", "SHE LOOKS LIKE ANY OTHER GRANNY." }, new[] { SchoolKey.Horn, SchoolKey.Brake })),
+        (5, new("snow_revenge", new[] { "HIT HER: HER GRANDSON TAKES OFF.", "HIS JET HUNTS YOU WITH MISSILES." }, None)),
     };
 
     /// <summary>Atomgrad-4: the track, the Zone's dose and decontamination, then fuel and the mechanic.</summary>
@@ -185,8 +185,8 @@ public static class SchoolScript
         (1, new("atom_rad_wash", new[] { "WASH AT THE BIRCH AVENUE STATION.", "CROSS THE BAY SLOWLY TO LOSE DOSE." }, None)),
         (2, new("atom_fuel", new[] { "THROTTLE AND HIGH REVS USE FUEL.", "THE GAUGE BLINKS BEFORE THE TANK IS EMPTY." }, None)),
         (2, new("atom_empty", new[] { "EMPTY: THE ENGINE DIES. COAST ON.", "A DEPOT STOP CAN GET YOU MOVING." }, None)),
-        (2, new("atom_refuel", new[] { "THE DEPOT IS JUST BEFORE THE LINE.", "STOP IN ITS BAY TO FILL THE TANK." }, None)),
-        (2, new("atom_repairs", new[] { "THE MECHANIC SLEEPS BY THE BUS STOP.", "HONK, THEN PARK BESIDE HIM TO REPAIR." }, None)),
+        (2, new("atom_refuel", new[] { "THE DEPOT IS ON THE LEFT, PAST", "THE FOREST. STOP IN ITS BAY." }, None)),
+        (3, new("atom_repairs", new[] { "THE MECHANIC SLEEPS BY THE BUS STOP.", "HONK, THEN PARK BESIDE HIM TO REPAIR." }, None)),
     };
 
     /// <summary>The course on a track (each track teaches what is new on it); null: no school there yet.</summary>

@@ -1,8 +1,8 @@
 {
   // KOLKHOZ NO.3 "ILYICH'S LAMP" - track 1 of the five-year plan (2026-10-05 draft for the map review).
   // Sand, gravel and mud only. The start and finish are inside a barn open at both ends (the
-  // village in the north-west), the east ridge has two broad rollers and a jump down towards the
-  // river, the river (out of the fish pond) is crossed at a ford (a shallow gravel bar round the
+  // village in the north-west), the east ridge has one jump near the start end (about 250 m), a landing crest, and a
+  // small knoll before the river, the river (out of the fish pond) is crossed at a ford (a shallow gravel bar round the
   // outside of the bend, longer but faster than the short, deep line on the inside), the meadow after it is mud, and the
   // way home is a sandy lane
   // through the village. Sand is "dirt" until the game has a sand surface of its own.
@@ -35,7 +35,7 @@
   },
   "birches": 140,
   "edgeRim": 8,
-  // The east ridge: a long north-south crest the road runs along (the rollers sit on top), its
+  // The east ridge: a long north-south crest the road runs along (the jump sits on it), its
   // back dropping to the map edge; the river valley in the south is low ground.
   "hills": [
     { "x": 290, "z": 100, "x1": 290, "z1": 205, "height": 6, "radius": 60, "backRadius": 26, "calm": 0.85 },
@@ -203,7 +203,7 @@
   "plan": {
     "depot": { "x": 112, "z": 76, "label": "FUEL DEPOT" },
     "labels": [
-      { "x": 300, "z": 92,  "text": "RIDGE: 4 rollers" },
+      { "x": 300, "z": 92,  "text": "EAST RIDGE" },
       { "x": 300, "z": 216, "text": "JUMP" },
       { "x": 150, "z": 205, "text": "FIELD S-BENDS" },
       { "x": 196, "z": 290, "text": "RIVER MEADOW (mud)" },

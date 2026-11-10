@@ -3,6 +3,14 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.871
+
+- The driving school and the rally schools match the current tracks: the Kolkhoz lessons talk about the one jump near the start, the landing crest and the ford (the old ridge of rollers is gone), and the landmark tour stops at the jump and the ford
+- The driving school: no bus or other road user from the rally world stands on the road in the braking and drifting lessons any more
+- Siberia school: six chapters (TRACK, WINTER ROAD, FROZEN RIVER, FUEL, REPAIRS, GRANDMA). Atomgrad school: four chapters (TRACK, RADIATION, FUEL, REPAIRS). Texts on towing (the lap is void, -1 lap of the norm), the gold can (3.5x power, 20 seconds) and the depot match the game
+- Main menu background: a new recorded lap, 53 seconds, with four car changes
+- Tool: --import-take=DIR puts a recorded title take into the lap archive for the replay viewer and the movie export
+
 ## 0.87
 
 - The launch card says DEVELOPMENT BUILD (was BALANCED LEARNING CURVE VERSION)

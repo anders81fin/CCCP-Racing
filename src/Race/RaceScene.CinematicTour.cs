@@ -19,7 +19,7 @@ public partial class RaceScene
         new(0, 40, 18, -13, 16, 13, -8, 8, 55),               // crane down from the barn
         new(40, 100, 12, -5, 3.8f, 9, -4, 3, 67),             // low chase
         new(100, 195, -15, 13, 8, -10, 18, 10, 60),            // first bend, front three-quarter
-        new(195, 280, 5, -10, 4, -7, -13, 5, 66),             // alongside the rollers
+        new(195, 280, 5, -10, 4, -7, -13, 5, 66),             // the run to the jump
         new(280, 350, 8, 23, 10, -7, 26, 7, 56),              // jump in profile
         new(350, 435, -14, -14, 7, -9, -12, 5, 62),            // ford approach and spray
         new(435, 558, 17, 12, 10, -8, 20, 12, 56),             // orbit the clutch kick

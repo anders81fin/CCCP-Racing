@@ -596,7 +596,7 @@ sealed class SchoolRunner
         {
             string id = Current.step.Id;
             bool gaiTour = id is "tour_gai" or "tour_officer" or "gai_ambush" or "gai_chase";
-            bool landmarkTour = id is "tour_rollers" or "tour_ford" or "tour_bends" or "tour_hairpin" or "tour_finish";
+            bool landmarkTour = id is "tour_jump" or "tour_ford" or "tour_bends" or "tour_hairpin" or "tour_finish";
             return gaiTour || landmarkTour || id == "gulag" || id.StartsWith("kolkhoz_");
         }
     }

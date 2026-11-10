@@ -446,6 +446,8 @@ src/Race/RaceScene.StartLine.cs
 src/Race/RaceScene.StartLine.cs.uid
 src/Race/RaceScene.StartRev.cs
 src/Race/RaceScene.StartRev.cs.uid
+src/Race/RaceScene.TakeImport.cs
+src/Race/RaceScene.TakeImport.cs.uid
 src/Race/RaceScene.Tape.Fx.cs
 src/Race/RaceScene.Tape.Fx.cs.uid
 src/Race/RaceScene.Tape.Instances.cs

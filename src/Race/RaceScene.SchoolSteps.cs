@@ -465,7 +465,7 @@ public partial class RaceScene
         "snow_low" => SiberiaLowFuel(),
         "snow_empty" => SiberiaEmptyFuel(),
         "snow_tow" => SiberiaFuelTow(),
-        "snow_last_try" => new() { B("NO TRIES LEFT? THE GULAG!", ScStop, (t, _) => { ScStop(); return t > 3f; }) },
+        "snow_last_try" => new() { B("NO LAPS LEFT? THE GULAG!", ScStop, (t, _) => { ScStop(); return t > 3f; }) },
         "siberia_valley" or "siberia_forestry" or "siberia_radar" or "siberia_base" or "siberia_wreck" or "siberia_camp" or "siberia_night" => SiberiaEnvironmentBeats(id),
         "atom_tour_forest" or "atom_tour_plant" or "atom_tour_channel" or "atom_tour_town" or "atom_tour_wash" => TourBeats(id),
         "atom_rad_sources" or "atom_rad_dose" or "atom_rad_limit" or "atom_rad_wash" => AtomgradRadiation(id),

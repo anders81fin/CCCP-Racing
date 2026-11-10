@@ -300,15 +300,17 @@ public partial class PhysicsTest
         Check(winter == SchoolScript.Siberia && SchoolScript.For(SchoolCourse.Driving, "siberia") == SchoolScript.Driving,
             "school: Siberia has its own rally course; the general driving course stays on Ilyich");
         var winterScenic = SchoolScript.SiberiaEnvironment;
-        Check(string.Join("|", SchoolScript.SiberiaChapters) == "TRACK|WINTER ROAD|FROZEN RIVER|FUEL AND REPAIRS"
+        Check(string.Join("|", SchoolScript.SiberiaChapters) == "TRACK|WINTER ROAD|FROZEN RIVER|FUEL|REPAIRS|GRANDMA"
             && string.Join("|", Array.ConvertAll(winterScenic, x => x.step.Id)) == "siberia_valley|siberia_forestry|siberia_radar|siberia_base|siberia_wreck|siberia_camp|siberia_night"
             && Array.TrueForAll(winterScenic, x => !x.step.Try && x.step.Keys.Length == 0),
-            "preview: Siberia environment is separate from its four instruction chapters");
+            "preview: Siberia environment is separate from its six instruction chapters");
         Check(Array.Find(winter, x => x.step.Id == "snow_tour_start").chapter == 0
             && Array.Find(winter, x => x.step.Id == "snow_bank").chapter == 1
             && Array.Find(winter, x => x.step.Id == "snow_ice").chapter == 2
-            && Array.Find(winter, x => x.step.Id == "snow_fuel").chapter == 3,
-            "school: the four winter driving chapters remain available as lessons 1-4");
+            && Array.Find(winter, x => x.step.Id == "snow_fuel").chapter == 3
+            && Array.Find(winter, x => x.step.Id == "snow_mechanic").chapter == 4
+            && Array.Find(winter, x => x.step.Id == "snow_grandma").chapter == 5,
+            "school: the six winter chapters remain available as lessons 1-6 (fuel, repairs, grandma apart)");
         bool chapters = winter[0].step.Id == "snow_tour_start" && !Array.Exists(winter, x => x.step.Id.StartsWith("siberia_")) && winter.Length > 0 && winter[^1].step.Id != "recap";
         var ids = new System.Collections.Generic.HashSet<string>();
         foreach (var (chapter, step) in winter)

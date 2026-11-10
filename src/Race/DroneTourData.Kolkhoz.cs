@@ -55,9 +55,9 @@ static partial class DroneTourData
         public static readonly (int from, int to, string text)[] LapCaptions =
         {
             (100, 170, "THE FIRST BEND TURNS RIGHT"),
-            (170, 215, "THEN UP ONTO THE EAST RIDGE"),
-            (215, 285, "ROLLERS: FLAT OUT FROM THE BEND"),
-            (285, 345, "THE FASTER, THE SMOOTHER"),
+            (170, 215, "THEN A FAST RUN TO THE JUMP"),
+            (215, 300, "THE JUMP: LINE UP EARLY"),
+            (300, 345, "LAND DOWNHILL. BRAKE FOR STREAM"),
             (350, 400, "STREAM: KEEP LEFT ON THE BAR"),
             (400, 445, "THE DEEP INSIDE LINE IS SLOW"),
             (455, 525, "LONG BENDS: A CLUTCH KICK,"),

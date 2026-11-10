@@ -97,9 +97,8 @@ sealed class TrackTour
     };
 
     /// <summary>
-    /// ILYICH'S LAMP (ILYICHLAB): out of the barn, the first bend (the GAI radar), the ridge's rollers flat
-    /// out (the faster, the fewer landings: from the first bend's exit at 195 m the car makes 65-77), the
-    /// jump, the ford on the gravel bar on the left (82 km/h kept against 62 inside), a clutch kick in both
+    /// ILYICH'S LAMP (ILYICHLAB): out of the barn, the first bend (the GAI radar), the run to the one big jump
+    /// (takeoff at 251 m) flat out, the ford on the gravel bar on the left (82 km/h kept against 62 inside), a clutch kick in both
     /// long bends at the bottom (500, 625 m: the slide held mid-road), the church hairpin on the handbrake
     /// after a brisk approach and late braking, up the hill to the barn on a tight line.
     /// </summary>
@@ -116,13 +115,14 @@ sealed class TrackTour
                 new("tour_first_bend", 170, "THE START: OUT OF THE BARN.",
                     new[] { new TourCaption(100, 211, "THE FIRST BEND. TURN RIGHT.") },
                     new[] { Focus(100, 211, 180, "first_bend") }),
-                new("tour_rollers", 360, "THE RIDGE: TWO ROLLERS, A JUMP.",
-                    new[] { new TourCaption(285, Open, "THE JUMP: DOWN TO THE STREAM.") },
-                    new[] { Focus(170, 270, 240), Focus(285, 361, 335) }),
-                new("tour_ford", 370, "DOWN TO THE STREAM. KEEP LEFT.",
-                    Landmarks: new[] { Focus(360, 371, 375, lateral: -3f) }),
+                new("tour_jump", 360, "THE JUMP: LINE UP, FLAT OUT.",
+                    new[] { new TourCaption(300, Open, "LAND DOWNHILL. BRAKE FOR THE STREAM.") },
+                    new[] { Focus(170, 290, 251), Focus(300, 361, 335) }),
+                new("tour_ford", 435, "DOWN TO THE STREAM. KEEP LEFT.",
+                    new[] { new TourCaption(400, 435, "ACROSS ON THE GRAVEL BAR.") },
+                    new[] { Focus(360, 436, 400, lateral: -3f) }),
                 new("tour_bends", 600, "THE FIELD BENDS: CLUTCH KICK.",
-                    new[] { new TourCaption(0, 400, "CROSS THE STREAM. KEEP LEFT."), new TourCaption(400, 475, "THE MUD HAIRPIN.") },
+                    new[] { new TourCaption(435, 475, "THE MUD HAIRPIN.") },
                     new[] { Focus(400, 475, 440), Focus(475, 525, 500), Focus(525, 601, 560) }),
                 new("tour_hairpin", 850, "THE GRAIN STORE HAIRPIN.",
                     new[] { new TourCaption(0, 744, "THE FIELD BENDS. TO THE VILLAGE.") },
@@ -133,8 +133,8 @@ sealed class TrackTour
             },
             Zones = new TourZone[]
             {
-                new(195, 305, TourDrive.Cruise, Kmh: 120f),                                         // the rollers flat out
-                new(305, 345, TourDrive.Cruise, Kmh: 95f),                                          // ...eased off after them (the broad rollers carry speed: the stream needs it gone)
+                new(195, 305, TourDrive.Cruise, Kmh: 120f),                                         // the run to the jump flat out
+                new(305, 345, TourDrive.Cruise, Kmh: 95f),                                          // ...eased off after the landing (the jump carries speed: the stream needs it gone)
                 new(330, 345, TourDrive.Cruise, Kmh: 95f, SlowMo: 2.5f),                            // ...and the jump
                 new(345, 365, TourDrive.Cruise, Kmh: 80f),                                          // the landing: down to the speed for the stream
                 new(365, 435, TourDrive.Line, Lateral: -3f),                                        // the ford on the bar

@@ -577,6 +577,7 @@ public partial class RaceScene : Node3D
         foreach (string a in InstructionTrack == null ? CmdArgs() : Array.Empty<string>())
         {
             if (a == "--start") start = true;
+            else if (a.StartsWith("--import-take=")) _importTakeDir = a["--import-take=".Length..];      // RaceScene.TakeImport.cs: a title take goes into the lap archive, then the game quits
             else if (a.StartsWith("--title-rec="))
             {
                 _titleRec = true; start = true; intro = false; _noRecord = true;      // (never a record: the take goes to its own folder)
@@ -737,6 +738,7 @@ public partial class RaceScene : Node3D
         LoadProf.Mark("setup 538..files");
         if (ViewerMode || LanPlaybackSource!=null) ViewerInitFiles();      // RaceScene.Viewer.cs: no record, profile or campaign file is read or written
         else await LoadPlayerFiles();
+        if (_importTakeDir != null && !ViewerMode) { ImportTitleTake(_importTakeDir); AudioMix.Quit(this); return; }
 
         LoadProf.Mark("files");
         if (LanPlaybackSource!=null) { }
