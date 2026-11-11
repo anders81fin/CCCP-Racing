@@ -314,6 +314,8 @@ src/Race/RaceScene.CinematicTour.cs
 src/Race/RaceScene.CinematicTour.cs.uid
 src/Race/RaceScene.DayNight.cs
 src/Race/RaceScene.DayNight.cs.uid
+src/Race/RaceScene.DevHooks.cs
+src/Race/RaceScene.DevHooks.cs.uid
 src/Race/RaceScene.Dose.cs
 src/Race/RaceScene.Dose.cs.uid
 src/Race/RaceScene.DroneTour.cs
@@ -482,10 +484,8 @@ src/Race/RaceScene.TrackTour.cs
 src/Race/RaceScene.TrackTour.cs.uid
 src/Race/RaceScene.Tracks.cs
 src/Race/RaceScene.Tracks.cs.uid
-src/Race/RaceScene.Trailer.cs
-src/Race/RaceScene.Trailer.cs.uid
-src/Race/RaceScene.TrailerV2.cs
-src/Race/RaceScene.TrailerV2.cs.uid
+src/Race/RaceScene.TourCapture.cs
+src/Race/RaceScene.TourCapture.cs.uid
 src/Race/RaceScene.Viewer.cs
 src/Race/RaceScene.Viewer.cs.uid
 src/Race/RaceScene.ViewerFidelityTest.cs

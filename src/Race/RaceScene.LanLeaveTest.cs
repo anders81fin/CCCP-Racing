@@ -5,13 +5,12 @@ namespace CCCPRacing.Race;
 
 public partial class RaceScene
 {
-    bool _lanLeaveProbe;
     readonly HashSet<string> _lanLeaveProbed=new();
     string _lanLeaveProbePhase;
     int _lanLeaveProbeStep;
     ulong _lanLeaveProbeFrame;
 
-    void LanLeaveProbeTick()
+    partial void LanLeaveProbeTick()
     {
         if(!_lanLeaveProbe || !LanJoined) return;
         ulong frame=Engine.GetProcessFrames();

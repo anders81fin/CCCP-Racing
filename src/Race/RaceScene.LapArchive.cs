@@ -19,7 +19,7 @@ public partial class RaceScene
     static readonly bool LapArchiveRetainAll = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--lap-archive-retain-all") >= 0;
 
     bool LapArchiveEligible => !LapArchiveOff && _state == State.Racing && _run is RunMode.Rally or RunMode.Training && !InSchool && !InLanRace
-        && !_trailerCapture && !_trailerV2 && !_cinematicTour && !_droneTour && !_previewMovie && !NoRecords;
+        && !_tourCapture && !_cinematicTour && !_droneTour && !_previewMovie && !NoRecords;
 
     /// <summary>The active personnel file's lap folder (retained laps live here); user:// or the test data dir, globalised.</summary>
     string LapArchiveDir => WorldTapeFile.Real(FileDir + "laps");

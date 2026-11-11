@@ -39,7 +39,7 @@ public partial class RaceScene
         VfiLog($"{(ok ? "PASS" : "FAIL")}|{name}|{detail}");
     }
 
-    void ViewerFidelityTick(float dt)
+    partial void ViewerFidelityTick(float dt)
     {
         if (!_vfiParsed)
         {

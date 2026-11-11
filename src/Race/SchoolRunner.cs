@@ -45,9 +45,9 @@ interface ISchoolHost
     void Praise();
     /// <summary>The school is over: its world cleaned up, then the run, the title or quit.</summary>
     void SchoolEnded(SchoolCourse course, bool finished);
-    /// <summary>--trailer-shots: demos only, at normal speed, one after another.</summary>
-    bool TrailerCapture { get; }
-    void TrailerShotDone();
+    /// <summary>Tour capture (--drone-tour, --cinematic-tour): demos only, at normal speed, one after another.</summary>
+    bool TourCapture { get; }
+    void TourShotDone();
     /// <summary>The keys card or the pause menu is up (the school's clocks wait).</summary>
     bool PausedForSchool { get; }
     /// <summary>Per frame: the scenic tour's music.</summary>
@@ -156,7 +156,7 @@ sealed class SchoolRunner
     {
         Phase = p;
         Real = 0;
-        ShowDelay = !_host.TrailerCapture && p is (SchoolPhase.Show or SchoolPhase.Replay) ? ShowPause : 0f;
+        ShowDelay = !_host.TourCapture && p is (SchoolPhase.Show or SchoolPhase.Replay) ? ShowPause : 0f;
         _shot = false;
         if (Dbg) GD.Print($"school: {Current.step.Id} {p} at {Total:F1} s");
     }
@@ -229,7 +229,7 @@ sealed class SchoolRunner
         Slow = 0;
         Speed = 1f;
         TimeScale(1f);
-        if (_host.TrailerCapture) { _host.TrailerShotDone(); return; }
+        if (_host.TourCapture) { _host.TourShotDone(); return; }
         if (Phase == SchoolPhase.Replay)
         {
             Results.Add($"{Current.step.Id}: {SchoolScript.MaxTries} misses, demo shown again ({Total - StepFrom:F1} s)");
@@ -402,7 +402,7 @@ sealed class SchoolRunner
     /// <summary>Slow motion for this long (real seconds) from now.</summary>
     public void SlowMo(float seconds)
     {
-        if (_host.TrailerCapture) return;
+        if (_host.TourCapture) return;
         Slow = seconds;
         ShotSoon("show", 0.3f);
     }
@@ -481,7 +481,7 @@ sealed class SchoolRunner
                     GD.Print($"school: {Current.step.Id} driving starts at {Total:F1} s after {ShowPause:F1} s pause");
             }
         }
-        TimeScale(_host.TrailerCapture || paused || ShowDelay > 0 || Phase is not (SchoolPhase.Show or SchoolPhase.Replay) ? 1f : Slow > 0 ? SlowScale : Speed);
+        TimeScale(_host.TourCapture || paused || ShowDelay > 0 || Phase is not (SchoolPhase.Show or SchoolPhase.Replay) ? 1f : Slow > 0 ? SlowScale : Speed);
         _host.SchoolAudio(real, paused);
         if (paused) return;
         if (Phase == SchoolPhase.Try) ReadyTick(real);

@@ -41,7 +41,7 @@ public partial class RaceScene
     void CameraDiscoveryTick(Vector3 before)
     {
         if (_state != State.Racing || InSchool || Replaying || _rescue.Active || FateHasCar
-            || _cameraDiscoveries == null || _trailerCapture || _cinematicTour) return;
+            || _cameraDiscoveries == null || _tourCapture || _cinematicTour) return;
         if (_track.Id == "ilyich" && _cameraDuck?.Active == true
             && !_cameraDiscoveries.Has(_track.Id, GameplayView.Bonnet)
             && CameraDiscoveries.Touches(before, _car.Pos, _car.Rot, _cameraDuck.WorldPosition, PartyPondDuck.Radius))
@@ -74,7 +74,7 @@ public partial class RaceScene
 
     // Schools and recordings own their camera. Scripted failures, towing and plan endings do too.
     bool GameplayCameraAllowed => (_state is State.Countdown or State.Racing or State.Paused or State.Finished or State.Failed || ViewerMode && _state == State.Title)
-        && !InSchool && !PresentationActive && !_trailerCapture && !_cinematicTour
+        && !InSchool && !PresentationActive && !_tourCapture && !_cinematicTour
         && !PlanHasCar && !FateHasCar && !FuelHasCar
         && !_followTank && !_followJet && !_followKozlik && !_followBus && !_followBabushka
         && !_followSlurry && !_followTractor && _lookAt == null;

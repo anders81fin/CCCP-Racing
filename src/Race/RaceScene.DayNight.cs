@@ -153,7 +153,7 @@ public partial class RaceScene
         {
             _climateAlertAt = -1;
             string head = StakhanovRules || phase == DayNight.Phase.Day ? DayNight.Title(phase)       // no norm eased: just the time of day
-                : $"CLIMATE CHANGE ALLOWANCE: +{DayNight.AllowanceFor(phase).ToString("0.0", CultureInfo.InvariantCulture)} SEC";
+                : $"CLIMATE CHANGE ALLOWANCE: +{(DayNight.AllowanceFor(phase) * ClimateScale()).ToString("0.0", CultureInfo.InvariantCulture)} SEC";
             _hud.Alert(head, DayNight.Motto(phase), 4.5f, phase == DayNight.Phase.Night ? Hud.Paper : Hud.Gold, StakhanovRules ? Prio.Nice : Prio.Important);
         }
         if (_climateSayAt > 0 && _clock >= _climateSayAt)

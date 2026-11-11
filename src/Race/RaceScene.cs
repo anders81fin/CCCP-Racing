@@ -797,7 +797,7 @@ public partial class RaceScene : Node3D
         StartTrackPreviewMovie();
         StartCarTourFromArgs();      // RaceScene.CarTour.cs: --car-tour=<fuel>
         CheatSelfTestFromArgs();      // RaceScene.Cheat.cs: --cheat-test
-        StartTrailerCapture();
+        StartTourCapture();
 
         // Test: let the tractor plough for a while before the first frame.
         for (float t = 0; _tractor != null && t < _tractorWarp; t += 1f / 60f) _tractor.Tick(1f / 60f);

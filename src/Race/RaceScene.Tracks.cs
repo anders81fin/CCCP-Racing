@@ -23,7 +23,7 @@ public partial class RaceScene
     /// RALLY on it takes a silver (MedalToOpen); the bonus track opens for both at once.
     /// </summary>
     static readonly (string id, string name, string requires)[] Tracks =
-        { ("ilyich", "KOLKHOZ", null), ("siberia", "SIBERIA", "ilyich"), ("atomgrad", "ATOMGRAD-4", "siberia"), ("bonus", "POLIGON 17", Bonus) };
+        { ("ilyich", "KOLKHOZ", null), ("atomgrad", "ATOMGRAD-4", "ilyich"), ("siberia", "SIBERIA", "atomgrad"), ("bonus", "POLIGON 17", Bonus) };      // (2026-11-11: Atomgrad before Siberia)
     /// <summary>"requires" of the bonus track: a gold on any track.</summary>
     const string Bonus = "*";
     /// <summary>The bonus track: the driving school starts here, open or not.</summary>
@@ -119,6 +119,7 @@ public partial class RaceScene
         NormPlan.Medal Medal(string id) => own is FuelGrade f ? _campaign.BestOn(id, f) : _campaign.Best(id);
         if (Tracks[i].requires == Bonus) return !Tracks.Any(t => Medal(t.id) == NormPlan.Medal.Gold);
         string r = Tracks[i].requires;
+        if (r != null && Medal(Tracks[i].id) > NormPlan.Medal.None) return false;      // (a medal already won on the track keeps it open: the 2026-11-11 reorder of Siberia and Atomgrad must not lock a player out of one he had opened)
         return r != null && Medal(r) < MedalToOpen(mode.Value);
     }
 

@@ -24,6 +24,8 @@ public class NormPlan
     /// <summary>The fuel's lap-time factor now (1: petrol): the norms and the climate's allowances are this much longer or shorter.</summary>
     public static float Factor { get; private set; } = 1f;
     static Track.NormsDef _def;
+    /// <summary>The track's climate-allowance scale (tracks/ID.json norms "climate"; 1: the first track's seconds).</summary>
+    public static float ClimateScale => _def?.Climate is > 0f and var c ? c : 1f;
     /// <summary>When a track says nothing: the lap-time factors of diesel and rocket fuel (the diesel's own engine and 200 % power for rocket fuel; the autopilot's laps gave 1.007-1.014 and 0.98-0.99 on the four tracks with the diesel engine of 2 November, 1.02-1.05 with the old half-power diesel and 0.96-0.98 before: the human pace gets more from the pickup).</summary>
     static readonly float[] DefaultFactors = { 1.02f, 1f, 0.97f, 0.95f };
 

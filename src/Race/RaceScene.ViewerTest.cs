@@ -16,7 +16,7 @@ public partial class RaceScene
 
     static void VtLog(string s) => GD.Print("VIEWERTEST: " + s);
 
-    void ViewerTestTick(float dt)
+    partial void ViewerTestTick(float dt)
     {
         if (!_vtParsed)
         {

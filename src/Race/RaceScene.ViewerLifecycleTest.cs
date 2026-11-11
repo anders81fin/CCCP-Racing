@@ -30,7 +30,7 @@ public partial class RaceScene
     static string VlArg(string name) => OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith(name + "="))?[(name.Length + 1)..];
     static bool VlFlag(string name) => OS.GetCmdlineUserArgs().Contains(name);
 
-    void ViewerLifecycleTick(float dt)
+    partial void ViewerLifecycleTick(float dt)
     {
         if (!_vlParsed)
         {

@@ -33,7 +33,7 @@ public partial class RaceScene
         Ready += () => _spikeReadyUs = Time.GetTicksUsec();      // emitted when _Ready returns (the build is synchronous when not booting)
     }
 
-    void ViewerSpikeTick(float dt)
+    partial void ViewerSpikeTick(float dt)
     {
         if (_spikeStarted || ViewerMode || InstructionTrack != null) return;
         string mode = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--viewer-spike="))?["--viewer-spike=".Length..];

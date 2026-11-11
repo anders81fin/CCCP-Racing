@@ -22,7 +22,7 @@ public partial class RaceScene
 {
     string _vfMode, _vfNested; int _vfFrames = 90; float _vfWarm = 6f, _vfAbAt = -1f; bool _vfParsed; ViewerFreezeDriver _vfDriver; long _vfPhysTicks;
 
-    void ViewerFreezeTick(float dt)
+    partial void ViewerFreezeTick(float dt)
     {
         if (!_vfParsed)
         {

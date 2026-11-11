@@ -30,7 +30,7 @@ public partial class RaceScene
     }
 
     /// <summary>RECORD LAN RACES? NO: at the moment KEEP would be offered, check that nothing was asked or recorded.</summary>
-    void LanKeepProbeOff()
+    partial void LanKeepProbeOff()
     {
         string root=_lanReplayRoot ?? LanRecordingsRoot;
         string[] journals=Directory.Exists(root)?Directory.GetFiles(root,"*",SearchOption.AllDirectories):Array.Empty<string>();
@@ -41,7 +41,7 @@ public partial class RaceScene
         GD.Print($"LANKEEPTEST: PASS off round {_lanReplayRound} {(_net.IsHost?"host":"client")} (no capture, ghost, journal, files or KEEP; {root} {(Directory.Exists(root)?"exists, empty":"absent")})");
     }
 
-    void LanKeepProbeTick()
+    partial void LanKeepProbeTick()
     {
         if(_lanKeepProbe==null || _net is not {Active:true}) return;
         ulong frame=Engine.GetProcessFrames();

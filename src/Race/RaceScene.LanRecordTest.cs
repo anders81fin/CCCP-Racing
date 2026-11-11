@@ -15,11 +15,10 @@ namespace CCCPRacing.Race;
 /// </summary>
 public partial class RaceScene
 {
-    bool _lanRecordProbe;
     int _lanRecordProbeStep;
     double _lanRecordProbeWait;
 
-    void LanRecordProbeTick()
+    partial void LanRecordProbeTick()
     {
         if (!_lanRecordProbe) return;
         string path = LanRecordPath;

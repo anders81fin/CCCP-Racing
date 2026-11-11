@@ -12,7 +12,7 @@ public partial class RaceScene
     ExportJob _lanExportUiProbeJob;
     float _lanExportUiProbeClock;
     bool _lanExportUiProbePriorPause;
-    void LanExportUiProbe()
+    partial void LanExportUiProbe()
     {
         string run=OS.GetCmdlineUserArgs().FirstOrDefault(a=>a.StartsWith("--lan-export-ui-run="))?["--lan-export-ui-run=".Length..];
         string path=run ?? OS.GetCmdlineUserArgs().FirstOrDefault(a=>a.StartsWith("--lan-export-ui-check="))?["--lan-export-ui-check=".Length..];

@@ -311,6 +311,8 @@ public class NormsDef
     public float Rocket { get; set; }
     /// <summary>Lap-time factor of the SPUTNIK rally (0: the default factor).</summary>
     public float Sputnik { get; set; }
+    /// <summary>The track's climate allowance against the first track's (0: 1): the allowances follow the lap time (Kolkhoz night +2 s, dusk +1 s at 1).</summary>
+    public float Climate { get; set; }
     /// <summary>A fuel's own ladder (seconds, as many steps as Ladder) instead of the factor's: set when its norms are tuned by hand.</summary>
     public float[] DieselLadder { get; set; }
     public float[] RocketLadder { get; set; }

@@ -11,8 +11,6 @@ public partial class LanSession
         n.Players[1]=new LanPlayer {Id=1,Name="HOST",Slot=0};n.Players[2]=new LanPlayer {Id=2,Name="CLIENT",Slot=1};
         return n;
     }
-    /// <summary>Test only: the host's count seed (production draws it at random).</summary>
-    internal int? TestSeed;
     /// <summary>A host lobby of <paramref name="players"/> comrades (host id 1, clients 2..n) offering the tracks.</summary>
     internal static LanSession AbstentionFixture(int players,params string[] options)
     {

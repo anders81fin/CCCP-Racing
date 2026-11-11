@@ -182,7 +182,7 @@ public partial class RaceScene
     // ------------------------------------------------------------ recording
 
     bool TapeEligible => _tapeRec != null && _state == State.Racing && _run is RunMode.Rally or RunMode.Training && !InSchool
-        && !_trailerCapture && !_trailerV2 && !_cinematicTour && !_droneTour && !_previewMovie;
+        && !_tourCapture && !_cinematicTour && !_droneTour && !_previewMovie;
 
     /// <summary>A lap starts (or is thrown away): whatever was recorded goes, and an eligible lap records from now on.</summary>
     void TapeBegin()      // (a void lap restarts the recording and re-arms --tape-blast: its tree falls again in the lap that counts)

@@ -43,6 +43,14 @@ Run `dotnet build` first. Individual tests have additional switches in
 `src/Tests/PhysicsTest.cs`. Headless checks do not verify GPU rendering, audio
 output or physical controller behavior.
 
+The checks need the ordinary (development) build. A release build, the
+`ExportRelease` configuration that Godot uses for exports, leaves out the
+test code (`src/Tests` and the test partials of `RaceScene` that
+`CCCPRacing.csproj` lists), so exported packages are smaller and carry no test
+entry points. To build it directly, name the project file, because the
+solution has no such configuration:
+`dotnet build CCCPRacing.csproj -c ExportRelease`.
+
 ## Packages
 
 Install the matching Godot .NET export templates. The package script accepts

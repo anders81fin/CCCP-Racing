@@ -3,6 +3,14 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.88
+
+- The order of the tracks changed: a medal on Kolkhoz opens ATOMGRAD-4, and a medal on ATOMGRAD-4 opens SIBERIA. A track you already have a medal on stays open
+- New medal norms on several tracks and fuels (the bronze norm is the 4th, silver the 7th, gold the 10th). Kolkhoz diesel 0:55.00, 0:50.00, 0:47.00 and petrol 0:53.00, 0:48.00, 0:41.00. Siberia diesel 1:20.00, 1:14.00, 1:07.00, petrol 1:18.00, 1:12.00, 1:05.00, jet fuel silver 1:09.00 and gold 1:00.00, Sputnik silver 1:05.00 and gold 0:58.00. Atomgrad petrol 0:53.00, 0:48.00, 0:43.00. Poligon diesel 1:10.00, 1:02.00, 0:55.00. The steps in between were spaced evenly, see NORMS AND MEDALS in the pause menu
+- The climate allowance for the dusk and night laps is now of the same size compared to the lap time on every track: on Kolkhoz night +2 s, dusk +1 s, sunset +0.5 s, dawn +0.75 s, and Siberia x1.33, Atomgrad x0.86 and Poligon x1.17 of these. Diesel gets the same seconds as the other fuels (it used to get 2/3.5 of the petrol seconds). The CLIMATE CHANGE ALLOWANCE alert shows the seconds that really apply
+- The release build is smaller: the developers´ test code is no longer in the game package
+- Removed the trailer capture options --trailer-shots, --trailer-v2 and --marketing-shot (the tour captures --drone-tour and --cinematic-tour stay)
+
 ## 0.871
 
 - The driving school and the rally schools match the current tracks: the Kolkhoz lessons talk about the one jump near the start, the landing crest and the ford (the old ridge of rollers is gone), and the landmark tour stops at the jump and the ford

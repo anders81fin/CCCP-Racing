@@ -17,7 +17,7 @@ namespace CCCPRacing.Race;
 public partial class RaceScene
 {
     /// <summary>The row exists in a single-player rally or Stakhanov Party Meeting only (the archive's own eligibility; not the school, LAN, a demonstration, a viewer).</summary>
-    bool ReplayRowShown => !ViewerMode && InstructionTrack == null && _run is RunMode.Rally or RunMode.Training && !InSchool && !InLanRace && !_trailerCapture && !_cinematicTour && !_previewMovie;
+    bool ReplayRowShown => !ViewerMode && InstructionTrack == null && _run is RunMode.Rally or RunMode.Training && !InSchool && !InLanRace && !_tourCapture && !_cinematicTour && !_previewMovie;
 
     int PauseReplayRow => PauseRowIndex(PauseRowId.Replay);
 

@@ -70,6 +70,8 @@ public class LanResult
 /// </summary>
 public partial class LanSession : Node
 {
+    /// <summary>Test only (set by the fixtures in src/Tests): the host's count seed; production draws it at random.</summary>
+    internal int? TestSeed = null;
     public const int Port = 24105, MaxPlayers = 6;
     public const float BallotTime = 60f, DnfAfter = 60f;
     const int SnapChannel = 1, Channels = 6;      // 0 lobby, 1 snapshots, 2 inputs, 3 world, 4 meshes, 5 board sync (LanSession.Boards.cs)

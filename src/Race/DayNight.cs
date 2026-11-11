@@ -34,8 +34,9 @@ public partial class DayNight : Node3D
     /// <summary>First lap of a phase in the first day (1-based).</summary>
     public static int FirstLap(Phase p) => p switch { Phase.Sunset => 3, Phase.Dusk => 5, Phase.Night => 7, Phase.Dawn => 11, _ => 1 };
 
-    /// <summary>Seconds the climate adds to the lap target for a lap driven in this phase.</summary>
-    public static float AllowanceFor(Phase p) => p switch { Phase.Sunset => 1f, Phase.Dusk => 2f, Phase.Night => 3.5f, Phase.Dawn => 1.5f, _ => 0f };
+    /// <summary>Seconds the climate adds to the lap target for a lap driven in this phase on the first track (Kolkhoz) with diesel: night +2, dusk +1 (the user, 2026-11-11), sunset and dawn in the old ratio.
+    /// The rally scales it by the track's lap time (tracks/ID.json norms "climate") and the fuel (RaceScene.ClimateScale).</summary>
+    public static float AllowanceFor(Phase p) => p switch { Phase.Sunset => 0.5f, Phase.Dusk => 1f, Phase.Night => 2f, Phase.Dawn => 0.75f, _ => 0f };
 
     /// <summary>A lap started at dusk or at night is a night lap (the board marks it).</summary>
     public static bool IsNight(Phase p) => p is Phase.Dusk or Phase.Night;

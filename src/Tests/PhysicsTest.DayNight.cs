@@ -17,8 +17,8 @@ public partial class PhysicsTest
         foreach (var p in Enum.GetValues<DayNight.Phase>())
             Check(DayNight.PhaseForLap(DayNight.FirstLap(p)) == p && (p == DayNight.Phase.Day || DayNight.PhaseForLap(DayNight.FirstLap(p) - 1) != p),
                 $"{p} starts at lap {DayNight.FirstLap(p)}");
-        Check(DayNight.AllowanceFor(DayNight.Phase.Day) == 0 && DayNight.AllowanceFor(DayNight.Phase.Sunset) == 1f && DayNight.AllowanceFor(DayNight.Phase.Dusk) == 2f
-              && DayNight.AllowanceFor(DayNight.Phase.Night) == 3.5f && DayNight.AllowanceFor(DayNight.Phase.Dawn) == 1.5f, "allowance: day 0, sunset +1.0, dusk +2.0, night +3.5, dawn +1.5 s");
+        Check(DayNight.AllowanceFor(DayNight.Phase.Day) == 0 && DayNight.AllowanceFor(DayNight.Phase.Sunset) == 0.5f && DayNight.AllowanceFor(DayNight.Phase.Dusk) == 1f
+              && DayNight.AllowanceFor(DayNight.Phase.Night) == 2f && DayNight.AllowanceFor(DayNight.Phase.Dawn) == 0.75f, "allowance: day 0, sunset +0.5, dusk +1.0, night +2.0, dawn +0.75 s");
         Check(!DayNight.IsNight(DayNight.Phase.Sunset) && DayNight.IsNight(DayNight.Phase.Dusk) && DayNight.IsNight(DayNight.Phase.Night) && !DayNight.IsNight(DayNight.Phase.Dawn),
             "night laps: those started at dusk or at night");
 
@@ -39,9 +39,9 @@ public partial class PhysicsTest
         DayNightState(dn, 3, 0.99f);
         float before = dn.ClimateAllowance;
         DayNightState(dn, 4, 0f);
-        Check(held && before == 1f && dn.ClimateAllowance == 2f, "the allowance holds through a lap (the phase at its start) and steps at the line");
+        Check(held && before == 0.5f && dn.ClimateAllowance == 1f, "the allowance holds through a lap (the phase at its start) and steps at the line");
         DayNightState(dn, 4, 0.5f);
-        Check(dn.ClimateAllowance == 2f, "lap 5 (dusk) half way round: +2.0 s");
+        Check(dn.ClimateAllowance == 1f, "lap 5 (dusk) half way round: +1.0 s");
         dn.Free();
 
         // The light: exactly the day to the end of lap 2, then smooth (no step bigger than a small one per 1/200 lap).

@@ -9,12 +9,11 @@ namespace CCCPRacing.Race;
 /// <summary>--lan-board-ui-probe: isolated lobby checks through production keys, pad routing and mouse hit regions.</summary>
 public partial class RaceScene
 {
-    bool _lanBoardProbe;
     int _lanBoardProbeStep;
     double _lanBoardProbeAt;
     IEnumerator<int> _lanBoardProbeRun;
 
-    void LanBoardsProbeTick()
+    partial void LanBoardsProbeTick()
     {
         if (!_lanBoardProbe || !_net.Active || !_net.InLobby || _net.State != LanSession.Phase.Lobby) return;
         if (_lanBoardProbeRun == null && (_lanPage != LanPage.Lobby || string.IsNullOrEmpty(_dataDir)))

@@ -3,7 +3,7 @@
 Rally-Sport-inspired time trial on a Soviet kolkhoz. Power: ACCORDING TO PLAN. Suspension: NYET.
 
 Source code: [anders81fin/CCCP-Racing](https://github.com/anders81fin/CCCP-Racing).
-Source for version **0.871**: [v0.871](https://github.com/anders81fin/CCCP-Racing/tree/v0.871).
+Source for version **0.88**: [v0.88](https://github.com/anders81fin/CCCP-Racing/tree/v0.88).
 GitHub account: [anders81fin](https://github.com/anders81fin).
 
 Source code is offered under **GPL-3.0-or-later** and game models, images, track
@@ -87,11 +87,12 @@ LAN laps never touch the ghost or the leaderboards. All players need the same LA
 Technical details and repeatable checks: [LAN documentation](docs/public/networking.md).
 
 Tracks: KOLKHOZ NO.3 ILYICH'S LAMP (tracks/ilyich.json; the barn start, the ridge and jump, the ford,
-the church hairpin), SIBLAG NO.2 FIVE YEARS IN FOUR (SIBERIA in the menus; tracks/siberia.json, opened by a medal on Ilyich's Lamp: winter,
+the church hairpin), ATOMGRAD-4 (tracks/atomgrad.json, opened by a medal
+on Ilyich's Lamp: the zone round a power plant in a rainy autumn, weather changing lap by lap, radiation
+dose and the decontamination wash, the train, the lunokhod, concrete mixers), SIBLAG NO.2 FIVE YEARS IN FOUR
+(SIBERIA in the menus; tracks/siberia.json, opened by a medal on Atomgrad-4: winter,
 driven anticlockwise, ice, packed and deep snow, soft snow banks, the frozen river, the airbase
-with its MiKs, the labour camp, snowploughs), ATOMGRAD-4 (tracks/atomgrad.json, opened by a medal
-on Siberia: the zone round a power plant in a rainy autumn, weather changing lap by lap, radiation
-dose and the decontamination wash, the train, the lunokhod, concrete mixers) and BONUS
+with its MiKs, the labour camp, snowploughs) and BONUS
 (tracks/bonus.json), opened by a gold on any track. A rally bronze opens
 the next track for STAKHANOV LAPS, its SOCIALIST RALLY takes a silver. The track card in STAKHANOV LAPS and
 the rally chooses, opening on the first track, a locked one in black and white (LAN votes among the host's available tracks). The DRIVING SCHOOL (SINGLE PLAYER) teaches car control on Ilyich's Lamp: the clutch start,

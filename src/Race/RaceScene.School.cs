@@ -194,8 +194,8 @@ public partial class RaceScene : ISchoolHost
         else StartRun(MenuItem.Race);
     }
 
-    bool ISchoolHost.TrailerCapture => _trailerCapture;
-    void ISchoolHost.TrailerShotDone() => TrailerShotDone();
+    bool ISchoolHost.TourCapture => _tourCapture;
+    void ISchoolHost.TourShotDone() => TourShotDone();
     bool ISchoolHost.PausedForSchool => _showKeys || _state == State.Paused;
     void ISchoolHost.SchoolAudio(float real, bool paused) => EnvironmentMusic(real, paused);
     bool ISchoolHost.PadMode => _padMode;
@@ -253,7 +253,6 @@ public partial class RaceScene : ISchoolHost
     /// <summary>The camera on something else than the car (the truck coming for the driver).</summary>
     bool SchoolCamera(float dt)
     {
-        if (_trailerV2) { TrailerV2Camera(dt); return true; }
         if (_droneTour) { DroneTourCamera(dt); return true; }
         if (_cinematicTour) { CinematicTourCamera(dt); return true; }
         if (CarTourActive) { CarTourCamera(dt); return true; }      // RaceScene.CarTour.cs

@@ -11,4 +11,19 @@
     <Compile Remove="build/**/*.cs" />
     <Compile Remove="media/**/*.cs" />
   </ItemGroup>
+  <!-- A release build (what Godot exports) leaves out the development-only test code. Its hooks in production code are
+       partial methods (src/Race/RaceScene.DevHooks.cs), which vanish without an implementation. Build it with
+       dotnet build CCCPRacing.csproj -c ExportRelease (the .sln has no such configuration). -->
+  <!-- CS0649 in a release build: test seams in production classes (fields named ...ForTest, TestWire and the like) that only the
+       left-out test files assign. The development build still reports a field nobody assigns. -->
+  <PropertyGroup Condition="'$(Configuration)'=='ExportRelease'">
+    <NoWarn>$(NoWarn);CS0649</NoWarn>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(Configuration)'=='ExportRelease'">
+    <Compile Remove="src/Tests/**" />
+    <Compile Remove="src/Race/RaceScene.ViewerWindowed*.cs" />
+    <Compile Remove="src/Race/RaceScene.Viewer*Test.cs" />
+    <Compile Remove="src/Race/RaceScene.ViewerSpike.cs;src/Race/RaceScene.ViewerFreeze.cs" />
+    <Compile Remove="src/Race/RaceScene.Lan*Test.cs" />
+  </ItemGroup>
 </Project>

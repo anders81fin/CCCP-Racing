@@ -5,7 +5,7 @@ namespace CCCPRacing.Race;
 public partial class RaceScene
 {
     // Real grid entry: before client originals are replaced, test the same mask on each peer.
-    void LanWorldCheck()
+    partial void LanWorldCheck()
     {
         if(!LanDbg) return;
         bool on=_lanReveal.Obstacles;
