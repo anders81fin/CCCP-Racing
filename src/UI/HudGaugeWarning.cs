@@ -42,5 +42,6 @@ public partial class Hud
         if (Refuelling) Line("REFUELLING", blink ? Gold : Paper);
         else if (FuelBoost > 0) Line($"OCTANE BOOSTER  {MathF.Ceiling(FuelBoost):0}", Gold);
         if (Washing) Line("WASHING", blink ? Gold : Paper);
+        else if (RadBoost >= 0.005f) Line($"RAD BOOST +{MathF.Round(RadBoost * 100):0}%", Gold);
     }
 }

@@ -1,8 +1,9 @@
 # LAN multiplayer
 
 Up to six players race on Ilyich, Siberia, Atomgrad or the bonus track. All
-participants need a compatible game build and LAN protocol; the current code
-uses protocol 17. Every player sends what the campaign has opened (tracks and
+participants need the same game version and LAN protocol: the join handshake
+compares the full version string plus the protocol (currently 17), so a host and
+a client of different releases are refused with VERSION MISMATCH. Every player sends what the campaign has opened (tracks and
 fuels) with the hello, and the SECRET BALLOT offers the tracks and fuels of the
 player with the most opened of both (a tie goes to the lowest slot, the host
 first). Joining players do not need their own medals for the selected track.
@@ -19,6 +20,17 @@ remaining connected. The host waits for matching track signatures and for all
 drivers to hold the clutch. A shared countdown starts the round. Session
 standings count victories across rounds; only the host continues or ends the
 session. Leaving the host ends the hosted session.
+
+## Track rules: fuel and radiation
+
+Ilyich and Atomgrad-4 have no fuel: there are no tanks, depot or canisters, and
+the lobby offers the fuel and fuel-consumption votes only when at least one
+offered track has fuel. On Atomgrad-4 the collected radiation dose adds up to
+15 percent engine power and slowly wears the engine; the decontamination wash
+lowers the dose. The host simulates each driver's dose and the damage vote
+applies to this wear; the power reaches clients through the car state, and the
+client's dose gauge and RAD hint follow it. The dosimetrist stop is a rally-only
+mechanic and does not occur in LAN, and the LAN replay hides the HUD.
 
 ## Authority and world state
 

@@ -196,7 +196,7 @@ public static partial class TrackBuilder
         var ice = new float[points.Count];
         for (int k = 0; k < ice.Length; k++)
         {
-            ice[k] = NaturalHeight(def, points[k].X, points[k].Y, t.WorldSize);
+            ice[k] = NaturalHeight(def, points[k].X, points[k].Y, t.WorldSize, def.RoadEdgeRim);      // (the road is graded to this: RoadEdgeRim keeps it as it was)
             if (k > 0) ice[k] = Math.Min(ice[k], ice[k - 1]);
         }
         for (int pass = 0; pass < 2; pass++)

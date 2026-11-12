@@ -316,7 +316,7 @@ public partial class RaceScene
         // Reliable mesh definitions may precede the reveal on another channel.
         // Keep them until LanAuthorityInit consumes them.
         var rv = _lanReveal = _net.Reveal;
-        var show = _lanShow = new Hud.LanBallotShow { Winner = rv.WinnerIndex, Seed = rv.Seed, Power = rv.Power, Damage = rv.Damage, Fuel = rv.Fuel, Times = rv.Timeline,Track=TrackIds.Label(rv.Track),TrackDraw=rv.TrackTied.Count>1,FuelAvailable=rv.Track!="ilyich",NoVotes=rv.NoVotes };
+        var show = _lanShow = new Hud.LanBallotShow { Winner = rv.WinnerIndex, Seed = rv.Seed, Power = rv.Power, Damage = rv.Damage, Fuel = rv.Fuel, Times = rv.Timeline,Track=TrackIds.Label(rv.Track),TrackDraw=rv.TrackTied.Count>1,FuelAvailable=TrackIds.HasFuel(rv.Track),NoVotes=rv.NoVotes };
         show.RuleVotes.AddRange(rv.RuleVotes);
         show.ObstacleVotes.AddRange(rv.ObstacleVotes); show.Obstacles=rv.Obstacles;
         foreach (var b in rv.Ballots) show.Ballots.Add((b.name, LanRace.TagFor(b.slot), b.pct));
@@ -505,7 +505,7 @@ public partial class RaceScene
                     else if (_lanBallotRow == 0) _lanChoice = LanFuelStep(left ? -1 : 1);
                     else if (_lanBallotRow == 1) _lanDamageVote = left;  // YES is on the left
                     else if (_lanBallotRow == 4) _lanObstaclesVote = left;
-                    else _lanFuelVote = left && _net.TrackOptions.Any(t=>t!="ilyich");
+                    else _lanFuelVote = left && _net.TrackOptions.Any(TrackIds.HasFuel);
                 }
                 else if (enter) LanVote();
                 break;
@@ -547,7 +547,7 @@ public partial class RaceScene
     {
         if (_lanVoted || _net.State != LanSession.Phase.Ballot) return;
         _lanVoted = true;
-        _net.Vote(Training.PercentForKey(_lanChoice), _lanDamageVote, _lanFuelVote && _net.TrackOptions.Any(t=>t!="ilyich"),_net.TrackOptions[_lanTrackChoice], _lanObstaclesVote);
+        _net.Vote(Training.PercentForKey(_lanChoice), _lanDamageVote, _lanFuelVote && _net.TrackOptions.Any(TrackIds.HasFuel),_net.TrackOptions[_lanTrackChoice], _lanObstaclesVote);
         LanLog($"voted (key {_lanChoice})");
     }
 
@@ -588,6 +588,7 @@ public partial class RaceScene
         EnterCountdown();
         _babushkasAll.Canisters = rv.Fuel && _fuelOnTrack;
         _health.Reset(rv.Damage);
+        _lanRad.Reset();      // a new round starts without the last one's dose and boost on the gauge and the hint (the damage vote may be off now)
         if (_carVis.Damage != null) _carVis.Damage.Enabled = rv.Damage;
         _tank.Enabled = rv.Fuel;
         _tank.Rate = _fuelRate * FuelGrades.Burn[(int)LanRace.Grade(rv.Power)];
@@ -863,14 +864,14 @@ public partial class RaceScene
     {
         var v = _hud.Lan;
         v.Track = TrackName(_trackId);
-        v.FuelAvailable = _net.TrackOptions.Any(t=>t!="ilyich");
+        v.FuelAvailable = _net.TrackOptions.Any(TrackIds.HasFuel);
         v.Page = _lanPage;
         if (_lanPage != LanPage.None) _hud.Mode = HudMode.Lan;
         v.Sel = _lanSel;
         v.IsHost = _net.IsHost;
         if(_net.Active) v.Track=_net.TrackOptions.Count==1?TrackIds.Label(_net.TrackOptions[0]):"TRACK BY BALLOT";
         v.TrackOptions=_net.TrackOptions.Select(TrackIds.Label).ToArray();v.TrackChoice=_lanTrackChoice;
-        v.FuelAvailable=_net.TrackOptions.Any(t=>t!="ilyich");
+        v.FuelAvailable=_net.TrackOptions.Any(TrackIds.HasFuel);
         v.FuelMask = _net.FuelMask;
         v.Laps = _lanReveal?.Laps ?? _net.Laps;
         v.Power = _lanReveal?.Power ?? 100;

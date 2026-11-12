@@ -3,6 +3,14 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.89
+
+- ATOMGRAD-4 has no fuel consumption or fuel stops. The radiation dose collected gives up to 15% extra engine power and gradually damages the engine. Washing removes the dose, the mechanic repairs the engine. The four engines and medal norms stay the same
+- Atomgrad school now covers the track, radiation and repairs
+- LAN on Atomgrad follows the no-fuel rule. The radiation dose and power bonus are shown for the host and joining players when damage is on, and cleared for the next race
+- Lowered the surrounding ground and distant landscape on Atomgrad, Poligon and Siberia so the road sits more naturally in its surroundings. Road heights and saved record signatures stay the same
+- Internal race scene refactoring and fixes to the public source build
+
 ## 0.88
 
 - The order of the tracks changed: a medal on Kolkhoz opens ATOMGRAD-4, and a medal on ATOMGRAD-4 opens SIBERIA. A track you already have a medal on stays open

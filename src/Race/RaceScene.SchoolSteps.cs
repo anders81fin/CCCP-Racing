@@ -376,6 +376,7 @@ public partial class RaceScene
         _scTossed = _scCaught = _scBurst = _scHit = _scStartled = _scSwerved = _scRescued = _scRepairing = _scRepaired = false;
         _scMock = false;
         _doseSchoolMock = false;
+        _hud.RadBoost = 0f;
         _scLap = null;
         _scLook = null;
         _scMarks.Clear();
@@ -468,10 +469,7 @@ public partial class RaceScene
         "snow_last_try" => new() { B("NO LAPS LEFT? THE GULAG!", ScStop, (t, _) => { ScStop(); return t > 3f; }) },
         "siberia_valley" or "siberia_forestry" or "siberia_radar" or "siberia_base" or "siberia_wreck" or "siberia_camp" or "siberia_night" => SiberiaEnvironmentBeats(id),
         "atom_tour_forest" or "atom_tour_plant" or "atom_tour_channel" or "atom_tour_town" or "atom_tour_wash" => TourBeats(id),
-        "atom_rad_sources" or "atom_rad_dose" or "atom_rad_limit" or "atom_rad_wash" => AtomgradRadiation(id),
-        "atom_fuel" => AtomgradFuel(),
-        "atom_empty" => AtomgradEmptyFuel(),
-        "atom_refuel" => AtomgradRefuel(),
+        "atom_rad_sources" or "atom_rad_dose" or "atom_rad_power" or "atom_rad_limit" or "atom_rad_wash" => AtomgradRadiation(id),
         "atom_repairs" => SiberiaMechanic(),
         "kolkhoz_farm" or "kolkhoz_dacha" or "kolkhoz_fields" or "kolkhoz_village" or "kolkhoz_daynight" => KolkhozBeats(id),
         "kolkhoz_drone" or "siberia_drone" or "atomgrad_drone" or "bonus_drone" => new() { DroneBeat() },

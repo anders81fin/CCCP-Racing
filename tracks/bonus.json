@@ -29,7 +29,9 @@
   // the east road; its back (backRadius) drops steeply to the map
   // edge so the crest reads. "calm" smooths the noise hills away under them (road grades), and
   // the edge rim (edgeRim, metres) gives way under the hills so the massif is the highest ground.
-  "edgeRim": 13,
+  // The rim and the landscape beyond it follow the high ground of the range (about 6.3 m), not a wall above it.
+  "edgeRim": 8.5,
+  "backdrop": { "baseHeight": 8.5, "amplitude": 3.5 },
   "hills": [
     { "x": 45, "z": 298, "height": 17, "radius": 220, "calm": 0.7 },
     { "x": 298, "z": 140, "x1": 298, "z1": 300, "height": 12, "radius": 120, "backRadius": 32, "calm": 0.8 }

@@ -29,6 +29,10 @@ public partial class RaceScene
     float _dose, _doseRate, _doseCheckT, _doseStart, _doseDbg;
     bool _doseOn, _doseWarned, _doseOver, _washing, _atWash, _radEngineWarned;
     bool _doseSchoolMock;
+    /// <summary>The radiation power on top of the engine (0..0.15, from the dose collected), and the engine power it is applied to (set by ApplyTrainingPower).</summary>
+    float _radBoost, _powerBase = 1f;
+    /// <summary>A LAN race on a radiation track with the damage vote on: the car's dose share (host: exact; client: read from its boost), shown on the same gauge and hint as the rally's. Cleared at every round start (StartLanRace).</summary>
+    readonly LanRadiationState _lanRad = new();
 
     /// <summary>At GO: the zone's word in the rally; test --at-wash: the car at the bay's north end, pointing in (south).</summary>
     void StartDoseTests()
@@ -61,6 +65,16 @@ public partial class RaceScene
         _dose = rally && !_raceRestart ? _doseStart * _rad.Limit : 0f;
         _doseCheckT = 0;
         _doseWarned = _doseOver = _washing = _radEngineWarned = false;
+        SetRadBoost(0f);
+    }
+
+    /// <summary>The radiation power: PowerScale = the engine's own power x (1 + boost). The tape records PowerScale and the boost itself (PlayerPowerTape).</summary>
+    void SetRadBoost(float boost)
+    {
+        if (MathF.Abs(boost - _radBoost) < 1e-4f) return;
+        _radBoost = boost;
+        if (_hud != null) _hud.RadBoost = boost;
+        if (_car != null && _powerTape?.Driven != true) _car.PowerScale = _powerBase * (1f + boost);
     }
 
     /// <summary>The dose rate (mSv/s) at a point: background and the hot spots, off the hard road times OffRoad.</summary>
@@ -92,10 +106,11 @@ public partial class RaceScene
 
         bool racing = _state == State.Racing, free = racing && !_wreck && !_rescue.Active && _doseCheckT <= 0;
         if (free) _dose += _doseRate * dt;
+        SetRadBoost(free && _health.Enabled && !_health.Dead ? EngineHealth.RadiationBoost(_dose / _rad.Limit) : 0f);      // the dose collected so far gives the power, the wash takes it away
         // The radiation eats the engine too, the more the stronger it is (EngineHealth.RadiationLoss).
         if (free && _health.Enabled && !_health.Dead)
         {
-            float loss = EngineHealth.RadiationLoss(_doseRate, dt);
+            float loss = EngineHealth.RadiationLoss(_doseRate, dt) + EngineHealth.ContaminationLoss(_dose / _rad.Limit, dt);
             if (loss > 0f)
             {
                 HealthChanged(_health.Damage(loss, "RADIATION"));
@@ -173,16 +188,42 @@ public partial class RaceScene
         yield return (at, _doseCheckT > DoseCheckTime - 4f ? "ФОНИТ!" : _doseCheckT > 2f ? "ДЕЗАКТИВАЦИЯ" : "СВОБОДЕН");
     }
 
+    /// <summary>LAN: this car's dose share (host: exact; client: from the boost it is sent), the boost and the dose rate, for the gauge and the hint (DoseHud).</summary>
+    void LanRadiationHud(float doseShare, float boost, float rate) => _lanRad.Set(doseShare, boost, rate);
+
     void DoseHud()
     {
         if (_doseSchoolMock) return; // the lesson's staged example is drawn over the live, inactive rally gauge
+        bool lan = InLanRace && _lanRad.On;
+        var (hudShare, boost) = _lanRad.View(InLanRace, _doseOn ? _dose / _rad.Limit : 0f, _doseOn, _radBoost);      // negative share: no gauge
+        float share = Math.Max(0f, hudShare);
         // The car glows green from 30 % of the limit, more with the dose; over it, it throbs.
-        float g = _doseOn ? Math.Clamp((_dose / _rad.Limit - 0.3f) / 0.7f, 0f, 1f) : 0f;
-        if (_dose >= _rad.Limit) g *= 0.75f + 0.25f * MathF.Sin(_clock * 6f);
+        float g = Math.Clamp((share - 0.3f) / 0.7f, 0f, 1f);
+        if (share >= 1f) g *= 0.75f + 0.25f * MathF.Sin(_clock * 6f);
         _carVis.SetRadGlow(g, _dayNight.Glow);
-        _hud.Dose = _doseOn ? _dose / _rad.Limit : -1f;
-        _hud.DoseMsv = _dose;
-        _hud.DoseRate = _doseRate;
-        _hud.Washing = _washing || _doseCheckT > 0;
+        _hud.Dose = hudShare;
+        _hud.DoseMsv = share * _rad.Limit;
+        _hud.DoseRate = lan ? _lanRad.Rate : _doseRate;
+        _hud.Washing = !lan && (_washing || _doseCheckT > 0);
+        _hud.RadBoost = boost;
     }
+}
+
+/// <summary>
+/// The radiation HUD of a LAN race (ATOMGRAD-4) and its life cycle: set while the car has a dose and a boost (the host from its own driver, a client from the PowerScale it is sent),
+/// cleared at every round start so a round without the damage vote (or on another track) shows no gauge and no hint, whatever the round before left. Pure state, tested without a scene.
+/// </summary>
+internal sealed class LanRadiationState
+{
+    public bool On { get; private set; }
+    public float Share { get; private set; }
+    public float Boost { get; private set; }
+    public float Rate { get; private set; }
+
+    public void Set(float doseShare, float boost, float rate) { On = true; Share = doseShare; Boost = boost; Rate = rate; }
+    public void Reset() { On = false; Share = Boost = Rate = 0f; }
+
+    /// <summary>What the HUD shows: the dose share (negative: no gauge) and the boost. In a LAN race with this state set it is the LAN's, otherwise the rally's.</summary>
+    public (float DoseShare, float Boost) View(bool inLanRace, float rallyShare, bool rallyOn, float rallyBoost)
+        => inLanRace && On ? (Share, Boost) : (rallyOn ? rallyShare : -1f, rallyBoost);
 }

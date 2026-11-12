@@ -48,6 +48,8 @@ public enum TapeSoundChannel : byte
     PlayerBoostLeft, PlayerPower, PlayerOverdrive, PlayerGolden,
     /// <summary>The slurry tractor's spray: 0 off, 1 spreading, 2 spreading in the grandmother's revenge (the replay shows the fan and keeps the revenge's mark).</summary>
     SlurrySpray,
+    /// <summary>The player's radiation power on Atomgrad (0..0.15 over 0..0.2), appended 2026-11-12: the HUD hint in a replay. Old tapes lack it (0).</summary>
+    PlayerRadBoost,
 }
 
 /// <summary>A recorded sound value: the part (or the actor root) that owns the sound node, and which property.</summary>
@@ -76,6 +78,7 @@ public static class TapeSoundRange
         TapeSoundChannel.FuelLevel => (0f, 1f),
         TapeSoundChannel.FuelEnvelope => (0f, 1f),
         TapeSoundChannel.SlurrySpray => (0f, 2f),
+        TapeSoundChannel.PlayerRadBoost => (0f, 0.2f),
         _ => (0f, 1f),
     };
     public static byte ToByte(TapeSoundChannel c, float v) { var (lo, hi) = Of(c); return (byte)Math.Clamp((int)MathF.Round((v - lo) / (hi - lo) * 255f), 0, 255); }

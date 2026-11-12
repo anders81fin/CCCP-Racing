@@ -85,6 +85,10 @@ public partial class PhysicsTest : Node
         { try { FreeCameraExportContractTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--lab-tests"))
         { try { LabTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--radiation-power-tests"))
+        { try { RadiationPowerTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--car-control-tests"))
+        { try { CarControlChoiceTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (ViewerWindowedChildHook(this)) return;      // viewer windowed: a child game (RaceScene.ViewerWindowedTest.cs)
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--viewer-windowed-tests")) { try { ViewerWindowedTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }      // viewer windowed
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--resource-criterion-tests")) { ResourceCriterionTests(); return; }
@@ -581,6 +585,7 @@ public partial class PhysicsTest : Node
         LanTest();
         PadTest();
         DayNightTest();
+        RadiationPowerTests();
         SchoolTest();
         SpinTest();
         SlideTechniquesTest();      // PhysicsTest.Probe.cs

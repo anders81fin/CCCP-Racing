@@ -16,6 +16,8 @@ public partial class RaceScene
         public CarSim Car;
         public FuelTank Tank;
         public float DryWait;
+        /// <summary>The dose this car has collected on ATOMGRAD-4 (mSv): it gives the radiation power and eats the engine; the wash bay takes it down (no limit stop in LAN).</summary>
+        public float Dose;
         public LapTimer Timer;
         public readonly EngineHealth Health=new();
         public readonly SortedDictionary<uint,DriverCommand> Pending=new();
@@ -160,7 +162,7 @@ public partial class RaceScene
                 var driver=new LanDriver {Car=car,Timer=new LapTimer(_track),LastInput=LanSession.Now};
                 driver.Health.Reset(_lanReveal.Damage);
                 driver.Tank = id == _net.MyId ? _tank : new FuelTank(_params);
-                driver.Tank.Enabled = _lanReveal.Fuel;
+                driver.Tank.Enabled = _lanReveal.Fuel && _fuelOnTrack;
                 driver.Tank.Rate = _fuelRate * FuelGrades.Burn[(int)LanRace.Grade(_power)];
                 driver.Tank.Refill(_fuelStart);
                 driver.Timer.LapCompleted+=(time,_)=>LanAuthorityLap(id,driver,time);
@@ -326,7 +328,19 @@ public partial class RaceScene
                 if(d.Health.Dead || d.Finished || _net.State is LanSession.Phase.Results or LanSession.Phase.SessionFinished) {d.Car.ThrottleTarget=0;d.Car.Brake=.6f;}
                 // Ignore queued reports from the car replaced before this command was sent.
                 d.BrokenHeadlights=d.Last.HeadlightsAfter(d.BrokenHeadlights,d.RepairSerial,_lanReveal.Damage);
-                d.Car.PowerScale=d.Tank.Empty ? 0 : FuelGrades.PhysicsPercent(LanRace.Grade(_power))/100f*d.Health.PowerFactor;
+                float radBoost=0f, radRate=0f;      // ATOMGRAD-4: the dose a car has collected drives its engine and eats it (the damage vote switches both); the dosimetrist's stop is the rally's
+                if(_rad!=null && racing && _lanReveal.Damage && !d.Finished && !d.Health.Dead)
+                {
+                    var surface=d.Car.Wheels[2].Surface;
+                    float rate=DoseRateAt(new Vector2(d.Car.Pos.X,d.Car.Pos.Z),surface is not (SurfaceType.Concrete or SurfaceType.Pothole or SurfaceType.Runway or SurfaceType.Shallow));
+                    radRate=rate;
+                    d.Dose+=rate*dt;
+                    if(InWash(new Vector2(d.Car.Pos.X,d.Car.Pos.Z)) && d.Car.Speed<WashSpeed) d.Dose=Math.Max(0f,d.Dose-WashRate*dt);
+                    d.Health.Damage(EngineHealth.RadiationLoss(rate,dt)+EngineHealth.ContaminationLoss(d.Dose/_rad.Limit,dt),"RADIATION");
+                    radBoost=EngineHealth.RadiationBoost(d.Dose/_rad.Limit);
+                }
+                if(id==_net.MyId && _rad!=null && _lanReveal.Damage) LanRadiationHud(d.Dose/_rad.Limit,radBoost,radRate);      // the host's own gauge and hint
+                d.Car.PowerScale=d.Tank.Empty ? 0 : FuelGrades.PhysicsPercent(LanRace.Grade(_power))/100f*d.Health.PowerFactor*(1f+radBoost);
                 if (d.Tank.Empty) d.Car.ThrottleTarget = d.Car.Throttle = 0;
                 if(racing && !d.Timer.Running && !d.Finished) d.Timer.Start();
                 d.Impact=0;d.Material=ImpactMaterial.Unknown;d.ImpactBroke=false;
@@ -407,6 +421,11 @@ public partial class RaceScene
                     _lanCorrectionError=Math.Max(_lanCorrectionError,predicted.DistanceTo(_car.Pos));
                 }
                 _health.NetworkStatus(correction.Health,correction.Destroyed);_lanWreckLeft=correction.WreckLeft;
+                if(_rad!=null && _lanReveal.Damage)      // a client reads its radiation power from the PowerScale the host sent (no wire change): the dose share is boost / the maximum
+                {
+                    float radBoost=EngineHealth.BoostFromPower(_car.PowerScale,FuelGrades.PhysicsPercent(LanRace.Grade(_power))/100f*_health.PowerFactor);
+                    LanRadiationHud(radBoost/EngineHealth.RadiationBoostMax,radBoost,0f);
+                }
                 if (correction.FuelLitres >= 0) _tank.Litres = correction.FuelLitres;
                 _lanSharedLightProgress=Math.Max(_lanSharedLightProgress,correction.WorldLightProgress);
                 _lanReadyCount=correction.GridReadyCount;

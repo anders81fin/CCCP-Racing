@@ -57,11 +57,12 @@ public partial class RaceScene
     void InitFuel()
     {
         _powerTape = new PlayerPowerTape(
-            () => new(_boostLeft, _car.PowerScale, _car.Overdrive, _carVis.Golden),
+            () => new(_boostLeft, _car.PowerScale, _car.Overdrive, _carVis.Golden, _radBoost),
             state => {
                 _boostLeft = state.BoostLeft; _car.PowerScale = state.Power;
                 _car.Overdrive = state.Overdrive; _carVis.Golden = state.Golden;
                 _hud.FuelBoost = state.BoostLeft;
+                _radBoost = state.RadBoost; _hud.RadBoost = state.RadBoost;
                 _cam.MaxLead = state.Overdrive > 0 ? 8f : float.PositiveInfinity;
             });
         AddChild(_powerTape);

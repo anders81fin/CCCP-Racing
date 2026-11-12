@@ -9,6 +9,8 @@
   // Atomgrad: close city gears and an earlier fifth for the cooling-channel straight; about 39/59/80/101/147 km/h.
   "gearbox": { "gears": [4.5, 3.0, 2.2, 1.75, 1.2], "finalDrive": 5.1, "shiftDown": 3700 },
   "name": "ATOMGRAD-4",
+  // No fuel here (as on Ilyich's Lamp): no consumption, depot, cans or golden OKTAN. The zone is the resource: the dose a car has collected adds power (up to +15 % at the limit) and eats the engine; the wash takes both away (RaceScene.Dose.cs, EngineHealth).
+  "fuel": false,
   // The rally's norms: 1:07 down to 0:48.50, tuned 2026-10-07 to the first rally laps driven here
   // (the best without OKTAN 98 48.1 s at night): track 3 is harder, the plan's gold is about the
   // best lap, as on Ilyich's Lamp. Bronze for 4 norms beaten, silver for 7, gold for the plan.
@@ -25,7 +27,11 @@
   // The zone's rainy autumn round the day: drizzle, rain, a downpour, a dry dusk, the night's
   // thunderstorm, the dawn's fog (Race.Weather). The road is never quite dry.
   "weather": "rain",
-  "edgeRim": 8,
+  // The rim and the landscape beyond it follow the low ground (about 1.6 m), a gentle bowl of about 2 m instead of 6 m.
+  "edgeRim": 3.5,
+  // The road keeps the heights it was graded with under the old rim (8): the track signature and the records stay valid.
+  "roadEdgeRim": 8,
+  "backdrop": { "baseHeight": 3.5, "amplitude": 3 },
   // The town occupies one raised terrace; its streets and square share a level district.
   "plateaus": [
     { "x0": 15, "z0": 95, "x1": 150, "z1": 199, "height": 1.8, "blend": 30 }

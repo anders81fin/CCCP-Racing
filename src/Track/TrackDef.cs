@@ -20,6 +20,8 @@ public class TrackDef
     public float HillScale { get; set; } = 70f;
     /// <summary>Shared rolling meadow profile inside and beyond the driving grid; null keeps the old terrain.</summary>
     public MeadowDef Meadow { get; set; }
+    /// <summary>The height of the landscape beyond the map edge (WorldBackdrop): base height and swing of its rolling noise, so the ground around a low track does not climb into a bowl. null: the old 7 m +- 6 m (winter +- 9 m).</summary>
+    public BackdropDef Backdrop { get; set; }
     public int Birches { get; set; } = 150;
     /// <summary>The ground off the road: "grass" (the kolkhoz, with mud patches) or "deepsnow" (winter: a snow verge, black ice on the road).</summary>
     public string Ground { get; set; } = "grass";
@@ -56,6 +58,8 @@ public class TrackDef
     public List<PlateauDef> Plateaus { get; set; } = new();
     /// <summary>Height the map edge rises to (hides the end of the world); null: 16 m above the noise.</summary>
     public float? EdgeRim { get; set; }
+    /// <summary>The rim the ROAD's heights are graded with (null: EdgeRim). Lowering EdgeRim where the road runs within the edge margin would change the road's heights and with them the track signature (the records); set this to the old rim to keep both and let only the ground around the road follow the new rim.</summary>
+    public float? RoadEdgeRim { get; set; }
     /// <summary>How many bushes to scatter over the grass.</summary>
     public int Bushes { get; set; } = 350;
     /// <summary>How many grass tufts to scatter.</summary>
@@ -502,6 +506,13 @@ public class RobotDef { public float X0 { get; set; } public float Z0 { get; set
 public class TrainDef { public float X { get; set; } public float End { get; set; } public float Cross { get; set; } public float South { get; set; } = 340f; }
 
 public class MaintenanceHallDef { public float X {get;set;} public float Z {get;set;} public float Width {get;set;}=18; public float Length {get;set;}=26; }
+
+/// <summary>Rolling height of the landscape beyond the map edge: BaseHeight + Amplitude * noise (noise about -1..1). Set it near the track's own ground height plus the edge rim.</summary>
+public class BackdropDef
+{
+    public float BaseHeight { get; set; } = 7;
+    public float Amplitude { get; set; } = 6;
+}
 
 /// <summary>Broad low-frequency meadow rises, shared by playable ground and backdrop.</summary>
 public class MeadowDef

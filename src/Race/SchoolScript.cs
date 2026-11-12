@@ -38,7 +38,7 @@ public static class SchoolScript
 
     public static readonly string[] IlyichChapters = { "TRACK", "DAMAGE", "GAI RADAR" };
     public static readonly string[] SiberiaChapters = { "TRACK", "WINTER ROAD", "FROZEN RIVER", "FUEL", "REPAIRS", "GRANDMA" };
-    public static readonly string[] AtomgradChapters = { "TRACK", "RADIATION", "FUEL", "REPAIRS" };
+    public static readonly string[] AtomgradChapters = { "TRACK", "RADIATION", "REPAIRS" };
     public static readonly string[] DrivingChapters = { "CLUTCH START", "STEERING", "BRAKING", "DRIFTING", "RESCUE" };   // the YOU ARE READY recap closes RESCUE (only the driving school has one)
 
 
@@ -171,7 +171,7 @@ public static class SchoolScript
         (5, new("snow_revenge", new[] { "HIT HER: HER GRANDSON TAKES OFF.", "HIS JET HUNTS YOU WITH MISSILES." }, None)),
     };
 
-    /// <summary>Atomgrad-4: the track, the Zone's dose and decontamination, then fuel and the mechanic.</summary>
+    /// <summary>Atomgrad-4: the track, the Zone's dose, power from the radiation and decontamination, then the mechanic. (No fuel on this track.)</summary>
     public static readonly (int chapter, SchoolStep step)[] Atomgrad =
     {
         (0, new("atom_tour_forest", new[] { "THE RED FOREST: THE ZONE IS HOT.", "KEEP TO THE ROAD AND WATCH THE METER." }, None)),
@@ -183,10 +183,8 @@ public static class SchoolScript
         (1, new("atom_rad_dose", new[] { "THE GAUGE SHOWS YOUR DOSE IN MSV.", "OFF THE ROAD: THREE TIMES THE DOSE." }, None)),
         (1, new("atom_rad_limit", new[] { "OVER 20 MSV: THE DOSIMETRIST STOPS YOU.", "THE CHECK AT THE LINE COSTS TIME." }, None)),
         (1, new("atom_rad_wash", new[] { "WASH AT THE BIRCH AVENUE STATION.", "CROSS THE BAY SLOWLY TO LOSE DOSE." }, None)),
-        (2, new("atom_fuel", new[] { "THROTTLE AND HIGH REVS USE FUEL.", "THE GAUGE BLINKS BEFORE THE TANK IS EMPTY." }, None)),
-        (2, new("atom_empty", new[] { "EMPTY: THE ENGINE DIES. COAST ON.", "A DEPOT STOP CAN GET YOU MOVING." }, None)),
-        (2, new("atom_refuel", new[] { "THE DEPOT IS ON THE LEFT, PAST", "THE FOREST. STOP IN ITS BAY." }, None)),
-        (3, new("atom_repairs", new[] { "THE MECHANIC SLEEPS BY THE BUS STOP.", "HONK, THEN PARK BESIDE HIM TO REPAIR." }, None)),
+        (1, new("atom_rad_power", new[] { "THE DOSE ADDS POWER, UP TO 15 PERCENT.", "IT EATS THE ENGINE. WASH, OR THE GULAG." }, None)),
+        (2, new("atom_repairs", new[] { "THE RADIATION EATS THE ENGINE.", "HONK AT THE MECHANIC, PARK BESIDE HIM." }, None)),
     };
 
     /// <summary>The course on a track (each track teaches what is new on it); null: no school there yet.</summary>

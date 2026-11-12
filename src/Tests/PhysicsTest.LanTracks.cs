@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using CCCPRacing.Net;
+using CCCPRacing.Race;
 using CCCPRacing.Track;
 namespace CCCPRacing.Tests;
 public partial class PhysicsTest
@@ -21,6 +22,12 @@ public partial class PhysicsTest
         {using var m=new MemoryStream();using(var w=new BinaryWriter(m,System.Text.Encoding.UTF8,true)){w.Write((byte)7);w.Write((ushort)100);w.Write(true);w.Write(true);w.Write(track);w.Write(true);}net.OnPacket(2,m.ToArray());}
         Vote(n,"ilyich");
         Check(n.State==LanSession.Phase.Loading && n.Reveal.Track=="ilyich" && !n.Reveal.Fuel && n.Reveal.GoHost==0,"LAN track ballot: tally selects the track, enforces Ilyich no-fuel rule and waits for loading");
+        var dry=LanSession.BallotFixture("atomgrad","siberia");dry.StartBallot();dry.Vote(100,true,true,"atomgrad");Vote(dry,"atomgrad");
+        Check(dry.State==LanSession.Phase.Loading && dry.Reveal.Track=="atomgrad" && !dry.Reveal.Fuel,"LAN track ballot: Atomgrad has no fuel either (a fuel vote is ignored), like Ilyich");
+        dry.Free();
+        static bool Rows(string[] options,params int[] expect)=>RaceScene.LanBallotRows(options).SequenceEqual(expect);
+        Check(Rows(new[]{"ilyich"},0,1,4) && Rows(new[]{"atomgrad"},0,1,4) && Rows(new[]{"siberia"},0,1,2,4) && Rows(new[]{"ilyich","atomgrad"},3,0,1,4) && Rows(new[]{"ilyich","siberia"},3,0,1,2,4) && Rows(new[]{"atomgrad","bonus"},3,0,1,2,4),
+            "LAN ballot rows: the fuel-consumption row is offered only when some track option has fuel (Ilyich+Atomgrad: dry only, no row; with Siberia or Poligon: the row)");
         var client=new LanSession();client.OnPacket(1,n.RevealFixturePacket(true));
         Check(client.State==LanSession.Phase.Loading && client.SelectedTrack==n.SelectedTrack && client.RoundNumber==n.RoundNumber,"LAN track ballot: client receives selected track and round through the production packet decoder");
         client.Free();n.Free();
@@ -102,7 +109,7 @@ public partial class PhysicsTest
             repeat&=a.Power==b.Power && a.Damage==b.Damage && a.Fuel==b.Fuel && a.Track==b.Track && a.Grid.SequenceEqual(b.Grid);
             honest&=a.NoVotes && a.Tied.SequenceEqual(LanBallot.AllFuels) && a.TrackTied.SequenceEqual(all) && a.Ballots.Count==3 && a.Grid.Count==3
                 && a.Ballots.All(x=>x.pct==LanBallot.Abstain) && a.RuleVotes.All(v=>v.damage==null && v.fuel==null) && LanRace.ValidFuel(a.Power);
-            if(a.Track=="ilyich") ilyichDry&=!a.Fuel; else fc.Add(a.Fuel);
+            if(!TrackIds.HasFuel(a.Track)) ilyichDry&=!a.Fuel; else fc.Add(a.Fuel);
             fuels.Add(a.Power);tracks.Add(a.Track);dmg.Add(a.Damage);
         }
         Check(honest,"LAN no votes: every ballot stays NOT VOTED, all fuels and host tracks go on the drum, nothing is counted");

@@ -49,7 +49,7 @@ public partial class LanSession
         rv.TrackVotes=Players.Values.OrderBy(p=>p.Slot).Select(p=>p.Voted?p.TrackVote:null).ToList(); // null: NOT VOTED, not the first track
         rv.Track=LanBallot.Track(rv.TrackVotes,TrackOptions,rv.Seed,out var tied);
         rv.TrackTied=tied;
-        if(rv.Track=="ilyich") rv.Fuel=false;
+        if(!CCCPRacing.Track.TrackIds.HasFuel(rv.Track)) rv.Fuel=false;
         Reveal=rv;State=Phase.Loading;_loaded.Clear();LastLoadError=null;_loadStarted=Now;
         _worldParts.Clear();_worldFrame=_worldApplied=0;_testPackets.Clear();
         Broadcast(Msg.LoadTrack,w=>WriteReveal(w,rv));_dirty=true;

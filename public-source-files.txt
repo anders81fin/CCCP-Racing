@@ -253,6 +253,8 @@ src/Race/CameraDiscoveries.cs
 src/Race/CameraDiscoveries.cs.uid
 src/Race/Campaign.cs
 src/Race/Campaign.cs.uid
+src/Race/CarControlChoice.cs
+src/Race/CarControlChoice.cs.uid
 src/Race/CarTourScript.cs
 src/Race/CarTourScript.cs.uid
 src/Race/DayNight.cs
@@ -304,6 +306,8 @@ src/Race/RaceScene.AtomgradSchool.cs
 src/Race/RaceScene.AtomgradSchool.cs.uid
 src/Race/RaceScene.CameraFeel.cs
 src/Race/RaceScene.CameraFeel.cs.uid
+src/Race/RaceScene.CarControl.cs
+src/Race/RaceScene.CarControl.cs.uid
 src/Race/RaceScene.CarTour.cs
 src/Race/RaceScene.CarTour.cs.uid
 src/Race/RaceScene.Cards.cs
@@ -392,6 +396,8 @@ src/Race/RaceScene.Pad.cs
 src/Race/RaceScene.Pad.cs.uid
 src/Race/RaceScene.Pause.cs
 src/Race/RaceScene.Pause.cs.uid
+src/Race/RaceScene.Physics.cs
+src/Race/RaceScene.Physics.cs.uid
 src/Race/RaceScene.Plan.cs
 src/Race/RaceScene.Plan.cs.uid
 src/Race/RaceScene.RallyResume.cs
@@ -558,6 +564,8 @@ src/Race/RaceScene.ViewerWindowedTrackBoards.cs
 src/Race/RaceScene.ViewerWindowedTrackBoards.cs.uid
 src/Race/RaceScene.VisualSettings.cs
 src/Race/RaceScene.VisualSettings.cs.uid
+src/Race/RaceScene.WorldBuild.cs
+src/Race/RaceScene.WorldBuild.cs.uid
 src/Race/RaceScene.World.cs
 src/Race/RaceScene.World.cs.uid
 src/Race/RaceScene.cs
@@ -674,6 +682,8 @@ src/Tests/PhysicsTest.CameraDiscoveries.cs
 src/Tests/PhysicsTest.CameraDiscoveries.cs.uid
 src/Tests/PhysicsTest.CameraMotion.cs
 src/Tests/PhysicsTest.CameraMotion.cs.uid
+src/Tests/PhysicsTest.CarControlChoice.cs
+src/Tests/PhysicsTest.CarControlChoice.cs.uid
 src/Tests/PhysicsTest.CarWingShare.cs
 src/Tests/PhysicsTest.CarWingShare.cs.uid
 src/Tests/PhysicsTest.CollisionFeedback.cs
@@ -830,6 +840,8 @@ src/Tests/PhysicsTest.PowerCorner.cs
 src/Tests/PhysicsTest.PowerCorner.cs.uid
 src/Tests/PhysicsTest.Probe.cs
 src/Tests/PhysicsTest.Probe.cs.uid
+src/Tests/PhysicsTest.RadiationPower.cs
+src/Tests/PhysicsTest.RadiationPower.cs.uid
 src/Tests/PhysicsTest.RallyResume.cs
 src/Tests/PhysicsTest.RallyResume.cs.uid
 src/Tests/PhysicsTest.RearWing.cs

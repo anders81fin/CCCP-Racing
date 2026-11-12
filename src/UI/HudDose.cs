@@ -9,6 +9,8 @@ public partial class Hud
     /// <summary>Dose as a share of the limit; negative hides the gauge (no radiation, not the rally).</summary>
     public float Dose = -1f;
     public float DoseMsv, DoseRate;
+    /// <summary>The radiation power on top of the engine (0..0.15): a hint beside the gauge while it adds power.</summary>
+    public float RadBoost;
     /// <summary>The wash or the dosimetrist's check is on: WASHING over the gauge.</summary>
     public bool Washing;
 
@@ -37,5 +39,6 @@ public partial class Hud
         for (int i = 0; i < Segs; i++)
             DrawRect(new Rect2(r.Position.X + 3 + i * 5, r.Position.Y + 26, 4, 5), i < lit && (!over || blink) ? c : new Color(c, 0.18f));
         if (Washing) PixelFont.Draw(this, "WASHING", new Vector2(r.Position.X, r.Position.Y - 9), blink ? Gold : Paper);
+        else if (RadBoost >= 0.005f) PixelFont.Draw(this, $"RAD +{MathF.Round(RadBoost * 100):0}%", new Vector2(r.Position.X, r.Position.Y - 9), Gold);
     }
 }

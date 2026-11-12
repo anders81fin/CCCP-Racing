@@ -116,6 +116,7 @@ public class TrackData : IGround
     /// <summary>Authored river paths and widths used by shoreline vegetation.</summary>
     public WaterDef Water;
     public MeadowDef Meadow;
+    public BackdropDef Backdrop;
     /// <summary>The ford: the centre-line index where the river crosses the road (-1: none).</summary>
     public int FordIndex = -1;
     public readonly List<BlightDef> Blights = new();

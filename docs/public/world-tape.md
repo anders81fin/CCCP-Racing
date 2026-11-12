@@ -49,6 +49,11 @@ recording can only reproduce the information it contains, plus explicitly
 reported approximations. Review the existing production path before extending
 fuel, towing, power state, breakables or actor effects.
 
+The player's power state includes an appended radiation-boost channel
+(Atomgrad-4's dose bonus). It was added without a format version bump: older
+recordings lack it and play with the HUD hint off; the boost itself is only
+computed in live play, never during replay.
+
 Focused checks include `--tape-tests`, `--damage-tape-tests` and production-path
 scene tests in `src/Tests/`. Use isolated generated fixtures. Keep original
 recordings unchanged, and report any remaining live or unrecorded content.

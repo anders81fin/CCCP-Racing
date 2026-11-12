@@ -95,6 +95,22 @@ public class EngineHealth
     public const float RadiationFloor = 0.1f, RadiationPerMsv = 0.012f;
     public static float RadiationLoss(float rate, float dt) => rate <= RadiationFloor || dt <= 0 ? 0f : RadiationPerMsv * (rate - RadiationFloor) * dt;
 
+    /// <summary>The dose a car has collected also drives its engine (ATOMGRAD-4): the power rises with the dose (a share of the limit, 0..1), smoothly and linearly, to +15 % at the limit and no more. The wash takes the dose, and so the bonus, away.</summary>
+    public const float RadiationBoostMax = 0.15f;
+    public static float RadiationBoost(float doseShare) => RadiationBoostMax * Math.Clamp(doseShare, 0f, 1f);
+
+    /// <summary>The boost behind a PowerScale (a LAN client reads it from what the host sends): scale / (the engine's own power without the boost) - 1, 0..the maximum; 0 when there is no power to compare (empty tank, dead engine).</summary>
+    public static float BoostFromPower(float powerScale, float basePower)
+    {
+        if (basePower < 1e-3f) return 0f;
+        float b = Math.Clamp(powerScale / basePower - 1f, 0f, RadiationBoostMax);
+        return b < 0.002f ? 0f : b;
+    }
+
+    /// <summary>A contaminated car keeps losing engine health outside the hot spots, with the square of its dose (a share of the limit): nothing when clean, 0.6 % a second at the limit, while the same dose gives the power bonus. The wash (or the dosimetrist's wash-down) is the cure, or the GULAG when the engine dies.</summary>
+    public const float ContaminationPerSec = 0.006f;
+    public static float ContaminationLoss(float doseShare, float dt) { float k = Math.Clamp(doseShare, 0f, 1.2f); return dt <= 0 ? 0f : ContaminationPerSec * k * k * dt; }
+
     /// <summary>Health lost by a Balalaika crashing this far away (m); lethal inside JetLethal.</summary>
     public static float JetDamage(float dist)
     {

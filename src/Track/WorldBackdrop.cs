@@ -24,7 +24,7 @@ public partial class WorldBackdrop : Node3D
         var sample = (edge + inward * 6).Clamp(Vector2.Zero, Vector2.One * size);
         float slope = Math.Clamp((h - t.MeshHeight(sample.X, sample.Y)) / 6, -0.22f, 0.22f);
         float wave = Noise.Fbm(p.X / 90, p.Y / 90, t.Winter ? 1980 : 1922, 3);
-        float rolling = t.Meadow?.HeightAt(p.X,p.Y) ?? 7 + wave * (t.Winter ? 9 : 6);
+        float rolling = t.Meadow?.HeightAt(p.X,p.Y) ?? (t.Backdrop is { } backdrop ? backdrop.BaseHeight + wave * backdrop.Amplitude : 7 + wave * (t.Winter ? 9 : 6));
         float continued = h + slope * Math.Min(d, 12) * (1 - Mathf.SmoothStep(12, 70, d));
         float height = Mathf.Lerp(continued, rolling, Mathf.SmoothStep(0, 100, d));
         if (RiverAt(t, p, out float riverDistance, out float width, out float depth, out float level))

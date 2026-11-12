@@ -7,7 +7,7 @@ namespace CCCPRacing.Race;
 // State channels share the established sampled-channel codec (as AircraftState does).
 public partial class PlayerPowerTape : Node3D
 {
-    public readonly record struct State(float BoostLeft, float Power, float Overdrive, bool Golden);
+    public readonly record struct State(float BoostLeft, float Power, float Overdrive, bool Golden, float RadBoost = 0f);
     public bool Driven { get; private set; }
     readonly Func<State> _read;
     readonly Action<State> _write;
@@ -27,6 +27,8 @@ public partial class PlayerPowerTape : Node3D
             v => Write(s => s with { Overdrive = v }));
         Tape.Sound(this, TapeSoundChannel.PlayerGolden, () => _read().Golden ? 1 : 0,
             v => Write(s => s with { Golden = v > .5f }));
+        Tape.Sound(this, TapeSoundChannel.PlayerRadBoost, () => _read().RadBoost,
+            v => Write(s => s with { RadBoost = v }));
     }
     void Write(Func<State, State> change) { if (Driven) _write(change(_read())); }
     public void SetTapeDriven(bool on)

@@ -21,7 +21,11 @@
   "hillScale": 90.0,
   "birches": 160,
   "ground": "deepsnow",
-  "edgeRim": 8,
+  // The rim comes down a little (8 to 7). Its landscape beyond the map keeps the default profile: the frozen river's ice level at the map edge is tied to the old rim (roadEdgeRim), and the
+  // river must stay in a valley with banks at least 1 m above it (PhysicsTest.Backdrop), so the ground beyond cannot drop much below it.
+  "edgeRim": 7,
+  // The road keeps the heights it was graded with under the old rim (8): the track signature and the records stay valid.
+  "roadEdgeRim": 8,
   // The land rises from the river valley in the south to the airbase plateau in the north; the
   // east slope (a ridge reaching south from the plateau) carries the switchbacks, climbing all the way.
   "hills": [

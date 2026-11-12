@@ -32,6 +32,7 @@ public static partial class TrackBuilder
             Tile = def.TileSize,
             Water = def.Water,
             Meadow = def.Meadow,
+            Backdrop = def.Backdrop,
         };
         int n = t.N, nv = n + 1;
         float world = t.WorldSize;
@@ -61,7 +62,7 @@ public static partial class TrackBuilder
         int cn = t.Center.Length;
         var roadH = new float[cn];
         for (int i = 0; i < cn; i++)
-            roadH[i] = NaturalHeight(def, t.Center[i].X, t.Center[i].Y, world);
+            roadH[i] = NaturalHeight(def, t.Center[i].X, t.Center[i].Y, world, def.RoadEdgeRim);
         for (int pass = 0; pass < 3; pass++) roadH = BoxBlur(roadH, def.RoadSmoothing);
         for (int i = 0; i < cn; i++) roadH[i] += lift[i];
         for (int pass = 0; pass < 2; pass++) roadH = BoxBlur(roadH, 3);
@@ -412,7 +413,7 @@ public static partial class TrackBuilder
         }
     }
 
-    static float NaturalHeight(TrackDef def, float x, float z, float world)
+    static float NaturalHeight(TrackDef def, float x, float z, float world, float? rimOverride = null)
     {
         float hills = HillsHeight(def, x, z, world, out float calm);
         float noise = def.HillAmp * Noise.Fbm(x / def.HillScale, z / def.HillScale, def.Seed, 4);
@@ -421,7 +422,7 @@ public static partial class TrackBuilder
         if (e < EdgeMargin)
         {
             float k = 1f - e / EdgeMargin;
-            if (def.EdgeRim is float rim)
+            if ((rimOverride ?? def.EdgeRim) is float rim)
             {
                 // Rise toward a rim of about this height (a little noise left in), so the edge
                 // never outgrows the big hills; under them the wall gives way entirely and the

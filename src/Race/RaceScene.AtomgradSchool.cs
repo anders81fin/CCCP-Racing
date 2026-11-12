@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using CCCPRacing.Car;
 using CCCPRacing.Track;
 using CCCPRacing.UI;
 using Godot;
 
 namespace CCCPRacing.Race;
 
-/// <summary>Atomgrad's school demonstrations use its real hotspot, wash bay, fuel depot and mechanic.</summary>
+/// <summary>Atomgrad's school demonstrations use its real hotspot, wash bay and mechanic (the track has no fuel).</summary>
 public partial class RaceScene
 {
     Vector2 AtomgradHotSpot(int i)
@@ -53,6 +54,24 @@ public partial class RaceScene
                     return t > 4.5f;
                 }, SchoolBox.Dose, () => Ground(hot, 2f), 1f, 7f),
             },
+            "atom_rad_power" => new()
+            {
+                B("THE DOSE ADDS POWER, UP TO 15 PERCENT.", () =>
+                {
+                    ScFresh();
+                    _doseSchoolMock = true;
+                    ScRoll(at, 0, 22f);
+                    _scLook = () => Ground(hot, 1.5f);
+                }, (t, _) =>
+                {
+                    ScCruise(22f, SlideSteerNow);
+                    float msv = Math.Min(18f, 2f + t * 2.6f);
+                    MockDose(msv, false);
+                    _hud.RadBoost = EngineHealth.RadiationBoost(msv / 20f);
+                    if (t > 3f) _sc.Caption = "IT EATS THE ENGINE. WASH, OR THE GULAG.";
+                    return t > 6.5f;
+                }, SchoolBox.Dose, () => Ground(hot, 2f), 1f, 9f),
+            },
             "atom_rad_limit" => new()
             {
                 B("OVER 20 MSV: THE DOSIMETRIST STOPS YOU.", () =>
@@ -92,46 +111,4 @@ public partial class RaceScene
             },
         };
     }
-
-    List<Beat> AtomgradFuel() => new()
-    {
-        B("THROTTLE AND HIGH REVS USE FUEL.", () =>
-        {
-            ScFresh(fuel: .08f);
-            _doseSchoolMock = false;
-            ScRoll(DepotIndex - 55, 0, 35f);
-            ShotSoon("low", .5f);
-        }, (t, _) =>
-        {
-            _car.SetControls(1f, 0f, SlideSteerNow, false, false);
-            if (t > 3f) _sc.Caption = "LOW: THE GAUGE BLINKS. EMPTY: THE ENGINE DIES.";
-            return t > 6f;
-        }, SchoolBox.Fuel, null, 1f, 8f),
-    };
-
-    List<Beat> AtomgradEmptyFuel() => new()
-    {
-        B("EMPTY TANK: THE ENGINE DIES.", () =>
-        {
-            ScFresh(fuel: .0001f);
-            ScRoll(DepotIndex - 55, 0, 50f);
-        }, (t, _) =>
-        {
-            _car.SetControls(0f, 0f, SlideSteerNow, false, false);
-            if (_dry && t > 1.5f) _sc.Caption = "COAST TO THE DEPOT. A STOPPED CAR IS TOWED.";
-            return _dry && t > 4.5f;
-        }, SchoolBox.Fuel, null, 1f, 12f),
-    };
-
-    List<Beat> AtomgradRefuel() => new()
-    {
-        B("STOP IN THE DEPOT BAY TO REFUEL.", () => { ScFresh(fuel: .14f); ScRoll(DepotIndex - 45, 0, 0); },
-            (t, _) =>
-            {
-                DepotDrive();
-                if (_refuelling && _sc.T0 < 0) { _sc.T0 = t; _sc.Caption = "THE TANK FILLS WHILE THE CLOCK RUNS."; }
-                if (_sc.T0 >= 0) _sc.Speed = _tank.Fraction < .97f ? 3f : 1f;
-                return _sc.T0 >= 0 && (_tank.Fraction >= .99f && t - _sc.T0 > 1f || t - _sc.T0 > 14f);
-            }, SchoolBox.Fuel, () => Ground(_depot.Zone, 1.2f), 1f, 40f),
-    };
 }

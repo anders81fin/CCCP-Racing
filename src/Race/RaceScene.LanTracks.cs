@@ -12,11 +12,16 @@ public partial class RaceScene
     static bool _lanWorldRebuild;
     int _lanTrackChoice;
     // Ballot row ids: 0 fuel, 1 damage, 2 fuel consumption, 3 track, 4 moving obstacles. Navigation follows the
-    // card from top to bottom; a single track is shown but not chosen, and an Ilyich-only
-    // ballot has no fuel-consumption choice.
-    int[] LanBallotOrder => _net.TrackOptions.Count>1
-        ? new[]{3,0,1,2,4}
-        : _net.TrackOptions.Any(t=>t!="ilyich") ? new[]{0,1,2,4} : new[]{0,1,4};
+    // card from top to bottom; a single track is shown but not chosen, and a ballot of
+    // dry tracks only (Ilyich, Atomgrad-4) has no fuel-consumption choice.
+    int[] LanBallotOrder => LanBallotRows(_net.TrackOptions);
+    /// <summary>The navigable rows for a set of track options: the fuel-consumption row (2) only when some option has fuel (not for Ilyich/Atomgrad only), the track row (3) only with a choice of tracks.</summary>
+    internal static int[] LanBallotRows(IReadOnlyCollection<string> options)
+    {
+        bool fuel = options.Any(TrackIds.HasFuel);
+        if (options.Count > 1) return fuel ? new[]{3,0,1,2,4} : new[]{3,0,1,4};
+        return fuel ? new[]{0,1,2,4} : new[]{0,1,4};
+    }
     /// <summary>Fuel key 1..4 is a grade: is it on the ballot (the comrade with the most opened offers his fuels)?</summary>
     bool LanFuelKeyOffered(int key) => key is >= 1 and <= LanRace.FuelCount && (_net.FuelMask >> (key - 1) & 1) != 0;
     /// <summary>The offered key nearest to this one (the key itself when it is offered).</summary>

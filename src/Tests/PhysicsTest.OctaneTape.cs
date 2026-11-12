@@ -56,7 +56,7 @@ public partial class PhysicsTest
         {
             float t = n / 120f;
             bool boost = t >= 2 && t < 22;
-            state = new(boost ? 22 - t : 0, boost ? 3.5f : 1f, boost ? .5f : 0f, boost);
+            state = new(boost ? 22 - t : 0, boost ? 3.5f : 1f, boost ? .5f : 0f, boost, boost ? .12f : 0f);
             recorder.Record(t); ghost.Record(t, car, 0, 0, 0);
         }
         var saved = ghost.CopyWithTime(30); var tape = recorder.Finish(30, WorldTapeFingerprint.Of(saved)); tape.TrackId = "siberia";
@@ -72,8 +72,9 @@ public partial class PhysicsTest
         {
             player.Seek(t); bool boosted = t >= 2 && t < 22;
             Check(player.Covers(key) && live.Golden == boosted && Math.Abs(live.BoostLeft - (boosted ? 22 - t : 0)) < .2f
-                && Math.Abs(live.Power - (boosted ? 3.5f : 1)) < .025f && Math.Abs(live.Overdrive - (boosted ? .5f : 0)) < .005f,
-                $"octane: seek/loop {t:F1}s restores golden body, remaining duration and actual power/overdrive");
+                && Math.Abs(live.Power - (boosted ? 3.5f : 1)) < .025f && Math.Abs(live.Overdrive - (boosted ? .5f : 0)) < .005f
+                && Math.Abs(live.RadBoost - (boosted ? .12f : 0)) < .002f,
+                $"octane: seek/loop {t:F1}s restores golden body, remaining duration, actual power/overdrive and the radiation boost");
         }
         player.Release(); target.SetTapeDriven(false);
         Check(live == new PlayerPowerTape.State(7, 2, 0, false), "octane: replay exit restores original live boost/power presentation");
