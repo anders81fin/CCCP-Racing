@@ -299,7 +299,6 @@ public static class InputSetup
         Add("start", Key.Enter, Key.KpEnter);
         Add("debug", Key.F1);
         Add("keys", Key.K);                // the key card
-        Add("instructions", Key.I);        // pause menu: the driving school's instructions
         Add("tour", Key.T);                // CHOOSE TRACK: the track's scenic tour
         Add("track_boards", Key.L);        // CHOOSE TRACK: the highlighted track's leaderboards
         Add("comments", Key.Tab);          // centre-screen comments on/off

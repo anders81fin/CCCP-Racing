@@ -44,9 +44,7 @@ public partial class RaceScene : Node3D
     ChaseCamera _cam;
     Hud _hud;
     EngineSound _snd;
-    PaceBlip _paceBlip;
     DashChime _chime;      // the dashboard's warning lights (HudWarningLights.cs) sound
-    readonly PaceNotes _pace = new();
     HornSound _horn;
     float _honkLeft;    // the school: a honk that woke someone at once still sounds this long (s)
     bool _mechanicHeld;      // the mechanic has the car in neutral, brakes on
@@ -665,7 +663,6 @@ public partial class RaceScene : Node3D
         _countdown = 3f;
         _falseStart = false;
         _startClutchAccepted = false;
-        _pace.Reset();
         _timer.Stop();
         _ghostVis.Visible = false;
         _snd.Volume = 0.8f;
@@ -1713,8 +1710,12 @@ public partial class RaceScene : Node3D
         }
         else if (!SchoolCamera(dt) && !FateCamera(dt) && !PlanCamera(dt) && !ReplayCamera(dt) && !GameplayCamera(dt))
         {
-            CameraFeel(dt);           // RaceScene.CameraFeel.cs: speed, ground and jumps in the view
-            _cam.FollowDrive(_car.Pos, _car.Vel, dt);
+            // The Party Meeting (pause) holds the view still: the frozen car keeps its last velocity, which the look-ahead would go on following, so the picture behind the menu drifted and jerked.
+            if (_state != State.Paused)
+            {
+                CameraFeel(dt);           // RaceScene.CameraFeel.cs: speed, ground and jumps in the view
+                _cam.FollowDrive(_car.Pos, _car.Vel, dt);
+            }
         }
         CameraBoostProbe();      // (test hook, RaceScene.ViewerCameraBoostTest.cs)
         bool frozen = _state is State.Paused || SchoolFrozen;
@@ -1737,7 +1738,6 @@ public partial class RaceScene : Node3D
         SpeedTrapFrame();
         UpdateSound(dt);
         AudioMix.Tick(dt);
-        PaceNotesTick();
         Screenshot();
     }
 
@@ -1925,15 +1925,6 @@ public partial class RaceScene : Node3D
             for (int i = 0; i < 4; i++) _hud.WheelLoads[i] = _car.Wheels[i].Load;
         }
         LanHud();
-    }
-
-    /// <summary>The co-driver calls the next bend (comments on, racing): the blips, and the words in the radio box.</summary>
-    void PaceNotesTick()
-    {
-        if (_state != State.Racing || Replaying || InSchool || !_hud.Comments || _wreck || _rescue.Active) return;
-        if (!_pace.Tick(_track, new Vector2(_car.Pos.X, _car.Pos.Z), _car.Speed, out var bend)) return;
-        _paceBlip.Call(bend.Sign, bend.Severity);
-        _hud.ShowRadio((bend.Sign > 0 ? "RIGHT " : "LEFT ") + PaceNotes.Names[bend.Severity]);
     }
 
     void UpdateSound(float dt)

@@ -71,10 +71,11 @@ public partial class PhysicsTest
                 }
                 Check(chaseSteers && movingFrames > 60, "Kozlik chase: leaves ambush and follows changing lanes by steering, without sliding");
                 patrol.StopChase(); patrol.GuardAtTrap(); patrol.StartChase();
-                bool caught = false;
-                patrol.Caught += () => caught = true;
+                bool caught = false; float kissDistance = 99f;
+                patrol.Caught += () => { caught = true; kissDistance = patrol.Position2D.DistanceTo(new Vector2(car.Pos.X, car.Pos.Z)); };
                 SchoolScript.SetRolling(car, track, SchoolScript.RoadPoint(track, 185, -3), track.CenterDir(185), 0);
                 for (int frame = 0; frame < 60 * 30 && !caught; frame++) patrol.Tick(1f / 60, car, 0);
+                Check(caught && kissDistance < 4.7f && kissDistance > 3.2f, $"Kozlik: the duty officer catches the car by kissing its rear bumper (centres {kissDistance:F2} m apart), driven into at speed, not from a follow distance");
                 patrol.EndAutograph();
                 for (int frame = 0; frame < 60; frame++) patrol.Tick(1f / 60, car, 0);
                 Vector2 parkedAt = patrol.Position2D, parkedForward = patrol.Forward2D;

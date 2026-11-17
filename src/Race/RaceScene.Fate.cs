@@ -340,10 +340,11 @@ public partial class RaceScene
     {
         if(InLanRace && _net.IsHost)
         {
-            if(LanMechanicIsLocal) _hud.Show("REPAIR BROKEN OFF",$"ENGINE AT {Math.Round(_lanMechanicTarget?.Health.Health*100 ?? _health.Health*100)} %",2.5f,Hud.Paper);
+            double lanPct = Math.Round(_lanMechanicTarget?.Health.Health*100 ?? _health.Health*100);
+            if(LanMechanicIsLocal && lanPct < 100) _hud.Show("REPAIR BROKEN OFF",$"ENGINE AT {lanPct} %",2.5f,Hud.Paper);       // (at 100 % nothing was broken off)
             return;
         }
-        _hud.Show("REPAIR BROKEN OFF", $"ENGINE AT {Math.Round(_health.Health * 100)} %", 2.5f, Hud.Paper);
+        if (Math.Round(_health.Health * 100) < 100) _hud.Show("REPAIR BROKEN OFF", $"ENGINE AT {Math.Round(_health.Health * 100)} %", 2.5f, Hud.Paper);     // (at 100 % nothing was broken off)
     }
 
     /// <summary>The last blow: engine and body as they left the factory.</summary>

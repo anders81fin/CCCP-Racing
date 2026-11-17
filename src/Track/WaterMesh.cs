@@ -495,6 +495,9 @@ public static class WaterMesh
         int n = t.N;
         Vector2 ford = t.Center[t.FordIndex];
         var rng = new Random(1922);
+        // The reed beds keep away from the mill (15 m) and run on down the river instead.
+        var millProp = t.Props.Find(pr => pr.Type == "watermill");
+        bool NearMill(Vector2 q) => millProp != null && q.DistanceTo(new Vector2(millProp.Position.X, millProp.Position.Z)) < 15f;
         var padCandidates = new List<Vector2>();
         for (int z = 0; z < n; z++)
         for (int x = 0; x < n; x++)
@@ -533,7 +536,7 @@ public static class WaterMesh
             var surface = t.Surf[z * n + x];
             if (surface is not (SurfaceType.Grass or SurfaceType.Mud or SurfaceType.Dirt)) continue;
             var p = new Vector2((x + 0.5f) * t.Tile, (z + 0.5f) * t.Tile);
-            if (p.DistanceTo(ford) > 30f) continue;
+            if (p.DistanceTo(ford) > (millProp != null ? 44f : 30f) || NearMill(p)) continue;
             int ci = t.NearestCenter(p, out float roadDistance);
             if (ci >= 0 && roadDistance < t.HalfWidth[ci] + 2.1f) continue;
             bool besideWater = false;
@@ -555,7 +558,7 @@ public static class WaterMesh
                 for (int k = 0; k <= steps; k++)
                 {
                     Vector2 mid = a.Lerp(b, k / (float)steps);
-                    if (mid.DistanceTo(ford) < 8f || mid.DistanceTo(ford) > 38f) continue;
+                    if (mid.DistanceTo(ford) < 8f || mid.DistanceTo(ford) > (millProp != null ? 50f : 38f) || NearMill(mid)) continue;
                     foreach (float sign in new[] { -1f, 1f })
                     foreach (float extra in new[] { 1.5f, 2.5f, 3.5f })
                     {

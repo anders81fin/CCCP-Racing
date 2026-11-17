@@ -37,7 +37,7 @@ public partial class KozlikPatrol : Node3D
     public const float ChasePerformance = 1.2f;
     float _carTopSeen, _carPullSeen;
     const float ChaseBrake = 9f;
-    const float ChaseMax = 40f, ChaseBend = 13f, ChaseOut = 12f, TailGap = 6.5f, CatchTime = 1.5f, GiveUpTime = 30f, GiveUpGap = 170f;
+    const float ChaseMax = 40f, ChaseBend = 13f, ChaseOut = 12f, TailGap = 6.5f, KissGap = 4.35f, RamDelta = 9.5f, CatchTime = 1.5f, GiveUpTime = 30f, GiveUpGap = 170f;
 
     class GuardSpot
     {
@@ -62,7 +62,7 @@ public partial class KozlikPatrol : Node3D
     float _s, _lat, _speed, _guardTimer, _clock, _puff, _soot, _dbg, _drink, _drinkCd, _wave, _waveCd, _hic, _hicCd, _angry, _smoke, _wheelSpin;
     GuardSpot _cur, _trapSpot;
     float _chaseT, _caughtT, _askT, _pause;
-    bool _chaseOut;
+    bool _chaseOut, _kissing;
     int _chaseJoin, _carK = -1;
     float _gapToCar = float.MaxValue;     // in the chase: road metres to the car
     Node3D _beacon;
@@ -582,7 +582,9 @@ public partial class KozlikPatrol : Node3D
             }
         }
         float laneTarget = CentreLine ? 0 : (busy ? LaneAside : Lane) * _t.HalfWidth[i];
-        _lat = Mathf.MoveToward(_lat, laneTarget, 1.2f * dt);
+        float pass = OvertakeLane(i, n, target);
+        if (!float.IsNaN(pass)) laneTarget = pass;
+        _lat = Mathf.MoveToward(_lat, laneTarget, (float.IsNaN(pass) ? 1.2f : 2.4f) * dt);
 
         _speed = Mathf.MoveToward(_speed, target, (target < _speed ? 4f : 2.2f) * dt);
         float prev = _s;
@@ -652,7 +654,7 @@ public partial class KozlikPatrol : Node3D
         SetPath(Hermite(_cur.Spot, _cur.Face, _t.Center[_chaseJoin] + new Vector2(-rd.Y, rd.X) * (Lane * _t.HalfWidth[_chaseJoin]), rd));
         _carK = -1;
         _chaseOut = true;
-        _chaseT = _caughtT = 0;
+        _chaseT = _caughtT = 0; _kissing = false;
         _waiting = false;
         Siren(true);
         SetMode(Mode.Chase);
@@ -675,6 +677,7 @@ public partial class KozlikPatrol : Node3D
 
     void EndChase()
     {
+        _kissing = false;
         Siren(false);
         if (_chaseOut)
         {
@@ -748,8 +751,14 @@ public partial class KozlikPatrol : Node3D
         // (it brakes, spins, lands from a jump), and no closer than that.
         float carSpeed = car.Speed;
         float room = Math.Max(0f, gap - TailGap);
-        target = Math.Min(target, carSpeed + MathF.Sqrt(2f * ChaseBrake * room) * 0.8f);
-        if (gap < TailGap) target = Math.Max(0f, carSpeed - 2f);
+        if (!_kissing) target = Math.Min(target, carSpeed + MathF.Sqrt(2f * ChaseBrake * room) * 0.8f);
+        if (_kissing)
+        {
+            // The Russian way to stop a car: on its tail he does not touch it, he rams it. No braking at all: he closes at RamDelta m/s over the car's speed and drives into its rear bumper.
+            if (gap > KissGap) target = Math.Min(chaseMax, carSpeed + RamDelta);
+            else target = Math.Max(0f, carSpeed);
+        }
+        else if (gap < TailGap) target = Math.Max(0f, carSpeed - 2f);
         if (gap < 0f) target = 0f;                           // the car is behind us (spun, thrown back): wait for it
         _speed = Mathf.MoveToward(_speed, target, (target < _speed ? ChaseBrake : chasePull) * dt);
         _s = (_s + _speed * dt) % n;
@@ -760,8 +769,11 @@ public partial class KozlikPatrol : Node3D
 
         bool onTail = MathF.Abs(gap) < TailGap + 2.5f && MathF.Abs(clat - _lat) < 2.2f;
         _caughtT = onTail ? _caughtT + dt : Math.Max(0f, _caughtT - dt);
-        if (_caughtT >= CatchTime)
+        if (_kissing && (MathF.Abs(gap) > TailGap + 5f || MathF.Abs(clat - _lat) > 3f)) { _kissing = false; _caughtT = 0; }
+        else if (_caughtT >= CatchTime) _kissing = true;       // he lost the tail: back to chasing
+        if (_kissing && gap > 0f && gap <= KissGap + 0.15f && MathF.Abs(clat - _lat) < 1.6f)
         {
+            _kissing = false;
             _askT = 0;
             SetMode(Mode.Autograph);
             Caught?.Invoke();
@@ -912,7 +924,38 @@ public partial class KozlikPatrol : Node3D
         }
     }
 
-        /// <summary>The speed the Kozlik may keep for the vehicles moving ahead of it (TrafficCap).</summary>
+        /// <summary>
+    /// Overtaking: a slower vehicle ahead (a slurry or plough tractor with its trailer, the bus) in his lane is passed on the side with more room, as far from it as the road allows
+    /// (its radius, his own and a metre over); NaN when nothing slower is ahead or the road is too narrow beside it, and then TrafficCap makes him follow.
+    /// </summary>
+    float OvertakeLane(int i, int n, float cruise)
+    {
+        if (_mode != Mode.Road && !(_mode == Mode.Chase && !_chaseOut)) return float.NaN;
+        Vector2 fwd = Forward2D, right = new(-fwd.Y, fwd.X), c = _t.Center[i], roadRight = new(-_t.CenterDir(i).Y, _t.CenterDir(i).X);
+        float hw = _t.HalfWidth[i], limit = hw - ObsRadius * 0.5f, best = float.MaxValue, result = float.NaN;
+        for (int k = 0; k < _t.Obstacles.Count; k++)
+        {
+            var o = _t.Obstacles[k];
+            if (o.Velocity.LengthSquared() < Track.TrafficCap.MinSpeed * Track.TrafficCap.MinSpeed || o.Radius < 0.6f || o.Center.X < -9000f || Array.IndexOf(_obs, k) >= 0) continue;
+            Vector2 to = o.Center - Position2D;
+            float along = to.Dot(fwd);
+            if (along < -o.Radius - 1f || along > 30f + _speed) continue;
+            if (o.Velocity.Dot(fwd) > cruise - 1.5f) continue;                      // not slower than he wants to go: no need to pass
+            float lateralNow = MathF.Abs(to.Dot(right));
+            if (lateralNow > o.Radius + ObsRadius + 2.5f) continue;                  // clear of his way already
+            if (along < best)
+            {
+                best = along;
+                float lo = (o.Center - c).Dot(roadRight), gap = o.Radius + ObsRadius + 1f;
+                float left = lo - gap, rightSide = lo + gap;                         // the lane offsets just beside it
+                bool leftOk = left >= -limit, rightOk = rightSide <= limit;
+                result = leftOk && rightOk ? (Math.Abs(left - _lat) <= Math.Abs(rightSide - _lat) ? left : rightSide) : leftOk ? left : rightOk ? rightSide : float.NaN;
+            }
+        }
+        return result;
+    }
+
+    /// <summary>The speed the Kozlik may keep for the vehicles moving ahead of it (TrafficCap).</summary>
     float TrafficCap()
     {
         if (_mode == Mode.Guard || NoCap) return float.MaxValue;
@@ -981,7 +1024,7 @@ public partial class KozlikPatrol : Node3D
         {
             bool ask = _mode == Mode.Autograph;   // waving his notebook at the driver
             _bearArmR.Rotation = _wave > 0 || ask ? new Vector3(2.6f, 0, -0.3f + MathF.Sin(_clock * (ask ? 3f : 5f)) * 0.55f) : new Vector3(0.5f, 0, 0.15f);
-            _bearArmL.Rotation = _drink > 0 ? new Vector3(2.3f, 0, -0.55f) : new Vector3(BottleRest, 0, -0.15f);
+            _bearArmL.Rotation = _drink > 0 ? new Vector3(2.3f, 0, -0.55f) : new Vector3(BottleRest, 0, -0.6f);
             if (_drink > 0) _bearHead.Rotation = new Vector3(-0.5f, 0.3f, 0);
         }
 

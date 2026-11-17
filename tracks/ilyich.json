@@ -44,10 +44,18 @@
     { "x": 57, "z": 192, "height": 3.4, "radius": 25, "calm": 0.9 }
   ],
   // A level foundation and small yard, softly blended into the knoll. The road keeps its grade.
+  // The steep-edged bank terrace south of the ford road (a landform's limit made a cliff at X 238): relaxed into a gentle slope.
+  "smooth": [ { "x0": 233, "z0": 276, "x1": 264, "z1": 290, "passes": 400 } ],
   "pads": [
+    // The mill yard on level ground (the slope east of it was a lump beside the road): cut into the foot of the hill, packed earth.
+    { "x0": 275, "z0": 246, "x1": 291, "z1": 262, "surface": "dirt", "ground": true },
+    // The village water tower's footing by the lane.
+    { "x0": 56, "z0": 263, "x1": 70, "z1": 276, "surface": "dirt", "ground": true },
+    // The hollow between the fish pond's south bank and the mound beside the southern mud (it read as an odd dip): levelled to the bank's height, grass, soft 6 m edge (the road and the river keep their own).
+    { "x0": 200, "z0": 226, "x1": 252, "z1": 236, "surface": "grass", "ground": true, "height": 2.6 },
     { "x0": 47, "z0": 187, "x1": 67, "z1": 197, "surface": "grass", "ground": true },
     // The grain delivery yard west of the church door: the tractor and its trailer stand on a level bench cut into the knoll's side (it used to slope 3 m over the rig).
-    { "x0": 35, "z0": 187.5, "x1": 47, "z1": 199.5, "surface": "grass", "ground": true, "height": 2.6 }
+    { "x0": 35, "z0": 187.5, "x1": 47, "z1": 199.5, "surface": "dirt", "ground": true, "height": 2.6 }
   ],
   "points": [
     { "x": 95,  "z": 59,  "width": 12, "surface": "dirt" },
@@ -103,10 +111,10 @@
     { "type": "crest", "at": 960, "length": 48, "height": 1.1 }
   ],
   "fences": [
-    // The wall hugs the road edge, closer still past the grain store's east corners (790-846 m);
+    // The wall stands right at the road edge (0.7-0.9 m): a car meets the wall before the slope behind it (790-846 m: the grain store's east corners);
     // the opening at 853-858 m faces the grain store's northwest corner.
-    { "type": "stone", "from": 732, "to": 853, "side": "left", "offset": 3.8, "nearFrom": 790, "nearTo": 846, "nearOffset": 2.3 },
-    { "type": "stone", "from": 858, "to": 875, "side": "left", "offset": 3.8 },
+    { "type": "stone", "from": 732, "to": 853, "side": "left", "offset": 0.9, "nearFrom": 790, "nearTo": 846, "nearOffset": 0.7, "levelVerge": true, "levelInside": -0.3, "levelEase": 0.9 },
+    { "type": "stone", "from": 858, "to": 875, "side": "left", "offset": 0.9 },
     { "type": "stonepost", "x": 50, "z": 185 },
     { "type": "stonepost", "x": 42, "z": 182 },
     { "type": "wood", "from": 930, "to": 990, "side": "left" },
@@ -116,6 +124,28 @@
   "speedTrap": { "at": 150, "side": "right", "limit": 90 },
   "babushkas": 10,
   "busStops": [ { "at": 905, "side": "right", "drunks": 3 } ],
+  // Loose rocks, stumps and a few more trees over the open grass, in groups with calm stretches between them (TrackBuilder.Scatter.cs).
+  "scatter": [
+    { "type": "rock",   "count": 150, "minSize": 0.4, "maxSize": 0.75, "roadGap": 3.5, "propGap": 1.5, "clump": 0.15 },
+    { "type": "rock",   "count": 55,  "minSize": 0.9, "maxSize": 1.6,  "roadGap": 6,   "propGap": 4,   "clump": 0.3, "seed": 1 },
+    { "type": "stump",  "count": 50,  "minSize": 0.8, "maxSize": 1.4,  "roadGap": 5,   "propGap": 2.5, "clump": 0.25, "seed": 2 },
+    { "type": "birch",  "count": 85,  "minSize": 0.7, "maxSize": 1.2,  "roadGap": 9,   "propGap": 4.5, "clump": 0.3, "seed": 3 },
+    { "type": "spruce", "count": 40,  "minSize": 0.6, "maxSize": 1.2,  "roadGap": 10,  "propGap": 5,   "clump": 0.35, "seed": 4 },
+    { "type": "pine",   "count": 25,  "minSize": 0.8, "maxSize": 1.3,  "roadGap": 10,  "propGap": 5,   "clump": 0.4, "seed": 5 }
+  ],
+  // Windbreak belts (лесополоса) along the field edges.
+  "belts": [
+    { "x0": 116, "z0": 92,  "x1": 116, "z1": 158 },
+    { "x0": 122, "z0": 85,  "x1": 248, "z1": 85 },
+    { "x0": 122, "z0": 165, "x1": 184, "z1": 165 },
+    { "x0": 162, "z0": 230, "x1": 162, "z1": 260 },
+    { "x0": 160, "z0": 262, "x1": 186, "z1": 262 },
+    { "x0": 189, "z0": 266, "x1": 189, "z1": 292 },
+    { "x0": 294, "z0": 207, "x1": 294, "z1": 230 },
+    { "x0": 296, "z0": 207, "x1": 318, "z1": 207 },
+    { "x0": 108, "z0": 268, "x1": 132, "z1": 268 },
+    { "x0": 104, "z0": 272, "x1": 104, "z1": 296 }
+  ],
   "bushes": 420,
   "tufts": 1200,
   "fields": [
@@ -128,7 +158,23 @@
     { "surface": "field", "x0": 145, "z0": 230, "x1": 158, "z1": 260 },
     { "surface": "field", "x0": 156, "z0": 265, "x1": 184, "z1": 292 },
     { "surface": "field", "x0": 298, "z0": 211, "x1": 316, "z1": 230 },
-    { "surface": "field", "x0": 108, "z0": 272, "x1": 132, "z1": 296 }
+    { "surface": "field", "x0": 108, "z0": 272, "x1": 132, "z1": 296 },
+    // The mill's yard and the ground under it: packed earth, not lawn.
+    { "surface": "dirt",  "x0": 272.5, "z0": 244, "x1": 290, "z1": 262 },
+    // The church grain-delivery yard (the loading dock): trodden earth round the bench.
+    { "surface": "dirt",  "x0": 33, "z0": 185.5, "x1": 49, "z1": 202 },
+    // ...and the water tower's and the well's: trodden earth round them.
+    { "surface": "dirt",  "x0": 57, "z0": 264, "x1": 68.5, "z1": 276 },
+    { "surface": "dirt",  "x0": 66.5, "z0": 261.5, "x1": 73.5, "z1": 268.5 }
+  ],
+  // The mill's yard track: from its door out to the ford road.
+  "paths": [
+    { "points": [[281, 253.2], [285, 249], [282, 242.5], [277, 236.5], [272.5, 231.5]], "width": 2.6, "surface": "dirt" },
+    // The grain-delivery yard to the hairpin road below it.
+    { "points": [[41, 197], [40.5, 202], [40, 206]], "width": 3.2, "surface": "dirt" },
+    // The water tower's door to the road, and the well to the tower.
+    { "points": [[62.7, 272], [62.5, 279], [62, 284.5]], "width": 2.6, "surface": "dirt" },
+    { "points": [[70, 266.5], [66.8, 269.5], [63.6, 272]], "width": 1.7, "surface": "dirt" }
   ],
   "props": [
     { "type": "barn",  "x": 142, "z": 36,  "rot": 0 },
@@ -165,8 +211,6 @@
     { "type": "statue",    "x": 61,  "z": 163, "rot": 180 },
     { "type": "flagpole",  "x": 55,  "z": 160, "rot": 180 },
     { "type": "flagpole",  "x": 67,  "z": 160, "rot": 180 },
-    { "type": "billboard", "x": 128, "z": 72,  "rot": 0,   "text": "KOLKHOZ NO.3 ILYICH'S LAMP" },
-    { "type": "billboard", "x": 262, "z": 128, "rot": 90,  "text": "GLORY TO THE HARVEST!" },
     { "type": "drunktractor", "x": 142, "z": 36, "rot": 180 },
     // The village: the old church in the hairpin (tower and door towards the lane), log houses
     // either side of the lane, their windows to the street.
@@ -178,7 +222,17 @@
     { "type": "izba", "x": 15, "z": 240, "rot": 90 },
     { "type": "izba", "x": 60, "z": 120, "rot": -90 },
     { "type": "izba", "x": 61, "z": 142, "rot": -90 },
-    { "type": "izba", "x": 63, "z": 240, "rot": -90 }
+    { "type": "izba", "x": 63, "z": 240, "rot": -90 },
+    // New south-side buildings (last in the list so every older prop keeps its index): the water tower and the mill.
+    { "type": "watertower", "x": 62.7, "z": 269.7, "rot": 0 },
+    { "type": "watermill", "x": 276.4, "z": 252.5, "rot": 0 },
+    // Kitchen gardens and a henhouse behind the east-row izbas (their doors face the lane to the west).
+    { "type": "palacegarden", "x": 197, "z": 177, "rot": 0 },
+    { "type": "garden", "x": 73.5, "z": 120, "rot": 0 },
+    { "type": "henhouse", "x": 73, "z": 131, "rot": 0 },
+    { "type": "garden", "x": 74.5, "z": 142, "rot": 0 },
+    { "type": "garden", "x": 75.5, "z": 240, "rot": 0 },
+    { "type": "well", "x": 70.0, "z": 265.0, "rot": 0 }
   ],
   // The fish pond inside the lap and the river out of it across the road: the ford (the water
   // lies at the road's height there; a river from edge to edge would cross the lap twice).

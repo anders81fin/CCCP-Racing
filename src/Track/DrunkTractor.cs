@@ -120,7 +120,7 @@ public partial class DrunkTractor : Node3D
         _napTimer = 0;
         _hicTimer = 5f;
         _segCount = _segHead = 0;
-        _lastMark = null;
+        _lastMark = null; _safePoses.Clear(); _stuckFor = 0; _staticBlock = 0; _stuckAnchor = _start;
         _dirty = true;
         PickGoal();
         _departureStage = _barnDoor == null ? 3 : 0;
@@ -562,6 +562,41 @@ public partial class DrunkTractor : Node3D
 
     Vector2 Forward => new(-MathF.Sin(_yaw), -MathF.Cos(_yaw));
 
+    float _staticBlock;
+
+    // A tractor wedged between fixed things (a rig as long as a gate is wide) that makes no headway for 10 s is put back on a pose it held a while earlier, with a new goal.
+    readonly List<(Vector2 pos, float yaw)> _safePoses = new();
+    Vector2 _stuckAnchor; float _stuckFor, _poseTimer;
+    void Unwedge(float dt)
+    {
+        _poseTimer -= dt;
+        if (_poseTimer <= 0f && StaticPenetration(_pos + Forward * 0.2f, _pos - Forward * PloughBack) <= 0f)
+        {
+            _poseTimer = 1.5f; _safePoses.Add((_pos, _yaw)); if (_safePoses.Count > 8) _safePoses.RemoveAt(0);
+        }
+        if (_pos.DistanceTo(_stuckAnchor) > 4f) { _stuckAnchor = _pos; _stuckFor = 0; return; }
+        _stuckFor += dt;
+        if (_stuckFor < 10f || _safePoses.Count == 0) return;
+        var (p, y) = _safePoses[0];
+        _pos = p; _yaw = y; _speed = 0; _lastMark = null; _stuckAnchor = _pos; _stuckFor = 0; _staticBlock = 0; _safePoses.Clear(); PickGoal();
+    }
+    bool _backing;
+
+    float StaticPenetrationAtYaw(float yaw) => StaticPenetration(_pos + new Vector2(-MathF.Sin(yaw), -MathF.Cos(yaw)) * 0.2f, _pos - new Vector2(-MathF.Sin(yaw), -MathF.Cos(yaw)) * PloughBack);
+
+    /// <summary>The deepest overlap (m, with a 2 cm cushion) of the tractor body circle at bodyAt and the plough circle at ploughAt with any fixed obstacle; 0 if clear.</summary>
+    float StaticPenetration(Vector2 bodyAt, Vector2 ploughAt)
+    {
+        float worst = 0;
+        foreach (var (p, r) in _avoid)
+        {
+            worst = MathF.Max(worst, r + 1.45f - bodyAt.DistanceTo(p));
+            worst = MathF.Max(worst, r + 1.25f - ploughAt.DistanceTo(p));
+            worst = MathF.Max(worst, r + 1.25f - ((bodyAt + ploughAt) * 0.5f).DistanceTo(p) - 0.4f);      // the rig between the two circles (a post must not pass between tractor and plough)
+        }
+        return worst;
+    }
+
     void PickGoal()
     {
         float w = _t.WorldSize;
@@ -645,14 +680,43 @@ public partial class DrunkTractor : Node3D
         _drift = Math.Clamp(_drift * 0.995f + _rng.RandfRange(-1f, 1f) * dt * 1.5f, -0.5f, 0.5f);
         float weave = MathF.Sin(_t0 * 0.9f) * 0.45f + MathF.Sin(_t0 * 2.3f + 1f) * 0.2f;
         float steer = Math.Clamp(err * 0.6f, -0.5f, 0.5f) + weave + _drift;
+        float yawBefore = _yaw;
         _yaw += steer * dt * Math.Min(1f, 0.2f + _speed * 0.35f);
         Vector2 proposed = _pos + Forward * _speed * dt;
-        if (bus?.Blocks(proposed + Forward * 0.2f, 1.3f) == true
+        // Fixed obstacles (buildings, trees, posts, walls) are never driven through: the soft steering above only bends the path, this refuses the step that would push the body or the plough into one,
+        // and the driver, stopped, picks a new goal away from it and turns on the spot until the way is clear.
+        float pushNow = StaticPenetration(_pos + Forward * 0.2f, _pos - Forward * PloughBack), pushNext = StaticPenetration(proposed + Forward * 0.2f, proposed - Forward * PloughBack);
+        float pushBefore = StaticPenetrationAtYaw(yawBefore);
+        if (pushNow > 0f && pushNow > pushBefore + 0.0005f) { _yaw = yawBefore; proposed = _pos; pushNow = pushBefore; pushNext = pushBefore; }     // the turn itself swings the plough into something: not that way
+        if (_staticBlock > 0)
+        {
+            _staticBlock -= dt;
+            float turn = Math.Clamp(Mathf.AngleDifference(_yaw, MathF.Atan2(-(_goal - _pos).X, -(_goal - _pos).Y)) * 0.8f, -0.9f, 0.9f) * dt * 1.6f;
+            float oldYaw = _yaw; _yaw += turn;
+            if (StaticPenetrationAtYaw(_yaw) > MathF.Max(0f, StaticPenetrationAtYaw(oldYaw))) _yaw = oldYaw;   // turning on the spot must not swing the plough into it either
+        }
+        if (pushNext > 0f && (pushNow <= 0f || pushNext > pushNow - 0.0005f))
+        {
+            if (_staticBlock <= 0f)
+            {
+                Vector2 away = Vector2.Zero; int n = 0;
+                foreach (var (p, r) in _avoid) { Vector2 d = _pos - p; if (d.Length() < r + 8f) { away += d.Normalized(); n++; } }
+                if (n > 0 && away.Length() > 0.1f) { _goal = _pos + away.Normalized() * 30f; _goal = new Vector2(Math.Clamp(_goal.X, Edge + 10, _t.WorldSize - Edge - 10), Math.Clamp(_goal.Y, Edge + 10, _t.WorldSize - Edge - 10)); }
+                else PickGoal();
+                _staticBlock = 2.5f;
+            }
+            _speed = 0;
+            // Boxed in: back out slowly (if that is clear) while the driver turns, so he never sits against the obstacle for good.
+            Vector2 back = _pos - Forward * 1.2f * dt;
+            if (StaticPenetration(back + Forward * 0.2f, back - Forward * PloughBack) <= MathF.Max(0f, pushNow) && bus?.Blocks(back - Forward * PloughBack, 1.1f) != true) { _pos = back; _backing = true; }
+        }
+        else if (bus?.Blocks(proposed + Forward * 0.2f, 1.3f) == true
             || bus?.Blocks(proposed - Forward * PloughBack, 1.1f) == true
             || GulagTruck.BlocksAt(proposed + Forward * 0.2f, 1.3f) || GulagTruck.BlocksAt(proposed - Forward * PloughBack, 1.1f)) _speed = 0;
         else _pos = proposed;
         _pos = new Vector2(Math.Clamp(_pos.X, 12f, w - 12f), Math.Clamp(_pos.Y, 12f, w - 12f));
 
+        Unwedge(dt);
         Plough(dt);
         Exhaust(dt);
         Place(dt);
@@ -754,7 +818,8 @@ public partial class DrunkTractor : Node3D
             _hicTimer = _rng.RandfRange(4f, 10f);
             for (int k = 0; k < 4; k++)
                 _fx.Smoke(pipe + Vector3.Up * k * 0.3f, Vector3.Up * 2f, new Color(0.08f, 0.08f, 0.08f), 0.8f, 0.6f, 2.4f, 1.6f);
-            _yaw += _rng.RandfRange(-0.25f, 0.25f);
+            float lurchFrom = _yaw; _yaw += _rng.RandfRange(-0.25f, 0.25f);
+            if (StaticPenetrationAtYaw(_yaw) > MathF.Max(0f, StaticPenetrationAtYaw(lurchFrom))) _yaw = lurchFrom;      // the lurch never swings the plough into something
             _sound.Cough();
         }
     }

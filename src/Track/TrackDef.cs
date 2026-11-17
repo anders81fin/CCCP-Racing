@@ -60,6 +60,14 @@ public class TrackDef
     public float? EdgeRim { get; set; }
     /// <summary>The rim the ROAD's heights are graded with (null: EdgeRim). Lowering EdgeRim where the road runs within the edge margin would change the road's heights and with them the track signature (the records); set this to the old rim to keep both and let only the ground around the road follow the new rim.</summary>
     public float? RoadEdgeRim { get; set; }
+    /// <summary>Extra scattered scenery (loose rocks, boulders, stumps, trees) over the grass, clumped by noise (TrackBuilder.Scatter.cs).</summary>
+    public List<ScatterDef> Scatter { get; set; } = new();
+    /// <summary>Footpaths / yard tracks painted on the ground: a polyline of [x, z] points, Width metres wide, in the given surface (default dirt).</summary>
+    public List<PathDef> Paths { get; set; } = new();
+    /// <summary>Terrain smoothing after the water is carved: heights inside each rectangle are relaxed towards their neighbours (the rectangle's border stays), taking out lumps and cliffs left by landforms.</summary>
+    public List<SmoothDef> Smooth { get; set; } = new();
+    /// <summary>Windbreak belts (лесополоса) of staggered tree rows along field edges (TrackBuilder.Scatter.cs).</summary>
+    public List<BeltDef> Belts { get; set; } = new();
     /// <summary>How many bushes to scatter over the grass.</summary>
     public int Bushes { get; set; } = 350;
     /// <summary>How many grass tufts to scatter.</summary>
@@ -168,6 +176,11 @@ public class FenceDef
     public float NearTo { get; set; }
     public float NearOffset { get; set; }
     public float NearEase { get; set; } = 8f;
+    /// <summary>The verge between the road edge and this fence is graded level with the road (so the ground only rises at the fence or beyond it), then eases into the natural ground over LevelEase metres inside it.</summary>
+    public bool LevelVerge { get; set; }
+    public float LevelEase { get; set; } = 3.5f;
+    /// <summary>How far past the fence line (m; negative: short of it) the level verge reaches before the ease begins.</summary>
+    public float LevelInside { get; set; } = 0.6f;
 
     /// <summary>The offset at road metre m of this fence.</summary>
     public float OffsetAt(float m)
@@ -544,4 +557,50 @@ public class RoadPinchDef
     public float To { get; set; }
     public float Reduction { get; set; } = .16f;
     public float Taper { get; set; } = 18;
+}
+
+/// <summary>One kind of scattered scenery: Count of Type ("rock", "stump", "birch", "spruce", "pine") of Min..Max size, on grass at least RoadGap m from the road, clumped where noise (scale ClumpScale m) is high enough; Clump 0 = even.</summary>
+public class ScatterDef
+{
+    public string Type { get; set; } = "rock";
+    public int Count { get; set; } = 40;
+    public float MinSize { get; set; } = 0.7f;
+    public float MaxSize { get; set; } = 1.3f;
+    public float RoadGap { get; set; } = 5f;
+    public float PropGap { get; set; } = 2.5f;
+    public float Clump { get; set; } = 0.3f;
+    public float ClumpScale { get; set; } = 28f;
+    public int Seed { get; set; }
+}
+
+/// <summary>A windbreak belt along the line (X0, Z0)-(X1, Z1): Rows staggered rows Spacing m apart, trees chosen from Kinds, clear of the road by Gap m.</summary>
+public class BeltDef
+{
+    public float X0 { get; set; }
+    public float Z0 { get; set; }
+    public float X1 { get; set; }
+    public float Z1 { get; set; }
+    public int Rows { get; set; } = 2;
+    public float Spacing { get; set; } = 3.4f;
+    public float RowGap { get; set; } = 2.8f;
+    public float Gap { get; set; } = 7f;
+    public float MinSize { get; set; } = 0.85f;
+    public float MaxSize { get; set; } = 1.25f;
+    public List<string> Kinds { get; set; } = new() { "birch", "birch", "pine", "birch", "spruce" };
+}
+
+public class PathDef
+{
+    public List<float[]> Points { get; set; } = new();
+    public float Width { get; set; } = 2.4f;
+    public string Surface { get; set; } = "dirt";
+}
+
+public class SmoothDef
+{
+    public float X0 { get; set; }
+    public float Z0 { get; set; }
+    public float X1 { get; set; }
+    public float Z1 { get; set; }
+    public int Passes { get; set; } = 200;
 }

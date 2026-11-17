@@ -31,7 +31,8 @@ public partial class PhysicsTest
             for (float f = 0; f <= 1; f += 0.1f)
             {
                 var p = PartyDacha.Drive[i].Lerp(PartyDacha.Drive[i + 1], f);
-                gravel &= t.Sample(p.X, p.Y).Surface == SurfaceType.Gravel;
+                if (PartyDacha.InCourt(p)) continue;      // (the paved roundabout: the drive goes round its rondel)
+                gravel &= t.Sample(p.X, p.Y).Surface is SurfaceType.Gravel or SurfaceType.Concrete;
                 foreach (var o in t.Obstacles)
                     clear &= o.Center.DistanceTo(p) > o.Radius + 1.2f;
             }
@@ -101,7 +102,7 @@ public partial class PhysicsTest
         Check(footings,"eight stone footings extend into actual ground and meet the terrace underside");
         var boat = PartyRowboat.Build(t);
         var grounds = PartyDacha.Grounds(t);
-        Check(building.GetChildCount() == 2 && grounds.GetChildCount() == 2, "palace and estate details use batched meshes");
+        Check(building.GetChildCount() == 2 && grounds.GetChildCount() == 3, "palace and estate details use batched meshes (the yard, the batched objects and the hedges)");
         var lighting = building.GetNode<Node3D>("DachaLighting");
         Check(!lighting.GetChildren().OfType<MeshInstance3D>().Any(m=>m.Position.Y>6.6f && m.Position.Z>8),
             "upper lamps are wall-mounted rather than floating over the balcony railing");

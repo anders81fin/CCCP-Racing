@@ -422,7 +422,7 @@ public partial class RaceScene
                 if(!_net.IsHost)
                 {
                     if(correction.MechanicRepairing && !_lanMechanicRepairing) _hud.Show("THE MECHANIC IS ON THE JOB","THE ENGINE MENDS BY THE SECOND. THROTTLE BREAKS IT OFF",3f,Hud.Paper);
-                    if(!correction.MechanicRepairing && _lanMechanicRepairing) _hud.Show(repaired?"AS GOOD AS NEW!":"REPAIR BROKEN OFF",repaired?"THE MECHANIC'S FEE: A BOTTLE":$"ENGINE AT {Math.Round(correction.Health*100)} %",3f,repaired?Hud.Gold:Hud.Paper,plain:repaired?"REPAIRED":"REPAIR STOPPED");
+                    if(!correction.MechanicRepairing && _lanMechanicRepairing && (repaired || Math.Round(correction.Health*100) < 100)) _hud.Show(repaired?"AS GOOD AS NEW!":"REPAIR BROKEN OFF",repaired?"THE MECHANIC'S FEE: A BOTTLE":$"ENGINE AT {Math.Round(correction.Health*100)} %",3f,repaired?Hud.Gold:Hud.Paper,plain:repaired?"REPAIRED":"REPAIR STOPPED");
                 }
                 _lanMechanicRepairing=correction.MechanicRepairing;
                 bool lap=correction.Laps>_timer.LapsDone;

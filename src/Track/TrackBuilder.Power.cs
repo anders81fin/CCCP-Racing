@@ -34,7 +34,9 @@ public static partial class TrackBuilder
         int lampFeed = east;
         east = Pole(new Vector2(51, 156), east);
         east = Pole(new Vector2(51, 166), east);
-        Pole(new Vector2(51, 230), trunk[^1]);
+        int south = Pole(new Vector2(51, 230), trunk[^1]);
+        south = Pole(new Vector2(51, 246), south);
+        south = Pole(new Vector2(53, 262), south);      // on to the water tower's pump (its service drop is made below)
 
         int buildingCount = t.Props.Count;
         for (int i = 0; i < buildingCount; i++)
@@ -47,6 +49,7 @@ public static partial class TrackBuilder
                 case "church": anchor = new Vector3(-3.6f, 5.2f, 0); break;
                 case "barn": anchor = new Vector3(-4.12f, 4.1f, -3); break;
                 case "silo": anchor = new Vector3(0, 5.4f, -2.65f); break;
+                case "watertower": anchor = new Vector3(0, 5.2f, 1.42f); break;
                 case "dormitory": anchor = new Vector3(14f, 3.9f, Village.DormDepth / 2 + 0.1f); break;
                 case "startbarn": anchor = new Vector3(-p.Size - 0.35f, 6.2f, 0); break;
                 default: continue;

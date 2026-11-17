@@ -674,7 +674,7 @@ public partial class Hud : Control
                 PauseRowId.Continue => P("ESC    ", "BACK   ") + "CONTINUE",
                 PauseRowId.Restart => P("R      ", "X      ") + "RESTART RACE",
                 PauseRowId.Exit => "       EXIT RACE",
-                PauseRowId.Instructions => P("I      ", "       ") + "DRIVING SCHOOL",
+                PauseRowId.Instructions => "       DRIVING SCHOOL",
                 _ => "       SETTINGS",
             };
             if (id == PauseRowId.Replay) replayLine = line;

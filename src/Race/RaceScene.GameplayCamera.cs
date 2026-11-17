@@ -1,3 +1,4 @@
+using System;
 using CCCPRacing.Camera;
 using CCCPRacing.Track;
 using Godot;
@@ -71,6 +72,9 @@ public partial class RaceScene
                 model.Visible = !_cameraDiscoveries.Has(_track.Id, view);
     }
     float _gameplayOldFov, _gameplayOldNear, _gameplayOldFar;
+    float _rearFov = RearFovStanding;
+    /// <summary>The follow-behind view's lens: narrower standing, wider at speed (a wide field of view makes the roadside race past faster), a smooth step over 0..45 m/s, eased in time.</summary>
+    const float RearFovStanding = 64f, RearFovFast = 76f;
 
     // Schools and recordings own their camera. Scripted failures, towing and plan endings do too.
     bool GameplayCameraAllowed => (_state is State.Countdown or State.Racing or State.Paused or State.Finished or State.Failed || ViewerMode && _state == State.Title)
@@ -110,7 +114,7 @@ public partial class RaceScene
             _gameplayCameraActive = true;
         }
         else if (_state == State.Paused && _gameplayLastView == _gameplayView) return true;
-        if (_gameplayLastView != _gameplayView) { _gameplayCamera.Reset(); _bonnetFeel.Reset(); }
+        if (_gameplayLastView != _gameplayView) { _gameplayCamera.Reset(); _bonnetFeel.Reset(); _rearFov = RearFovStanding; }
         _gameplayLastView = _gameplayView;
         if (_gameplayView == GameplayView.Bonnet)
         {
@@ -127,7 +131,10 @@ public partial class RaceScene
             return true;
         }
         var frame = _gameplayCamera.Frame(_car.Pos, _car.Vel, _car.Forward, dt, _track.MeshHeight, _cam.Rumble);
-        _cam.Fov = 68f;      // (a wide lens: the speed shows in a close chase)
+        float rearSpeed = new Vector2(_car.Vel.X, _car.Vel.Z).Length();
+        float rearSp = Math.Clamp(rearSpeed / 45f, 0f, 1f); rearSp = rearSp * rearSp * (3f - 2f * rearSp);
+        _rearFov = Mathf.Lerp(_rearFov, Mathf.Lerp(RearFovStanding, RearFovFast, rearSp), 1f - MathF.Exp(-2.5f * Math.Clamp(dt, 0f, 0.05f)));
+        _cam.Fov = _rearFov;      // (a wide lens that widens with the speed: the roadside races past faster in a close chase)
         _cam.Near = 0.2f;
         _cam.Far = 600f;
         _cam.Pose(frame.eye, frame.target, _car.Pos, dt, frame.roll);

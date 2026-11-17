@@ -45,6 +45,13 @@ public partial class PhysicsTest : Node
 
     public override void _Ready()
     {
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--kozlik-overtake-test")){KozlikOvertakeTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--busstop-leave-test")){BusStopLeaveTest();GetTree().Quit(_failures==0?0:1);return;}
+        {var bp=Array.Find(OS.GetCmdlineUserArgs(),a=>a.StartsWith("--busstop-profile="));if(bp!=null){BusStopProfile(bp["--busstop-profile=".Length..]);GetTree().Quit();return;}}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--tractor-hedge-test")){TractorHedgeTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--slurry-path-test")){SlurryPathTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--slurry-depart-test")){SlurryDepartureTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--tractor-block-test")){TractorBlockTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--grade-gears")){GradeGearSearch();GetTree().Quit();return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--grade-surfaces")){GradeSurfaces();GetTree().Quit();return;}
         var propId=Array.Find(OS.GetCmdlineUserArgs(),a=>a.StartsWith("--prop-road="));
@@ -527,7 +534,6 @@ public partial class PhysicsTest : Node
         if (OS.HasEnvironment("FUELTEST")) { FuelTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }   // the tank alone (PhysicsTest.Fuel.cs)
         if (OS.HasEnvironment("WATERLAB")) { WaterEntryTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }   // the car into water (PhysicsTest.WaterEntry.cs)
         if (OS.HasEnvironment("FUELLAB")) { FuelGradesTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }   // the rally's fuels (PhysicsTest.FuelGrades.cs)
-        if (OS.HasEnvironment("PACELAB")) { PaceLab(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }   // the co-driver's bends (PhysicsTest.PaceNotes.cs)
         if (OS.HasEnvironment("CRUISEWAV")) { CruiseWav(OS.GetEnvironment("CRUISEWAV")); GetTree().Quit(); return; }   // a steady drive on each ground (PhysicsTest.CruiseSound.cs)
         if (OS.HasEnvironment("SKIDWAV")) { SkidWav(OS.GetEnvironment("SKIDWAV")); GetTree().Quit(); return; }   // the tyres' sound on each ground (PhysicsTest.SkidSound.cs)
         RearWingTest();

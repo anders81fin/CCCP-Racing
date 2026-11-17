@@ -40,7 +40,6 @@ public partial class RaceScene
         else if (Input.IsActionJustPressed("rescue")) PlanRestart();
         else if (Input.IsActionJustPressed("pause")) PauseChooseId(PauseRowId.Continue);
         else if (Input.IsActionJustPressed("keys")) ShowKeys();
-        else if (Input.IsActionJustPressed("instructions")) EnterLessons();
         else if (Input.IsActionJustPressed("rumble")) ToggleRumble();
     }
 

@@ -343,8 +343,6 @@ public partial class RaceScene
 
         _snd = new EngineSound();
         AddChild(_snd);
-        _paceBlip = new PaceBlip();
-        AddChild(_paceBlip);
         _chime = new DashChime();
         AddChild(_chime);
         _horn = new HornSound();

@@ -6,7 +6,7 @@ namespace CCCPRacing.UI;
 
 /// <summary>
 /// Revenge alerts: a banner of their own above the usual message line (so a fence or a crash
-/// comment cannot wipe out "THAT WAS THE PILOT'S MOTHER!"), and small top-right indicators
+/// comment cannot wipe out "THAT WAS THE PILOT'S MOTHER!"), and small indicators at the bottom centre (the free part of the screen; the top right belongs to the norm card)
 /// while a revenge is on.
 /// </summary>
 public partial class Hud
@@ -23,15 +23,15 @@ public partial class Hud
     void DrawRevenge()
     {
         var s = Screen;
-        float y = 20;
+        float y = s.Y - 16;
         foreach (var text in new[] { RevengeJet, RevengeTanks, RevengeSlurry })
         {
             if (text == null) continue;
             float w = PixelFont.Measure(text) + 8;
-            var r = new Rect2(Mathf.Floor(s.X - w - 4), y, w, 12);
+            var r = new Rect2(Mathf.Floor(s.X / 2 - w / 2), y, w, 12);
             Panel(r, 0.75f);
             PixelFont.Draw(this, text, r.Position + new Vector2(4, 3), (int)(_clock * 2) % 2 == 0 ? Red : Gold);
-            y += 14;
+            y -= 14;
         }
 
         DrawMissileArrows();

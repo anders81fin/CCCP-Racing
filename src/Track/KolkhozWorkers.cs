@@ -41,7 +41,7 @@ public partial class KolkhozWorkers : Node3D
         // Keep the road and the whole crossing apron clear.
         yield return new(new Vector2(241.3f, 225), 2.4f, KolkhozJob.Fish, 0, 0);
         yield return new(new Vector2(232.5f, 233.6f), -0.74f, KolkhozJob.Fish, 2, 1.7f);
-        yield return new(new Vector2(279, 261), 2.4f, KolkhozJob.Fish, 4, 3.4f);
+        yield return new(new Vector2(285.8f, 272.5f), 1.45f, KolkhozJob.Fish, 4, 3.4f);
         yield return new(new Vector2(267.5f, 267.6f), -0.74f, KolkhozJob.Fish, 2, 5.1f);
     }
 

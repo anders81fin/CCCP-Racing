@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using Godot;
 
@@ -163,6 +164,65 @@ public static partial class TrackBuilder
             }
         }
 
+        // Bus stop lay-by: the verge in front of the shelter is graded level with the road for 9 m along it (the roadside ditch and the banks beyond the 7 m pad were a lip a parked car caught on when pulling away).
+        foreach (var stop in t.BusStops)
+        {
+            if (OS.HasEnvironment("NOLAYBY")) break;
+            Vector2 dir = t.CenterDir(stop.Index), right = new(-dir.Y, dir.X);
+            float side = (stop.Position - t.Center[stop.Index]).Dot(right) >= 0 ? 1f : -1f;
+            const float Along = 9f, Fade = 4f;
+            float reachOut = t.HalfWidth[stop.Index] + 3.4f + 3.5f;
+            var corners = new[] { stop.Position - dir * (Along + Fade) - right * side * 12f, stop.Position + dir * (Along + Fade) + right * side * 12f, stop.Position - dir * (Along + Fade) + right * side * 12f, stop.Position + dir * (Along + Fade) - right * side * 12f };
+            float bx0 = corners.Min(c => c.X), bx1 = corners.Max(c => c.X), bz0 = corners.Min(c => c.Y), bz1 = corners.Max(c => c.Y);
+            for (int iz = Math.Max(0, (int)(bz0 / t.Tile)); iz <= Math.Min(nv - 1, (int)(bz1 / t.Tile) + 1); iz++)
+            for (int ix = Math.Max(0, (int)(bx0 / t.Tile)); ix <= Math.Min(nv - 1, (int)(bx1 / t.Tile) + 1); ix++)
+            {
+                var p = new Vector2(ix * t.Tile, iz * t.Tile);
+                int rc = grid.Nearest(p, 14f, out float rd);
+                if (rc < 0 || rd < t.HalfWidth[rc] + 1.5f) continue;                                  // never the road itself
+                Vector2 rel = p - t.Center[stop.Index];
+                float along = MathF.Abs(rel.Dot(dir)), lateral = rel.Dot(right) * side;
+                if (lateral < 0f || lateral > reachOut + Fade) continue;
+                float w = (1f - SmoothStep(Along, Along + Fade, along)) * (1f - SmoothStep(reachOut, reachOut + Fade, lateral));
+                if (w <= 0f) continue;
+                t.Heights[iz * nv + ix] = Mathf.Lerp(t.Heights[iz * nv + ix], roadH[rc], w);
+            }
+        }
+
+        // Fences marked LevelVerge: the road's own height holds out to the fence (and 0.6 m past it), then the ground eases back into the natural slope inside; no embankment on the road side of the wall.
+        foreach (var f in def.Fences)
+        {
+            if (!f.LevelVerge || OS.HasEnvironment("NOLEVEL")) continue;
+            float sign = f.Side == "left" ? -1f : 1f;
+            for (float m = f.From; m <= f.To; m += 0.5f)
+            {
+                int i = ((int)m % cn + cn) % cn;
+                Vector2 dir = t.CenterDir(i), side = new Vector2(-dir.Y, dir.X) * sign;
+                float reach = f.OffsetAt(m) + f.LevelInside, hw = t.HalfWidth[i], total = hw + reach + f.LevelEase;
+                for (float lat = hw; lat <= total; lat += t.Tile * 0.5f)
+                {
+                    Vector2 p = t.Center[i] + side * lat;
+                    int ix0 = (int)MathF.Floor(p.X / t.Tile), iz0 = (int)MathF.Floor(p.Y / t.Tile);
+                    for (int dz = 0; dz <= 1; dz++)
+                    for (int dx = 0; dx <= 1; dx++)
+                    {
+                        int ix = ix0 + dx, iz = iz0 + dz;
+                        if (ix < 0 || iz < 0 || ix >= nv || iz >= nv) continue;
+                        var vp = new Vector2(ix * t.Tile, iz * t.Tile);
+                        int rc = grid.Nearest(vp, 14f, out float rd);
+                        if (rc < 0) continue;
+                        float vlat = (vp - t.Center[i]).Dot(side) - hw;
+                        if (MathF.Abs((vp - t.Center[i]).Dot(dir)) > 1.2f || vlat < 0f) continue;       // only this cross-section's own cells
+                        float w = 1f - SmoothStep(reach, reach + f.LevelEase, vlat);
+                        if (w <= 0f || rd < t.HalfWidth[rc]) continue;
+                        float target = roadH[i];
+                        float h = t.Heights[iz * nv + ix];
+                        t.Heights[iz * nv + ix] = Mathf.Lerp(h, target, w);
+                    }
+                }
+            }
+        }
+
         foreach (var prop in def.Props)
             if (prop.Type == "dormitory")
             {
@@ -176,6 +236,26 @@ public static partial class TrackBuilder
         foreach (var _ in BonusAirbase.GradeSteps(t)) { LoadProf.At(); yield return null; slice.Restart(); }
         LoadProf.At(); yield return null; slice.Restart();
         foreach (var _ in CarveWaterSteps(def, t, grid, roadH)) { LoadProf.At(); yield return null; slice.Restart(); }     // TrackBuilder.Water.cs: ponds, rivers, the ford
+        foreach (var sm in def.Smooth)       // lumps and cliffs left by landforms: relax the heights inside the rectangle (water and the road are left as they are)
+        {
+            int x0 = Math.Max(1, (int)MathF.Ceiling(sm.X0 / t.Tile)), x1 = Math.Min(nv - 2, (int)(sm.X1 / t.Tile)), z0 = Math.Max(1, (int)MathF.Ceiling(sm.Z0 / t.Tile)), z1 = Math.Min(nv - 2, (int)(sm.Z1 / t.Tile));
+            var free = new bool[nv * nv];
+            for (int iz = z0; iz <= z1; iz++) for (int ix = x0; ix <= x1; ix++)
+            {
+                var vp = new Vector2(ix * t.Tile, iz * t.Tile); int rc = grid.Nearest(vp, 12f, out float rd);
+                bool wet = !float.IsNaN(t.WaterLevel) && t.Heights[iz * nv + ix] < t.WaterLevel - 0.08f;      // (the carved bed stays)
+                free[iz * nv + ix] = !wet && !(rc >= 0 && rd < t.HalfWidth[rc] + 3f);
+            }
+            for (int pass = 0; pass < sm.Passes; pass++)
+            {
+                if (pass % 20 == 0) { LoadProf.At(); yield return null; slice.Restart(); }
+                for (int iz = z0; iz <= z1; iz++) for (int ix = x0; ix <= x1; ix++)
+                {
+                    int i = iz * nv + ix; if (!free[i]) continue;
+                    t.Heights[i] = 0.5f * t.Heights[i] + 0.125f * (t.Heights[i - 1] + t.Heights[i + 1] + t.Heights[i - nv] + t.Heights[i + nv]);
+                }
+            }
+        }
         LoadProf.At(); yield return null; slice.Restart();
         if (t.Id == "ilyich")
         {
@@ -221,6 +301,16 @@ public static partial class TrackBuilder
                 foreach (var f in def.Fields)
                     if (p.X >= f.X0 && p.X <= f.X1 && p.Y >= f.Z0 && p.Y <= f.Z1)
                         s = Surfaces.Parse(f.Surface);
+                foreach (var path in def.Paths)
+                {
+                    float best = float.MaxValue;
+                    for (int k = 0; k + 1 < path.Points.Count; k++)
+                    {
+                        var a = new Vector2(path.Points[k][0], path.Points[k][1]); var b = new Vector2(path.Points[k + 1][0], path.Points[k + 1][1]);
+                        best = Math.Min(best, Geometry2D.GetClosestPointToSegment(p, a, b).DistanceTo(p));
+                    }
+                    if (best < path.Width * 0.5f) s = Surfaces.Parse(path.Surface);
+                }
                 if (s == SurfaceType.Grass && !winter && Noise.Value(p.X / 9f, p.Y / 9f, def.Seed + 9) > 0.62f)
                     s = SurfaceType.Mud;
             }
@@ -706,9 +796,53 @@ public static partial class TrackBuilder
                 t.DachaGuardObstacles.Add(t.Obstacles.Count);
                 t.Obstacles.Add(new Obstacle(guard.At, KolkhozWorkers.BodyRadius, default, false, 0.5f, true, 2.5f, Material: ImpactMaterial.Soft));     // knocked over, not a wall (the estate is kept clear already)
             }
+            // The paved car park and its surroundings stay free of trees and bushes.
+            for (float fz = 188.5f; fz <= 199.5f; fz += 1.6f) for (float fx = 240f; fx <= 257f; fx += 1.6f) occupied.Add(new Vector2(fx, fz));
+            // The slurry tractor's way from its barn to its circuit: planned now round every building, wall and the dacha, and kept free of trees and bushes (about 9 m wide), so it never has to push through the wood.
+            var slurryBarn = t.Props.Find(pr => pr.Type == "bigbarn");
+            if (slurryBarn != null)
+            {
+                var way = SlurryTractor.Plan(t, new Vector2(slurryBarn.Position.X, slurryBarn.Position.Z + 22f), SlurryTractor.Route(-0.6f));
+                if (way != null)
+                    for (int k = 0; k + 1 < way.Count; k++)
+                        for (float d = 0; d <= way[k].DistanceTo(way[k + 1]); d += 1.5f)
+                            occupied.Add(way[k].Lerp(way[k + 1], d / Math.Max(0.01f, way[k].DistanceTo(way[k + 1]))));
+            }
+            // The yard path in front of every izba door (and the earth paths of the mill, the tower and the well) stays free of bushes, tufts, stumps and rocks.
+            foreach (var house in t.Props)
+                if (house.Type == "izba")
+                {
+                    var hp = Village.HouseAccessPath(t, house);
+                    for (int k = 0; k + 1 < hp.Count; k++)
+                        for (float d = 0; d <= hp[k].DistanceTo(hp[k + 1]); d += 1.2f)
+                        {
+                            Vector2 c = hp[k].Lerp(hp[k + 1], d / Math.Max(0.01f, hp[k].DistanceTo(hp[k + 1])));
+                            for (float ox = -2.4f; ox <= 2.41f; ox += 1.2f) for (float oz = -2.4f; oz <= 2.41f; oz += 1.2f) occupied.Add(c + new Vector2(ox, oz));
+                        }
+                }
+            foreach (var path in def.Paths)
+                for (int k = 0; k + 1 < path.Points.Count; k++)
+                {
+                    var a = new Vector2(path.Points[k][0], path.Points[k][1]); var b = new Vector2(path.Points[k + 1][0], path.Points[k + 1][1]);
+                    for (float d = 0; d <= a.DistanceTo(b); d += 1.0f) occupied.Add(a.Lerp(b, d / Math.Max(0.01f, a.DistanceTo(b))));
+                }
+            foreach (var f in def.Fields)
+                if (f.Surface == "dirt") for (float fz = f.Z0; fz <= f.Z1; fz += 1.6f) for (float fx = f.X0; fx <= f.X1; fx += 1.6f) occupied.Add(new Vector2(fx, fz));
+            // Never trees (or bushes) on or at the edge of a crop field: every field rectangle and wheat parcel, grown by 3 m, is kept free.
+            foreach (var f in def.Fields)
+                if (f.Surface == "field")
+                    for (float fz = f.Z0 - 3f; fz <= f.Z1 + 3f; fz += 2f) for (float fx = f.X0 - 3f; fx <= f.X1 + 3f; fx += 2f) occupied.Add(new Vector2(fx, fz));
+            foreach (var wf in t.Props)
+                if (wf.Type == "wheatfield")
+                {
+                    var parts = (wf.Text ?? "24;30").Split(';');
+                    float ww = parts.Length > 0 && float.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var w0) ? w0 : 24f;
+                    float wl = parts.Length > 1 && float.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var l0) ? l0 : 30f;
+                    for (float fz = -wl / 2 - 3f; fz <= wl / 2 + 3f; fz += 2f) for (float fx = -ww / 2 - 3f; fx <= ww / 2 + 3f; fx += 2f) occupied.Add(new Vector2(wf.Position.X + fx, wf.Position.Z + fz));
+                }
             // Keep ornamental grounds and the complete access corridor free of random vegetation.
-            for (float z = 162; z <= 193; z += 2)
-            for (float x = 200; x <= 248; x += 2) occupied.Add(new Vector2(x, z));
+            for (float z = 162; z <= 232; z += 2)
+            for (float x = 186; x <= 256; x += 2) if (PartyDacha.InGrounds(new Vector2(x, z))) occupied.Add(new Vector2(x, z));
             for (int i = 0; i + 1 < PartyDacha.Drive.Length; i++)
             {
                 var a = PartyDacha.Drive[i]; var b = PartyDacha.Drive[i + 1];
@@ -717,6 +851,7 @@ public static partial class TrackBuilder
             }
             // Lantern posts round the dacha's pond, for the dark.
             foreach (var site in PartyDacha.PondLampSites(t)) AddProp(t, "pondlamp", site, 0, null, occupied);
+            foreach (var site in PartyDacha.DriveLampSites(t)) AddProp(t, "pondlamp", site, 0, null, occupied);       // ...and the same lanterns along the entrance drive
         }
         if (t.Id == "bonus")
         {
@@ -858,6 +993,8 @@ public static partial class TrackBuilder
         PlaceLogPiles(def, t, occupied);
         yield return 0; slice.Restart();
         PlaceTaiga(def, t, grid, occupied);      // TrackBuilder.Taiga.cs: winter only
+        foreach (var step in ScatterExtraSteps(def, t, grid, occupied)) { yield return step; slice.Restart(); }      // TrackBuilder.Scatter.cs
+        foreach (var step in PlaceBeltsSteps(def, t, grid, occupied)) { yield return step; slice.Restart(); }
     }
 
     /// <summary>
@@ -994,6 +1131,8 @@ public static partial class TrackBuilder
             Flush();
         }
 
+        if (t.Id == "ilyich") foreach (var wall in PartyDacha.DriveWalls(t)) { t.Fences.Add(new FenceRun("stone", wall)); foreach (var w in wall) occupied.Add(new Vector2(w.X, w.Z)); }      // the dacha drive's walls
+
         // Collision: stone walls are a chain of small circles (wooden fences break instead, see
         // WoodFences); occupancy so trees and poles keep clear of both.
         // Each ~2 m stone segment owns its circles (the shared end circle goes to the next one),
@@ -1040,10 +1179,34 @@ public static partial class TrackBuilder
         occupied.Add(p);
         if (type is "birch" or "spruce" or "pine" or "redpine" or "pole" or "hay") t.PropObstacle[t.Props.Count - 1] = t.Obstacles.Count;
         Vector2 ax = new(MathF.Cos(rot), -MathF.Sin(rot)), az = new(MathF.Sin(rot), MathF.Cos(rot));    // local X and Z
+        // Footprints kept free of random trees, bushes and scatter (gardens, the henhouse, the water tower, the well, the mill and its flume).
+        void Reserve(float cx, float cz, float hx, float hz)
+        {
+            for (float x = -hx; x <= hx; x += 1.8f) for (float z = -hz; z <= hz; z += 1.8f) occupied.Add(p + ax * (cx + x) + az * (cz + z));
+        }
+        switch (type)
+        {
+            case "garden": Reserve(0, 0, 6.4f, 5.8f); break;
+            case "henhouse": Reserve(2.2f, 0, 6.2f, 3.6f); break;
+            case "palacegarden": Reserve(0, 0, 9.4f, 13f); break;
+            case "watertower": Reserve(0, 0, 3.6f, 3.6f); break;
+            case "well": Reserve(0, 0, 3.2f, 4.2f); break;
+            case "watermill": Reserve(-1f, 0, 11f, 11f); break;
+        }
         switch (type)
         {
             case "birch": t.Obstacles.Add(new Obstacle(p, size > 0 ? Props.TreeObstacleRadius(type, size) : 0.35f, default, true, Breakables.BreakSpeed(type, size))); break;
             case "spruce" or "pine" or "redpine": t.Obstacles.Add(new Obstacle(p, Props.TreeObstacleRadius(type, size > 0 ? size : 1f), default, false, Breakables.BreakSpeed(type, size))); break;
+            case "rock": if (size >= 0.8f) t.Obstacles.Add(new Obstacle(p, 0.42f * size, Material: ImpactMaterial.Stone)); break;     // (small stones are only seen, not hit)
+            case "stump": t.Obstacles.Add(new Obstacle(p, 0.38f * Math.Max(size, 0.7f), Material: ImpactMaterial.Wood)); break;
+            case "garden" or "henhouse" or "palacegarden":
+                foreach (var (lx, lz, r) in type == "garden" ? Garden.Circles() : type == "palacegarden" ? PalaceGarden.Circles() : Henhouse.Circles())
+                    t.Obstacles.Add(new Obstacle(p + ax * lx + az * lz, r, Material: type == "palacegarden" ? ImpactMaterial.Stone : ImpactMaterial.Wood));
+                break;
+            case "watertower" or "watermill" or "well":
+                foreach (var (lx, lz, r) in type == "watermill" ? WaterMill.Circles() : type == "well" ? WellHouse.Circles() : WaterTower.Circles())
+                    t.Obstacles.Add(new Obstacle(p + ax * lx + az * lz, r, Material: type is "watermill" or "well" ? ImpactMaterial.Stone : ImpactMaterial.Wood));
+                break;
             case "streetlamp": t.Obstacles.Add(new Obstacle(p, 0.16f)); break;
             case "pondlamp": t.Obstacles.Add(new Obstacle(p, 0.14f)); break;
             case "powercabinet": t.Obstacles.Add(new Obstacle(p, 0.65f)); break;
@@ -1204,8 +1367,8 @@ public static partial class TrackBuilder
         }
         ImpactMaterial material = type switch
         {
-            "birch" or "spruce" or "pine" or "redpine" or "deadtree" or "pole" or "izba" => ImpactMaterial.Wood,
-            "church" or "stonepost" or "statue" or "stack" or "apartments" or "culture" or "reactor" or "sarcophagus" => ImpactMaterial.Stone,
+            "birch" or "spruce" or "pine" or "redpine" or "deadtree" or "stump" or "pole" or "izba" or "garden" or "henhouse" => ImpactMaterial.Wood,
+            "rock" or "watermill" or "well" or "church" or "stonepost" or "statue" or "stack" or "apartments" or "culture" or "reactor" or "sarcophagus" => ImpactMaterial.Stone,
             "hay" or "fieldtent" => ImpactMaterial.Soft,
             "streetlamp" or "pondlamp" or "powercabinet" or "silo" or "lorrywreck" or "tractor" or "hangar" or "fieldtruck"
                 or "fieldfuel" or "fieldgenerator" or "windsock" or "flagpole" or "radar" or "wreck" or "pipebridge"

@@ -27,8 +27,23 @@ public partial class RaceScene
         { SetPower(_powerSwitches[_powerSwitchNext].pct); GD.Print($"powerswitch t={_lapClock:F3} -> {_powerSwitches[_powerSwitchNext].pct} %"); _powerSwitchNext++; }
     }
 
+    // --pause-probe=T: at lap clock T the game is paused as the Esc key does, then the camera's pose is printed every frame for 3 s (the view behind the PARTY MEETING must not move).
+    float _ppAt = -1; int _ppFrames; bool _ppRead; Vector3 _ppLast;
+    void PauseProbe()
+    {
+        if (!_ppRead) { _ppRead = true; foreach (string a in CmdArgs()) if (a.StartsWith("--pause-probe=")) _ppAt = float.Parse(a["--pause-probe=".Length..], CultureInfo.InvariantCulture); }
+        if (_ppAt < 0) return;
+        if (_ppFrames == 0 && _state == State.Racing && _lapClock >= _ppAt) { _state = State.Paused; _hud.Mode = CCCPRacing.UI.HudMode.Paused; _ppFrames = 1; _ppLast = _cam.GlobalPosition; return; }
+        if (_ppFrames == 0) return;
+        var c = _cam.GlobalPosition; var f = _cam.Focus;
+        GD.Print($"pauseprobe n={_ppFrames} cam={c.X:F4},{c.Y:F4},{c.Z:F4} move={(c - _ppLast).Length():F5} car={_car.Pos.X:F3},{_car.Pos.Z:F3} vel={_car.Vel.Length():F2}");
+        _ppLast = c;
+        if (++_ppFrames > 180) CCCPRacing.Audio.AudioMix.Quit(this);
+    }
+
     partial void CameraBoostProbe()
     {
+        PauseProbe();
         PowerSwitchProbe();
         if (!_camBoostProbeRead) { _camBoostProbeRead = true; _camBoostProbe = System.Array.IndexOf(CmdArgs(), "--camera-boost-probe") >= 0; }
         if (!_camBoostProbe || _state is State.Paused) return;

@@ -123,6 +123,14 @@ public static partial class Props
                 "statue" => Statue(t.Id == "ilyich"),
                 "billboard" => Billboard(p.Text ?? "GLORY TO LABOUR!"),
                 "hay" => HayBale(hx * 31 + hz),
+                "watermill" => WaterMill.Build(),
+                "well" => WellHouse.Build(),
+                "palacegarden" => PalaceGarden.Build(t, p.Position, p.Rotation, hx * 31 + hz),
+                "garden" => Garden.Build(t, p.Position, p.Rotation, hx * 31 + hz),
+                "henhouse" => Henhouse.Build(t, p.Position, p.Rotation, hx * 31 + hz),
+                "watertower" => WaterTower.Build(),
+                "rock" => Rock(p.Size > 0 ? p.Size : 1f, hx * 31 + hz),
+                "stump" => Stump(p.Size > 0 ? p.Size : 1f, hx * 31 + hz),
                 "startgate" => StartGate(p.Size, t.Winter),
                 "startbarn" => Village.StartBarn(p.Size, Num(p.Text, 0, 22f), Num(p.Text, 1, 6f), p.Rotation, Num(p.Text, 2, 0.03f), LineRise(p.Text, 4), Num(p.Text, 3, 0f)),
                 "church" => Village.Church(),
@@ -160,7 +168,7 @@ public static partial class Props
                 n.AddChild(VillagePower.CableEntry(entry, p.Type == "pole"));
             n.SetMeta("prop", i++);
             // Buildings fade see-through while the car is behind them (SeeThrough).
-            if (p.Type is "barn" or "bigbarn" or "dormitory" or "silo" or "church" or "izba" or "hangar" or "barracks" or "ruinbarn" or "radar"
+            if (p.Type is "barn" or "bigbarn" or "dormitory" or "silo" or "watertower" or "watermill" or "church" or "izba" or "hangar" or "barracks" or "ruinbarn" or "radar"
                 or "partydacha" or "turbinehall" or "reactor" or "sarcophagus" or "stack" or "apartments" or "ferriswheel" or "culture" or "wash")
             {
                 n.Name = $"{p.Type}{i}";
@@ -976,6 +984,44 @@ public static partial class Props
     /// <summary>A round bale on its side (axis along X), settled under its own weight: the rolled layers
     /// show on both ends, twine bands round it, loose straw sticking out and lying about its foot;
     /// the shade and the stray straw differ from bale to bale. One batched mesh.</summary>
+    /// <summary>A loose rock or boulder (size 0.4 small stone .. 1.6 boulder): two or three squashed grey lumps, part sunk in the ground, a mossy tint on some.</summary>
+    static Node3D Rock(float size, int seed)
+    {
+        var n = new Node3D();
+        var rng = new RandomNumberGenerator { Seed = (ulong)Math.Abs(seed) + 17 };
+        int lumps = size > 1.0f ? 3 : size > 0.6f ? 2 : 1;
+        bool moss = rng.Randf() < 0.45f;
+        for (int k = 0; k < lumps; k++)
+        {
+            float r = (k == 0 ? 0.62f : rng.RandfRange(0.28f, 0.45f)) * size;
+            float grey = rng.RandfRange(0.42f, 0.58f);
+            Color c = moss && k == 0 ? new Color(grey * 0.78f, grey * 0.9f, grey * 0.66f) : new Color(grey, grey * 0.97f, grey * 0.9f);
+            var lump = Part(Ball(r, 7), c, new Vector3(k == 0 ? 0 : rng.RandfRange(-0.7f, 0.7f) * size, r * 0.35f, k == 0 ? 0 : rng.RandfRange(-0.7f, 0.7f) * size),
+                new Vector3(rng.RandfRange(-12, 12), rng.RandfRange(0, 360), rng.RandfRange(-12, 12)));
+            lump.Scale = new Vector3(rng.RandfRange(1.0f, 1.35f), rng.RandfRange(0.55f, 0.8f), rng.RandfRange(0.85f, 1.2f));
+            n.AddChild(lump);
+        }
+        return n;
+    }
+
+    /// <summary>A felled tree's stump: a short trunk with a pale cut top, a few root flares and, on some, a chipped notch.</summary>
+    static Node3D Stump(float size, int seed)
+    {
+        var n = new Node3D();
+        var rng = new RandomNumberGenerator { Seed = (ulong)Math.Abs(seed) + 29 };
+        float r = 0.3f * size, h = rng.RandfRange(0.3f, 0.55f) * size;
+        Color bark = new(0.33f + rng.RandfRange(-0.04f, 0.04f), 0.24f, 0.16f), cut = new(0.72f, 0.58f, 0.38f);
+        n.AddChild(Part(Cyl(r, h, 8, r * 0.86f), bark, new Vector3(0, h * 0.5f, 0)));
+        n.AddChild(Part(Cyl(r * 0.84f, 0.04f, 8), cut, new Vector3(0, h + 0.015f, 0)));
+        for (int k = 0; k < 3; k++)
+        {
+            float a = rng.RandfRange(0, 360);
+            var root = Part(Box(r * 0.9f, 0.1f * size, 0.11f * size), bark, new Vector3(MathF.Cos(Mathf.DegToRad(a)) * r * 0.95f, 0.05f * size, MathF.Sin(Mathf.DegToRad(a)) * r * 0.95f), new Vector3(0, -a, 0));
+            n.AddChild(root);
+        }
+        return n;
+    }
+
     static Node3D HayBale(int seed)
     {
         // Five variants of the roll (shade, the spiral of the ends, the straw), shared by the bales of a field; each bale is turned its own way.

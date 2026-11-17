@@ -76,7 +76,7 @@ public partial class AudioGeneratorLifecycleTest : Node
         var sounds = new Node[] {
             new EngineSound(), new HornSound(), new DieselSound(), new RotorSound(), new JetSound(),
             new SirenSound(), new FireSound(), new MissileSound(), new MissileWarning(), new GurgleSound(),
-            new GeigerSound(), new DashChime(), new PaceBlip(), new EarRingSound(), new BeaconBeep(),
+            new GeigerSound(), new DashChime(), new EarRingSound(), new BeaconBeep(),
             new RadioMusic { TrackPath = "" }, new ClangSound(), new ExplosionSound(), Weather.Create(target)
         };
         foreach (var sound in sounds) { world.AddChild(sound); if (sound is RadioMusic radio) radio.Play(); }

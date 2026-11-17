@@ -73,7 +73,7 @@ public partial class SlurryTractor : Node3D
         _roadAt = k;
         _roadTarget = RoadPoint(_track.Center[k], k, RoadLane);
         _roadLat = RoadLane; _blockedFor = 0f;
-        _departureStage = 5;
+        _departureStage = 5; _path = null;
         return true;
     }
 
@@ -82,7 +82,7 @@ public partial class SlurryTractor : Node3D
     {
         if (!Avenging || _revengeLapsLeft <= 0) return;
         if (--_revengeLapsLeft > 0) { RevengeLapPassed?.Invoke(_revengeLapsLeft); return; }
-        _departureStage = 3;      // back to the fields (the departure's last leg)
+        _departureStage = 3; _path = null;      // back to the fields (the departure's last leg)
         Spraying = false; _spray.Visible = false; _depositDistance = 0.8f;
         RevengeOver?.Invoke();
     }
@@ -162,7 +162,7 @@ public partial class SlurryTractor : Node3D
         _pos = Route(_angle);
         Vector2 forward = new(-32f * MathF.Sin(_angle), 20f * MathF.Cos(_angle));
         _trailer = _pos - forward.Normalized() * TowLength;
-        _departureStage = _barnDoor == null ? 4 : 0;
+        _departureStage = _barnDoor == null ? 4 : 0; _path = null;
         _departureDelay = _departureRng.RandfRange(46f, 63f);
         _doorOpen = 0;
         _barnDoor?.SetOpen(0);
@@ -213,7 +213,9 @@ public partial class SlurryTractor : Node3D
                 if (bus != null && bus.Position2D.DistanceTo(new Vector2(_barnCenter.X, 50f)) < 18f) return;
                 _departureStage = 2;
             }
-            Vector2 forward = _departureStage == 2 ? Vector2.Down : (Route(-0.6f) - _pos).Normalized();
+            Vector2 forward = Vector2.Down; bool pathOk = true;
+            if (_departureStage != 2) pathOk = PathForward(Route(-0.6f), dt, out forward);
+            if (!pathOk) { Place(0, null); return; }      // no safe way yet: stand still and look again
             float speed = _departureStage == 2 ? 2.9f : 4.1f;
             Vector2 next = _pos + forward * speed * dt;
             Vector2 departureHitch = next - forward * 1.9f;
@@ -224,7 +226,7 @@ public partial class SlurryTractor : Node3D
                 speed = 0;
             else { _pos = next; _trailer = departureTrailer; }
             Place(speed, forward);
-            if (_departureStage == 2 && _pos.Y >= _barnCenter.Y + 22f) _departureStage = 3;
+            if (_departureStage == 2 && _pos.Y >= _barnCenter.Y + 22f) { _departureStage = 3; _path = null; }
             if (_departureStage == 3 && _pos.DistanceTo(Route(-0.6f)) < 1.5f)
             {
                 _pos = Route(-0.6f);
@@ -296,7 +298,7 @@ public partial class SlurryTractor : Node3D
         Vector2 forward; float speed;
         if (_departureStage == 5)
         {
-            forward = (_roadTarget - _pos).Normalized();
+            if (!PathForward(_roadTarget, dt, out forward)) { speed = 0; Place(0, null); SprayStep(dt, true); return; }      // no safe way to the road yet: stand still
             speed = 4.1f;
             Move(forward, speed, dt, bus, ref speed);
             if (_pos.DistanceTo(_roadTarget) < 1.5f) { _departureStage = 6; RevengeOnTheRoad?.Invoke(); }

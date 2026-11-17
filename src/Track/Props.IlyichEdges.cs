@@ -147,6 +147,7 @@ public static partial class Props
         LoadProf.At(); yield return null; slice.Restart();
 
         var banks = new Node3D { Name = "Lower river meadow" }; pending.Add(banks);
+        var millProp = t.Props.Find(pr => pr.Type == "watermill"); Vector2? millAt = millProp == null ? null : new Vector2(millProp.Position.X, millProp.Position.Z);
         var rng = new RandomNumberGenerator { Seed = 192208UL };
         if (t.Water != null)
         foreach (var river in t.Water.Rivers)
@@ -167,6 +168,8 @@ public static partial class Props
                 if (river.EdgeDistance(p)<.8f || WorldBackdrop.SurfaceHeightAt(t,p)<t.WaterLevel+.04f) continue;
                 int ci = t.NearestCenter(p, out float distance);
                 if (distance < t.HalfWidth[ci] + 6) continue;
+                if (OnCropGround(t, p, 5f)) continue;      // never over a crop field
+                if (millAt != null && p.DistanceTo(millAt.Value) < 16f) continue;      // no bank meadow and reeds at the mill: they run on down the river
                 foreach (var _ in PatchSteps(banks, t, p + normal * side * 1.5f, new Vector2(3.5f, 4.5f), new Color(0.28f, 0.36f, 0.17f), 7)) { LoadProf.At(); yield return null; slice.Restart(); }
                 for (int k = 0; k < 7; k++)
                 {
@@ -189,6 +192,8 @@ public static partial class Props
         {
             var outward=(site-PartyRowboat.PondCentre).Normalized();
             var centre=site+outward*2.8f;
+            if(PartyDacha.InParking(centre,4.5f)) centre=site-outward*1.2f;      // by the car park the shore meadow leans towards the water, off the paving
+            if(PartyDacha.InParking(centre,3.2f)) continue;
             if(centre.Y<205 && Math.Abs(centre.X-220)<7) continue;
             if(PartyDacha.OnDrive(centre,3) || Village.NearAccessPath(centre,PartyDacha.Walk,6)) continue;
             foreach(var _ in PatchSteps(pondBanks,t,centre,new Vector2(3.5f,4.5f),new Color(.20f,.29f,.12f),7,true))
@@ -217,6 +222,22 @@ public static partial class Props
     }
 
     /// <summary>The same patch in slices: every item is a point where a frame may go by.</summary>
+    /// <summary>True if p is on a crop field (the field surface or a wheat parcel) or within margin metres of one.</summary>
+    static bool OnCropGround(TrackData t, Vector2 p, float margin)
+    {
+        foreach (var wf in t.Props)
+        {
+            if (wf.Type != "wheatfield") continue;
+            var parts = (wf.Text ?? "24;30").Split(';');
+            float ww = parts.Length > 0 && float.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var w0) ? w0 : 24f;
+            float wl = parts.Length > 1 && float.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var l0) ? l0 : 30f;
+            if (Math.Abs(p.X - wf.Position.X) < ww / 2 + margin && Math.Abs(p.Y - wf.Position.Z) < wl / 2 + margin) return true;
+        }
+        for (float dz = -margin; dz <= margin; dz += margin) for (float dx = -margin; dx <= margin; dx += margin)
+            if (t.TileSurface((int)((p.X + dx) / t.Tile), (int)((p.Y + dz) / t.Tile)) == SurfaceType.Field) return true;
+        return false;
+    }
+
     static IEnumerable<int> PatchSteps(Node3D root, TrackData t, Vector2 centre, Vector2 radius, Color colour, int sides, bool levelPondBank=false)
     {
         var slice = System.Diagnostics.Stopwatch.StartNew();

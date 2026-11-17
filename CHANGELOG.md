@@ -3,6 +3,15 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.901
+
+- ILYICH: a water mill by the river, a water tower with a well, kitchen gardens and a henhouse, windbreak belts, and scattered rocks, stumps and trees. Mill, tower and well are new models
+- The party dacha has a clipped hedge round the lake, a paved entrance court with a flower rondel and flag, a car park, a guard booth, iron gates, a columned porch, a paved walk round the house and a formal garden
+- ILYICH: the church hairpin verge is level with the road up to the stone wall, the bus stop has a level verge, and terrain lumps and cliffs near the ford are smoothed. Road heights and saved record signatures stay the same
+- The ploughing tractor no longer drives through fixed obstacles. The slurry tractor now finds its way from the barn to the field and back around trees, buildings and the dacha hedge. The duty officer rams the stopped car, and the Kozlik overtakes slow vehicles
+- The follow-behind camera widens its lens with speed. The camera stays still while the pause menu is open
+- Revenge notices moved to the bottom centre. Removed the co-driver pace notes and the I key from the pause menu. No REPAIR BROKEN OFF notice at 100% engine
+
 ## 0.90
 
 - New DIRECTED top-down camera lead shows more of the road ahead. Choose DIRECTED or CLASSIC in SETTINGS / VISUALS. The viewing angle and lens stay the same

@@ -150,12 +150,11 @@ public partial class RaceScene
                 if (cycle > 2.5f && _mixPrevCycle <= 2.5f) { _snd.Thump(0.7f); _snd.Impact(4f); }
                 break;
             case SoundBalance.Alerts:
-                // The co-driver's calls and the dosimeter's ticks, in turn.
+                // The dosimeter's ticks.
                 _snd.Rpm = _params.IdleRpm;
                 _snd.Throttle = 0;
                 _snd.Speed = 0;
                 _snd.Ground = Track.SurfaceType.Concrete;
-                if (cycle < 0.03f && _mixPrevCycle > cycle) _paceBlip.Call(t % 6f < 3f ? 1 : -1, 3);
                 if (_geiger != null) _geiger.Rate = cycle > 1.2f ? 25f : 0f;
                 break;
             case SoundBalance.World:

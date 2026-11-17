@@ -63,7 +63,7 @@ public static partial class PartyDacha
         }
         foreach (float side in new[] { -1f, 1f })
         foreach (float y in new[] { 2.45f, 5.65f })
-        foreach (float z in new[] { -3f, 1.5f })
+        foreach (float z in side > 0 ? new[] { -4.7f, 4.7f } : new[] { -3f, 1.5f })      // (the east wall's windows stand clear of the porch, which fills its middle)
         {
             Box(new Vector3(0.12f, 1.75f, 1.75f), new Vector3(side * 9.27f, y, z), Trim);
             Window(new Vector3(0.14f, 1.40f, 1.40f), new Vector3(side * 9.35f, y, z));
@@ -177,6 +177,80 @@ public static partial class PartyDacha
         }
         PointLight(new Vector3(-11f, 5f, 0));
         PointLight(new Vector3(11f, 5f, 0));
+        // ---- The east entrance porch (the side facing the court): a stepped, columned portico with a gabled roof, a pediment with the star, double glazed doors, a runner, railings, lanterns and urns.
+        {
+            void PB(Vector3 size, object p1, object p2, Vector3 rot = default) { if (p1 is Color c1 && p2 is Vector3 v2) Box(size, v2, c1, rot); else if (p1 is Vector3 v1 && p2 is Color c2) Box(size, v1, c2, rot); }
+            float z0 = 0f, deck = 1.0f, wallX = 9.5f, frontX = 13.0f;
+            var stone = new Color(0.8f, 0.78f, 0.72f); var stoneDark = new Color(0.55f, 0.53f, 0.49f); var white = new Color(0.94f, 0.92f, 0.86f); var iron = new Color(0.1f, 0.1f, 0.11f); var gold = new Color(0.88f, 0.72f, 0.2f);
+            PB(new Vector3(4.0f, 0.22f, 6.6f), new Vector3(11.5f, deck - 0.11f, z0), stone);                                  // the deck
+            PB(new Vector3(4.2f, 0.12f, 6.8f), new Vector3(11.5f, deck - 0.27f, z0), stoneDark);                              // its plinth course
+            for (int k = 0; k < 4; k++)                                                                                          // four wide steps down to the court
+            {
+                float x = frontX + 0.25f + k * 0.5f, top = deck - 0.22f - k * 0.25f;
+                PB(new Vector3(0.5f, top, 6.0f + 0.0f * k), k % 2 == 0 ? stone : stone * 0.94f, new Vector3(x, top * 0.5f, z0));
+                PB(new Vector3(0.54f, 0.06f, 6.06f), stoneDark, new Vector3(x - 0.03f, top + 0.01f, z0));
+            }
+            foreach (float sz in new[] { -1f, 1f })                                                                              // cheek walls and urn plinths flanking the steps
+            {
+                PB(new Vector3(2.6f, 0.62f, 0.5f), stoneDark, new Vector3(14.1f, 0.31f, z0 + sz * 3.25f));
+                PB(new Vector3(2.6f, 0.1f, 0.62f), stone, new Vector3(14.1f, 0.67f, z0 + sz * 3.25f));
+                PB(new Vector3(0.7f, 0.5f, 0.7f), stoneDark, new Vector3(15.5f, 0.25f, z0 + sz * 3.25f));
+                root.AddChild(Props.Part(Props.Cyl(0.42f, 0.7f, 12, 0.3f), white, new Vector3(15.5f, 0.85f, z0 + sz * 3.25f)));
+                root.AddChild(Props.Part(Props.Cyl(0.46f, 0.1f, 12), white, new Vector3(15.5f, 1.25f, z0 + sz * 3.25f)));
+                for (int k = 0; k < 9; k++) root.AddChild(Props.Part(Props.Ball(0.14f, 5), k % 2 == 0 ? Red : new Color(0.95f, 0.78f, 0.15f), new Vector3(15.5f + ((k % 3) - 1) * 0.18f, 1.38f + (k / 3) * 0.06f, z0 + sz * 3.25f + ((k / 3) - 1) * 0.18f)));
+            }
+            PB(new Vector3(3.3f, 0.025f, 1.4f), new Vector3(11.7f, deck + 0.015f, z0), Red);                                   // the red runner over the deck
+            for (int k = 0; k < 4; k++) PB(new Vector3(0.5f, 0.02f, 1.3f), new Vector3(frontX + 0.28f + k * 0.5f, deck - 0.22f - k * 0.25f + 0.07f, z0), Red);
+            // Four columns on the front line, two pilasters on the wall, a carved entablature.
+            foreach (float cz in new[] { -2.85f, -1.45f, 1.45f, 2.85f })
+            {
+                PB(new Vector3(0.62f, 0.2f, 0.62f), new Vector3(frontX, deck + 0.1f, cz + z0 + 0.75f - 0.75f + 0f), stoneDark);
+                root.AddChild(Props.Part(Props.Cyl(0.22f, 3.3f, 12, 0.19f), white, new Vector3(frontX, deck + 1.85f, cz)));
+                for (float y = deck + 0.7f; y < deck + 3.0f; y += 0.55f) root.AddChild(Props.Part(Props.Cyl(0.225f, 0.04f, 12), stone * 0.9f, new Vector3(frontX, y, cz)));        // fluting rings
+                PB(new Vector3(0.7f, 0.16f, 0.7f), new Vector3(frontX, deck + 3.55f, cz), stone);
+                PB(new Vector3(0.52f, 0.14f, 0.52f), new Vector3(frontX, deck + 3.4f, cz), stoneDark);
+            }
+            foreach (float cz in new[] { -2.85f, 2.85f })
+            {
+                PB(new Vector3(0.34f, 3.5f, 0.34f), new Vector3(wallX + 0.17f, deck + 1.75f, cz), white);
+                PB(new Vector3(0.5f, 0.16f, 0.5f), new Vector3(wallX + 0.25f, deck + 3.55f, cz), stone);
+            }
+            PB(new Vector3(4.2f, 0.34f, 7.4f), new Vector3(11.5f, deck + 3.8f, z0), TimberLight);                              // entablature beam over the columns
+            PB(new Vector3(4.4f, 0.1f, 7.6f), new Vector3(11.5f, deck + 3.99f, z0), Trim);
+            for (float bz = -2.85f; bz <= 2.86f; bz += 0.57f) PB(new Vector3(0.16f, 0.14f, 0.16f), new Vector3(frontX + 0.28f, deck + 3.55f, bz), Trim);         // dentils
+            // The gabled roof and the pediment facing the court, with the star in a gilt wreath.
+            root.AddChild(Props.Part(new PrismMesh { Size = new Vector3(8.2f, 1.9f, 4.9f) }, Roof, new Vector3(11.5f, deck + 5.0f, z0), new Vector3(0, 90, 0)));
+            root.AddChild(Props.Part(new PrismMesh { Size = new Vector3(7.6f, 1.7f, 0.18f) }, TimberLight, new Vector3(frontX + 0.55f, deck + 4.95f, z0), new Vector3(0, 90, 0)));
+            root.AddChild(Props.Part(new PrismMesh { Size = new Vector3(7.7f, 1.78f, 0.1f) }, Trim, new Vector3(frontX + 0.66f, deck + 4.93f, z0), new Vector3(0, 90, 0)));
+            root.AddChild(Star(new Vector3(frontX + 0.78f, deck + 4.6f, z0), 0.55f, new Vector3(0, 90, 0)));
+            root.AddChild(Props.Part(Props.Cyl(0.7f, 0.05f, 16), gold, new Vector3(frontX + 0.7f, deck + 4.6f, z0), new Vector3(0, 0, 90)));
+            PB(new Vector3(5.0f, 0.12f, 0.12f), new Vector3(11.5f, deck + 5.95f, z0), new Color(0.12f, 0.19f, 0.15f));
+            // The doors: a carved double leaf with glazed panels, a fanlight, a stone surround, a brass handle and the lanterns.
+            PB(new Vector3(0.22f, 2.9f, 2.9f), new Vector3(wallX - 0.04f, deck + 1.55f, z0), stone);
+            PB(new Vector3(0.16f, 2.5f, 2.3f), new Vector3(wallX + 0.1f, deck + 1.35f, z0), new Color(0.2f, 0.12f, 0.06f));
+            foreach (float dz in new[] { -0.57f, 0.57f })
+            {
+                lighting.AddChild(NightGlow.Part(Props.Box(0.12f, 1.1f, 0.78f), Glass, new Color(1f, 0.62f, 0.25f), 2.5f, new Vector3(wallX + 0.2f, deck + 1.75f, z0 + dz)));
+                PB(new Vector3(0.1f, 0.7f, 0.82f), new Color(0.3f, 0.19f, 0.1f), new Vector3(wallX + 0.19f, deck + 0.7f, z0 + dz));
+            }
+            lighting.AddChild(NightGlow.Part(Props.Box(0.12f, 0.42f, 2.2f), Glass, new Color(1f, 0.62f, 0.25f), 2.5f, new Vector3(wallX + 0.2f, deck + 2.85f, z0)));      // the fanlight over the doors
+            foreach (float dz in new[] { -0.15f, 0.15f }) PB(new Vector3(0.06f, 0.5f, 0.05f), gold, new Vector3(wallX + 0.28f, deck + 1.2f, z0 + dz));
+            foreach (float lz in new[] { -1.45f, 1.45f })
+            {
+                PB(new Vector3(0.06f, 0.4f, 0.06f), iron, new Vector3(frontX - 0.35f, deck + 3.2f, lz), new Vector3(0, 0, 0));
+                lighting.AddChild(NightGlow.Part(Props.Ball(0.2f), new Color(0.92f, 0.86f, 0.62f), new Color(1f, 0.8f, 0.42f), 3f, new Vector3(frontX - 0.35f, deck + 2.85f, lz)));
+                PointLight(new Vector3(frontX - 0.35f, deck + 2.85f, lz));
+            }
+            // Balustrades along both sides of the deck: posts, a rail and turned balusters.
+            foreach (float sz in new[] { -1f, 1f })
+            {
+                float bz = z0 + sz * 3.1f;
+                PB(new Vector3(3.7f, 0.08f, 0.1f), RailingPaint, new Vector3(11.35f, deck + 1.0f, bz));
+                PB(new Vector3(3.7f, 0.06f, 0.1f), RailingPaint, new Vector3(11.35f, deck + 0.28f, bz));
+                for (float bx = 9.7f; bx <= 13.01f; bx += 0.3f) PB(new Vector3(0.07f, 0.7f, 0.07f), RailingPaint, new Vector3(bx, deck + 0.64f, bz));
+            }
+            // The roof's carved bargeboards and a lantern bracket complete the gable.
+        }
         DrunkTractor.BatchStatic(root, lighting);
         return root;
     }
