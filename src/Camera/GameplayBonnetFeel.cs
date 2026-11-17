@@ -10,6 +10,8 @@ namespace CCCPRacing.Camera;
 /// </summary>
 internal sealed class GameplayBonnetFeel
 {
+    /// <summary>Strength of the shake, sway, roll and pitch (1 = the original; halved on the owner's request 2026-11-13).</summary>
+    const float Feel = 0.5f;
     bool _ready;
     float _clock, _roll, _pitch, _aLat, _aLong;
     Vector3 _lastVel, _lastEye;
@@ -40,17 +42,17 @@ internal sealed class GameplayBonnetFeel
         _clock += dt;
 
         float kp = snap ? 1f : 1f - MathF.Exp(-5f * dt);
-        _pitch = Mathf.Lerp(_pitch, Math.Clamp(_aLong * 0.0025f, -0.03f, 0.03f) * lively, kp);
-        _roll = Mathf.Lerp(_roll, Math.Clamp(_aLat * 0.004f, -0.06f, 0.06f) * lively, kp);
+        _pitch = Mathf.Lerp(_pitch, Math.Clamp(_aLong * 0.0025f, -0.03f, 0.03f) * lively * Feel, kp);
+        _roll = Mathf.Lerp(_roll, Math.Clamp(_aLat * 0.004f, -0.06f, 0.06f) * lively * Feel, kp);
 
         // The pan and the tilt (a slow sway) and the shake (two quick smooth wobbles, not per-frame noise), all with the speed; the ground's rumble adds to the shake.
-        float sway = 0.004f * sp, tremor = 0.0006f + 0.0035f * sp + 0.15f * rumble;
+        float sway = 0.004f * sp * Feel, tremor = (0.0006f + 0.0035f * sp + 0.15f * rumble) * Feel;
         float pan = sway * MathF.Sin(_clock * 1.7f + 0.4f) + tremor * (MathF.Sin(_clock * 57f) + 0.6f * MathF.Sin(_clock * 91f + 1.2f));
         float tilt = _pitch + 0.75f * sway * MathF.Sin(_clock * 2.3f + 1.1f) + tremor * (MathF.Sin(_clock * 63f + 0.7f) + 0.6f * MathF.Sin(_clock * 107f + 2.1f));
         Vector3 dir = (target - eye).Normalized();
         dir = new Basis(body.Y.Normalized(), pan) * new Basis(body.X.Normalized(), tilt) * dir;
         // A hair of movement for the shake (the lens stays on the bonnet).
-        Vector3 jitter = (body.X * MathF.Sin(_clock * 71f) + body.Y * MathF.Sin(_clock * 83f + 0.7f)) * (0.0015f * lively + 0.4f * rumble * 0.01f);
+        Vector3 jitter = (body.X * MathF.Sin(_clock * 71f) + body.Y * MathF.Sin(_clock * 83f + 0.7f)) * (0.0015f * lively + 0.4f * rumble * 0.01f) * Feel;
         return (eye + jitter, eye + jitter + dir * (target - eye).Length(), _roll);
     }
 }

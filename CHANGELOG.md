@@ -3,6 +3,16 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.90
+
+- New DIRECTED top-down camera lead shows more of the road ahead. Choose DIRECTED or CLASSIC in SETTINGS / VISUALS. The viewing angle and lens stay the same
+- Smoothed the camera transition when OCTANE BOOSTER or Stakhanov overdrive starts and ends. Halved bonnet and rear camera shake and sway
+- Atomgrad horses have walking and trotting legs, smoother stops and full-body fence avoidance. Their moving parts are recorded in world tapes. Older ZoneLife tapes fall back to live zone actors with a compatibility message
+- Lighter and shorter-lived diesel exhaust keeps tractors and concrete mixers visible
+- Restored fuel consumption, depot stops and canisters on ATOMGRAD-4. Removed radiation power bonuses and engine wear from accumulated contamination. Radiation hazards and washing remain
+- Atomgrad school, LAN rules and replay state follow the restored fuel rules
+- The main menu always plays the theme song He katsoivat lanteen
+
 ## 0.89
 
 - ATOMGRAD-4 has no fuel consumption or fuel stops. The radiation dose collected gives up to 15% extra engine power and gradually damages the engine. Washing removes the dose, the mechanic repairs the engine. The four engines and medal norms stay the same

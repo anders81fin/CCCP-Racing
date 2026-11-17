@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CCCPRacing.Camera;
 using CCCPRacing.UI;
 using Godot;
 
@@ -19,6 +20,7 @@ public partial class RaceScene
             if (_run == RunMode.Rally && _norms.Enabled && !InLanRace) l.Add(VisualRowId.NormsCard);
             l.Add(VisualRowId.Map); l.Add(VisualRowId.CarInstruments);
             if (_hud.GameplayCameraName != null) l.Add(VisualRowId.Camera);
+            l.Add(VisualRowId.LeadStyle);      // always: the overhead camera's look-ahead is the player's choice
             l.Add(VisualRowId.Rendering); l.Add(VisualRowId.Edges); l.Add(VisualRowId.Softening); l.Add(VisualRowId.Back);
             return l;
         }
@@ -27,6 +29,7 @@ public partial class RaceScene
     void SyncVisualHud()
     {
         _hud.VisualRowIds = VisualRowsNow.ToArray();
+        _hud.LeadStyleName = CameraStyleSetting.Label(ChaseCamera.DirectedLead);
         _hud.VisualCameraName = _hud.GameplayCameraName == null ? null : _hud.GameplayCameraName.Replace(" CAMERA", "");
         if (_hud.VisualOpen) _hud.VisualSelection = Math.Clamp(_hud.VisualSelection, 0, _hud.VisualRowIds.Length - 1);
     }
@@ -77,6 +80,7 @@ public partial class RaceScene
             case VisualRowId.Map: ApplyOnOff(_minimapOn, toggleValue, ToggleMinimap); break;
             case VisualRowId.Comments: ApplyOnOff(_hud.Comments, toggleValue, () => _hud.SetComments(!_hud.Comments, confirm: true)); break;
             case VisualRowId.Camera: ChooseCamera(step); break;
+            case VisualRowId.LeadStyle: ChooseLeadStyle(); break;
             case VisualRowId.Rendering: StepRendering(); break;
             case VisualRowId.Edges: StepAntialiasing(step); _hud.AntialiasingName = AaNames[_aaMode]; break;
             case VisualRowId.Softening: ApplyOnOff(_softLevel > 0, toggleValue, () => StepSoftening(1)); _hud.SofteningName = SoftNames[_softLevel]; break;
@@ -85,6 +89,15 @@ public partial class RaceScene
             case VisualRowId.NormsCard: ApplyOnOff(_hud.NormsCardOn, toggleValue, () => SetHudChoice("norms", _hud.NormsCardOn = !_hud.NormsCardOn)); break;
             case VisualRowId.Back: CloseVisual(); break;
         }
+    }
+
+    /// <summary>TOP-DOWN LEAD: CLASSIC <-> DIRECTED, remembered in settings.cfg. The camera is cut to the car's framing at once, so neither look-ahead starts from the other's state.</summary>
+    void ChooseLeadStyle()
+    {
+        ChaseCamera.DirectedLead = !ChaseCamera.DirectedLead;
+        CameraStyleSetting.Save(_records.Dir + "settings.cfg", ChaseCamera.DirectedLead);
+        _cam.SnapDriving(_car.Pos, _car.Vel);
+        SyncVisualHud();
     }
 
     /// <summary>The camera row: the next (or previous) camera this personnel file has found on this track; with none found the hidden-cameras hint. Found cameras only: the unlocks stay discoveries.</summary>

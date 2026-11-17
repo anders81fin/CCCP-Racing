@@ -79,7 +79,7 @@ public partial class RaceScene
         ViewerLeaveGameplayCamera();
         _cam.MaxLead = _car.Speed > 69f ? 8f : float.PositiveInfinity;      // (as in driving, where overdrive limits the look-ahead: at 250+ km/h a Stakhanov rocket lap would run off the bottom of the screen; the ghost carries no overdrive flag)
         CameraFeel(vdt, replayDriving: true);      // (the same framing as driving: the speed's pull-back included, no zoom of its own)
-        _cam.Follow(_car.Pos, _car.Vel, vdt);
+        _cam.FollowDrive(_car.Pos, _car.Vel, vdt);
     }
 
     /// <summary>The saved editorial choices that act on playback (docs/player-replay-phase4b-design.md): the cut window and the camera keys. Empty by default: the whole lap, the chosen camera throughout.</summary>
@@ -302,7 +302,7 @@ public partial class RaceScene
                 if (!ReplayCamera(vdt))
                 {
                     CameraFeel(vdt);
-                    _cam.Follow(_car.Pos, _car.Vel, vdt);
+                    _cam.FollowDrive(_car.Pos, _car.Vel, vdt);
                 }
             }
             else ViewerGameplayCameraFrame(vdt);
@@ -311,7 +311,7 @@ public partial class RaceScene
         else if (_viewerCamDirty)      // (a seek or a camera change while paused: one camera step puts the chosen view in place, then it holds still again)
         {
             _viewerCamDirty = false;
-            if (ViewerCamera == ViewerCameraMode.Auto) { ViewerLeaveGameplayCamera(); PrepareReplayCamera(); if (!ReplayCamera(1f / 60f)) { CameraFeel(1f / 60f); _cam.Follow(_car.Pos, _car.Vel, 1f / 60f); } }
+            if (ViewerCamera == ViewerCameraMode.Auto) { ViewerLeaveGameplayCamera(); PrepareReplayCamera(); if (!ReplayCamera(1f / 60f)) { CameraFeel(1f / 60f); _cam.FollowDrive(_car.Pos, _car.Vel, 1f / 60f); } }
             else ViewerGameplayCameraFrame(1f / 60f);
         }
         _fx.Tick(vdt, _cam.GlobalTransform.Basis);

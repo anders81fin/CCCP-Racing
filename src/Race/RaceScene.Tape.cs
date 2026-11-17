@@ -436,6 +436,8 @@ public partial class RaceScene
         TapeLog($"replay of set {TitleSet} from tape: covers [{string.Join(", ", covered)}], live [{string.Join(", ", live)}]");
         if (!_tapePlayer.Covers("Kozlik:Kozlik") && slot.Tape.ActorStructure.TryGetValue("Kozlik:Kozlik",out var oldKozlik))
             GD.Print($"Kozlik tape: recorded model version {oldKozlik.Version} is incompatible with current model version {_tapeIndex.StructureOf("Kozlik:Kozlik").Version}; patrol runs live at its current size. Source: {TapeSourceText()}.");
+        if (_zoneAll != null && !_tapePlayer.Covers("Zone:ZoneLife") && slot.Tape.ActorStructure.TryGetValue("Zone:ZoneLife", out var oldZone))
+            GD.Print($"Zone tape: recorded ZoneLife version {oldZone.Version} is incompatible with current version {_tapeIndex.StructureOf("Zone:ZoneLife").Version} (the horses have legs now); the horses, the train, the lunokhod and the catfish run live. Source: {TapeSourceText()}.");
         if (!_tapePlayer.Covers("None:PlayerPower"))
             GD.Print("Octane tape: player boost/power state is absent or incompatible; no missing booster is invented.");
         if (_fuelOnTrack && !_tapePlayer.Covers("Depot:FuelDepot"))

@@ -437,8 +437,8 @@ public partial class TyreEffects : Node3D
     }
 
     /// <summary>
-    /// The player's diesel smoke for any other vehicle: the same black cloud from its pipe, <paramref name="power"/> times the player's car (1 = a car, more for a
-    /// bigger engine: more puffs and a bigger cloud). <paramref name="throttle"/> 0..1 (a moving vehicle: how hard it works), <paramref name="acc"/> its own puff
+    /// Exhaust from world vehicles: a narrow translucent diesel plume that clears the vehicle's silhouette.
+    /// <paramref name="power"/> scales the engine's output (larger engines make more puffs). <paramref name="throttle"/> 0..1 (a moving vehicle: how hard it works), <paramref name="acc"/> its own puff
     /// accumulator. Far from the player (beyond 150 m) it makes nothing, so a whole fleet does not use up the particles.
     /// </summary>
     public void EngineSoot(Vector3 pipe, Vector3 back, Vector3 vel, float throttle, float power, ref float acc, float dt, bool kerosene = false)
@@ -447,16 +447,20 @@ public partial class TyreEffects : Node3D
         if (CollectSources) Collect(new SootSource(pipe, back, vel, throttle, power, kerosene));
         if (pipe.DistanceSquaredTo(CCCPRacing.Track.SeeThrough.Car) > 150f * 150f) { acc = 0; return; }
         float th = Math.Clamp(throttle, 0f, 1f);
-        float rate = (9f + 75f * MathF.Pow(th, 1.2f) * 0.8f) * power;
+        float rate = (kerosene ? 9f + 60f * MathF.Pow(th, 1.2f) : 6.5f + 39f * MathF.Pow(th, 1.2f)) * power;
         acc += rate * dt;
         float size = MathF.Sqrt(power), k = 0.5f + 0.5f * th;
         float still = 1f - Math.Clamp(vel.Length() / 8f, 0f, 1f);
         while (acc >= 1f)
         {
             acc -= 1f;
-            Add(pipe + back * 0.15f, vel * 0.6f + back * _rng.RandfRange(Mathf.Lerp(2f, 0.3f, still), Mathf.Lerp(5f, 1.2f, still)) + Rand(0.5f, 0.4f, 0.5f) + Vector3.Up * (0.8f + 1.4f * still),
-                _rng.RandfRange(2.2f, 3.4f) * (1f + 0.5f * still), 0.7f * k * size, 5.5f * k * size * (1f + 0.4f * still), -0.4f, 0.9f,
-                kerosene ? KeroseneHaze : SootBlack, (kerosene ? 0.4f : 0.5f) * k, false);
+            if (kerosene)
+                Add(pipe + back * 0.15f, vel * 0.6f + back * _rng.RandfRange(Mathf.Lerp(2f, 0.3f, still), Mathf.Lerp(5f, 1.2f, still)) + Rand(0.5f, 0.4f, 0.5f) + Vector3.Up * (0.8f + 1.4f * still),
+                    _rng.RandfRange(2.2f, 3.4f) * (1f + 0.5f * still), 0.7f * k * size, 5.5f * k * size * (1f + 0.4f * still), -0.4f, 0.9f, KeroseneHaze, 0.4f * k, false);
+            else
+                // Halfway between the old dense cloud and the thin plume: it reads as smoke but the vehicle stays visible.
+                Add(pipe + back * 0.14f, vel * 0.52f + back * _rng.RandfRange(1.0f, 2.5f) + Rand(0.4f, 0.3f, 0.4f) + Vector3.Up * (1.3f + 1.0f * still),
+                    _rng.RandfRange(1.55f, 2.45f), 0.475f * k * size, 3.75f * k * size * (1f + 0.2f * still), -0.38f, 0.8f, SootBlack, 0.35f * k, false);
         }
     }
     /// <summary>One smoking pipe as the LAN host sends it to the other machines: where, which way back, how fast it moves, the throttle, the engine's size and the fuel.</summary>

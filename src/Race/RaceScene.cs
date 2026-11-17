@@ -689,8 +689,7 @@ public partial class RaceScene : Node3D
         FuelGrade? tg = _run is RunMode.Training or RunMode.Lan ? Training.GradeOf(_power) : null;      // Stakhanov laps: the four powers are the four fuels
         _hud.PowerLabel = tg is FuelGrade g0 ? FuelGrades.Names[(int)g0] : "";
         int pct = tg is FuelGrade g1 ? FuelGrades.PhysicsPercent(g1) : StakhanovRules ? _power : boost ? BoostPercent : RallyPercent;
-        _powerBase = pct / 100f * EnginePower;
-        _car.PowerScale = _powerBase * (1f + _radBoost);
+        _car.PowerScale = pct / 100f * EnginePower;
         _car.TurboGain = boost ? 0f : _run == RunMode.Rally ? FuelGrades.TurboGainFor(_rallyFuel) : tg is FuelGrade g2 ? FuelGrades.TurboGainFor(g2) : 0f;      // (OCTANE BOOSTER's nitro takes the place of the turbo while it lasts)
         _car.Overdrive = StakhanovRules || boost ? Training.Overdrive(pct) : 0f;
         _cam.MaxLead = _car.Overdrive > 0 ? 8f : float.PositiveInfinity;    // keeps the car on screen at 380 km/h
@@ -1715,8 +1714,9 @@ public partial class RaceScene : Node3D
         else if (!SchoolCamera(dt) && !FateCamera(dt) && !PlanCamera(dt) && !ReplayCamera(dt) && !GameplayCamera(dt))
         {
             CameraFeel(dt);           // RaceScene.CameraFeel.cs: speed, ground and jumps in the view
-            _cam.Follow(_car.Pos, _car.Vel, dt);
+            _cam.FollowDrive(_car.Pos, _car.Vel, dt);
         }
+        CameraBoostProbe();      // (test hook, RaceScene.ViewerCameraBoostTest.cs)
         bool frozen = _state is State.Paused || SchoolFrozen;
         _fx.Tick(frozen ? 0f : dt, _cam.GlobalTransform.Basis);
         LensFx(frozen ? 0f : dt);

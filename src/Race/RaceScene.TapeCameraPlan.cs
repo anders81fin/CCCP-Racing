@@ -68,7 +68,7 @@ public partial class RaceScene
             _cam.Fov = _replayOldFov; _cam.Near = _replayOldNear; _cam.Far = _replayOldFar;
             if (clock - from < 1f / 30f + .001f) _cam.SnapDriving(_car.Pos, _car.Vel);
             CameraFeel(dt, replayDriving: true);
-            _cam.Follow(_car.Pos, _car.Vel, dt);
+            _cam.FollowDrive(_car.Pos, _car.Vel, dt);
             return true;
         }
         if (shot == 1)

@@ -14,6 +14,8 @@ internal sealed class GameplayRearCamera
     /// <summary>The yaw's lag (1/s: 2.4 is a time constant of 0.4 s), the spring's natural frequency (rad/s; the delay in a corner is about 1/ω) and the look point's rate.</summary>
     const float YawRate = 2.7f, OmegaH = 7f, OmegaV = 11f, LookRate = 6f;
     bool _ready;
+    /// <summary>Strength of the pitch, roll, sway and shake (1 = the original; halved on the owner's request 2026-11-13).</summary>
+    const float Feel = 0.5f;
     float _yaw, _roll, _pitch, _aLat, _aLong, _clock;
     Vector3 _rel, _relVel, _look, _lastCar, _lastVel;      // (the eye relative to the car, and its velocity relative to the car's)
 
@@ -91,18 +93,18 @@ internal sealed class GameplayRearCamera
         _look = snap ? look : _look.Lerp(look, 1f - MathF.Exp(-LookRate * dt));
 
         // Pitch (braking dips the view, a launch lifts it) and roll (it leans into a corner), both soft.
-        float pitchTarget = Math.Clamp(_aLong * 0.0035f, -0.04f, 0.04f) * lively;
-        float rollTarget = Math.Clamp(_aLat * 0.0055f, -0.09f, 0.09f) * lively;
+        float pitchTarget = Math.Clamp(_aLong * 0.0035f, -0.04f, 0.04f) * lively * Feel;
+        float rollTarget = Math.Clamp(_aLat * 0.0055f, -0.09f, 0.09f) * lively * Feel;
         float kp = snap ? 1f : 1f - MathF.Exp(-5f * dt);
         _pitch = Mathf.Lerp(_pitch, pitchTarget, kp);
         _roll = Mathf.Lerp(_roll, rollTarget, kp);
         // The pan and the tilt: a slow sway of where the lens points that grows with the speed (nothing standing), on top of the pitch and the roll.
-        Vector3 sway = (right * MathF.Sin(_clock * 1.7f + 0.4f) * 0.9f + Vector3.Up * MathF.Sin(_clock * 2.3f + 1.1f) * 0.6f) * (0.012f * sp * distance);
+        Vector3 sway = (right * MathF.Sin(_clock * 1.7f + 0.4f) * 0.9f + Vector3.Up * MathF.Sin(_clock * 2.3f + 1.1f) * 0.6f) * (0.012f * sp * distance * Feel);
         Vector3 target = _look + Vector3.Up * (MathF.Tan(_pitch) * distance) + sway;
 
         // The shake: the speed, a slide and the ground. Two quick smooth wobbles (not per-frame noise) across the picture.
         float slide = speed > 5f ? Math.Clamp(MathF.Acos(Math.Clamp(motion.Normalized().Dot(nose), -1f, 1f)) / 0.5f, 0f, 1f) : 0f;
-        float amp = 0.004f + 0.034f * sp + 0.03f * slide * sp + 0.6f * rumble;      // (the ground's rumble already grows with the speed: CameraFeel)
+        float amp = (0.004f + 0.034f * sp + 0.03f * slide * sp + 0.6f * rumble) * Feel;      // (the ground's rumble already grows with the speed: CameraFeel)
         Vector3 up = Vector3.Up;
         Vector3 wobble = right * (MathF.Sin(_clock * 57f) + 0.6f * MathF.Sin(_clock * 91f + 1.2f)) * amp + up * (MathF.Sin(_clock * 63f + 0.7f) + 0.6f * MathF.Sin(_clock * 107f + 2.1f)) * amp;
 

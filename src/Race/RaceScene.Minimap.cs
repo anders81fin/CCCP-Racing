@@ -1,4 +1,5 @@
 using CCCPRacing.Audio;
+using CCCPRacing.Camera;
 using System;
 using System.Collections.Generic;
 using CCCPRacing.UI;
@@ -54,6 +55,7 @@ public partial class RaceScene
         if (cfg.GetValue("hud", "car", true) is { VariantType: Variant.Type.Bool } hc) _hud.CarInstrumentsOn = (bool)hc;
         if (cfg.GetValue("hud", "lap", true) is { VariantType: Variant.Type.Bool } hl) _hud.LapInfoOn = (bool)hl;
         if (cfg.GetValue("hud", "norms", true) is { VariantType: Variant.Type.Bool } hn) _hud.NormsCardOn = (bool)hn;
+        ChaseCamera.DirectedLead = CameraStyleSetting.Effective(CameraStyleSetting.Load(cfg), Array.IndexOf(CmdArgs(), "--camera-classic") >= 0);      // TOP-DOWN LEAD (VISUALS); the flag forces classic
         if (InstructionTrack == null) { LoadAntialiasing(cfg); SoundBalance.Load(cfg); }
         LabInit(cfg, Array.IndexOf(CmdArgs(), "--lab") >= 0);      // RaceScene.Lab.cs
     }

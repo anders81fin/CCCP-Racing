@@ -59,6 +59,7 @@ public partial class ChaseCamera : Camera3D
         _viewOffset = Offset;
         _listener = null;
         _driveSetback = Vector3.Zero;
+        ResetLead(target);
         Apply();
     }
 
@@ -74,6 +75,7 @@ public partial class ChaseCamera : Camera3D
         _dip = _dipVel = _rumble = _blast = 0;
         _feelZoom = DrivingPull(velocity.Length() * 3.6f, false);
         _viewOffset = Offset * _feelZoom;
+        if (DirectedLead) { SnapDirected(target, velocity); return; }
         Vector3 lead = new(velocity.X * LookAhead, 0, velocity.Z * LookAhead);
         if (float.IsFinite(MaxLead)) lead = lead.LimitLength(MaxLead);
         _focus = target + lead;

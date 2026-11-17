@@ -10,6 +10,7 @@ namespace CCCPRacing.Race;
 /// </summary>
 public partial class RaceScene
 {
+    partial void CameraBoostProbe();
     partial void ViewerSpikeTick(float dt);
     partial void ViewerFreezeTick(float dt);
     partial void ViewerTestTick(float dt);

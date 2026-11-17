@@ -301,7 +301,7 @@ public partial class RaceScene
         {
             _zoneAll = new ZoneLife { Name = "ZoneLife" };
             AddChild(_zoneAll);
-            _zoneAll.Init(_track, _fx, def.Zone);
+            _zoneAll.Init(_track, _fx, def.Zone, actorObs);      // the horses keep clear of the static world only (the actors' slots start at actorObs)
             if (_booting) await LoadingFrame();      // LOADSLICES
         }
         int detailsObs = _track.Obstacles.Count;
@@ -509,6 +509,7 @@ public partial class RaceScene
                 _lookAt = new Vector2(float.Parse(xz[0], System.Globalization.CultureInfo.InvariantCulture), float.Parse(xz[1], System.Globalization.CultureInfo.InvariantCulture));
             }
             else if (a.StartsWith("--tractor-warp=")) _tractorWarp = float.Parse(a["--tractor-warp=".Length..], System.Globalization.CultureInfo.InvariantCulture);
+            else if (a == "--camera-classic") CCCPRacing.Camera.ChaseCamera.DirectedLead = false;      // the old look-ahead, whatever VISUALS > TOP-DOWN LEAD says (Minimap.cs applies the setting afterwards, with this flag)
             else if (a.StartsWith("--at=")) _startAt = int.Parse(a["--at=".Length..]); // test: start at centre index
             else if (a.StartsWith("--shot=")) _shotPath = a["--shot=".Length..];
             else if (a.StartsWith("--record=")) _recordPath = a["--record=".Length..];   // test: capture audio to WAV

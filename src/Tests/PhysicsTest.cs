@@ -85,8 +85,16 @@ public partial class PhysicsTest : Node
         { try { FreeCameraExportContractTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--lab-tests"))
         { try { LabTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
-        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--radiation-power-tests"))
-        { try { RadiationPowerTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--camera-stakhanov-scene-tests"))
+        { try { CameraStakhanovSceneTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--camera-boost-scene-tests"))
+        { try { CameraBoostSceneTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--camera-lead-tests"))
+        { try { CameraLeadTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--horse-scene-tests"))
+        { try { HorseSceneTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--horse-tests"))
+        { try { HorseTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--car-control-tests"))
         { try { CarControlChoiceTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (ViewerWindowedChildHook(this)) return;      // viewer windowed: a child game (RaceScene.ViewerWindowedTest.cs)
@@ -585,7 +593,6 @@ public partial class PhysicsTest : Node
         LanTest();
         PadTest();
         DayNightTest();
-        RadiationPowerTests();
         SchoolTest();
         SpinTest();
         SlideTechniquesTest();      // PhysicsTest.Probe.cs

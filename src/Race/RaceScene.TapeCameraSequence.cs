@@ -136,7 +136,7 @@ public partial class RaceScene
             {
                 _cam.Fov = _replayOldFov; _cam.Near = _replayOldNear; _cam.Far = _replayOldFar;
                 CameraFeel(dt, replayDriving: true);
-                _cam.Follow(_car.Pos, _car.Vel, dt);
+                _cam.FollowDrive(_car.Pos, _car.Vel, dt);
                 posed = true;
             }
             else if (s.Camera == "ilyich-sweep")

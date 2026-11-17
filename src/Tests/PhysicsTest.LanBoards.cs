@@ -107,8 +107,8 @@ public partial class PhysicsTest
             LanBoardProtocolTests(root, rig);
             LanBoardWireBounds();
             StakhanovFuelBoardTests(root);
-            Check(LanSession.Protocol == 17 && LanReplayHeaderOk(17) && LanReplayHeaderOk(16) && LanReplayHeaderOk(15) && LanReplayHeaderOk(14) && LanReplayHeaderOk(11) && !LanReplayHeaderOk(18),
-                "LAN boards: live protocol 17; stored LAN replays of protocols 11-17 pass the header check, 18 does not");
+            Check(LanSession.Protocol == 18 && LanReplayHeaderOk(18) && LanReplayHeaderOk(17) && LanReplayHeaderOk(16) && LanReplayHeaderOk(15) && LanReplayHeaderOk(14) && LanReplayHeaderOk(11) && !LanReplayHeaderOk(19),
+                "LAN boards: live protocol 18; stored LAN replays of protocols 11-18 pass the header check, 19 does not");
         }
         finally { try { Directory.Delete(root, true); } catch { } }
     }

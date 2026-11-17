@@ -251,7 +251,7 @@ public partial class RaceScene
         _dayNight.PinnedClock=LanLightClock(progress,LanPlaybackSource.Metadata.Seed);
         _dayNight.Update(dt,true,0,0,true,0);
         var car=_lanPlaybackCars[focus].Puppet;
-        if(snapCamera) _cam.SnapDriving(car.Pos,car.Vel);else if(!_lanPlaybackPaused) _cam.Follow(car.Pos,car.Vel,dt);
+        if(snapCamera) _cam.SnapDriving(car.Pos,car.Vel);else if(!_lanPlaybackPaused) _cam.FollowDrive(car.Pos,car.Vel,dt);
         _lanWorld.SetPaused(_lanPlaybackPaused);
         _lanWorld.Frame(dt);
         if(!_lanPlaybackPaused) LanSootTick(dt);

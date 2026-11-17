@@ -23,8 +23,10 @@ public partial class ZoneLife : Node3D
     readonly RandomNumberGenerator _rng = new() { Seed = 1986 };
     float _clock;
 
-    public void Init(TrackData t, TyreEffects fx, ZoneDef def)
+    /// <param name="staticObstacleCount">the obstacle slots [0, n) that are static scenery for the horses (production: the end of the static world, RaceScene.WorldBuild's actorObs); default: every slot there is now</param>
+    public void Init(TrackData t, TyreEffects fx, ZoneDef def, int staticObstacleCount = -1)
     {
+        _staticObstacles = staticObstacleCount < 0 ? t.Obstacles.Count : Math.Min(staticObstacleCount, t.Obstacles.Count);
         _t = t;
         _fx = fx;
         _def = def;
@@ -39,9 +41,9 @@ public partial class ZoneLife : Node3D
     /// <summary>The world tape parts: the catfish (it shows and hides), each horse and its head, the lunokhod and its dish (a spinner), the train with each vehicle's own pose and its engine sound, the crossing lamps (they show and hide).</summary>
     void MarkTape()
     {
-        Tape.Version(this, 1); Tape.Part(this, "root");
+        Tape.Version(this, 2); Tape.Part(this, "root");      // 2: the horses have legs, a tail and a gait (1: a stiff body and a head)
         if (_def.Catfish != null) Tape.Part(_fish, "catfish");
-        for (int i = 0; i < _horses.Count; i++) { Tape.Part(_horses[i].Node, $"{i + 1}/horse"); Tape.Part(_horses[i].Head, $"{i + 1}/horseHead"); }
+        MarkHorseTape();
         if (_robot != null) { Tape.Part(_robot, "lunokhod"); Tape.Part(_dish, "dish"); Tape.Spin(_dish, Vector3.Up, () => _clock * 0.8f); }
         if (_train == null) return;
         Tape.Part(_train, "train");
@@ -57,7 +59,7 @@ public partial class ZoneLife : Node3D
         _clock = 0;
         _fishT = -1;
         _fishNext = 4f;
-        foreach (var h in _horses) { h.Pos = h.Home; h.Run = 0; }
+        ResetHorses();
         _robotT = 0;
         _robotWait = 0;
         _trainS = 0;
@@ -143,84 +145,6 @@ public partial class ZoneLife : Node3D
         for (int k = 0; k < 24; k++)
             _fx.Burst(at + Vector3.Up * 0.3f, new Vector3(_rng.RandfRange(-2.5f, 2.5f), _rng.RandfRange(2f, 5f), _rng.RandfRange(-2.5f, 2.5f)),
                 new Color(0.75f, 0.82f, 0.9f), 0.8f, 0.3f, 0.2f, 0.9f, 12f, 0.3f, false);
-    }
-
-    // ------------------------------------------------------------ the horses
-
-    class Horse
-    {
-        public Node3D Node, Head;
-        public Vector2 Home, Pos, Graze, Face = new(0, 1);
-        public float Run, Phase, Change;
-        public int Obs;
-    }
-
-    readonly List<Horse> _horses = new();
-
-    void BuildHorses()
-    {
-        if (_def.Horses == null) return;
-        var dun = new Color(0.72f, 0.56f, 0.34f);
-        var dark = new Color(0.2f, 0.15f, 0.1f);
-        var muzzle = new Color(0.86f, 0.8f, 0.68f);
-        for (int k = 0; k < _def.Horses.Count; k++)
-        {
-            float a = k * MathF.Tau / _def.Horses.Count;
-            var home = new Vector2(_def.Horses.X + MathF.Cos(a) * 5f, _def.Horses.Z + MathF.Sin(a) * 4f);
-            var n = new Node3D { Name = "Horse" + k, Scale = Vector3.One * 1.3f };
-            AddChild(n);
-            n.AddChild(Props.Part(Props.Box(0.55f, 0.6f, 1.5f), dun, new Vector3(0, 1.15f, 0)));      // the barrel
-            foreach (float x in new[] { -0.2f, 0.2f })
-            foreach (float z in new[] { -0.55f, 0.55f })
-                n.AddChild(Props.Part(Props.Box(0.13f, 0.85f, 0.13f), dark, new Vector3(x, 0.45f, z)));
-            n.AddChild(Props.Part(Props.Box(0.08f, 0.6f, 0.08f), dark, new Vector3(0, 1.05f, 0.82f), new Vector3(30, 0, 0)));   // the tail
-            var head = new Node3D { Position = new Vector3(0, 1.35f, -0.7f) };
-            n.AddChild(head);
-            head.AddChild(Props.Part(Props.Box(0.3f, 0.75f, 0.32f), dun, new Vector3(0, 0.2f, -0.1f), new Vector3(-35, 0, 0)));     // the neck
-            head.AddChild(Props.Part(Props.Box(0.26f, 0.28f, 0.55f), dun, new Vector3(0, 0.5f, -0.45f)));                         // the head
-            head.AddChild(Props.Part(Props.Box(0.22f, 0.22f, 0.18f), muzzle, new Vector3(0, 0.45f, -0.75f)));                     // the pale muzzle
-            head.AddChild(Props.Part(Props.Box(0.08f, 0.22f, 0.7f), dark, new Vector3(0, 0.5f, 0.05f), new Vector3(-35, 0, 0)));     // the upright mane
-            var h = new Horse { Node = n, Head = head, Home = home, Pos = home, Graze = home, Phase = k * 1.7f, Obs = _t.Obstacles.Count };
-            _t.Obstacles.Add(new Obstacle(home, 0.8f));
-            _horses.Add(h);
-        }
-    }
-
-    void TickHorses(float dt, CarSim car)
-    {
-        var cp = car != null ? new Vector2(car.Pos.X, car.Pos.Z) : new Vector2(-1e4f, -1e4f);
-        foreach (var h in _horses)
-        {
-            h.Phase += dt;
-            Vector2 away = h.Pos - cp;
-            float d = away.Length();
-            Vector2 vel = Vector2.Zero;
-            if (d < 20f && car != null && car.Speed > 3f)
-            {
-                // Off at a trot, away from the car, never far from home.
-                h.Run = 1.5f;
-                Vector2 dir = (away.Normalized() + (h.Home - h.Pos) * 0.04f).Normalized();
-                vel = dir * 6f;
-            }
-            else if (h.Run > 0) { h.Run -= dt; vel = h.Face * 3f; }
-            else
-            {
-                // Grazing: a few steps now and then towards a new tuft, home never far.
-                h.Change -= dt;
-                if (h.Change <= 0) { h.Change = _rng.RandfRange(3f, 7f); h.Graze = h.Home + new Vector2(_rng.RandfRange(-6f, 6f), _rng.RandfRange(-5f, 5f)); }
-                Vector2 to = h.Graze - h.Pos;
-                if (to.Length() > 0.5f) vel = to.Normalized() * 0.8f;
-            }
-            h.Pos += vel * dt;
-            if (vel.LengthSquared() > 0.01f) h.Face = h.Face.Lerp(vel.Normalized(), Math.Min(1f, dt * 4f)).Normalized();
-            float y = _t.MeshHeight(h.Pos.X, h.Pos.Y);
-            h.Node.GlobalPosition = new Vector3(h.Pos.X, y, h.Pos.Y);
-            h.Node.Rotation = new Vector3(0, MathF.Atan2(-h.Face.X, -h.Face.Y), 0);
-            bool grazing = vel.LengthSquared() < 1f;
-            h.Head.Rotation = new Vector3(grazing ? -0.9f + MathF.Sin(h.Phase * 1.3f) * 0.1f : 0.15f, 0, 0);
-            h.Node.Position += Vector3.Up * (vel.LengthSquared() > 4f ? MathF.Abs(MathF.Sin(h.Phase * 9f)) * 0.12f : 0f);
-            _t.Obstacles[h.Obs] = new Obstacle(h.Pos, 0.8f, vel);
-        }
     }
 
     // ------------------------------------------------------------ the lunokhod

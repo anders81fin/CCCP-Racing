@@ -89,6 +89,47 @@ public partial class PhysicsTest
             fx.ResetPlaybackEmission();
             fx.Tick(0,camera.GlobalBasis);
             Check(fx.ParticleCount == 0,"tank dust seek/reset clears particles");
+            hull.Hide(); fx.Clear(); fx.Position = Vector3.Zero;
+            SeeThrough.Car = Vector3.Zero;
+            // Actual vehicle models under sustained maximum load: the silhouette must remain readable.
+            var tractor = new Node3D(); DrunkTractor.BuildMtAgro(tractor, false, out _, out _);
+            var mixerBuilder = typeof(SnowPloughs).GetMethod("BuildMixer", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            var mixer = (Node3D)mixerBuilder.Invoke(null, new object[] { null, null });
+            foreach (var sample in new[] { (Name: "tractor", Model: tractor, Pipe: DrunkTractor.SootPipe),
+                (Name: "mixer", Model: mixer, Pipe: SnowPloughs.MixerSootPipe) })
+            {
+                var model = sample.Model; world.AddChild(model);
+                camera.Position = new Vector3(8, 4.5f, 8); camera.LookAt(new Vector3(0, 1.8f, 0));
+                async System.Threading.Tasks.Task Shot(string label)
+                {
+                    await ToSignal(GetTree(),SceneTree.SignalName.ProcessFrame);
+                    await ToSignal(RenderingServer.Singleton,RenderingServer.SignalName.FramePostDraw);
+                    Check(vp.GetTexture().GetImage().SavePng(Path.Combine(dir,sample.Name+"-"+label+".png")) == Error.Ok,
+                        "diesel visibility: " + sample.Name + " " + label);
+                }
+                await Shot("clean");
+                float acc = 0; const float SmokeDt = 1f / 60f;
+                for(int step=0;step<180;step++)
+                {
+                    fx.EngineSoot(sample.Pipe,Vector3.Back,Vector3.Zero,1f,1.2f,ref acc,SmokeDt);
+                    fx.Tick(SmokeDt,camera.GlobalBasis);
+                }
+                int liveCount=fx.ParticleCount;
+                Check(liveCount>10 && liveCount<55,"diesel visibility: "+sample.Name+" sustained full load stays within a thin-plume particle budget ("+liveCount+")");
+                await Shot("live-smoke");
+                fx.Clear();
+                var emitters = new CCCPRacing.Race.TapeEmitters(fx,track);
+                emitters.AddSoot(model,CCCPRacing.Race.TapeEmitters.Kind.Soot,sample.Pipe,1.2f,fixedThrottle:1f);
+                for(int step=0;step<=180;step++) {emitters.Tick(SmokeDt);fx.Tick(SmokeDt,camera.GlobalBasis);}
+                Check(fx.ReplayParticles>10 && fx.ParticleCount<55 && Math.Abs(fx.ParticleCount-liveCount)<8,
+                    "diesel visibility: "+sample.Name+" tape emitter uses the same thin plume after stationary pre-roll");
+                await Shot("replay-smoke");
+                fx.ClearReplay(); emitters.Restart();
+                Check(fx.ParticleCount==0,"diesel visibility: "+sample.Name+" replay cleanup removes the whole plume");
+                emitters.Tick(SmokeDt); model.Position+=Vector3.Right*500;emitters.Tick(SmokeDt);
+                Check(fx.ParticleCount==0,"diesel visibility: "+sample.Name+" seek jump emits no false exhaust trail");
+                model.Free(); fx.Clear();
+            }
             vp.Free();
             TapeT21(); // Existing production emitters: speed, stationary hull, seek discontinuity and cleanup.
         }

@@ -21,17 +21,6 @@ drivers to hold the clutch. A shared countdown starts the round. Session
 standings count victories across rounds; only the host continues or ends the
 session. Leaving the host ends the hosted session.
 
-## Track rules: fuel and radiation
-
-Ilyich and Atomgrad-4 have no fuel: there are no tanks, depot or canisters, and
-the lobby offers the fuel and fuel-consumption votes only when at least one
-offered track has fuel. On Atomgrad-4 the collected radiation dose adds up to
-15 percent engine power and slowly wears the engine; the decontamination wash
-lowers the dose. The host simulates each driver's dose and the damage vote
-applies to this wear; the power reaches clients through the car state, and the
-client's dose gauge and RAD hint follow it. The dosimetrist stop is a rally-only
-mechanic and does not occur in LAN, and the LAN replay hides the HUD.
-
 ## Authority and world state
 
 The host simulates cars and world AI, validates checkpoints and determines race

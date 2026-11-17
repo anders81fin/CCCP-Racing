@@ -10,4 +10,4 @@ public enum PauseRowId { Replay, Norms, Instructions, Settings, Continue, Restar
 public enum SettingsRowId { Sounds, Visuals, Lab, LabTune, Rumble, Keys, Back }
 
 /// <summary>VISUALS: map, comments, the camera (only where there is one to choose), rendering (pixel or native), edges, softening, back. Native rendering, edges and softening trigger the CAPITALIST LUXURIES ENABLED notice.</summary>
-public enum VisualRowId { Map, Comments, Camera, Edges, Softening, CarInstruments, LapInfo, NormsCard, Back, Rendering }
+public enum VisualRowId { Map, Comments, Camera, Edges, Softening, CarInstruments, LapInfo, NormsCard, Back, Rendering, LeadStyle }

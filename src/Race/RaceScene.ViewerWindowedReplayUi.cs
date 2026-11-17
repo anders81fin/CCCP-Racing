@@ -182,7 +182,7 @@ public partial class RaceScene
                 var pos = p0 + vel * (f * dt);
                 _car.Pos = pos; v._car.Pos = pos;
                 // the live Racing frame with the channels a ghost has: the feel of the speed, no rumble, no drive acceleration, no landing
-                _cam.Acceleration(_car.Vel, 0f, dt); _cam.Feel(_car.Speed * 3.6f, 0f, false, 0f, dt); _cam.Follow(_car.Pos, _car.Vel, dt);
+                _cam.Acceleration(_car.Vel, 0f, dt); _cam.Feel(_car.Speed * 3.6f, 0f, false, 0f, dt); _cam.FollowDrive(_car.Pos, _car.Vel, dt);
                 v.ViewerGameplayCameraFrameForTest(dt);
                 if (f % 75 == 0)
                 {
@@ -369,7 +369,7 @@ public partial class RaceScene
         for (int i = 0; i < 8; i++) yield return null;
         VwCheck(_hud.VisualOpen && _hud.SettingsOpen, "VISUALS opens over SETTINGS");
         VwLog("visual-rows", ("ids", string.Join(",", _hud.VisualRowIds)), ("camera", _hud.VisualCameraName));
-        VwCheck(_hud.VisualRowIds.Where(id => id != VisualRowId.NormsCard).SequenceEqual(new[] { VisualRowId.Comments, VisualRowId.LapInfo, VisualRowId.Map, VisualRowId.CarInstruments, VisualRowId.Camera, VisualRowId.Rendering, VisualRowId.Edges, VisualRowId.Softening, VisualRowId.Back }), "VISUALS rows: COMMENTS, LAP INFO, MAP, CAR INSTRUMENTS, CAMERA, RENDERING, EDGES, SOFTENING, BACK, no luxuries submenu");
+        VwCheck(_hud.VisualRowIds.Where(id => id != VisualRowId.NormsCard).SequenceEqual(new[] { VisualRowId.Comments, VisualRowId.LapInfo, VisualRowId.Map, VisualRowId.CarInstruments, VisualRowId.Camera, VisualRowId.LeadStyle, VisualRowId.Rendering, VisualRowId.Edges, VisualRowId.Softening, VisualRowId.Back }), "VISUALS rows: COMMENTS, LAP INFO, MAP, CAR INSTRUMENTS, CAMERA, TOP-DOWN LEAD, RENDERING, EDGES, SOFTENING, BACK, no luxuries submenu");
         foreach (var x in VrShot("menu-visuals")) yield return x;
         bool map0 = _hud.MapOn, com0 = _hud.Comments; int aa0 = _aaMode, soft0 = _softLevel;
         foreach (var x in VwVisualTo(VisualRowId.Map)) yield return x;
