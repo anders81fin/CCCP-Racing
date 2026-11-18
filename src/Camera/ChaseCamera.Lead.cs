@@ -12,7 +12,7 @@ namespace CCCPRacing.Camera;
 /// </summary>
 public partial class ChaseCamera
 {
-    /// <summary>Set from the chosen camera view (RaceScene.GameplayCamera: DIRECTED or CLASSIC, cycled with C / LB or the CAMERA row). True, the default: the directed look-ahead below. False: the classic one (velocity x LookAhead through one FollowRate lag).</summary>
+    /// <summary>Set from the chosen camera view (RaceScene.GameplayCamera: DIRECTED or CLASSIC, cycled with C / RB or the CAMERA row). True, the default: the directed look-ahead below. False: the classic one (velocity x LookAhead through one FollowRate lag).</summary>
     public static bool DirectedLead = true;
 
     /// <summary>Seconds of travel the view's centre is put ahead of the car (the car itself is followed closely, so this is the visible lead).</summary>

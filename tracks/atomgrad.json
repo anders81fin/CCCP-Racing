@@ -32,7 +32,7 @@
   // The overhead view is turned 180 degrees (2026-11-18): the start is at the top right of the screen and the plant at the bottom left, so the cooling-water side of the plant shows from above. Only the picture turns; the track, its signature and the records are unchanged.
   "viewTurned": true,
   // The overhead view rises to 37 m and moves 70.5 m back, south of the channel, and looks along the ground at 14 degrees (standard: 31 m, 23 m, 53 degrees), from the moment the car arrives on the plant's cooling-channel straight (the eastern end, x 250, is where the ease-in begins) and along it: the plant's roofs and the stack show, and the water behind the road (2026-11-18). It eases back in from the last broken concrete strip on the straight (x 122).
-  "viewZones": [ { "x0": 122, "z0": 40, "x1": 226, "z1": 75, "ramp": 24, "height": 37, "back": 70.5, "pitch": 14 } ],
+  "viewZones": [ { "x0": 122, "z0": 40, "x1": 226, "z1": 75, "ramp": 24, "height": 35.5, "back": 58.6, "pitch": 23.75 } ],
   // The road keeps the heights it was graded with under the old rim (8): the track signature and the records stay valid.
   "roadEdgeRim": 8,
   "backdrop": { "baseHeight": 3.5, "amplitude": 3 },

@@ -542,7 +542,7 @@ public partial class Hud
             case SchoolKey.Horn: FaceButtons(at, 'Y'); break;
             case SchoolKey.Rescue: FaceButtons(at, 'B'); break;
             case SchoolKey.Clutch: Bumper(new Vector2(at.X, mid - 5), "LB"); break;
-            case SchoolKey.Camera: Bumper(new Vector2(at.X, mid - 5), "LB"); break;
+            case SchoolKey.Camera: Bumper(new Vector2(at.X, mid - 5), "RB"); break;
         }
     }
 

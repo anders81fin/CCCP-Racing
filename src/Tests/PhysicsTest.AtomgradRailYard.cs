@@ -45,16 +45,16 @@ public partial class PhysicsTest
                 parkedInYard = true;
                 continuous &= train.GlobalPosition.Z + 38.6f < trainDef.Cross - 10f;
             }
-            for (int i = 0; i < 9; i++)
+            for (int i = 0; i < 24; i++)
             {
-                var obstacle = t.Obstacles[t.Obstacles.Count - 9 + i];
-                collisionsFollow &= obstacle.Center.DistanceTo(new Vector2(trainDef.X, train.GlobalPosition.Z - 11.5f + i * 6.25f)) < 0.001f;
+                var obstacle = t.Obstacles[t.Obstacles.Count - 24 + i];
+                collisionsFollow &= obstacle.Center.DistanceTo(new Vector2(trainDef.X, train.GlobalPosition.Z - 11.9f + i * 2.2f)) < 0.001f;
             }
             previous = train.GlobalPosition;
         }
         Check(north && south && parkedInYard, "train reaches the freight yard, stops and reverses during 300 simulated seconds");
         Check(continuous, "turnarounds do not rotate or teleport the consist; parked train clears the road");
-        Check(collisionsFollow, "all nine moving collision circles follow the consist in both directions");
+        Check(collisionsFollow, "all 24 moving collision circles follow the consist in both directions");
         zone.QueueFree();
     }
 }

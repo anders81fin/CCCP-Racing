@@ -19,7 +19,7 @@ public partial class RaceScene
 
     /// <summary>
     /// The camera a new run starts with: the directed overhead one in the Socialist Rally, the classic one in the Stakhanov run and the LAN race (the development flag --camera-classic: classic everywhere).
-    /// The player changes it as always (C / LB, the CAMERA row) and it stays for the run.
+    /// The player changes it as always (C / RB, the CAMERA row) and it stays for the run.
     /// </summary>
     void SetRunCamera()
     {
@@ -71,7 +71,7 @@ public partial class RaceScene
     {
         if (!_cameraDiscoveries.Discover(_track.Id, view)) return;
         UpdateCameraSecretModels();
-        _hud.ShowAlways(message, "C / LB: CHANGE CAMERA", 5f, UI.Hud.Gold);
+        _hud.ShowAlways(message, "C / RB: CHANGE CAMERA", 5f, UI.Hud.Gold);
     }
     void UpdateCameraSecretModels()
     {

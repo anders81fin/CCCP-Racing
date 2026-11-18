@@ -25,7 +25,7 @@ public partial class PhysicsTest
         int shots = 0; tanks.Fired += _ => shots++;
         float closestTanks = 1e9f; int near15 = 0, nearFrames = 0; var deepNote = new string[n]; var maxStep = new float[n]; var prev = new Vector2[n]; var travelled = new float[n]; var minZ = new float[n]; var minX = new float[n]; var maxX = new float[n]; var onRoad = new int[n]; var jumps = new int[n]; var deep = new float[n];
         for (int k = 0; k < n; k++) { prev[k] = track.Obstacles[hulls[k * perTank + 1]].Center; minZ[k] = 1e9f; minX[k] = 1e9f; maxX[k] = -1e9f; }
-        int frames = 60 * 60 * 10;
+        int hallFrames = 0; int frames = 60 * 60 * 10;
         for (int i = 0; i < frames; i++)
         {
             tanks.Tick(1f / 60f, null);
@@ -38,6 +38,7 @@ public partial class PhysicsTest
             {
                 Vector2 mid = track.Obstacles[hulls[k * perTank + 1]].Center;
                 float step = i == 0 ? 0f : mid.DistanceTo(prev[k]); travelled[k] += step; maxStep[k] = MathF.Max(maxStep[k], step); if (step > 0.5f) { jumps[k]++; if (jumps[k] <= 3) GD.Print($"  tank {k} JUMP t={i / 60f:F1}s step {step:F1} m from {prev[k]} to {mid}"); } prev[k] = mid;
+                if (track.MaintenanceHall != null && track.MaintenanceHall.Contains(mid, 0f)) hallFrames++;
                 minZ[k] = MathF.Min(minZ[k], mid.Y); minX[k] = MathF.Min(minX[k], mid.X); maxX[k] = MathF.Max(maxX[k], mid.X);
                 int ci = track.NearestCenter(mid, out float d); if (d < track.HalfWidth[ci] + 1f) onRoad[k]++;
                 for (int s = 0; s < perTank; s++)
@@ -65,6 +66,7 @@ public partial class PhysicsTest
         Check(Enumerable.Range(0, n).All(k => travelled[k] > 600f && maxX[k] - minX[k] > 120f), "every tank drives widely (over 600 m and across 120 m of the range in ten minutes)");
         Check(Enumerable.Range(0, n).All(k => jumps[k] == 0), "no tank jumps");
         Check(Enumerable.Range(0, n).All(k => deep[k] < 0.6f), "no tank hull is driven deep into a fixed thing");
+        if (track.MaintenanceHall != null) Check(hallFrames == 0, $"no tank drives into the repair hall ({hallFrames} tank-frames inside)");
         Check(shots >= 40, $"the tanks fire often ({shots} rounds in ten minutes)");
         Check(onRoad.Sum() > 60 * 20, $"the tanks spend time on the road ({onRoad.Sum() / 60f:F0} tank-seconds), parked across it");
         tanks.Free(); fx.Free();

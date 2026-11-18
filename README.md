@@ -3,7 +3,7 @@
 Rally-Sport-inspired time trial on a Soviet kolkhoz. Power: ACCORDING TO PLAN. Suspension: NYET.
 
 Source code: [anders81fin/CCCP-Racing](https://github.com/anders81fin/CCCP-Racing).
-Source for version **0.91**: [v0.91](https://github.com/anders81fin/CCCP-Racing/tree/v0.91).
+Source for version **0.911**: [v0.911](https://github.com/anders81fin/CCCP-Racing/tree/v0.911).
 GitHub account: [anders81fin](https://github.com/anders81fin).
 
 Source code is offered under **GPL-3.0-or-later** and game models, images, track
@@ -52,7 +52,7 @@ to the public repository.
 
 Game controllers (Xbox layout, any SDL pad; Steam Controller / Steam Deck through Steam Input): RT throttle,
 LT brake (and reverse), left stick or D-pad steer, A handbrake, LB clutch, Y horn, B rescue, X comments, Start pause,
-Back radio, D-pad up/down power (Stakhanov). Rumble on/off: RB in the pause menu.
+Back radio, D-pad up/down power (Stakhanov). Rumble on/off: LB in the pause menu.
 
 Controls: arrows/WASD drive, Space handbrake, Shift clutch, Ctrl horn, R rescue (voids the lap), Esc pause, Enter start,
 Alt+Enter / F11 fullscreen toggle, F1 engineer's view (wheel loads, roll, resolution).
@@ -164,5 +164,5 @@ The `steam-artwork` folder travels with every platform package and includes libr
 background, a transparent logo, PNG/ICO icons and instructions for a Non-Steam shortcut.
 
 Top-down is always available. Alternative gameplay cameras are hidden discoveries, saved per track
-in the active personnel file. C (pad: LB) cycles only the cameras found on the current track.
+in the active personnel file. C (pad: RB) cycles only the cameras found on the current track.
 Ilyich's pond duck unlocks the bonnet view when driven over; other camera finds are off the racing line.

@@ -63,7 +63,7 @@ public partial class Hud
     /// <summary>A row's shortcut (keyboard or pad button), or null: drawn in its own column, left of the label column that every row's label starts in.</summary>
     internal string SettingsRowKey(SettingsRowId id) => id switch
     {
-        SettingsRowId.Rumble => P("V", "RB"),
+        SettingsRowId.Rumble => P("V", "LB"),
         SettingsRowId.Keys => P("K", "Y"),
         SettingsRowId.Back => P("ESC", "B"),
         _ => null,

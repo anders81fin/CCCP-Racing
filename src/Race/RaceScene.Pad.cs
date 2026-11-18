@@ -12,7 +12,7 @@ namespace CCCPRacing.Race;
 /// what is on screen (PadCtx), so every menu works with a pad. The name fields are letter wheels
 /// (d-pad up/down the letter, A or right the next one, B or left delete, START confirms). In the
 /// race: START pause, B rescue, X comments, BACK radio, d-pad up/down the Stakhanov
-/// power; in the pause menu Y opens the key card and RB turns the rumble on or off. The prompts
+/// power; in the pause menu Y opens the key card and LB turns the rumble on or off. The prompts
 /// follow the last input (keys or pad). An unplugged pad pauses the race. Rumble: Rumble.cs.
 /// PADDBG prints the pads as they come and go.
 /// </summary>
@@ -233,7 +233,7 @@ public partial class RaceScene
                 key = b switch
                 {
                     JoyButton.Start => Key.Escape, JoyButton.B => Key.R, JoyButton.X => Key.Tab,
-                    JoyButton.Back => Key.Backspace, JoyButton.RightStick => Key.M, _ => Key.None,
+                    JoyButton.Back => Key.Backspace, JoyButton.RightStick => Key.M, JoyButton.RightShoulder => Key.C, _ => Key.None,   // RB: the camera (LB is the clutch)
                 };
                 break;
             case PadCtx.School:
@@ -255,8 +255,8 @@ public partial class RaceScene
                     key = b is JoyButton.A or JoyButton.B or JoyButton.Start or JoyButton.Back ? Key.Escape : Key.None;
                     break;
                 }
-                if (b == JoyButton.RightShoulder) { ToggleRumble(); return true; }
-                if (b == JoyButton.LeftShoulder) { key = Key.C; break; }     // the camera
+                if (b == JoyButton.LeftShoulder) { ToggleRumble(); return true; }
+                if (b == JoyButton.RightShoulder) { key = Key.C; break; }     // the camera (LB is the clutch in the race)
                 if (b == JoyButton.B) { PauseChooseId(PauseRowId.Continue); return true; }       // back to the race, whatever row is selected
                 // A and Start choose the selected row straight away (not through a key press that the next frame has to notice).
                 if (b is JoyButton.A or JoyButton.Start && !echo) { if (PadDbg) GD.Print($"pad: {b} in the pause menu chooses row {_hud.PauseSelection} at {_clock:F2} s"); PauseChoose(_hud.PauseSelection); return true; }

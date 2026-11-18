@@ -1330,8 +1330,8 @@ public static partial class TrackBuilder
             }
             // ATOMGRAD-4 (Track.Atomgrad).
             case "turbinehall": AddBox(t, p, rot + MathF.PI / 2f, 22f, 81f); break;
-            case "reactor": AddBox(t, p + az * 4f, rot, 26f, 36f); break;
-            case "sarcophagus": AddBox(t, p - az * 8f, rot, 31f, 50f); break;
+            case "reactor": AddSolidBox(t, p + az * 4f, rot, 26f, 36f); break;
+            case "sarcophagus": AddSolidBox(t, p - az * 8f, rot, 31f, 50f); break;
             case "stack": t.Obstacles.Add(new Obstacle(p, 4.6f)); break;
             case "pipebridge":
             {
@@ -1340,10 +1340,10 @@ public static partial class TrackBuilder
                 t.Obstacles.Add(new Obstacle(p - ax * span / 2f, 1.3f));
                 break;
             }
-            case "apartments": AddBox(t, p, rot + MathF.PI / 2f, 12f, 50f); break;
+            case "apartments": AddSolidBox(t, p, rot + MathF.PI / 2f, 12f, 50f); break;
             case "ferriswheel": t.Obstacles.Add(new Obstacle(p + ax * 6f, 2.6f)); t.Obstacles.Add(new Obstacle(p - ax * 6f, 2.6f)); break;
-            case "culture": AddBox(t, p, rot + MathF.PI / 2f, 16f, 26f); break;
-            case "bumpercars": AddBox(t, p, rot + MathF.PI / 2f, 10f, 14f); break;
+            case "culture": AddSolidBox(t, p, rot + MathF.PI / 2f, 16f, 26f); break;
+            case "bumpercars": AddSolidBox(t, p, rot + MathF.PI / 2f, 10f, 14f); break;
             case "checkpoint":
                 t.Obstacles.Add(new Obstacle(p, 2.1f));
                 t.Obstacles.Add(new Obstacle(p + ax * 3f, 0.35f));
@@ -1381,6 +1381,30 @@ public static partial class TrackBuilder
     }
 
     /// <summary>Approximates a rotated box (sizeX across, sizeZ along) with a row of circles.</summary>
+    /// <summary>A big building: AddBox's wide circles leave the corners and the dips between them open (a 50 x 12 m block had 2 m of air at its corners and 2.3 m in its walls), so a ring of small circles is
+    /// laid along the whole footprint's edge as well (2026-11-19, Atomgrad town: the car drove through corners). The footprint is the model's: sizeX across, sizeZ along.</summary>
+    static void AddSolidBox(TrackData t, Vector2 c, float rot, float sizeX, float sizeZ)
+    {
+        AddBox(t, c, rot, sizeX, sizeZ);
+        Vector2 along = new(MathF.Sin(rot), MathF.Cos(rot)), across = new(along.Y, -along.X);
+        float rho = MathF.Min(1.5f, sizeX * 0.5f), hx = sizeX * 0.5f - rho, hz = sizeZ * 0.5f - rho, step = rho * 1.2f;
+        for (int side = 0; side < 2; side++)
+        {
+            float len = (side == 0 ? 2f * hz : 2f * hx);
+            int n = Math.Max(1, (int)MathF.Ceiling(len / step));
+            for (int i = 0; i <= n; i++)
+            {
+                float u = -len / 2f + len * i / n;
+                foreach (float sgn in new[] { -1f, 1f })
+                {
+                    if (i == 0 && side == 1 || i == n && side == 1) continue;      // (the corners come once, with the long sides)
+                    Vector2 p = side == 0 ? c + across * (sgn * hx) + along * u : c + along * (sgn * hz) + across * u;
+                    t.Obstacles.Add(new Obstacle(p, rho, Material: ImpactMaterial.Stone));
+                }
+            }
+        }
+    }
+
     static void AddBox(TrackData t, Vector2 c, float rot, float sizeX, float sizeZ)
     {
         // Local +Z rotated by yaw 'rot' (Godot rotation around Y): (sin, cos).

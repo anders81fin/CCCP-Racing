@@ -85,6 +85,9 @@ public partial class TankBattle : Node3D
     readonly List<Tank> _tanks = new();
     readonly List<Shell> _shells = new();
     readonly List<(Vector2 p, float r)> _avoid = new();
+    /// <summary>The other moving things the tanks must not drive into (the BTR patrols' hull circles): filled by the race, read again every tick.</summary>
+    public Action<List<(Vector2 p, float r)>> Movers;
+    readonly List<(Vector2 p, float r)> _movers = new();
     readonly RandomNumberGenerator _rng = new() { Seed = 1983 };
     Node3D _craters;
     // Firing positions per side and which pairs a straight leg joins (clear of the road and trees).
@@ -135,6 +138,11 @@ public partial class TankBattle : Node3D
         // Buildings get a wide berth, trees/fences/poles a narrow one (they're in the table as small circles).
         foreach (var o in t.Obstacles)
             if (o.Radius > 0.15f && area.Grow(20f).HasPoint(o.Center)) _avoid.Add((o.Center, o.Radius));
+        // The repair hall is open at its ends, so its footprint is not in the obstacle table: a tank must not drive in (circles across the whole floor and a metre around it).
+        if (t.MaintenanceHall is { } hall)
+            for (float x = -hall.HalfWidth - 1f; x <= hall.HalfWidth + 1f + 0.01f; x += 2.5f)
+                for (float z = -hall.HalfLength - 1f; z <= hall.HalfLength + 1f + 0.01f; z += 2.5f)
+                    _avoid.Add((hall.World(x, z), 2.2f));
         InitSpots(t.TankRange);
         yield return 0;
         _craters = new Node3D { Name = "ShellCraters" };
@@ -343,6 +351,7 @@ public partial class TankBattle : Node3D
     {
         var carPos = car != null ? car.Pos : new Vector3(-1e4f, 0, -1e4f);
         _car = car;
+        _movers.Clear(); Movers?.Invoke(_movers);
         // Rearm only after leaving the exercise, never while waiting for a tank to pass.
         if (car != null && !_area.Grow(60f).HasPoint(new Vector2(car.Pos.X, car.Pos.Z)) &&
             !_tanks.Exists(k => k.Crossing || k.AcrossRoad))
@@ -496,6 +505,11 @@ public partial class TankBattle : Node3D
             float reach = r + 1.9f;
             worst = MathF.Max(worst, MathF.Max(reach - a.DistanceTo(c), reach - b.DistanceTo(c)));
         }
+        foreach (var (c, r) in _movers)
+        {
+            float reach = r + 1.9f + 0.6f;
+            worst = MathF.Max(worst, MathF.Max(reach - a.DistanceTo(c), reach - b.DistanceTo(c)));
+        }
         foreach (var o in _tanks)
         {
             if (o == k) continue;
@@ -540,6 +554,12 @@ public partial class TankBattle : Node3D
             Vector2 d = k.Pos - c;
             float range = r + (r > 1f ? 12f : 6f), dist = d.Length();
             if (dist < range && dist > 0.01f) want += d / dist * (range - dist) / range * 2.2f;
+        }
+        foreach (var (c, r) in _movers)
+        {
+            Vector2 d = k.Pos - c;
+            float range = r + 14f, dist = d.Length();
+            if (dist < range && dist > 0.01f) want += d / dist * (range - dist) / range * 2.6f;
         }
         foreach (var o in _tanks)
         {
@@ -1066,6 +1086,16 @@ public partial class TankBattle : Node3D
     }
 
 
+    /// <summary>The tank hulls' circles now (two per tank), for the BTR patrols: they wait for a tank in the way.</summary>
+    public void HullCircles(List<(Vector2 p, float r)> into)
+    {
+        foreach (var k in _tanks)
+        {
+            if (k.Pos.X < -9000f) continue;
+            Vector2 f = new(-MathF.Sin(k.Yaw), -MathF.Cos(k.Yaw));
+            into.Add((k.Pos + f * 2.2f, 1.9f)); into.Add((k.Pos - f * 2.2f, 1.9f));
+        }
+    }
     public Vector2? FirstTank => _tanks.Count > 0 ? _tanks[0].Pos : null;
 
     // ------------------------------------------------------------ revenge (the tank driver's grandmother)

@@ -33,6 +33,9 @@ public partial class RaceScene
     /// the zones' eyes and tilts are blended by their weights, and the view's share is the sum of the weights (at most 1): where one zone's ramp runs over the next one's, the view goes from the one to the other
     /// without returning to the standard view in between. The camera eases to it (ChaseCamera.ZoneTarget). Directed look-ahead only: the classic camera never takes a zone.
     /// </summary>
+    /// <summary>The zones' ramps are this many times their authored length (2026-11-19: the changes of view came too fast, the camera swung from one position to the other in a moment): the change starts earlier and runs slower.</summary>
+    const float ViewZoneRampScale = 2.2f;
+
     void ViewZoneFeel()
     {
         if (!ChaseCamera.DirectedLead)      // (the classic camera view keeps its own picture everywhere: the zones are for the directed one)
@@ -46,8 +49,8 @@ public partial class RaceScene
         foreach (var z in _track.ViewZones)
         {
             // (the distance outside the rectangle, each side in its own ramp: the east and north ones can be long, to start the change early and slowly)
-            float dw = Math.Max(z.X0 - _car.Pos.X, 0f) / Math.Max(z.RampWest ?? z.Ramp, 0.1f), de = Math.Max(_car.Pos.X - z.X1, 0f) / Math.Max(z.RampEast ?? z.Ramp, 0.1f);
-            float dn = Math.Max(z.Z0 - _car.Pos.Z, 0f) / Math.Max(z.RampNorth ?? z.Ramp, 0.1f), ds = Math.Max(_car.Pos.Z - z.Z1, 0f) / Math.Max(z.RampSouth ?? z.Ramp, 0.1f);
+            float dw = Math.Max(z.X0 - _car.Pos.X, 0f) / Math.Max((z.RampWest ?? z.Ramp) * ViewZoneRampScale, 0.1f), de = Math.Max(_car.Pos.X - z.X1, 0f) / Math.Max((z.RampEast ?? z.Ramp) * ViewZoneRampScale, 0.1f);
+            float dn = Math.Max(z.Z0 - _car.Pos.Z, 0f) / Math.Max((z.RampNorth ?? z.Ramp) * ViewZoneRampScale, 0.1f), ds = Math.Max(_car.Pos.Z - z.Z1, 0f) / Math.Max((z.RampSouth ?? z.Ramp) * ViewZoneRampScale, 0.1f);
             float w = Mathf.SmoothStep(0f, 1f, 1f - Math.Clamp(MathF.Sqrt(dw * dw + de * de + dn * dn + ds * ds), 0f, 1f));
             if (w <= 0f) continue;
             sum += w;

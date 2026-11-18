@@ -3,6 +3,13 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.911
+
+- ATOMGRAD-4: the town apartment blocks, the palace of culture and the bumper-car hall are solid all the way to their corners and walls (the car could drive through a corner), and the goods train has no gaps in its length any more
+- POLIGON: the tanks and the BTR-80 patrols no longer drive through each other, and the tanks stay out of the repair hall
+- The DIRECTED camera changes its view slower: the changes start earlier and take longer. The views of the Atomgrad power plant straight, the Siberia ice road and the Siberia east hill climb are closer to the standard top-down view
+- Pad: the camera is on RB (it shared LB with the clutch). In the pause menu the rumble on/off moved to LB
+
 ## 0.91
 
 - ATOMGRAD-4 is turned 180 degrees in the top-down and map views: the start is in the top right and the power plant bottom left, so its cooling water side is easier to see. The road, heights and records stay the same

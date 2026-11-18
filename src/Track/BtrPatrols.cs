@@ -257,9 +257,17 @@ public partial class BtrPatrols : Node3D
     internal IEnumerable<Node3D> TapeHulls() { foreach(var p in _patrols) yield return p.Model; }
     internal static void TracerEndFx(TyreEffects fx,Vector3 at) => fx.Smoke(at,new Vector3(.3f,1.1f,.1f),new(.46f,.40f,.30f),.3f,.55f,.9f,1.0f);
     /// <summary>Cruise, slow across the race road, stop at a barn when it is time to fire.</summary>
+    /// <summary>The tanks' hull circles (the race sets it): a BTR waits for a tank that stands or rolls across its way.</summary>
+    public Action<List<(Vector2 p,float r)>> Tanks;
+    readonly List<(Vector2 p,float r)> _tankCircles=new();
+    /// <summary>The BTR hulls' circles now (for the tanks: they steer clear of them and never drive into one).</summary>
+    public void HullCircles(List<(Vector2 p,float r)> into)
+    {
+        foreach(var p in _patrols) for(int i=0;i<3;i++) {var o=_track.Obstacles[p.Slot+i]; if(o.Center.X>-9000f) into.Add((o.Center,o.Radius));}
+    }
     void Drive(Patrol p,float dt)
     {
-        Vector2 here=At(p,p.S,out _);
+        Vector2 here=At(p,p.S,out Vector2 heading);
         int road=_track.NearestCenter(here,out float distance);
         float target=distance<_track.HalfWidth[road]+9?2.1f:3.4f;
         if(p.State==0 && p.FireWait<=0)
@@ -278,6 +286,13 @@ public partial class BtrPatrols : Node3D
             if(ahead<.8f && p.Speed<.15f) {p.State=2;p.Timer=0;p.Fire=p.Stops[p.Stopping].Barn;p.Speed=0;}
         }
         else if(p.State>=2) target=0;
+        // A tank in the way (standing or rolling across the road): the BTR waits, as a driver would, and goes on when the way is clear.
+        _tankCircles.Clear();Tanks?.Invoke(_tankCircles);
+        foreach(var (c,r) in _tankCircles)
+        {
+            Vector2 rel=c-here;float along=rel.Dot(heading),side=MathF.Abs(rel.X*heading.Y-rel.Y*heading.X);
+            if(along>-1f && along<11f+r && side<r+2.6f) {target=0;break;}
+        }
         float rate=target<p.Speed?1.5f:.8f;
         p.Speed=Mathf.MoveToward(p.Speed,target,rate*dt);
         if(p.State==0) p.FireWait-=dt;

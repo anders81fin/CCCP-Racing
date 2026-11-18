@@ -1504,3 +1504,7 @@ src/Tests/PhysicsTest.BtrClear.cs
 src/Tests/PhysicsTest.BtrClear.cs.uid
 src/Tests/PhysicsTest.TankRoam.cs
 src/Tests/PhysicsTest.TankRoam.cs.uid
+src/Tests/PhysicsTest.TankBtr.cs
+src/Tests/PhysicsTest.TankBtr.cs.uid
+src/Tests/PhysicsTest.AtomgradSolid.cs
+src/Tests/PhysicsTest.AtomgradSolid.cs.uid

@@ -157,7 +157,7 @@ public partial class ChaseCamera : Camera3D
     {
         if (!ShakeEnabled) { rumble = 0; landing = 0; }
         float pull = DrivingPull(kmh, airborne);
-        _zone = Mathf.Lerp(_zone, ZoneTarget, 1f - MathF.Exp(-1.1f * dt));
+        _zone = Mathf.Lerp(_zone, ZoneTarget, 1f - MathF.Exp(-0.7f * dt));
         _feelZoom = Mathf.Lerp(_feelZoom, pull, 1f - MathF.Exp(-(pull > _feelZoom ? 1.3f : 0.4f) * dt));
         _rumble = Mathf.Lerp(_rumble, rumble, 1f - MathF.Exp(-6f * dt));
         _rumbleClock += dt;

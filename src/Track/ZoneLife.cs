@@ -214,6 +214,7 @@ public partial class ZoneLife : Node3D
     float _trainS, _trainWait, _trainSpeed;
     int _trainDir;
     const float TrainLen = 50f, TrainSpeed = 9f;
+    const int TrainCircles = 24;      // along the 51 m consist, 2.2 m apart: the 1.7 m circles overlap, no gap
 
     void BuildTrain()
     {
@@ -221,7 +222,7 @@ public partial class ZoneLife : Node3D
         _train = new Node3D { Name = "Train" };
         AddChild(_train);
         BuildTrainBody(_train);
-        for (int k = 0; k < 9; k++)
+        for (int k = 0; k < TrainCircles; k++)      // (the 9 circles 6.25 m apart left 2.9 m of air between them: the car drove through the train, 2026-11-19)
         {
             _trainObs.Add(_t.Obstacles.Count);
             _t.Obstacles.Add(new Obstacle(new Vector2(-1e4f, -1e4f), 0.1f));
@@ -296,7 +297,7 @@ public partial class ZoneLife : Node3D
         Vector2 v = new(0, _trainDir > 0 ? -_trainSpeed : _trainSpeed);
         for (int k = 0; k < _trainObs.Count; k++)
         {
-            float z = _train.GlobalPosition.Z - 11.5f + k * 6.25f;
+            float z = _train.GlobalPosition.Z - 11.9f + k * 2.2f;
             _t.Obstacles[_trainObs[k]] = new Obstacle(new Vector2(tr.X, z), 1.7f, v);
         }
         // The crossing: lamps blink and the horn blows while the train is within 70 m of it.

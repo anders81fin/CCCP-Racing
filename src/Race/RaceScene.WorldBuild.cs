@@ -316,6 +316,7 @@ public partial class RaceScene
                 if (_booting) await LoadingFrame();
         }
         if(_trackId=="bonus") { _campGate=new CampGate {Name="CampGate"};AddChild(_campGate);_campGate.Init(_track);_campGate.Opened+=()=>_hud.Show("THE GUARD RAISES THE BARRIER","DRIVE THROUGH OR BREAK IT",2.5f,Hud.Gold,Prio.Nice); }
+        if (_tanksAll != null && _btrAll != null) { _tanksAll.Movers = _btrAll.HullCircles; _btrAll.Tanks = _tanksAll.HullCircles; }      // (tanks and BTRs steer clear of each other; neither drives through the other)
         int dynamicObstaclesEnd = _track.Obstacles.Count;
         InitSpeedTrap(def); // Build before the world-tape index; its own replay hook parks its two knockable slots.
         if (_booting) await LoadingFrame();      // LOADSLICES

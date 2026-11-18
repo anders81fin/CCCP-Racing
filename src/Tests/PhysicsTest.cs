@@ -48,6 +48,8 @@ public partial class PhysicsTest : Node
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--kozlik-overtake-test")){KozlikOvertakeTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--kozlik-gulag-test")){KozlikGulagTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--tank-roam-test")){TankRoamTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--atomgrad-solid-test")){AtomgradSolidTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--tank-btr-test")){TankBtrTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--btr-clear-test")){BtrClearTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--busstop-leave-test")){BusStopLeaveTest();GetTree().Quit(_failures==0?0:1);return;}
         {var bp=Array.Find(OS.GetCmdlineUserArgs(),a=>a.StartsWith("--busstop-profile="));if(bp!=null){BusStopProfile(bp["--busstop-profile=".Length..]);GetTree().Quit();return;}}
@@ -443,6 +445,8 @@ public partial class PhysicsTest : Node
             GulagCampTruckTest();
             GulagSolidsTest();
             BtrClearTest();
+            TankBtrTest();
+            AtomgradSolidTest();
             GetTree().Quit(_failures == 0 ? 0 : 1);
             return;
         }
@@ -587,6 +591,8 @@ public partial class PhysicsTest : Node
         GulagCampTruckTest();
         GulagSolidsTest();
         BtrClearTest();
+        TankBtrTest();
+        AtomgradSolidTest();
         StartHillAssistTest();
         HandbrakeThrottleTest();
         DroneTourTest();
