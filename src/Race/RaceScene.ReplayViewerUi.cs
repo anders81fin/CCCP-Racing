@@ -64,10 +64,10 @@ public partial class RaceScene
         /// <summary>The exporter child: no overlay, no hints, no notices (the picture is the world only).</summary>
         public void HideForExport() { if (_uiLayer != null) _uiLayer.Visible = false; _overlayHidden = true; _exportChild = true; }
 
-        /// <summary>The cameras the player may pick: the gameplay top-down, the bonnet and the cinematic one only where this personnel file has found them, and the automatic director.</summary>
+        /// <summary>The cameras the player may pick: the directed and the classic overhead ones, the bonnet and the cinematic one only where this personnel file has found them, and the automatic director.</summary>
         List<ViewerCameraMode> AvailableCameras()
         {
-            var list = new List<ViewerCameraMode> { ViewerCameraMode.TopDown };
+            var list = new List<ViewerCameraMode> { ViewerCameraMode.TopDown, ViewerCameraMode.Classic };      // (directed and classic: always there)
             var found = _live._cameraDiscoveries;
             if (found != null)
             {
@@ -78,7 +78,7 @@ public partial class RaceScene
             return list;
         }
 
-        static string CameraName(ViewerCameraMode m) => m switch { ViewerCameraMode.Bonnet => "BONNET", ViewerCameraMode.Cinematic => "CINEMATIC", ViewerCameraMode.Auto => "AUTO", _ => "TOP-DOWN" };
+        static string CameraName(ViewerCameraMode m) => m switch { ViewerCameraMode.Bonnet => "BONNET", ViewerCameraMode.Cinematic => "CINEMATIC", ViewerCameraMode.Auto => "AUTO", ViewerCameraMode.Classic => "CLASSIC", _ => "DIRECTED" };
 
         public void SetNotice(string text, float seconds = 3f) { _notice = text ?? ""; _noticeLeft = seconds; }
 

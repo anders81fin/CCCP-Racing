@@ -45,12 +45,27 @@ public partial class GulagTruck : Node3D
     static readonly float[] BodyAt = { -2.6f * TruckScale / 1.25f, 0f, 2.6f * TruckScale / 1.25f };
     const float BodyR = 1.55f;
 
-    /// <summary>Whether a body (a circle at pos) would overlap the truck: other vehicles stop short of it.</summary>
+    /// <summary>One solid thing of the arrest: a circle on the ground (the truck's three, the officer, the driver) and how it moves.</summary>
+    public readonly record struct Solid(Vector2 Centre, float Radius, Vector2 Velocity);
+    /// <summary>A person on foot as an obstacle: about the width of his shoulders at the 1.6 world scale, and a little more.</summary>
+    public const float PersonRadius = 0.7f;
+
+    /// <summary>The truck, the officer and the driver, whichever are out on the road now: nothing drives through any of them (BlocksAt, TrafficCap, the vehicles' own checks).</summary>
+    public static IEnumerable<Solid> Solids => _onRoad is { Active: true } g ? g.SolidList() : Array.Empty<Solid>();
+
+    IEnumerable<Solid> SolidList()
+    {
+        var fwd = new Vector2(-MathF.Sin(_yaw), -MathF.Cos(_yaw));
+        foreach (float a in BodyAt) yield return new Solid(_pos + fwd * a, BodyR, fwd * _speed);
+        if (_officer != null && _officer.Visible) yield return new Solid(new Vector2(_officer.GlobalPosition.X, _officer.GlobalPosition.Z), PersonRadius, Vector2.Zero);
+        if (_driver != null && _driver.Visible) yield return new Solid(new Vector2(_driver.GlobalPosition.X, _driver.GlobalPosition.Z), PersonRadius, Vector2.Zero);
+    }
+
+    /// <summary>Whether a body (a circle at pos) would overlap the truck, the officer or the driver: other vehicles stop short of them.</summary>
     public static bool BlocksAt(Vector2 pos, float radius)
     {
-        if (_onRoad is not { Active: true } g) return false;
-        foreach (var c in g.BodyCentres())
-            if (pos.DistanceSquaredTo(c) < MathF.Pow(radius + BodyR + 0.1f, 2)) return true;
+        foreach (var s in Solids)
+            if (pos.DistanceSquaredTo(s.Centre) < MathF.Pow(radius + s.Radius + 0.1f, 2)) return true;
         return false;
     }
 
@@ -292,6 +307,7 @@ public partial class GulagTruck : Node3D
         Vector3 forward = (car.Rot.Z with { Y = 0 }).Normalized();
         _carBlock = new WalkBlock(new Transform3D(Basis.LookingAt(-forward, Vector3.Up), car.Pos),
             new(-1.5f, -2.7f), new(1.5f, 2.7f));
+        _fixedBlocks = FixedBlocksNear(new Vector2(car.Pos.X, car.Pos.Z));
         // The driver's door (left: a Pyatyorka is left-hand drive).
         _drvFrom = Ground(car.Pos - car.Rot.X * 1.7f - car.Rot.Z * 0.2f);
         _seatedPlayer = car.Pos - car.Rot.X * 0.4f - car.Rot.Z * 0.2f + Vector3.Up * 0.45f;
@@ -574,7 +590,8 @@ public partial class GulagTruck : Node3D
         {
             var o = obs[i];
             if (o.Center.DistanceSquaredTo(_seenAt[i]) > 0.0004f) { _seenAt[i] = o.Center; _movedAt[i] = _t0; }
-            if (o.Radius < 1f || o.Center.X < -1000f) continue;               // people, posts, bales; parked-away slots
+            if (o.Radius < 0.45f || o.Center.X < -1000f) continue;               // parked-away slots, litter
+            if (o.Radius < 1f && o.Velocity == Vector2.Zero) continue;           // posts, bales; people on foot count while they move
             if (o.Velocity == Vector2.Zero && _t0 - _movedAt[i] > 20f) continue;
             Vector2 rel = o.Center - _pos;
             float along = rel.Dot(fwd);

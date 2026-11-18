@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using CCCPRacing.Race;
 using Godot;
 
@@ -22,7 +23,7 @@ public partial class Hud
     void DrawLoadingTrack()
     {
         var s = Screen;
-        var controls = SchoolScript.Recap(SchoolCourse.Driving);
+        var controls = SchoolScript.Recap(SchoolCourse.Driving).Append((SchoolKey.Camera, "CAMERA")).ToArray();      // (the camera's key beside BACK ON THE ROAD, as on the controls card)
         int rows = (controls.Length + 2) / 3;
         const float HeadingTop = 9, HeadingHeight = 14, FooterGap = 8, BottomPadding = 8, CaptionBottom = 39;
         float FooterHeight = LoadingBarShown ? 19 : 7;
@@ -75,7 +76,8 @@ public partial class Hud
         const int RowH = 10, KeyCol = 16 * PixelFont.Advance;
         int actionW = 0;
         var card = Pad ? PadCard : KeyCard;
-        var controls = SchoolScript.Recap(SchoolCourse.Driving);
+        // The driving school's controls, and the camera's key beside BACK ON THE ROAD.
+        var controls = SchoolScript.Recap(SchoolCourse.Driving).Append((SchoolKey.Camera, "CAMERA")).ToArray();
         int gridHeight = ((controls.Length + 2) / 3) * 50;
         foreach (var (_, action) in card) actionW = Math.Max(actionW, PixelFont.Measure(action));
         float w = Math.Min(s.X - 8, Math.Max(442, KeyCol + actionW + 36));

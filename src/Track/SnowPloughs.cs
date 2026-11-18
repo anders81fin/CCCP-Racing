@@ -171,11 +171,11 @@ public partial class SnowPloughs : Node3D
                 }
             }
             // The gulag truck in its lane ahead: stop for it too.
-            foreach (var c in GulagTruck.Body)
+            foreach (var s in GulagTruck.Solids)
             {
-                Vector2 rel = c - p.Pos;
+                Vector2 rel = s.Centre - p.Pos;
                 float ahead = rel.Dot(p.Fwd), lat = rel.Dot(new Vector2(-p.Fwd.Y, p.Fwd.X));
-                if (ahead > 0f && ahead < 14f && MathF.Abs(lat) < BladeHalf + GulagTruck.BodyRadius + 0.3f) target = 0;
+                if (ahead > 0f && ahead < 14f && MathF.Abs(lat) < BladeHalf + s.Radius + 0.3f) target = 0;
             }
             // Any other vehicle moving in its lane ahead (the Kozlik, the bus, a tractor): stop short of it.
             target = Math.Min(target, TrafficCap.Cap(_t, p.Pos, p.Fwd, p.Speed, BladeHalf + 0.3f, IsPloughObstacle));

@@ -12,7 +12,7 @@ namespace CCCPRacing.Camera;
 /// </summary>
 public partial class ChaseCamera
 {
-    /// <summary>The player's choice (SETTINGS > VISUALS > TOP-DOWN LEAD, CameraStyleSetting). True, the default: the directed look-ahead below. False: the classic one (velocity x LookAhead through one FollowRate lag).</summary>
+    /// <summary>Set from the chosen camera view (RaceScene.GameplayCamera: DIRECTED or CLASSIC, cycled with C / LB or the CAMERA row). True, the default: the directed look-ahead below. False: the classic one (velocity x LookAhead through one FollowRate lag).</summary>
     public static bool DirectedLead = true;
 
     /// <summary>Seconds of travel the view's centre is put ahead of the car (the car itself is followed closely, so this is the visible lead).</summary>
@@ -131,7 +131,7 @@ public partial class ChaseCamera
         if (!DirectedLead) { Follow(target, velocity, dt); return; }
         if (velocity.LengthSquared() < 0.01f) _driveSetback = Vector3.Zero;
         _listener = target; _carNow = target;
-        _viewOffset = _viewOffset.Lerp(Offset * _feelZoom, 1f - MathF.Exp(-2.5f * dt));
+        _viewOffset = _viewOffset.Lerp(ArmFor(_feelZoom), 1f - MathF.Exp(-2.5f * dt));
         float k = 1f - MathF.Exp(-PosRate * dt);
         // The follow of a moving car, solved exactly for a steady velocity over the frame: the same place at any frame rate.
         float catchUp = k / PosRate - dt * (1f - k);

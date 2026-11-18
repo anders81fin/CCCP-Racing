@@ -22,6 +22,24 @@ public partial class PhysicsTest
                 return;
             }
         }
+        {
+            string pa = System.Environment.GetEnvironmentVariable("PROPSAT");      // PROPSAT=x0,z0,x1,z1: the props in a rectangle (type, place)
+            if (pa != null)
+            {
+                var v = Array.ConvertAll(pa.Split(','), x => float.Parse(x, System.Globalization.CultureInfo.InvariantCulture));
+                foreach (var pr in t.Props) if (pr.Position.X >= v[0] && pr.Position.X <= v[2] && pr.Position.Z >= v[1] && pr.Position.Z <= v[3]) GD.Print($"  prop {pr.Type} ({pr.Position.X:F0},{pr.Position.Z:F0})");
+                return;
+            }
+        }
+        {
+            string ch = System.Environment.GetEnvironmentVariable("CENTERH");      // CENTERH=from,to,step: the centre line's index, place and height
+            if (ch != null)
+            {
+                var v = Array.ConvertAll(ch.Split(','), x => int.Parse(x, System.Globalization.CultureInfo.InvariantCulture));
+                for (int i = v[0]; i <= v[1]; i += v[2]) { int k = i % t.Center.Length; GD.Print($"  idx {k}: ({t.Center[k].X:F0},{t.Center[k].Y:F0}) height {t.CenterH[k]:F2}"); }
+                return;
+            }
+        }
         { var c = new System.Collections.Generic.Dictionary<string,int>(); foreach (var pr in t.Props) { c.TryGetValue(pr.Type, out int cv); c[pr.Type] = cv + 1; } GD.Print("props: " + string.Join(", ", c)); }
         {
             string xp = System.Environment.GetEnvironmentVariable("XPROF");

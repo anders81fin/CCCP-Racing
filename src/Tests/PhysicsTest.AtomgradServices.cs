@@ -14,11 +14,12 @@ public partial class PhysicsTest
         var wash = new Vector2(def.Radiation.WashX, def.Radiation.WashZ);
         var building = t.Props.Single(p => p.Type == "wash");
         var bus = t.BusStops.Single();
-        var fuel = FuelDepot.Layout(t, def.Depot);
         Check(new Vector2(building.Position.X, building.Position.Z) == wash,
             "Atomgrad services: wash trigger and building share the new forecourt");
-        Check(wash.DistanceTo(bus.Position) > 100 && wash.DistanceTo(fuel.Zone) > 100 && bus.Position.DistanceTo(fuel.Zone) > 100,
-            "Atomgrad services: all three service markers are more than 100 metres apart");
+        Check(wash.DistanceTo(bus.Position) > 100,
+            "Atomgrad services: the wash and the bus stop are more than 100 metres apart");
+        Check(!def.Fuel && def.Depot == null && !t.Pads.Any(p => p.X0 >= 260 && p.X1 <= 290 && p.Z0 >= 165 && p.Z1 <= 205),
+            "Atomgrad services: no fuel, no depot and no paved depot pad (removed 2026-11-18)");
         bool Paved(Vector2 p)
         {
             var surface = t.Sample(p.X, p.Y).Surface;
@@ -28,7 +29,7 @@ public partial class PhysicsTest
             int i = t.NearestCenter(tileCentre, out float distance);
             return surface is SurfaceType.Mud or SurfaceType.Dirt && distance <= t.HalfWidth[i];
         }
-        bool RouteClear(Vector2[] route, bool avoidTank = false)
+        bool RouteClear(Vector2[] route)
         {
             for (int i = 0; i < route.Length - 1; i++)
             {
@@ -49,15 +50,12 @@ public partial class PhysicsTest
                         GD.Print($"service route: blocked at {p}, obstacle {obstacle.Center} radius {obstacle.Radius}");
                         return false;
                     }
-                    if (avoidTank && fuel.Tank.DistanceTo(p) < 2.4f) { GD.Print($"service route: tank too close at {p}"); return false; }
                 }
             }
             return true;
         }
         Check(RouteClear(new[] { new Vector2(49, 217), new(62, 217), new(68, 221), new(68, 243), new(63, 248), new(44, 248) }),
             "Atomgrad services: a car-wide paved, obstacle-free loop connects both wash entrances to the road");
-        Check(RouteClear(new[] { new Vector2(281, 198), new(273.5f, 193), fuel.Zone, new(278, 175), new(286, 174) }, true),
-            "Atomgrad services: fuel forecourt has paved ingress and egress clear of the tank");
         Check(Paved(bus.Position) && bus.Position.X > t.Center[bus.Index].X,
             "Atomgrad services: bus shelter is paved and on the counter-running bus's kerb");
     }

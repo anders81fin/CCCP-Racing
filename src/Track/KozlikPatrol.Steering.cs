@@ -35,6 +35,12 @@ public partial class KozlikPatrol
         float signedSpeed = _reverse ? -_speed : _speed;
         float turn = curvature * signedSpeed * dt;
         Vector2 before = Position2D;
+        // Never through the gulag truck, its officer or its driver: a step that would put any of his body circles into one is not taken (he stands, and the traffic cap has already slowed him).
+        {
+            Vector2 nextAt = Position2D + Forward2D.Rotated(turn * 0.5f) * (signedSpeed * dt), nextFwd = Forward2D.Rotated(turn).Normalized();
+            for (int k = 0; k < 3; k++)
+                if (GulagTruck.BlocksAt(nextAt + nextFwd * (k - 1) * (Wheelbase * .5f), ObsRadius)) { _speed = 0; signedSpeed = 0; turn = 0; break; }
+        }
         Position2D += Forward2D.Rotated(turn * 0.5f) * (signedSpeed * dt);
         Forward2D = Forward2D.Rotated(turn).Normalized();
         _velocity = (Position2D - before) / dt;

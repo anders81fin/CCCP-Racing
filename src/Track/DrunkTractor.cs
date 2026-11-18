@@ -120,7 +120,7 @@ public partial class DrunkTractor : Node3D
         _napTimer = 0;
         _hicTimer = 5f;
         _segCount = _segHead = 0;
-        _lastMark = null; _safePoses.Clear(); _stuckFor = 0; _staticBlock = 0; _stuckAnchor = _start;
+        _lastMark = null; _trail.Clear(); _reversing = false; _stuckFor = 0; _staticBlock = 0; _stuckAnchor = _start;
         _dirty = true;
         PickGoal();
         _departureStage = _barnDoor == null ? 3 : 0;
@@ -564,21 +564,50 @@ public partial class DrunkTractor : Node3D
 
     float _staticBlock;
 
-    // A tractor wedged between fixed things (a rig as long as a gate is wide) that makes no headway for 10 s is put back on a pose it held a while earlier, with a new goal.
-    readonly List<(Vector2 pos, float yaw)> _safePoses = new();
-    Vector2 _stuckAnchor; float _stuckFor, _poseTimer;
+    // A tractor wedged between fixed things (a rig as long as a gate is wide, a field of stumps) that makes no headway for 9 s reverses out along its own trail: the poses it drove through are clear,
+    // and it moves continuously (no jump on the screen, none in a replay's recording). It then heads away from where it was stuck.
+    readonly List<(Vector2 pos, float yaw)> _trail = new();
+    Vector2 _stuckAnchor, _stuckAt; float _stuckFor, _reversed;
+    bool _reversing;
+    (Vector2 pos, float yaw) _revFrom;
     void Unwedge(float dt)
     {
-        _poseTimer -= dt;
-        if (_poseTimer <= 0f && StaticPenetration(_pos + Forward * 0.2f, _pos - Forward * PloughBack) <= 0f)
+        if (_reversing)
         {
-            _poseTimer = 1.5f; _safePoses.Add((_pos, _yaw)); if (_safePoses.Count > 8) _safePoses.RemoveAt(0);
+            if (_trail.Count == 0) { EndReverse(); return; }
+            var (to, yawTo) = _trail[^1];
+            float step = 1.6f * dt;
+            float left = _pos.DistanceTo(to);
+            _lastMark = null; _speed = 0;
+            if (left <= step) { _pos = to; _yaw = yawTo; _trail.RemoveAt(_trail.Count - 1); _reversed += left; _revFrom = (to, yawTo); }
+            else
+            {
+                _pos += (to - _pos) / left * step; _reversed += step;
+                // The heading goes from one trail pose's to the next's as the position does, so the plough follows the way it came in.
+                float whole = _revFrom.pos.DistanceTo(to), done = whole > 0.01f ? Mathf.Clamp(1f - left / whole, 0f, 1f) : 1f;
+                _yaw = _revFrom.yaw + Mathf.AngleDifference(_revFrom.yaw, yawTo) * done;
+            }
+            _travel -= step;      // (the wheels turn backwards)
+            if (_reversed > 10f || _trail.Count == 0) EndReverse();
+            return;
+        }
+        if ((_trail.Count == 0 || _pos.DistanceTo(_trail[^1].pos) >= 1f) && StaticPenetration(_pos + Forward * 0.2f, _pos - Forward * PloughBack) <= 0f)
+        {
+            _trail.Add((_pos, _yaw)); if (_trail.Count > 40) _trail.RemoveAt(0);
         }
         if (_pos.DistanceTo(_stuckAnchor) > 4f) { _stuckAnchor = _pos; _stuckFor = 0; return; }
         _stuckFor += dt;
-        if (_stuckFor < 10f || _safePoses.Count == 0) return;
-        var (p, y) = _safePoses[0];
-        _pos = p; _yaw = y; _speed = 0; _lastMark = null; _stuckAnchor = _pos; _stuckFor = 0; _staticBlock = 0; _safePoses.Clear(); PickGoal();
+        if (_stuckFor < 9f || _trail.Count < 2) return;
+        _reversing = true; _reversed = 0; _stuckAt = _pos; _revFrom = (_pos, _yaw);
+    }
+
+    void EndReverse()
+    {
+        _reversing = false; _stuckAnchor = _pos; _stuckFor = 0; _staticBlock = 0; _lastMark = null;
+        Vector2 away = _pos - _stuckAt;
+        if (away.LengthSquared() < 0.25f) { PickGoal(); return; }
+        float edge = Edge + 10f, size = _t.WorldSize - Edge - 10f;
+        _goal = _pos + away.Normalized() * 35f; _goal = new Vector2(Math.Clamp(_goal.X, edge, size), Math.Clamp(_goal.Y, edge, size));
     }
     bool _backing;
 
@@ -643,6 +672,19 @@ public partial class DrunkTractor : Node3D
             return;
         }
         _t0 += dt;
+
+        if (_reversing)
+        {
+            // Backing out along its own trail (Unwedge): nothing else drives it meanwhile.
+            Unwedge(dt);
+            Exhaust(dt);
+            Place(dt);
+            _t.Obstacles[_obsBody] = new Obstacle(_pos + Forward * 0.2f, 1.3f, Material: ImpactMaterial.Metal);
+            _t.Obstacles[_obsPlough] = new Obstacle(_pos - Forward * PloughBack, 1.1f, Material: ImpactMaterial.Metal);
+            _sound.Speed = 1.2f;
+            _sound.Dozing = false;
+            return;
+        }
 
         // Throttle: wanders between speeds, sometimes dozes off at the wheel.
         _speedTimer -= dt;

@@ -15,7 +15,17 @@ public partial class RaceScene
     Node3D _cameraSecretModels;
     bool _gameplayCameraActive;
     GameplayView _gameplayLastView;
-    string GameplayCameraName => _gameplayView switch { GameplayView.Cinematic => "CINEMATIC CAMERA", GameplayView.Bonnet => "BONNET CAMERA", _ => "TOP-DOWN CAMERA" };
+    string GameplayCameraName => _gameplayView switch { GameplayView.Cinematic => "CINEMATIC CAMERA", GameplayView.Bonnet => "BONNET CAMERA", GameplayView.Classic => "CLASSIC CAMERA", _ => "DIRECTED CAMERA" };
+
+    /// <summary>
+    /// The camera a new run starts with: the directed overhead one in the Socialist Rally, the classic one in the Stakhanov run and the LAN race (the development flag --camera-classic: classic everywhere).
+    /// The player changes it as always (C / LB, the CAMERA row) and it stays for the run.
+    /// </summary>
+    void SetRunCamera()
+    {
+        bool classic = _run is RunMode.Training or RunMode.Lan || Array.IndexOf(CmdArgs(), "--camera-classic") >= 0;
+        _gameplayView = classic ? GameplayView.Classic : GameplayView.TopDown;
+    }
 
     void CycleGameplayCamera() => _gameplayView = _cameraDiscoveries?.Next(_track.Id, _gameplayView) ?? GameplayView.TopDown;
     bool HasDiscoveredCamera => _cameraDiscoveries?.HasAlternative(_track.Id) == true;
@@ -33,7 +43,7 @@ public partial class RaceScene
     void LoadCameraDiscoveries()
     {
         _cameraDiscoveries = new CameraDiscoveries(FileDir) { AllOpen = () => CheatUnlock };
-        _gameplayView = GameplayView.TopDown;
+        _gameplayView = Array.IndexOf(CmdArgs(), "--camera-classic") >= 0 ? GameplayView.Classic : GameplayView.TopDown;      // (directed is the default; the development flag starts classic)
         _cameraDuck = FindChild("PondMallard", true, false) as PartyPondDuck;
         _cameraSecretModels = FindChild("CameraSecrets", true, false) as Node3D;
         UpdateCameraSecretModels();
@@ -85,16 +95,25 @@ public partial class RaceScene
 
     void GameplayCameraInput()
     {
-        if (_lanLeaveAsk || !HasDiscoveredCamera || !GameplayCameraAllowed || !Input.IsActionJustPressed("camera")) return;
+        if (_lanLeaveAsk || !GameplayCameraAllowed || !Input.IsActionJustPressed("camera")) return;
         CycleGameplayCamera();
-        _hud.ShowAlways(GameplayCameraName, null, 1.5f, _gameplayView != GameplayView.TopDown ? UI.Hud.Gold : UI.Hud.Paper);
+        _hud.ShowAlways(GameplayCameraName, null, 1.5f, !CameraDiscoveries.IsOverhead(_gameplayView) ? UI.Hud.Gold : UI.Hud.Paper);
+    }
+
+    /// <summary>The overhead views differ in the look-ahead only (ChaseCamera.DirectedLead): the camera is cut to the car's framing when it changes, so neither starts from the other's state.</summary>
+    void SyncOverheadLead()
+    {
+        bool directed = _gameplayView != GameplayView.Classic;
+        if (ChaseCamera.DirectedLead != directed) { ChaseCamera.DirectedLead = directed; _cam.SnapDriving(_car.Pos, _car.Vel); }
     }
 
     // Run before ALL camera owners, so a scripted shot never inherits cinematic projection.
     void PrepareGameplayCamera()
     {
         if (_cameraDiscoveries?.Has(_track.Id, _gameplayView) != true) _gameplayView = GameplayView.TopDown;
-        if (!_gameplayCameraActive || _gameplayView != GameplayView.TopDown && GameplayCameraAllowed) return;
+        // The overhead views differ in the look-ahead only (ChaseCamera.DirectedLead): the camera is cut to the car's framing when it changes, so neither starts from the other's state.
+        SyncOverheadLead();
+        if (!_gameplayCameraActive || !CameraDiscoveries.IsOverhead(_gameplayView) && GameplayCameraAllowed) return;
         _gameplayCameraActive = false;
         _gameplayCamera.Reset(); _bonnetFeel.Reset();
         _cam.Fov = _gameplayOldFov;
@@ -105,7 +124,7 @@ public partial class RaceScene
 
     bool GameplayCamera(float dt)
     {
-        if (_gameplayView == GameplayView.TopDown || !GameplayCameraAllowed) return false;
+        if (CameraDiscoveries.IsOverhead(_gameplayView) || !GameplayCameraAllowed) return false;
         if (!_gameplayCameraActive)
         {
             _gameplayOldFov = _cam.Fov;

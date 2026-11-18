@@ -21,20 +21,26 @@ public static class TrafficCap
     {
         Vector2 right = new(-fwd.Y, fwd.X);
         float reach = 14f + speed * 2.2f, cap = float.MaxValue;
+        void Consider(Vector2 centre, float radius, Vector2 velocity)
+        {
+            Vector2 to = centre - pos;
+            float along = to.Dot(fwd);
+            if (along < -radius || along > reach + radius) return;
+            // Where it will be as we get there (a second or two on), across our line.
+            float lateral = MathF.Abs((to + velocity * Math.Clamp(along / Math.Max(speed, 4f), 0f, 2.5f)).Dot(right));
+            if (lateral > radius + halfWidth + 0.8f) return;
+            float room = along - radius - halfWidth - 3f;
+            float theirs = Math.Max(0f, velocity.Dot(fwd));
+            cap = Math.Min(cap, room <= 0 ? 0f : theirs + MathF.Sqrt(2f * brake * room));
+        }
         for (int i = 0; i < t.Obstacles.Count; i++)
         {
             var o = t.Obstacles[i];
             if (o.Velocity.LengthSquared() < MinSpeed * MinSpeed || o.Radius < 0.6f || o.Center.X < -9000f || own(i)) continue;
-            Vector2 to = o.Center - pos;
-            float along = to.Dot(fwd);
-            if (along < -o.Radius || along > reach + o.Radius) continue;
-            // Where it will be as we get there (a second or two on), across our line.
-            float lateral = MathF.Abs((to + o.Velocity * Math.Clamp(along / Math.Max(speed, 4f), 0f, 2.5f)).Dot(right));
-            if (lateral > o.Radius + halfWidth + 0.8f) continue;
-            float room = along - o.Radius - halfWidth - 3f;
-            float theirs = Math.Max(0f, o.Velocity.Dot(fwd));
-            cap = Math.Min(cap, room <= 0 ? 0f : theirs + MathF.Sqrt(2f * brake * room));
+            Consider(o.Center, o.Radius, o.Velocity);
         }
+        // The gulag truck, its officer and the driver, standing or moving, are in the way too.
+        foreach (var s in GulagTruck.Solids) Consider(s.Centre, s.Radius, s.Velocity);
         return cap;
     }
 }

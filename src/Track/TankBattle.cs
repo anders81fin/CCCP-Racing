@@ -57,6 +57,15 @@ public partial class TankBattle : Node3D
         public float MoveAfter, CrossingCooldown;
         public int Rounds;                // still to fire from this position
         public float AimErr;              // turret error to the target, rad
+        public bool Roaming, Blocking;    // roaming: heading for RoamGoal; blocking: that goal is on the road, and it parks across it
+        public Vector2 RoamGoal;
+        public readonly List<(Vector2 pos, float yaw)> Trail = new();      // clear poses it has driven through (roaming), the way out of a trap
+        public bool TrailBack;            // backing out along the trail
+        public float TrailDone;           // metres backed out so far
+        public (Vector2 pos, float yaw) TrailFrom;
+        public float GoalClock;           // seconds spent on the current roaming goal
+        public float Wedge;               // seconds it has been held by the margin round its hull: the give grows with it (up to the hull's real size)
+        public float FaceYaw;             // the heading a blocking tank turns to once it has stopped (across the road)
     }
 
     class Shell
@@ -81,6 +90,11 @@ public partial class TankBattle : Node3D
     // Firing positions per side and which pairs a straight leg joins (clear of the road and trees).
     readonly List<Vector2>[] _spots = { new(), new() };
     bool[][,] _legs;
+    // The pace of the exercise: the plain exercise's constants, or the roaming one's (TrackDef TankRange.Roam): quicker, with a faster turret and shorter reloads.
+    bool _roam;
+    /// <summary>The roaming tanks keep this far from each other (m): a battle is fought at a distance, not nose to nose.</summary>
+    const float TankApart = 34f;
+    float _blockChance = 0.4f, _accel = Accel, _brake = Brake, _pivot = PivotRate, _driveTurn = DriveTurnRate, _traverse = TraverseRate, _reloadMin = ReloadMin, _reloadMax = ReloadMax, _cruiseMin = CruiseMin, _cruiseMax = CruiseMax;
 
     /// <summary>Test (--shell-tree): asked (shooter, target tank) at each round; a point sends that round there.</summary>
     public Func<Vector2, Vector2, Vector2?> TestAim;
@@ -111,6 +125,13 @@ public partial class TankBattle : Node3D
         _t = t;
         _fx = fx;
         _area = area;
+        if (t.TankRange is { Roam: true } roam)
+        {
+            _roam = true;
+            _blockChance = roam.BlockChance ?? 0.4f;
+            _accel = 2.4f; _brake = 3.0f; _pivot = 0.65f; _driveTurn = 0.45f; _traverse = 1.25f;      // (a T-72 stands on its tracks: 20 °/s pivot, a turret at 70 °/s)
+            _reloadMin = 3.8f; _reloadMax = 6.2f; _cruiseMin = 7f; _cruiseMax = 11f;      // (25-40 km/h across the range)
+        }
         // Buildings get a wide berth, trees/fences/poles a narrow one (they're in the table as small circles).
         foreach (var o in t.Obstacles)
             if (o.Radius > 0.15f && area.Grow(20f).HasPoint(o.Center)) _avoid.Add((o.Center, o.Radius));
@@ -118,7 +139,7 @@ public partial class TankBattle : Node3D
         yield return 0;
         _craters = new Node3D { Name = "ShellCraters" };
         AddChild(_craters);
-        Tape.Version(this, 1); Tape.Part(this, "root");
+        Tape.Version(this, _roam ? 2 : 1); Tape.Part(this, "root");      // (2: the roaming exercise has more tanks than the old tapes recorded)
         string[] numbers = { "217", "342", "105", "631" };
         for (int i = 0; i < count; i++)
         {
@@ -173,7 +194,8 @@ public partial class TankBattle : Node3D
         {
             var k = _tanks[i];
             var spots = _spots[k.Side];
-            k.At = i < 2 ? PickSpot(k, -1, null) : _rng.RandiRange(0, spots.Count - 1);
+            k.At = _roam ? Math.Min(i / 2, spots.Count - 1) : i < 2 ? PickSpot(k, -1, null) : _rng.RandiRange(0, spots.Count - 1);      // (roaming: each tank its own spot to start from)
+            k.Roaming = k.Blocking = false; k.Wedge = 0; k.Trail.Clear(); k.TrailBack = false;
             k.Route.Clear();
             k.Crossing = k.AcrossRoad = false;
             k.CrossingCooldown = 0;
@@ -358,6 +380,15 @@ public partial class TankBattle : Node3D
     void Hold(Tank k)
     {
         k.Phase = Phase.Stand;
+        if (_roam)
+        {
+            // Short stops: a round or two (more across the road), then on again.
+            k.Rounds = k.Blocking ? _rng.RandiRange(2, 4) : _rng.RandiRange(1, 3);
+            k.MoveAfter = k.Blocking ? _rng.RandfRange(8f, 14f) : _rng.RandfRange(4f, 8f);
+            k.Settle = _rng.RandfRange(0.6f, 1.3f);
+            k.Linger = _rng.RandfRange(0.3f, 1f);
+            return;
+        }
         k.Rounds = _rng.RandiRange(1, 2);
         k.MoveAfter = _rng.RandfRange(9f, 15f);
         k.Settle = _rng.RandfRange(1.5f, 2.5f);
@@ -367,6 +398,7 @@ public partial class TankBattle : Node3D
     /// <summary>Shoot and scoot: sometimes back out along the way it came, then on to another position.</summary>
     void Relocate(Tank k)
     {
+        if (_roam) { PickRoam(k); return; }
         if (k.AcrossRoad)
         {
             k.CrossGoal = k.CrossHome;
@@ -400,6 +432,139 @@ public partial class TankBattle : Node3D
         k.Cruise = _rng.RandfRange(CruiseMin, CruiseMax);
         k.Stuck = 0;
         k.Phase = Phase.Drive;
+    }
+
+    // ------------------------------------------------------------ the roaming exercise
+
+    /// <summary>A new goal for a roaming tank: a point of the range, or (BlockChance of the time) a point of the road, where it will park across it.</summary>
+    void PickRoam(Tank k)
+    {
+        k.Roaming = true; k.Blocking = false;
+        Rect2 inner = _area.Grow(-10f);
+        Vector2 goal = k.Pos;
+        bool found = false;
+        for (int tries = 0; tries < 24 && !found; tries++)
+        {
+            bool road = _rng.Randf() < _blockChance;
+            Vector2 p;
+            if (road)
+            {
+                p = _t.Center[_rng.RandiRange(0, _t.Center.Length - 1)];
+                if (!inner.HasPoint(p) || p.DistanceTo(k.Pos) < 25f || p.DistanceTo(k.Pos) > 180f) continue;
+            }
+            else
+            {
+                // A hop of 45-140 m in any direction (short enough for many stops, long enough to cross the range in a few): the range's whole width is reached over several.
+                p = k.Pos + Vector2.FromAngle(_rng.RandfRange(0f, MathF.Tau)) * _rng.RandfRange(45f, 140f);
+                if (!inner.HasPoint(p)) continue;
+            }
+            if (!GoalClear(k, p)) continue;
+            goal = p; found = true; k.Blocking = road;
+            if (road)
+            {
+                int i = _t.NearestCenter(p, out _);
+                Vector2 dir = _t.CenterDir(i);
+                k.FaceYaw = TrackData.YawFor(new Vector2(-dir.Y, dir.X));      // across the road
+            }
+        }
+        if (!found) goal = inner.GetCenter();
+        k.RoamGoal = goal; k.GoalClock = 0;
+        k.Cruise = _rng.RandfRange(_cruiseMin, _cruiseMax);
+        k.LegStart = k.Pos;
+        k.Stuck = 0;
+        k.Phase = Phase.Drive;
+    }
+
+    /// <summary>A goal with room: clear of fixed things and of the other tanks.</summary>
+    bool GoalClear(Tank k, Vector2 p)
+    {
+        foreach (var (c, r) in _avoid)
+            if (p.DistanceTo(c) < r + 4f) return false;
+        foreach (var o in _tanks)
+            if (o != k && (o.Pos.DistanceTo(p) < TankApart || o.Roaming && o.RoamGoal.DistanceTo(p) < TankApart)) return false;
+        return true;
+    }
+
+    /// <summary>How deep (m) the hull, two circles along it, is in fixed things or in the other tanks at <paramref name="at"/> heading <paramref name="yaw"/>; 0 if clear.</summary>
+    float HullPenetration(Tank k, Vector2 at, float yaw)
+    {
+        Vector2 f = new(-MathF.Sin(yaw), -MathF.Cos(yaw));
+        Vector2 a = at + f * 2.2f, b = at - f * 2.2f;
+        float worst = 0f;
+        foreach (var (c, r) in _avoid)
+        {
+            float reach = r + 1.9f;
+            worst = MathF.Max(worst, MathF.Max(reach - a.DistanceTo(c), reach - b.DistanceTo(c)));
+        }
+        foreach (var o in _tanks)
+        {
+            if (o == k) continue;
+            Vector2 fo = new(-MathF.Sin(o.Yaw), -MathF.Cos(o.Yaw)), oa = o.Pos + fo * 2.2f, ob = o.Pos - fo * 2.2f;      // (circle against circle: two hulls' circles, 1.9 m each and a couple of metres of air between the hulls)
+            worst = MathF.Max(worst, MathF.Max(MathF.Max(6f - a.DistanceTo(oa), 6f - a.DistanceTo(ob)), MathF.Max(6f - b.DistanceTo(oa), 6f - b.DistanceTo(ob))));
+        }
+        return worst;
+    }
+
+    /// <summary>A tank held in a trap backs out along its own trail: the poses it drove through were clear, and it moves continuously (never a jump).</summary>
+    void TrailReverse(Tank k, float dt)
+    {
+        if (k.Trail.Count == 0 || k.TrailDone > 12f) { k.TrailBack = false; k.Speed = 0; Relocate(k); return; }
+        var (to, yawTo) = k.Trail[^1];
+        float step = 2.0f * dt, left = k.Pos.DistanceTo(to);
+        if (left <= step) { k.Pos = to; k.Yaw = yawTo; k.Trail.RemoveAt(k.Trail.Count - 1); k.TrailDone += left; k.TrailFrom = (to, yawTo); }
+        else
+        {
+            k.Pos += (to - k.Pos) / left * step; k.TrailDone += step;
+            float whole = k.TrailFrom.pos.DistanceTo(to), done = whole > 0.01f ? Mathf.Clamp(1f - left / whole, 0f, 1f) : 1f;
+            k.Yaw = k.TrailFrom.yaw + Mathf.AngleDifference(k.TrailFrom.yaw, yawTo) * done;
+        }
+        k.Speed = Mathf.MoveToward(k.Speed, -2.0f, _accel * dt);      // (the tracks run backwards)
+        k.Sound.Speed = MathF.Abs(k.Speed);
+    }
+
+    /// <summary>One tick of the drive to a roaming goal: steer to it round what is in the way, pivot when pointing the wrong way, stop on arrival.</summary>
+    void RoamDrive(Tank k, ref float targetSpeed, ref float turn)
+    {
+        Vector2 to = k.RoamGoal - k.Pos;
+        float left = to.Length();
+        k.GoalClock += 1f / 60f;
+        if (left < 3.5f || k.GoalClock > 20f + left / 3f)      // (arrived, or given up on this goal: a short stop, then another)
+        {
+            k.Roaming = false;
+            Hold(k);
+            return;
+        }
+        Vector2 want = to / left;
+        foreach (var (c, r) in _avoid)
+        {
+            Vector2 d = k.Pos - c;
+            float range = r + (r > 1f ? 12f : 6f), dist = d.Length();
+            if (dist < range && dist > 0.01f) want += d / dist * (range - dist) / range * 2.2f;
+        }
+        foreach (var o in _tanks)
+        {
+            if (o == k) continue;
+            Vector2 d = k.Pos - o.Pos;
+            float dist = d.Length();
+            if (dist < TankApart && dist > 0.01f) want += d / dist * (TankApart - dist) / TankApart * 3.5f;
+        }
+        const float Margin = 8f;
+        if (k.Pos.X < _area.Position.X + Margin) want.X += 2f;
+        if (k.Pos.X > _area.End.X - Margin) want.X -= 2f;
+        if (k.Pos.Y < _area.Position.Y + Margin) want.Y += 2f;       // (the range's north edge is the line the tanks never cross)
+        if (k.Pos.Y > _area.End.Y - Margin) want.Y -= 2f;
+        // Pointing far from the goal: pivot towards the goal itself (not towards where the avoidance points, which changes as it turns); otherwise drive, steering round what is in the way.
+        float errGoal = Mathf.AngleDifference(k.Yaw, TrackData.YawFor(to / left)), errWant = Mathf.AngleDifference(k.Yaw, TrackData.YawFor(want.Normalized()));
+        if (MathF.Abs(errGoal) > 0.9f)
+        {
+            if (MathF.Abs(k.Speed) < 0.4f) turn = Math.Clamp(errGoal * 1.5f, -_pivot, _pivot);
+        }
+        else
+        {
+            turn = Math.Clamp(errWant * 1.6f, -_driveTurn, _driveTurn);
+            targetSpeed = Math.Min(k.Cruise, MathF.Sqrt(2f * _brake * Math.Max(0f, left - 3f))) * (1f - Math.Min(0.6f, MathF.Abs(errWant) * 0.8f));
+            if (left > 6f) targetSpeed = Math.Max(targetSpeed, 1.2f);
+        }
     }
 
     // A short, nearly perpendicular crossing, with both stopping points beyond the ditch.
@@ -511,14 +676,24 @@ public partial class TankBattle : Node3D
     void Drive(Tank k, float dt)
     {
         k.CrossingCooldown -= dt;
+        if (_roam && k.TrailBack) { TrailReverse(k, dt); return; }
+        if (_roam && (k.Trail.Count == 0 || k.Pos.DistanceTo(k.Trail[^1].pos) >= 1.5f) && HullPenetration(k, k.Pos, k.Yaw) <= 0.001f)
+        {
+            k.Trail.Add((k.Pos, k.Yaw)); if (k.Trail.Count > 40) k.Trail.RemoveAt(0);
+        }
         float targetSpeed = 0f, turn = 0f;
         switch (k.Phase)
         {
             case Phase.Stand:
                 // Check while holding an emplacement, rather than only at the random
                 // end of a firing cycle. Committed crossings still finish during revenge.
-                if (!_chasing && !k.AcrossRoad && k.CrossingCooldown <= 0 &&
+                if (!_roam && !_chasing && !k.AcrossRoad && k.CrossingCooldown <= 0 &&
                     MathF.Abs(k.Speed) < 0.05f && TryCrossRoad(k)) break;
+                // A tank another has come close to moves off, whatever it was about to fire (they fight at a distance).
+                if (_roam && !_chasing && MathF.Abs(k.Speed) < 0.05f && k.MoveAfter > 1f && _tanks.Exists(o => o != k && o.Pos.DistanceTo(k.Pos) < TankApart * 0.5f)) { k.MoveAfter = 0.5f; k.Rounds = 0; k.Linger = Math.Min(k.Linger, 0.5f); }
+                // A tank that has parked on the road turns across it.
+                if (_roam && k.Blocking && MathF.Abs(k.Speed) < 0.05f)
+                    turn = Math.Clamp(Mathf.AngleDifference(k.Yaw, k.FaceYaw) * 1.5f, -_pivot, _pivot);
                 k.MoveAfter -= dt;
                 if (!_chasing && (k.Rounds <= 0 || k.MoveAfter <= 0) && MathF.Abs(k.Speed) < 0.05f)
                 {
@@ -530,11 +705,12 @@ public partial class TankBattle : Node3D
                 if (_chasing) { k.Phase = Phase.Stand; break; }
                 k.ReverseLeft -= MathF.Abs(k.Speed) * dt;
                 // Ease off so it stops where it meant to.
-                targetSpeed = -Math.Min(ReverseSpeed, MathF.Sqrt(2f * Brake * Math.Max(0f, k.ReverseLeft)));
+                targetSpeed = -Math.Min(ReverseSpeed, MathF.Sqrt(2f * _brake * Math.Max(0f, k.ReverseLeft)));
                 if (k.ReverseLeft <= 0.05f && MathF.Abs(k.Speed) < 0.05f) Relocate(k);
                 break;
             case Phase.Drive:
                 if (_chasing && !k.Crossing) { k.Phase = Phase.Stand; break; }
+                if (_roam && k.Roaming && !k.Crossing) { RoamDrive(k, ref targetSpeed, ref turn); break; }
                 if (!k.Crossing && k.Route.Count == 0) { Hold(k); break; }
                 Vector2 goal = k.Crossing ? k.CrossGoal : _spots[k.Side][k.Route[0]], to = goal - k.Pos;
                 float left = to.Length();
@@ -568,13 +744,44 @@ public partial class TankBattle : Node3D
                 }
                 break;
         }
+        float pushNow = 0f;
+        bool pivotRefused = false;
+        if (_roam)
+        {
+            // The pivot or the steering must not swing the hull into something (it may only come out of it).
+            pushNow = HullPenetration(k, k.Pos, k.Yaw);
+            float give = 0.05f + 0.45f * Math.Clamp(k.Wedge / 4f, 0f, 1f);      // (the margin's give: 5 cm, up to 50 cm for a tank that has been held for seconds)
+            if (turn != 0f && HullPenetration(k, k.Pos, k.Yaw + turn * dt) > MathF.Max(give, pushNow) + 0.0005f) { turn = 0f; pivotRefused = true; }      // (the margin is round the hull's real size: 5 cm of it may be used, not more, and a hull already deeper may only come out)
+        }
         k.Yaw += turn * dt;
-        float rate = MathF.Abs(targetSpeed) > MathF.Abs(k.Speed) && MathF.Sign(targetSpeed) != -MathF.Sign(k.Speed) ? Accel : Brake;
+        float rate = MathF.Abs(targetSpeed) > MathF.Abs(k.Speed) && MathF.Sign(targetSpeed) != -MathF.Sign(k.Speed) ? _accel : _brake;
         k.Speed = Mathf.MoveToward(k.Speed, targetSpeed, rate * dt);
         Vector2 f = new(-MathF.Sin(k.Yaw), -MathF.Cos(k.Yaw));
         Vector2 next = k.Pos + f * k.Speed * dt;
+        if (_roam)
+        {
+            // The roaming exercise drives anywhere, road included; only fixed things and the other tanks stop it.
+            bool stepRefused = k.Speed != 0 && HullPenetration(k, next, k.Yaw) > MathF.Max(0.05f + 0.45f * Math.Clamp(k.Wedge / 4f, 0f, 1f), pushNow) + 0.0005f;
+            if (stepRefused) { k.Speed = 0; }
+            else k.Pos = next;
+            if (stepRefused || pivotRefused) k.Wedge += dt; else if (k.Speed != 0 || turn != 0f) k.Wedge = Math.Max(0f, k.Wedge - 2f * dt);
+            if (k.Wedge > 5f && k.Trail.Count >= 2 && k.Phase != Phase.Stand) { k.TrailBack = true; k.TrailDone = 0; k.TrailFrom = (k.Pos, k.Yaw); k.Roaming = false; k.Wedge = 0; k.Stuck = 0; }
+            if ((stepRefused || pivotRefused && MathF.Abs(k.Speed) < 0.05f) && k.Phase != Phase.Stand)
+            {
+                k.Stuck += dt;
+                if (k.Stuck > (stepRefused ? 1.2f : 0.8f))
+                {
+                    // Boxed in: back out (if that is clear), then a new goal.
+                    k.Stuck = 0; k.Roaming = false;
+                    Vector2 behind = k.Pos - f * 0.4f;      // (a small step back is the test: a long one may meet something it need not reach)
+                    if (k.Phase != Phase.Reverse && HullPenetration(k, behind, k.Yaw) <= MathF.Max(0.05f + 0.45f * Math.Clamp(k.Wedge / 4f, 0f, 1f), pushNow) + 0.02f) { k.Phase = Phase.Reverse; k.ReverseLeft = _rng.RandfRange(5f, 9f); }
+                    else Relocate(k);
+                }
+            }
+            else if (k.Speed != 0) k.Stuck = Math.Max(0f, k.Stuck - dt);
+        }
         // Ordinary patrol legs stay off the road; committed crossings continue to the far shoulder.
-        if (!k.Crossing && k.Speed != 0 && RoadEdge(next) < RoadKeepOff && RoadEdge(next) < RoadEdge(k.Pos))
+        else if (!k.Crossing && k.Speed != 0 && RoadEdge(next) < RoadKeepOff && RoadEdge(next) < RoadEdge(k.Pos))
         {
             k.Speed = 0;
             k.Stuck += dt;
@@ -644,7 +851,7 @@ public partial class TankBattle : Node3D
         k.Settle -= dt;
         if (k.Rounds > 0 && k.Settle <= 0 && k.ReloadLeft <= 0 && MathF.Abs(k.AimErr) < 0.01f)
         {
-            k.ReloadLeft = _rng.RandfRange(ReloadMin, ReloadMax);
+            k.ReloadLeft = _rng.RandfRange(_reloadMin, _reloadMax);
             k.Rounds--;
             Fire(k, target);
         }
@@ -655,8 +862,8 @@ public partial class TankBattle : Node3D
     {
         float wantLocal = Mathf.AngleDifference(k.Yaw, worldYaw);
         k.AimErr = Mathf.AngleDifference(k.TurretYaw, wantLocal);
-        float desired=Math.Clamp(k.AimErr*2,-TraverseRate,TraverseRate);
-        k.TraverseVelocity=Mathf.MoveToward(k.TraverseVelocity,desired,dt*.7f);
+        float desired=Math.Clamp(k.AimErr*2,-_traverse,_traverse);
+        k.TraverseVelocity=Mathf.MoveToward(k.TraverseVelocity,desired,dt*(_roam ? 2.4f : .7f));
         float step=k.TraverseVelocity*dt;
         if(MathF.Abs(step)>MathF.Abs(k.AimErr)) {step=k.AimErr;k.TraverseVelocity=0;}
         k.TurretYaw+=step;

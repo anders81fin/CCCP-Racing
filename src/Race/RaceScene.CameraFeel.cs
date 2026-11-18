@@ -1,4 +1,5 @@
 using System;
+using CCCPRacing.Camera;
 using CCCPRacing.Track;
 using Godot;
 
@@ -27,8 +28,42 @@ public partial class RaceScene
         _ => 0f,
     };
 
+    /// <summary>
+    /// TrackDef.ViewZones: where the car is in a zone's rectangle (full) or within its ramps outside it (partly), the overhead view pulls back and tilts to show what the zone is for. Each zone's weight is its share;
+    /// the zones' eyes and tilts are blended by their weights, and the view's share is the sum of the weights (at most 1): where one zone's ramp runs over the next one's, the view goes from the one to the other
+    /// without returning to the standard view in between. The camera eases to it (ChaseCamera.ZoneTarget). Directed look-ahead only: the classic camera never takes a zone.
+    /// </summary>
+    void ViewZoneFeel()
+    {
+        if (!ChaseCamera.DirectedLead)      // (the classic camera view keeps its own picture everywhere: the zones are for the directed one)
+        {
+            _cam.ZoneTarget = 0f;
+            _dayNight?.FogRelief(0f);
+            return;
+        }
+        float side = _track.ViewTurned ? -1f : 1f, sum = 0f, tilt = 0f;      // (a turned view looks from the other side)
+        var eye = Vector3.Zero;
+        foreach (var z in _track.ViewZones)
+        {
+            // (the distance outside the rectangle, each side in its own ramp: the east and north ones can be long, to start the change early and slowly)
+            float dw = Math.Max(z.X0 - _car.Pos.X, 0f) / Math.Max(z.RampWest ?? z.Ramp, 0.1f), de = Math.Max(_car.Pos.X - z.X1, 0f) / Math.Max(z.RampEast ?? z.Ramp, 0.1f);
+            float dn = Math.Max(z.Z0 - _car.Pos.Z, 0f) / Math.Max(z.RampNorth ?? z.Ramp, 0.1f), ds = Math.Max(_car.Pos.Z - z.Z1, 0f) / Math.Max(z.RampSouth ?? z.Ramp, 0.1f);
+            float w = Mathf.SmoothStep(0f, 1f, 1f - Math.Clamp(MathF.Sqrt(dw * dw + de * de + dn * dn + ds * ds), 0f, 1f));
+            if (w <= 0f) continue;
+            sum += w;
+            // (the eye stands Height up and Back behind the car; the view is tilted up from the line to the car until it looks Pitch degrees down: positive tilt, the car lower on the screen; negative, higher)
+            eye += w * new Vector3(0f, z.Height, side * z.Back);
+            tilt += w * (MathF.Atan2(z.Height, z.Back) - Mathf.DegToRad(z.Pitch));
+        }
+        if (sum > 0f) { _cam.ZoneEye = eye / sum; _cam.ZoneTilt = tilt / sum; }
+        float best = MathF.Min(1f, sum);
+        _cam.ZoneTarget = best;
+        _dayNight?.FogRelief(best);
+    }
+
     void CameraFeel(float dt, bool replayDriving = false)
     {
+        if (_track.ViewZones.Count > 0) ViewZoneFeel();
         bool live = _state == State.Racing && !InSchool;
         // Ghosts carry speed but not suspension airtime or drive acceleration.
         // Never inherit those transient values from the previous live drive.

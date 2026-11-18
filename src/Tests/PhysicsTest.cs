@@ -46,6 +46,9 @@ public partial class PhysicsTest : Node
     public override void _Ready()
     {
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--kozlik-overtake-test")){KozlikOvertakeTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--kozlik-gulag-test")){KozlikGulagTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--tank-roam-test")){TankRoamTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--btr-clear-test")){BtrClearTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--busstop-leave-test")){BusStopLeaveTest();GetTree().Quit(_failures==0?0:1);return;}
         {var bp=Array.Find(OS.GetCmdlineUserArgs(),a=>a.StartsWith("--busstop-profile="));if(bp!=null){BusStopProfile(bp["--busstop-profile=".Length..]);GetTree().Quit();return;}}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--tractor-hedge-test")){TractorHedgeTest();GetTree().Quit(_failures==0?0:1);return;}
@@ -438,6 +441,8 @@ public partial class PhysicsTest : Node
         if (OS.HasEnvironment("GULAGCAMPLAB"))
         {
             GulagCampTruckTest();
+            GulagSolidsTest();
+            BtrClearTest();
             GetTree().Quit(_failures == 0 ? 0 : 1);
             return;
         }
@@ -580,6 +585,8 @@ public partial class PhysicsTest : Node
         TitleRecLightTest();
         CarWingShareTest();
         GulagCampTruckTest();
+        GulagSolidsTest();
+        BtrClearTest();
         StartHillAssistTest();
         HandbrakeThrottleTest();
         DroneTourTest();
@@ -1807,28 +1814,40 @@ public partial class PhysicsTest : Node
             AddChild(tanks);
             var tankFx = new TyreEffects(); AddChild(tankFx); tankFx.Init(track);
             tanks.Init(track, tankFx, new Rect2(tr.X0, tr.Z0, tr.X1 - tr.X0, tr.Z1 - tr.Z0), tr.Tanks);
-            var approaching = new CarSim(new CarParams(), track);
-            bool encounter = false;
-            for (int i = 0; i < track.Center.Length && !encounter; i += 4)
-                foreach (int direction in new[] { 1, -1 })
-                {
-                    tanks.Reset();
-                    approaching.Pos = track.CenterPos(i);
-                    var v = track.CenterDir(i) * (20f * direction);
-                    approaching.Vel = new Vector3(v.X, 0, v.Y);
-                    tanks.Tick(0, approaching);
-                    if (tanks.EncounterStarted) { encounter = true; break; }
-                }
-            Check(encounter, "bonus: real firing positions and obstacles permit a player-timed crossing");
-            approaching.Pos = new Vector3(230, 0, 58);
-            approaching.Vel = Vector3.Zero;
-            tanks.Tick(0, approaching);
-            Check(tanks.EncounterStarted, "tank crossing: leaving does not rearm an unfinished crossing");
-            for (int frame = 0; frame < 120 * 30 && tanks.EncounterStarted; frame++)
-                tanks.Tick(1f / 30, approaching);
-            Check(!tanks.EncounterStarted, "tank crossing: leaving and returning the tank rearms the next lap");
-            tanks.Reset();
-            Check(!tanks.EncounterStarted, "tank crossing: restart rearms the encounter");
+            if (tr.Roam)
+            {
+                // The roaming exercise has no timed crossing: the tanks roam, road included, and never start the encounter.
+                var near = new CarSim(new CarParams(), track);
+                near.Pos = track.CenterPos(100); near.Vel = new Vector3(20, 0, 0);
+                for (int frame = 0; frame < 60 * 20; frame++) tanks.Tick(1f / 60, near);
+                Check(!tanks.EncounterStarted, "roaming tanks: the timed road-crossing encounter is not used");
+                tanks.Reset();
+            }
+            else
+            {
+                var approaching = new CarSim(new CarParams(), track);
+                bool encounter = false;
+                for (int i = 0; i < track.Center.Length && !encounter; i += 4)
+                    foreach (int direction in new[] { 1, -1 })
+                    {
+                        tanks.Reset();
+                        approaching.Pos = track.CenterPos(i);
+                        var v = track.CenterDir(i) * (20f * direction);
+                        approaching.Vel = new Vector3(v.X, 0, v.Y);
+                        tanks.Tick(0, approaching);
+                        if (tanks.EncounterStarted) { encounter = true; break; }
+                    }
+                Check(encounter, "bonus: real firing positions and obstacles permit a player-timed crossing");
+                approaching.Pos = new Vector3(230, 0, 58);
+                approaching.Vel = Vector3.Zero;
+                tanks.Tick(0, approaching);
+                Check(tanks.EncounterStarted, "tank crossing: leaving does not rearm an unfinished crossing");
+                for (int frame = 0; frame < 120 * 30 && tanks.EncounterStarted; frame++)
+                    tanks.Tick(1f / 30, approaching);
+                Check(!tanks.EncounterStarted, "tank crossing: leaving and returning the tank rearms the next lap");
+                tanks.Reset();
+                Check(!tanks.EncounterStarted, "tank crossing: restart rearms the encounter");
+            }
             Check(tanks.StartChase() && tanks.Chasing && tanks.ShotsLeft == TankBattle.ChaseShots, "tank driver's mother: the tanks open fire, ten shots");
             Check(!tanks.StartChase(), "a second hit does not stack");
             tanks.EndRevenge();

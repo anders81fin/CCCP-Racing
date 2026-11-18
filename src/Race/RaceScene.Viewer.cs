@@ -40,8 +40,8 @@ public partial class RaceScene
     /// <summary>Set before the scene enters the tree.</summary>
     public ViewerLapSource ViewerSource { get; set; }
 
-    /// <summary>The viewer's camera: the player's own gameplay views (top-down is the default, bonnet and cinematic only where the player has found them) or the title replay's automatic director.</summary>
-    public enum ViewerCameraMode { TopDown, Bonnet, Cinematic, Auto }
+    /// <summary>The viewer's camera: the player's own gameplay views (top-down, the directed one, is the default; classic is always there; bonnet and cinematic only where the player has found them) or the title replay's automatic director.</summary>
+    public enum ViewerCameraMode { TopDown, Bonnet, Cinematic, Auto, Classic }
     ViewerCameraMode _viewerCamera = ViewerCameraMode.Auto;      // (a replay always opens in the automatic broadcast)
     bool _viewerCamDirty = true;
     public ViewerCameraMode ViewerCamera
@@ -52,7 +52,7 @@ public partial class RaceScene
             if (_viewerCamera == value && _viewerSavedFree == null) return;
             if (!_viewerFreeControl && _viewerSavedFree != null) ClearFreeCamera();
             _viewerCamera = value;
-            _gameplayView = value switch { ViewerCameraMode.Bonnet => GameplayView.Bonnet, ViewerCameraMode.Cinematic => GameplayView.Cinematic, _ => GameplayView.TopDown };
+            _gameplayView = value switch { ViewerCameraMode.Bonnet => GameplayView.Bonnet, ViewerCameraMode.Cinematic => GameplayView.Cinematic, ViewerCameraMode.Classic => GameplayView.Classic, _ => GameplayView.TopDown };
             if (ViewerFreeCameraActive) return;
             if (ViewerReady) { _replayCamera.Reset(); _gameplayCamera.Reset(); _cam.Snap(_car.Pos); ViewerLeaveDirector(); _viewerCamDirty = true; }      // (the new camera shows at once, also while paused)
         }
@@ -75,6 +75,7 @@ public partial class RaceScene
     void ViewerGameplayCameraFrame(float vdt)
     {
         ViewerLeaveDirector();
+        SyncOverheadLead();      // (directed or classic look-ahead, as the chosen camera says)
         if (_viewerCamera != ViewerCameraMode.TopDown && GameplayCamera(vdt)) return;
         ViewerLeaveGameplayCamera();
         _cam.MaxLead = _car.Speed > 69f ? 8f : float.PositiveInfinity;      // (as in driving, where overdrive limits the look-ahead: at 250+ km/h a Stakhanov rocket lap would run off the bottom of the screen; the ghost carries no overdrive flag)

@@ -51,6 +51,22 @@ public partial class GulagTruck
     }
 
     WalkBlock _carBlock;
+    /// <summary>Standing obstacles round the arrest (trees, posts, walls, a parked vehicle) as boxes the walkers go round, never through; taken once, when the truck has stopped.</summary>
+    WalkBlock[] _fixedBlocks = Array.Empty<WalkBlock>();
+
+    WalkBlock[] FixedBlocksNear(Vector2 at)
+    {
+        var list = new List<WalkBlock>();
+        foreach (var o in _t.Obstacles)
+        {
+            if (o.Velocity != Vector2.Zero || o.Radius < 0.4f || o.Center.X < -1000f) continue;
+            if (o.Center.DistanceTo(at) > 18f + o.Radius) continue;
+            if (o.Center.DistanceTo(_pos) < BodyR + 0.5f) continue;       // (the truck's own, should it have any)
+            float r = Math.Min(o.Radius, 6f) + 0.55f;
+            list.Add(new WalkBlock(new Transform3D(Basis.Identity, new Vector3(o.Center.X, 0, o.Center.Y)), new(-r, -r), new(r, r)));
+        }
+        return list.ToArray();
+    }
     Vector3[] _outRoute, _backRoute, _driverRoute;
     WalkBlock TruckBlock => new(_model.GlobalTransform,
         new(-1.25f * TruckScale - 0.65f, -3.5f * TruckScale - 0.65f),
@@ -58,9 +74,11 @@ public partial class GulagTruck
 
     WalkBlock[] WalkBlocks(bool driver)
     {
-        if (!driver || !_driver.Visible) return new[] { TruckBlock, _carBlock };
-        return new[] { TruckBlock, _carBlock,
-            new WalkBlock(new Transform3D(Basis.Identity, _driver.GlobalPosition), new(-1.1f, -1.1f), new(1.1f, 1.1f)) };
+        var list = new List<WalkBlock> { TruckBlock, _carBlock };
+        list.AddRange(_fixedBlocks);
+        if (driver && _driver.Visible)
+            list.Add(new WalkBlock(new Transform3D(Basis.Identity, _driver.GlobalPosition), new(-1.1f, -1.1f), new(1.1f, 1.1f)));
+        return list.ToArray();
     }
 
     // A tiny visibility graph around both rotated vehicles and the player. Every segment is

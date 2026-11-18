@@ -568,6 +568,7 @@ public partial class RaceScene
     {
         var rv = _lanReveal;
         _run = RunMode.Lan;
+        SetRunCamera();
         _lanDone = _lanDnf = _lanGo = false;
         _lanGoAlert = null;
         _lanRaceTime = 0;

@@ -49,6 +49,12 @@ public partial class BtrPatrols : Node3D
     internal IEnumerable<Vector3> Positions {get {foreach(var p in _patrols) yield return p.Model.Position;}}
     internal int Bursts {get {int n=0;foreach(var p in _patrols) n+=p.Bursts;return n;}}
     internal IEnumerable<Vector2[]> Routes {get {foreach(var p in _patrols) yield return p.Dense;}}
+    /// <summary>The places the patrols really drive through (test): each loop sampled every <paramref name="step"/> metres of the arc, with the heading.</summary>
+    internal IEnumerable<(Vector2 at,Vector2 forward)> PathSamples(int patrol,float step)
+    {
+        var p=_patrols[patrol];
+        for(float s=0;s<p.Length;s+=step) {Vector2 at=At(p,s,out Vector2 f);yield return (at,f);}
+    }
 
     public void Init(TrackData track,TyreEffects fx)
     {
@@ -121,7 +127,7 @@ public partial class BtrPatrols : Node3D
                     _track.MeshHeight(p.X,p.Y,out Vector3 normal);
                     if(normal.Y<.88f) {bad=p;away=new Vector2(normal.X,normal.Z).Normalized();if(away==Vector2.Zero) away=new Vector2(0,1);}
                     else foreach(var o in _track.Obstacles)
-                        if(o.Center.X>-9000 && p.DistanceTo(o.Center)<o.Radius+3.1f) {bad=p;away=(p-o.Center).Normalized();break;}
+                        if(o.Center.X>-9000 && p.DistanceTo(o.Center)<o.Radius+3.9f) {bad=p;away=(p-o.Center).Normalized();break;}
                 }
                 if(bad!=null) index=i;
             }
@@ -171,7 +177,8 @@ public partial class BtrPatrols : Node3D
     static Vector2 At(Patrol p,float s,out Vector2 forward)
     {
         s=Mathf.PosMod(s,p.Length);
-        int n=p.Dense.Length,i=Math.Clamp(Array.BinarySearch(p.Along,0,n,s),-1,n);
+        // (the segment that holds s: BinarySearch gives its index, or the complement of the next one's; clamping the negative result would always give segment 0 and drive the BTR on a straight line through everything)
+        int n=p.Dense.Length,i=Array.BinarySearch(p.Along,0,n,s);
         if(i<0) i=~i-1;
         i=Math.Clamp(i,0,n-1);
         float span=p.Along[i+1]-p.Along[i];

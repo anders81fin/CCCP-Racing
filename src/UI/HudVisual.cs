@@ -12,8 +12,6 @@ public partial class Hud
     public string RenderingName = "PIXEL";
     /// <summary>The chosen gameplay camera's name (null or empty: no camera row).</summary>
     public string VisualCameraName;
-    /// <summary>TOP-DOWN LEAD: CLASSIC or DIRECTED (the overhead camera's look-ahead; never the angle).</summary>
-    public string LeadStyleName = "CLASSIC";
     /// <summary>HUD visibility choices (VISUALS): visibility only, all on by default; the warnings, prompts, pause menu and map never depend on them.</summary>
     public bool CarInstrumentsOn = true, LapInfoOn = true, NormsCardOn = true;
 
@@ -50,7 +48,6 @@ public partial class Hud
             case VisualRowId.Map: label = "MAP"; value = MapOn ? "ON" : "OFF"; break;
             case VisualRowId.Comments: label = "COMMENTS"; value = Comments ? "ON" : "OFF"; break;
             case VisualRowId.Camera: label = "CAMERA"; value = "< " + VisualCameraName + " >"; break;
-            case VisualRowId.LeadStyle: label = "TOP-DOWN LEAD"; value = "< " + LeadStyleName + " >"; break;
             case VisualRowId.Rendering: label = "RENDERING"; value = "< " + RenderingName + " >"; break;
             case VisualRowId.Edges: label = "EDGES"; value = "< " + AntialiasingName + " >"; break;
             case VisualRowId.Softening: label = "SOFTENING"; value = "< " + SofteningName + " >"; break;

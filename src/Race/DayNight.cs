@@ -199,7 +199,17 @@ public partial class DayNight : Node3D
     public Func<float, float> Overcast, ExtraFog;
     /// <summary>The time of day the title shows when no run sets one (only with weather: the plain day otherwise).</summary>
     const float TitleClock = 0.5f;
-    float _baseFog = -1;
+    float _baseFog = -1, _fogNominal = -1, _fogRelief;
+    /// <summary>
+    /// The overhead camera pulled far back (TrackDef.ViewZones) looks through many times the usual fog: relief (0..1) thins the fog to a fraction of what the
+    /// weather and the clock set, so the car and the landmark can still be seen. 0 leaves it exactly as set.
+    /// </summary>
+    public void FogRelief(float relief)
+    {
+        if (_fogNominal < 0 || _env == null || relief == _fogRelief) return;
+        _fogRelief = relief;
+        _env.FogDensity = _fogNominal * (1f - 0.85f * relief);
+    }
 
     /// <summary>The look under cloud: a dull sun, a grey sky, the baked land and the unlit world dimmed.</summary>
     static Look Overcasted(in Look l, float o)
@@ -446,7 +456,7 @@ public partial class DayNight : Node3D
         if (_dayApplied) return;
         _dayApplied = true;
         var d = DayLook;
-        if (_baseFog >= 0) _env.FogDensity = _baseFog;
+        if (_baseFog >= 0) { _fogNominal = _baseFog; _env.FogDensity = _baseFog * (1f - 0.85f * _fogRelief); }
         _env.BackgroundColor = d.Sky;
         _env.FogLightColor = d.Sky;
         _sky.SetLook(d, TerrainMesh.SunDir, 0f);
@@ -479,7 +489,8 @@ public partial class DayNight : Node3D
         var l = LookAt(clock);
         float overcast = Overcast?.Invoke(clock) ?? 0f;
         if (Overcast != null) l = Overcasted(l, overcast);
-        if (ExtraFog != null) _env.FogDensity = _baseFog + ExtraFog(clock);
+        _fogNominal = ExtraFog != null ? _baseFog + ExtraFog(clock) : _baseFog;
+        _env.FogDensity = _fogNominal * (1f - 0.85f * _fogRelief);
         _env.BackgroundColor = l.Sky;
         _env.FogLightColor = l.Sky;
         _env.AmbientLightColor = l.Ambient;

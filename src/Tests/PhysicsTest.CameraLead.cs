@@ -115,7 +115,6 @@ public partial class PhysicsTest
     void CameraLeadTests()
     {
         GD.Print("Camera look-ahead experiment: directed lead against the classic one");
-        CameraStyleSettingTests();
         if (Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--camera-lead-scan"))
         {
             foreach (float lt in new[] { 0.42f, 0.55f, 0.7f, 0.85f, 1.0f })
@@ -309,34 +308,4 @@ public partial class PhysicsTest
     }
 
     static float DirMaxTurnForTest() => ChaseCamera.DirMaxTurn;
-
-    /// <summary>SETTINGS > VISUALS > TOP-DOWN LEAD: the remembered choice, its default and the development flag.</summary>
-    void CameraStyleSettingTests()
-    {
-        string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "camera-style-" + Guid.NewGuid() + ".cfg");
-        try
-        {
-            var none = new ConfigFile();
-            Check(CameraStyleSetting.Load(none) && ChaseCamera.DirectedLead, "camera style: with nothing remembered the look-ahead is DIRECTED (the default), and the camera starts directed");
-            var other = new ConfigFile(); other.SetValue("hud", "minimap", false); other.Save(path);
-            CameraStyleSetting.Save(path, false);
-            var back = new ConfigFile(); back.Load(path);
-            Check(!CameraStyleSetting.Load(back) && (bool)back.GetValue("hud", "minimap", true) == false && back.GetValue("camera", "lead", "").AsString() == "classic",
-                "camera style: CLASSIC is remembered in settings.cfg [camera] lead and the other sections stay");
-            CameraStyleSetting.Save(path, true);
-            var again = new ConfigFile(); again.Load(path);
-            Check(CameraStyleSetting.Load(again) && again.GetValue("camera", "lead", "").AsString() == "directed", "camera style: DIRECTED is remembered and read back");
-            var junk = new ConfigFile(); junk.SetValue("camera", "lead", "sideways");
-            Check(!CameraStyleSetting.Load(junk), "camera style: an unknown value falls back to classic");
-            Check(!CameraStyleSetting.Effective(true, true) && CameraStyleSetting.Effective(true, false) && !CameraStyleSetting.Effective(false, false),
-                "camera style: --camera-classic overrides the setting; otherwise the setting decides");
-        }
-        finally { if (System.IO.File.Exists(path)) System.IO.File.Delete(path); }
-        var hud = new CCCPRacing.UI.Hud(); AddChild(hud);
-        hud.LeadStyleName = "DIRECTED"; hud.VisualRowTexts(CCCPRacing.UI.VisualRowId.LeadStyle, out string label, out string value);
-        hud.LeadStyleName = "CLASSIC"; hud.VisualRowTexts(CCCPRacing.UI.VisualRowId.LeadStyle, out _, out string value2);
-        Check(label == "TOP-DOWN LEAD" && value == "< DIRECTED >" && value2 == "< CLASSIC >" && CameraStyleSetting.Label(true) == "DIRECTED" && CameraStyleSetting.Label(false) == "CLASSIC",
-            "camera style: the VISUALS row reads TOP-DOWN LEAD < CLASSIC / DIRECTED >");
-        hud.Free();
-    }
 }

@@ -277,6 +277,8 @@ public static partial class TrackBuilder
         bool winter = ground == SurfaceType.DeepSnow;
         t.Winter = winter;
         t.Autumn = !winter && def.Season == "autumn";
+        t.ViewTurned = def.ViewTurned;
+        t.ViewZones = def.ViewZones;
         t.Zone = def.Radiation != null;
         for (int iz = 0; iz < n; iz++)
         {

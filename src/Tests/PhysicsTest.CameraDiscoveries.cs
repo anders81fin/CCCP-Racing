@@ -16,8 +16,9 @@ public partial class PhysicsTest
         string one = PlayerFiles.Dir(root, 1), two = PlayerFiles.Dir(root, 2);
         var settings = new ConfigFile(); settings.SetValue("driver", "name", "TEST DRIVER"); settings.Save(one + "settings.cfg");
         var discoveries = new CameraDiscoveries(one);
-        Check(discoveries.Next("ilyich", GameplayView.TopDown) == GameplayView.TopDown && !discoveries.HasAlternative("ilyich"),
-            "camera discoveries: new files have only top-down");
+        Check(discoveries.Next("ilyich", GameplayView.TopDown) == GameplayView.Classic && discoveries.Next("ilyich", GameplayView.Classic) == GameplayView.TopDown
+            && discoveries.Has("ilyich", GameplayView.TopDown) && discoveries.Has("ilyich", GameplayView.Classic) && !discoveries.HasAlternative("ilyich"),
+            "camera discoveries: new files have directed and classic without finding anything, and no found camera");
         settings.SetValue("tutorial", "rally_seen", true); settings.Save(one + "settings.cfg");
         Check(discoveries.Discover("ilyich", GameplayView.Bonnet) && !discoveries.Discover("ilyich", GameplayView.Bonnet),
             "camera discoveries: a secret is awarded once");
@@ -26,10 +27,10 @@ public partial class PhysicsTest
         Check(reloaded.Has("ilyich", GameplayView.Bonnet) && !reloaded.Has("siberia", GameplayView.Bonnet)
             && settings.GetValue("driver", "name").AsString() == "TEST DRIVER" && settings.GetValue("tutorial", "rally_seen").AsBool(),
             "camera discoveries: survive reload, stay on their track and preserve other profile settings");
-        Check(reloaded.Next("ilyich", GameplayView.TopDown) == GameplayView.Bonnet && reloaded.Next("ilyich", GameplayView.Bonnet) == GameplayView.TopDown,
+        Check(reloaded.Next("ilyich", GameplayView.Classic) == GameplayView.Bonnet && reloaded.Next("ilyich", GameplayView.Bonnet) == GameplayView.TopDown,
             "camera discoveries: camera switching skips a locked cinematic view");
         reloaded.Discover("ilyich", GameplayView.Cinematic);
-        Check(reloaded.Next("ilyich", GameplayView.TopDown) == GameplayView.Cinematic && reloaded.Next("ilyich", GameplayView.Cinematic) == GameplayView.Bonnet,
+        Check(reloaded.Next("ilyich", GameplayView.Classic) == GameplayView.Cinematic && reloaded.Next("ilyich", GameplayView.Cinematic) == GameplayView.Bonnet,
             "camera discoveries: both found views participate in the cycle");
         PlayerFiles.Activate(root, 2);
         var other = new CameraDiscoveries(two); other.Discover("siberia", GameplayView.Cinematic);

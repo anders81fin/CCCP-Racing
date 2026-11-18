@@ -6,6 +6,8 @@
   // cooling channel on wet concrete, into Atomgrad-4: square 90-degree corners between the blocks
   // round the square and its ferris wheel, then the birch avenue back to the checkpoint.
   "id": "atomgrad",
+  // No fuel on this track (2026-11-18): the car does not burn any and there is no depot, tank or forecourt.
+  "fuel": false,
   // Atomgrad: close city gears and an earlier fifth for the cooling-channel straight; about 39/59/80/101/147 km/h.
   "gearbox": { "gears": [4.5, 3.0, 2.2, 1.75, 1.2], "finalDrive": 5.1, "shiftDown": 3700 },
   "name": "ATOMGRAD-4",
@@ -27,6 +29,10 @@
   "weather": "rain",
   // The rim and the landscape beyond it follow the low ground (about 1.6 m), a gentle bowl of about 2 m instead of 6 m.
   "edgeRim": 3.5,
+  // The overhead view is turned 180 degrees (2026-11-18): the start is at the top right of the screen and the plant at the bottom left, so the cooling-water side of the plant shows from above. Only the picture turns; the track, its signature and the records are unchanged.
+  "viewTurned": true,
+  // The overhead view rises to 37 m and moves 70.5 m back, south of the channel, and looks along the ground at 14 degrees (standard: 31 m, 23 m, 53 degrees), from the moment the car arrives on the plant's cooling-channel straight (the eastern end, x 250, is where the ease-in begins) and along it: the plant's roofs and the stack show, and the water behind the road (2026-11-18). It eases back in from the last broken concrete strip on the straight (x 122).
+  "viewZones": [ { "x0": 122, "z0": 40, "x1": 226, "z1": 75, "ramp": 24, "height": 37, "back": 70.5, "pitch": 14 } ],
   // The road keeps the heights it was graded with under the old rim (8): the track signature and the records stay valid.
   "roadEdgeRim": 8,
   "backdrop": { "baseHeight": 3.5, "amplitude": 3 },
@@ -168,8 +174,6 @@
   ],
   // The GAI post on the cooling channel straight, on the south side (the channel is on the north): the limit is 90.
   "speedTrap": { "at": 515, "side": "left", "limit": 90 },
-  // Fuel on the inner side of the industrial straight, after the red forest and before the plant.
-  "depot": { "at": 259, "side": "left", "off": 11.5 },
   // Town arrival street: the counter-running bus stops on its own kerb, with the mechanic nearby.
   "busStops": [ { "at": 630, "side": "left", "drunks": 3 } ],
   "pads": [
@@ -181,8 +185,6 @@
     { "x0": 57, "z0": 213, "x1": 81, "z1": 253, "surface": "concrete", "connectRoad": true },
     { "x0": 45, "z0": 213, "x1": 71, "z1": 222, "surface": "concrete", "connectRoad": true },
     { "x0": 38, "z0": 243, "x1": 71, "z1": 253, "surface": "concrete", "connectRoad": true },
-    // Fuel forecourt reaches the road; the depot's generated pad covers the tank itself.
-    { "x0": 266, "z0": 172, "x1": 286, "z1": 199, "surface": "concrete", "connectRoad": true },
     // Paved shelter approach on the town street, clear of the apartment block to the south.
     { "x0": 47, "z0": 84, "x1": 57, "z1": 101, "surface": "concrete", "connectRoad": true }
   ],

@@ -92,46 +92,4 @@ public partial class RaceScene
             },
         };
     }
-
-    List<Beat> AtomgradFuel() => new()
-    {
-        B("THROTTLE AND HIGH REVS USE FUEL.", () =>
-        {
-            ScFresh(fuel: .08f);
-            _doseSchoolMock = false;
-            ScRoll(DepotIndex - 55, 0, 35f);
-            ShotSoon("low", .5f);
-        }, (t, _) =>
-        {
-            _car.SetControls(1f, 0f, SlideSteerNow, false, false);
-            if (t > 3f) _sc.Caption = "LOW: THE GAUGE BLINKS. EMPTY: THE ENGINE DIES.";
-            return t > 6f;
-        }, SchoolBox.Fuel, null, 1f, 8f),
-    };
-
-    List<Beat> AtomgradEmptyFuel() => new()
-    {
-        B("EMPTY TANK: THE ENGINE DIES.", () =>
-        {
-            ScFresh(fuel: .0001f);
-            ScRoll(DepotIndex - 55, 0, 50f);
-        }, (t, _) =>
-        {
-            _car.SetControls(0f, 0f, SlideSteerNow, false, false);
-            if (_dry && t > 1.5f) _sc.Caption = "COAST TO THE DEPOT. A STOPPED CAR IS TOWED.";
-            return _dry && t > 4.5f;
-        }, SchoolBox.Fuel, null, 1f, 12f),
-    };
-
-    List<Beat> AtomgradRefuel() => new()
-    {
-        B("STOP IN THE DEPOT BAY TO REFUEL.", () => { ScFresh(fuel: .14f); ScRoll(DepotIndex - 45, 0, 0); },
-            (t, _) =>
-            {
-                DepotDrive();
-                if (_refuelling && _sc.T0 < 0) { _sc.T0 = t; _sc.Caption = "THE TANK FILLS WHILE THE CLOCK RUNS."; }
-                if (_sc.T0 >= 0) _sc.Speed = _tank.Fraction < .97f ? 3f : 1f;
-                return _sc.T0 >= 0 && (_tank.Fraction >= .99f && t - _sc.T0 > 1f || t - _sc.T0 > 14f);
-            }, SchoolBox.Fuel, () => Ground(_depot.Zone, 1.2f), 1f, 40f),
-    };
 }

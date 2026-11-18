@@ -505,7 +505,7 @@ public partial class Hud
         }
         : k switch
         {
-            SchoolKey.Handbrake => 60, SchoolKey.Clutch => 36, SchoolKey.Horn => 30, SchoolKey.Rescue => 16,
+            SchoolKey.Handbrake => 60, SchoolKey.Clutch => 36, SchoolKey.Horn => 30, SchoolKey.Rescue => 16, SchoolKey.Camera => 16,
             _ => 46,
         };
 
@@ -524,6 +524,7 @@ public partial class Hud
                 case SchoolKey.Clutch: KeyCap(new Rect2(at.X, mid - 7, 36, 14), "SHIFT", true); break;
                 case SchoolKey.Horn: KeyCap(new Rect2(at.X, mid - 7, 30, 14), "CTRL", true); break;
                 case SchoolKey.Rescue: KeyCap(new Rect2(at.X, mid - 7, 16, 14), "R", true); break;
+                case SchoolKey.Camera: KeyCap(new Rect2(at.X, mid - 7, 16, 14), "C", true); break;
             }
             return;
         }
@@ -541,6 +542,7 @@ public partial class Hud
             case SchoolKey.Horn: FaceButtons(at, 'Y'); break;
             case SchoolKey.Rescue: FaceButtons(at, 'B'); break;
             case SchoolKey.Clutch: Bumper(new Vector2(at.X, mid - 5), "LB"); break;
+            case SchoolKey.Camera: Bumper(new Vector2(at.X, mid - 5), "LB"); break;
         }
     }
 

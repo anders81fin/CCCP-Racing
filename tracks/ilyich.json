@@ -35,6 +35,9 @@
   },
   "birches": 140,
   "edgeRim": 8,
+  // The overhead (directed) view pulls back and tilts from the junction of the dacha's road (the ease-in starts there, slowly, about 70 m before the river at the ford, and is nearly done at the river) to the far end of the mud (full to x 192, easing out over 30 m), so the dacha north of the road shows (2026-11-18):
+  // the eye rises to 38 m and moves 36 m behind the car (standard 31 m, 23 m), looking 31 degrees down (standard 53); the car stands low on the screen.
+  "viewZones": [ { "x0": 192, "z0": 236, "x1": 246, "z1": 272, "ramp": 30, "rampEast": 50, "rampNorth": 100, "height": 38, "back": 36, "pitch": 31 } ],
   // The east ridge: a long north-south crest the road runs along (the jump sits on it), its
   // back dropping to the map edge; the river valley in the south is low ground.
   "hills": [

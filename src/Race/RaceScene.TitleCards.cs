@@ -338,6 +338,7 @@ public partial class RaceScene
         _runMedal = NormPlan.Medal.None;
         _rallyNextOpenedThisRun = false;
         _run = mode == MenuItem.Training ? RunMode.Training : RunMode.Rally;
+        SetRunCamera();
         NewRunPower(mode == MenuItem.Training ? TakeLapsFuelStart() : null);
         _carRadio.SetOn(RadioPreference(), false);
         DefaultComments();

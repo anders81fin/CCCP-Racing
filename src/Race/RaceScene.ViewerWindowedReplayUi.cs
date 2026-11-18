@@ -369,7 +369,7 @@ public partial class RaceScene
         for (int i = 0; i < 8; i++) yield return null;
         VwCheck(_hud.VisualOpen && _hud.SettingsOpen, "VISUALS opens over SETTINGS");
         VwLog("visual-rows", ("ids", string.Join(",", _hud.VisualRowIds)), ("camera", _hud.VisualCameraName));
-        VwCheck(_hud.VisualRowIds.Where(id => id != VisualRowId.NormsCard).SequenceEqual(new[] { VisualRowId.Comments, VisualRowId.LapInfo, VisualRowId.Map, VisualRowId.CarInstruments, VisualRowId.Camera, VisualRowId.LeadStyle, VisualRowId.Rendering, VisualRowId.Edges, VisualRowId.Softening, VisualRowId.Back }), "VISUALS rows: COMMENTS, LAP INFO, MAP, CAR INSTRUMENTS, CAMERA, TOP-DOWN LEAD, RENDERING, EDGES, SOFTENING, BACK, no luxuries submenu");
+        VwCheck(_hud.VisualRowIds.Where(id => id != VisualRowId.NormsCard).SequenceEqual(new[] { VisualRowId.Comments, VisualRowId.LapInfo, VisualRowId.Map, VisualRowId.CarInstruments, VisualRowId.Camera, VisualRowId.Rendering, VisualRowId.Edges, VisualRowId.Softening, VisualRowId.Back }), "VISUALS rows: COMMENTS, LAP INFO, MAP, CAR INSTRUMENTS, CAMERA, TOP-DOWN LEAD, RENDERING, EDGES, SOFTENING, BACK, no luxuries submenu");
         foreach (var x in VrShot("menu-visuals")) yield return x;
         bool map0 = _hud.MapOn, com0 = _hud.Comments; int aa0 = _aaMode, soft0 = _softLevel;
         foreach (var x in VwVisualTo(VisualRowId.Map)) yield return x;
@@ -424,7 +424,7 @@ public partial class RaceScene
         foreach (var x in VwVisualTo(VisualRowId.Camera)) yield return x;      // CAMERA: back to top-down
         foreach (var x in VrTap(Key.Left)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
-        VwCheck(_gameplayView == GameplayView.TopDown, "the camera cycles back to top-down");
+        VwCheck(_gameplayView == GameplayView.Classic, "the camera steps back from bonnet to classic");
         if (_hud.CameraHintOpen) foreach (var x in VrTap(Key.Escape)) yield return x;
         foreach (var x in VrTap(Key.Escape)) yield return x;
         VwCheck(!_hud.VisualOpen && _hud.SettingsOpen && _hud.SettingsRowIds[_hud.SettingsSelection] == SettingsRowId.Visuals, "back from VISUALS lands on SETTINGS at its VISUALS row");

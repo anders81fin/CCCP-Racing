@@ -91,12 +91,21 @@
   "speedTrap": {"at": 855, "side": "right", "limit": 100},
   "babushkas": 8,
   "busStops": [],
-  // Bottom-left: tank exercise area round the road's U bend. Two T-72s shoot (badly) at each other
+  // The tank exercise (2026-11-19: roaming): four tanks drive about the whole south of the range, from z 145 down (never to the base's height or above), fast, with a quick turret, stopping where they are to fire,
+  // and now and then parking across the road. Their start positions are the spots below. (Before: two tanks between fixed positions in the bottom-left. Bottom-left: tank exercise area round the road's U bend. Two T-72s shoot (badly) at each other
   // across the road from firing positions: A inside the bend (flat spots among the birches, 14+ m
   // beyond the road edge), B on the open slope south of it; 85-115 m apart.
-  "tankRange": { "x0": 28, "z0": 180, "x1": 134, "z1": 300, "tanks": 2,
+  "tankRange": { "x0": 20, "z0": 145, "x1": 300, "z1": 305, "tanks": 4, "roam": true, "blockChance": 0.4,
                  "positionsA": [ [72, 189], [63, 204], [75, 201], [60, 216] ],
                  "positionsB": [ [66, 294], [90, 294], [110, 291], [128, 288] ] },
+  // The overhead (directed) view comes flatter (30 m up and 36 m behind, looking 31 degrees down; standard 31 m, 23 m, 53 degrees), the car a little low on the screen, in two places (2026-11-19). The lap runs
+  // down the west side, east past the camp gate, then on the south side through the mud and up the east side past the Buk battery.
+  // 1. The field camp's gate: eased in over the last 40 m of the road before it and out again once it is passed (east of x 150), so the base north of the road shows.
+  // 2. The south mud stretch after the barn, on east and north to the Buk battery (z 140): the road turns north there and the flatter view shows what is ahead.
+  "viewZones": [
+    { "x0": 120, "z0": 118, "x1": 150, "z1": 138, "ramp": 20, "rampWest": 40, "rampNorth": 10, "rampEast": 25, "rampSouth": 30, "height": 30, "back": 36, "pitch": 31 },
+    { "x0": 165, "z0": 240, "x1": 215, "z1": 275, "ramp": 20, "rampWest": 25, "rampNorth": 10, "rampEast": 25, "rampSouth": 10, "height": 30, "back": 36, "pitch": 31 },
+    { "x0": 215, "z0": 140, "x1": 275, "z1": 270, "ramp": 20, "rampWest": 20, "rampNorth": 10, "rampEast": 10, "rampSouth": 10, "height": 30, "back": 36, "pitch": 31 } ],
   "bushes": 380,
   "tufts": 1000,
   // The shared BonusCampLayout owns the landing pads, yards and field-camp props.

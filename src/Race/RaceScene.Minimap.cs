@@ -48,19 +48,21 @@ public partial class RaceScene
         _hud.MinimapAspect = _mapSpan.X / _mapSpan.Y;
         _hud.MinimapMechanic = (InLanRace && !InWorld(Actors.Drunks) ? null : _drunksAll)?.MechanicPostPosition is Vector2 post ? MapPoint(post) : null;
         _hud.MinimapStart = MapPoint(c[0]);
-        _hud.MinimapStartDir = _track.CenterDir(0);
+        _hud.MinimapStartDir = MapDir(_track.CenterDir(0));
         var cfg = new ConfigFile();
         if (cfg.Load(_records.Dir + "settings.cfg") == Error.Ok && cfg.GetValue("hud", "minimap", true) is { VariantType: Variant.Type.Bool } v)
             _minimapOn = (bool)v;
         if (cfg.GetValue("hud", "car", true) is { VariantType: Variant.Type.Bool } hc) _hud.CarInstrumentsOn = (bool)hc;
         if (cfg.GetValue("hud", "lap", true) is { VariantType: Variant.Type.Bool } hl) _hud.LapInfoOn = (bool)hl;
         if (cfg.GetValue("hud", "norms", true) is { VariantType: Variant.Type.Bool } hn) _hud.NormsCardOn = (bool)hn;
-        ChaseCamera.DirectedLead = CameraStyleSetting.Effective(CameraStyleSetting.Load(cfg), Array.IndexOf(CmdArgs(), "--camera-classic") >= 0);      // TOP-DOWN LEAD (VISUALS); the flag forces classic
         if (InstructionTrack == null) { LoadAntialiasing(cfg); SoundBalance.Load(cfg); }
         LabInit(cfg, Array.IndexOf(CmdArgs(), "--lab") >= 0);      // RaceScene.Lab.cs
     }
 
-    Vector2 MapPoint(Vector2 world) => (world - _mapMin) / _mapSpan;
+    Vector2 MapPoint(Vector2 world) { var p = (world - _mapMin) / _mapSpan; return _track.ViewTurned ? Vector2.One - p : p; }
+
+    /// <summary>A world direction as the map shows it (turned with a turned view).</summary>
+    Vector2 MapDir(Vector2 d) => _track.ViewTurned ? -d : d;
 
     /// <summary>M (R3): the map on or off, remembered.</summary>
     void ToggleMinimap()
@@ -97,7 +99,7 @@ public partial class RaceScene
             && (InLanRace ? _lanReveal?.Fuel == true && InWorld(Actors.Depot) : _depot.Visible) ? MapPoint(_depot.Zone) : null;
         _hud.MinimapCar = MapPoint(new Vector2(_car.Pos.X, _car.Pos.Z));
         _hud.MinimapCarColor = InLanRace ? CCCPRacing.Net.LanRace.TagFor(_net.Me?.Slot ?? 0) : Hud.Gold;
-        _hud.MinimapCarDir = new Vector2(_car.Forward.X, _car.Forward.Z);
+        _hud.MinimapCarDir = MapDir(new Vector2(_car.Forward.X, _car.Forward.Z));
         _hud.MinimapGhost = _ghostVis.Visible ? MapPoint(new Vector2(_ghostCar.Pos.X, _ghostCar.Pos.Z)) : null;
         _hud.MinimapOthers.Clear();
         if (InLanRace)

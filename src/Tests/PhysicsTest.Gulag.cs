@@ -144,4 +144,90 @@ public partial class PhysicsTest
         Check(clear && checkedSpots >= 2, $"Gulag camp: the truck's path keeps clear of every solid, standing obstacle ({checkedSpots} wrecks in the camp, least room {worst:0.0} m)");
         fx.Free(); camp.Free();
     }
+
+    /// <summary>The gulag truck, its officer and its driver are solid: every vehicle stops short of them (BlocksAt, TrafficCap), and the walkers go round the standing obstacles of the scene.</summary>
+    void GulagSolidsTest()
+    {
+        var def = TrackDef.Load("res://tracks/siberia.json");
+        var track = TrackBuilder.Build(def);
+        var fx = new TyreEffects(); fx.Init(track); AddChild(fx);
+        Vector2 spot = track.Center[120];
+        var car = new CarSim(new CarParams(), track);
+        car.Reset(new Vector3(spot.X, track.MeshHeight(spot.X, spot.Y) + .6f, spot.Y), 0);
+        var truck = new GulagTruck(); AddChild(truck); truck.Init(track, fx); truck.Call(car);
+        var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        var officer = (Node3D)typeof(GulagTruck).GetField("_officer", flags).GetValue(truck);
+        var driver = (Node3D)typeof(GulagTruck).GetField("_driver", flags).GetValue(truck);
+        Check(GulagTruck.Solids.Count() == 3, "gulag solids: on the road the truck is three solid circles");
+        officer.Visible = true; officer.GlobalPosition = new Vector3(spot.X + 40f, 0, spot.Y + 40f);
+        driver.Visible = true; driver.GlobalPosition = new Vector3(spot.X + 50f, 0, spot.Y + 40f);
+        var people = GulagTruck.Solids.Skip(3).ToList();
+        Check(people.Count == 2 && people.All(p => p.Radius >= 0.5f), "gulag solids: the officer and the driver are solid when out of the truck");
+        Vector2 officerAt = new(officer.GlobalPosition.X, officer.GlobalPosition.Z);
+        Check(GulagTruck.BlocksAt(officerAt + new Vector2(1.2f, 0), 1.5f) && !GulagTruck.BlocksAt(officerAt + new Vector2(0, -9f), 1.5f),
+            "gulag solids: a vehicle's body circle that would overlap the officer is blocked, one beside him is not");
+        float near = TrafficCap.Cap(track, officerAt - new Vector2(8f, 0), new Vector2(1, 0), 12f, 1.3f, i => true);
+        float far = TrafficCap.Cap(track, officerAt - new Vector2(8f, 25f), new Vector2(1, 0), 12f, 1.3f, i => true);
+        Check(near < 5f && far > 1e6f, $"gulag solids: a vehicle 8 m behind the officer is capped to a stop ({near:F1} m/s), one in another lane is not");
+        // The walkers go round the standing obstacles of the scene.
+        Vector2 a = spot + new Vector2(-6, 0), b = spot + new Vector2(6, 0), mid = spot;
+        track.Obstacles.Add(new Obstacle(mid, 0.8f));
+        var blocks = (GulagTruck.WalkBlock[])typeof(GulagTruck).GetMethod("FixedBlocksNear", flags).Invoke(truck, new object[] { spot });
+        Check(blocks.Any(bl => bl.Contains(new Vector3(mid.X, 0, mid.Y))), "gulag solids: a standing obstacle by the arrest is a block for the walkers");
+        var route = GulagTruck.WalkingRoute(new Vector3(a.X, 0, a.Y), new Vector3(b.X, 0, b.Y), blocks);
+        bool through = false;
+        for (int i = 0; i + 1 < route.Length; i++) foreach (var bl in blocks) if (bl.Cuts(route[i], route[i + 1])) through = true;
+        Check(route.Length >= 3 && !through, $"gulag solids: the route from one side of a post to the other goes round it ({route.Length} points), never through");
+        track.Obstacles.RemoveAt(track.Obstacles.Count - 1);
+        truck.Free(); fx.Free();
+    }
+
+    // --kozlik-gulag-test: the UAZ patrol drives the road with the gulag truck standing in it, and later with the officer standing in his lane: it stops short of them, never into them.
+    void KozlikGulagTest()
+    {
+        var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        foreach (string id in new[] { "ilyich", "siberia" })
+        foreach (bool officerOnly in new[] { false, true })
+        {
+            var track = TrackBuilder.Build(TrackDef.Load($"res://tracks/{id}.json"));
+            var fx = new TyreEffects(); fx.Init(track); AddChild(fx);
+            var patrol = new KozlikPatrol(); AddChild(patrol);
+            patrol.Init(track, fx, null, null, 100);
+            int n = track.Center.Length, carIndex = 300 % n;
+            Vector2 carAt = track.Center[carIndex];
+            var car = new CarSim(new CarParams(), track);
+            car.Reset(new Vector3(carAt.X, track.MeshHeight(carAt.X, carAt.Y) + .6f, carAt.Y), 0);
+            var truck = new GulagTruck(); AddChild(truck); truck.Init(track, fx); truck.Call(car);
+            var officer = (Node3D)typeof(GulagTruck).GetField("_officer", flags).GetValue(truck);
+            if (officerOnly)
+            {
+                // The truck far off, the officer standing on the road in the Kozlik's way.
+                var posField = typeof(GulagTruck).GetField("_pos", flags); posField.SetValue(truck, new Vector2(-500, -500));
+                Vector2 at = track.Center[250 % n];
+                officer.Visible = true; officer.GlobalPosition = new Vector3(at.X, track.MeshHeight(at.X, at.Y), at.Y);
+            }
+            var obs = (int[])typeof(KozlikPatrol).GetField("_obs", flags).GetValue(patrol);
+            float closest = 99f; bool overlapped = false;
+            for (int frame = 0; frame < 60 * 120; frame++)
+            {
+                patrol.Tick(1f / 60, null, 0);
+                if (patrol.Guarding) continue;
+                // (the UAZ's own three obstacle circles, as the track holds them)
+                foreach (int index in obs)
+                {
+                    var own = track.Obstacles[index];
+                    if (own.Center.X < -9000f) continue;
+                    foreach (var s in GulagTruck.Solids)
+                    {
+                        float gap = own.Center.DistanceTo(s.Centre) - s.Radius - own.Radius;
+                        closest = MathF.Min(closest, gap);
+                        if (gap < -0.05f) overlapped = true;
+                    }
+                }
+            }
+            GD.Print($"KOZLIK GULAG {id} {(officerOnly ? "officer" : "truck")}: closest {closest:F2} m, overlapped {overlapped}");
+            Check(!overlapped && closest < 20f, $"{id} ({(officerOnly ? "the officer" : "the truck")} in the road): the UAZ never drives into it (closest {closest:F1} m)");
+            RemoveChild(truck); truck.Free(); RemoveChild(patrol); patrol.Free(); RemoveChild(fx); fx.Free();
+        }
+    }
 }

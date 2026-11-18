@@ -278,7 +278,7 @@ public partial class RaceScene : Node3D
         LoadProf.Mark("files");
         if (LanPlaybackSource!=null) { }
         else if (ViewerMode) await ViewerEnter();      // RaceScene.Viewer.cs: the lap plays in this private world, no menu, radio or run
-        else if (start && !_tapeReloaded) { _run = training ? RunMode.Training : RunMode.Rally; MenuPlayed(training ? MenuItem.Training : MenuItem.Race); NewRunPower(); _carRadio.SetOn(RadioPreference(), false); DefaultComments(); EnterCountdown(); if (_keysCard) ShowKeys(); }
+        else if (start && !_tapeReloaded) { _run = training ? RunMode.Training : RunMode.Rally; SetRunCamera(); MenuPlayed(training ? MenuItem.Training : MenuItem.Race); NewRunPower(); _carRadio.SetOn(RadioPreference(), false); DefaultComments(); EnterCountdown(); if (_keysCard) ShowKeys(); }
         else
         {
             EnterTitle();

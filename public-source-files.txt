@@ -1454,8 +1454,6 @@ tracks/atomgrad.json
 tracks/bonus.json
 tracks/ilyich.json
 tracks/siberia.json
-src/Camera/CameraStyleSetting.cs
-src/Camera/CameraStyleSetting.cs.uid
 src/Camera/ChaseCamera.Lead.cs
 src/Camera/ChaseCamera.Lead.cs.uid
 src/Track/ZoneLife.Horses.cs
@@ -1502,3 +1500,7 @@ src/Track/WellHouse.cs
 src/Track/WellHouse.cs.uid
 src/Track/SlurryTractor.Path.cs
 src/Track/SlurryTractor.Path.cs.uid
+src/Tests/PhysicsTest.BtrClear.cs
+src/Tests/PhysicsTest.BtrClear.cs.uid
+src/Tests/PhysicsTest.TankRoam.cs
+src/Tests/PhysicsTest.TankRoam.cs.uid

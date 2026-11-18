@@ -79,8 +79,8 @@ public partial class RaceScene
         public bool EditOpen => _editOpen;
         public string[] EditRowTexts => EditRows();
 
-        static string Mode(ViewerCameraMode m) => m switch { ViewerCameraMode.Bonnet => LapEdits.Bonnet, ViewerCameraMode.Cinematic => LapEdits.Cinematic, ViewerCameraMode.Auto => LapEdits.Auto, _ => LapEdits.TopDown };
-        static ViewerCameraMode ModeOf(string s) => s switch { LapEdits.Bonnet => ViewerCameraMode.Bonnet, LapEdits.Cinematic => ViewerCameraMode.Cinematic, LapEdits.Auto => ViewerCameraMode.Auto, _ => ViewerCameraMode.TopDown };
+        static string Mode(ViewerCameraMode m) => m switch { ViewerCameraMode.Bonnet => LapEdits.Bonnet, ViewerCameraMode.Cinematic => LapEdits.Cinematic, ViewerCameraMode.Auto => LapEdits.Auto, ViewerCameraMode.Classic => LapEdits.Classic, _ => LapEdits.TopDown };
+        static ViewerCameraMode ModeOf(string s) => s switch { LapEdits.Bonnet => ViewerCameraMode.Bonnet, LapEdits.Cinematic => ViewerCameraMode.Cinematic, LapEdits.Auto => ViewerCameraMode.Auto, LapEdits.Classic => ViewerCameraMode.Classic, _ => ViewerCameraMode.TopDown };
 
         // ---------------------------------------------------------------- load
 

@@ -4,7 +4,8 @@ using Godot;
 
 namespace CCCPRacing.Race;
 
-public enum GameplayView { TopDown, Cinematic, Bonnet }
+/// <summary>TopDown is the directed overhead camera (the default); Classic the original overhead one. Both are always there; Cinematic (follow behind) and Bonnet are found on the track.</summary>
+public enum GameplayView { TopDown, Cinematic, Bonnet, Classic }
 
 /// <summary>Per-track camera discoveries belong to the active personnel file, not the shared settings.</summary>
 public sealed class CameraDiscoveries
@@ -23,10 +24,13 @@ public sealed class CameraDiscoveries
     static string Key(string track, GameplayView view) => track + "/" + view.ToString().ToLowerInvariant();
     /// <summary>The Konami code (RaceScene.Cheat.cs): every camera of every track counts as found. Nothing is written; the real discoveries stay as they were.</summary>
     public Func<bool> AllOpen { get; set; }
-    public bool Has(string track, GameplayView view) => view == GameplayView.TopDown || AllOpen?.Invoke() == true || _owned.Contains(Key(track, view));
+    public static bool IsOverhead(GameplayView view) => view is GameplayView.TopDown or GameplayView.Classic;
+    /// <summary>The cycle: directed, classic, then the found follow-behind and bonnet views.</summary>
+    static readonly GameplayView[] Order = { GameplayView.TopDown, GameplayView.Classic, GameplayView.Cinematic, GameplayView.Bonnet };
+    public bool Has(string track, GameplayView view) => IsOverhead(view) || AllOpen?.Invoke() == true || _owned.Contains(Key(track, view));
     public bool Discover(string track, GameplayView view)
     {
-        if (view == GameplayView.TopDown || Has(track, view)) return false;
+        if (IsOverhead(view) || Has(track, view)) return false;
         if (_path != null)
         {
             // Reload before writing: the driver's name, tutorial and KGB sections share this file.
@@ -37,11 +41,14 @@ public sealed class CameraDiscoveries
         return _owned.Add(Key(track, view));
     }
     public bool HasAlternative(string track) => Has(track, GameplayView.Cinematic) || Has(track, GameplayView.Bonnet);
-    public GameplayView Next(string track, GameplayView current)
+    public GameplayView Next(string track, GameplayView current) => Step(track, current, 1);
+    /// <summary>The next (step 1) or previous (-1) view this file has on the track, round the cycle.</summary>
+    public GameplayView Step(string track, GameplayView current, int step)
     {
-        for (int step = 1; step <= 3; step++)
+        int at = Array.IndexOf(Order, current);
+        for (int n = 1; n <= Order.Length; n++)
         {
-            var candidate = (GameplayView)(((int)current + step) % 3);
+            var candidate = Order[((at + step * n) % Order.Length + Order.Length) % Order.Length];
             if (Has(track, candidate)) return candidate;
         }
         return GameplayView.TopDown;

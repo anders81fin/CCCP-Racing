@@ -3,6 +3,16 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.91
+
+- ATOMGRAD-4 is turned 180 degrees in the top-down and map views: the start is in the top right and the power plant bottom left, so its cooling water side is easier to see. The road, heights and records stay the same
+- ATOMGRAD-4 has no fuel use, fuel depot or forecourt again, and the school has no fuel lessons
+- DIRECTED and CLASSIC are now two camera views of their own, always available with the camera key, next to the bonnet and cinematic views. SOCIALIST RALLY starts on DIRECTED, Stakhanov and LAN on CLASSIC. The camera in use is named under the minimap, and the key is on the controls and loading cards. The replay viewer has the classic camera too
+- The DIRECTED camera pulls back and tilts flatter on the hard parts: the Atomgrad power plant straight, the Kolkhoz river and mud toward the dacha, the Siberia ice river, east hill switchbacks, runway and the drop after it, and the Poligon gate, mud and the way to the Buk battery. The zones blend smoothly and CLASSIC never uses them
+- The Gulag ZIL truck, its officer and driver are solid. The ploughing tractor reverses out along its own trail instead of jumping, also in replays
+- POLIGON: four tanks roam the whole south of the range, drive fast, turn their turrets quicker, block the road now and then, and keep their distance from each other. They never climb to the height of the base. Older Poligon tapes show these tanks live
+- POLIGON: the BTR-80 patrols drove straight through fences, silos and walls. They now follow their loops and keep clear of obstacles
+
 ## 0.901
 
 - ILYICH: a water mill by the river, a water tower with a well, kitchen gardens and a henhouse, windbreak belts, and scattered rocks, stumps and trees. Mill, tower and well are new models

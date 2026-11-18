@@ -32,6 +32,16 @@ public partial class ChaseCamera : Camera3D
     /// much closer it comes with the car standing still.</summary>
     const float SpeedPull = 0.25f, AirPull = 0.05f, StillPush = 0.13f;
     Vector3 _viewOffset;
+    /// <summary>
+    /// A view zone (TrackDef.ViewZones): where the eye stands relative to the car in it (ZoneEye), how far the view is tilted up from the line to the car there (ZoneTilt, radians: it is
+    /// what puts the car lower on the screen), and how far in the zone the car is (ZoneTarget 0..1, set by the scene; the view eases to it). Both the eye and the tilt move with the same
+    /// share, so the car's place on the screen goes smoothly from the standard one to the zone's and never beyond it on the way.
+    /// </summary>
+    public Vector3 ZoneEye;
+    public float ZoneTilt;
+    public float ZoneTarget;
+    float _zone;
+    Vector3 ArmFor(float zoom) => Offset * zoom;
     Vector3? _listener;
     AudioListener3D _ear;
 
@@ -56,7 +66,8 @@ public partial class ChaseCamera : Camera3D
     public void Snap(Vector3 target)
     {
         _focus = target;
-        _viewOffset = Offset;
+        _zone = ZoneTarget;
+        _viewOffset = ArmFor(1f);
         _listener = null;
         _driveSetback = Vector3.Zero;
         ResetLead(target);
@@ -74,7 +85,7 @@ public partial class ChaseCamera : Camera3D
         Snap(target);
         _dip = _dipVel = _rumble = _blast = 0;
         _feelZoom = DrivingPull(velocity.Length() * 3.6f, false);
-        _viewOffset = Offset * _feelZoom;
+        _viewOffset = ArmFor(_feelZoom);
         if (DirectedLead) { SnapDirected(target, velocity); return; }
         Vector3 lead = new(velocity.X * LookAhead, 0, velocity.Z * LookAhead);
         if (float.IsFinite(MaxLead)) lead = lead.LimitLength(MaxLead);
@@ -146,6 +157,7 @@ public partial class ChaseCamera : Camera3D
     {
         if (!ShakeEnabled) { rumble = 0; landing = 0; }
         float pull = DrivingPull(kmh, airborne);
+        _zone = Mathf.Lerp(_zone, ZoneTarget, 1f - MathF.Exp(-1.1f * dt));
         _feelZoom = Mathf.Lerp(_feelZoom, pull, 1f - MathF.Exp(-(pull > _feelZoom ? 1.3f : 0.4f) * dt));
         _rumble = Mathf.Lerp(_rumble, rumble, 1f - MathF.Exp(-6f * dt));
         _rumbleClock += dt;
@@ -201,7 +213,7 @@ public partial class ChaseCamera : Camera3D
     {
         if (scenicOffset.HasValue || velocity.LengthSquared() < 0.01f) _driveSetback = Vector3.Zero;
         _listener = listener;
-        _viewOffset = _viewOffset.Lerp(scenicOffset ?? Offset * zoom, 1f - MathF.Exp(-2.5f * dt));
+        _viewOffset = _viewOffset.Lerp(scenicOffset ?? ArmFor(zoom), 1f - MathF.Exp(-2.5f * dt));
         Vector3 want = target + new Vector3(velocity.X, 0, velocity.Z) * LookAhead;
         _focus = _focus.Lerp(want, 1f - MathF.Exp(-FollowRate * dt));
         var lead = new Vector2(_focus.X - target.X, _focus.Z - target.Z);
@@ -228,6 +240,15 @@ public partial class ChaseCamera : Camera3D
         if (_ear != null) _ear.GlobalTransform = new Transform3D(Basis.LookingAt(facing.Normalized(), Vector3.Up), car + Vector3.Up * 1.5f);
     }
 
+    /// <summary>A viewing direction with its pitch below the horizon reduced by <paramref name="angle"/> (radians), the compass direction unchanged.</summary>
+    static Vector3 Tilted(Vector3 d, float angle)
+    {
+        var flat = new Vector2(d.X, d.Z);
+        float pitch = MathF.Atan2(-d.Y, flat.Length()), turned = Math.Clamp(pitch - angle, 0.02f, 1.5f);
+        flat = flat.LengthSquared() > 1e-8f ? flat.Normalized() : new Vector2(0, -1);
+        return new Vector3(flat.X * MathF.Cos(turned), -MathF.Sin(turned), flat.Y * MathF.Cos(turned));
+    }
+
     void Apply(float dt = 0)
     {
         if (!ShakeEnabled) _shake = 0;
@@ -236,10 +257,18 @@ public partial class ChaseCamera : Camera3D
         // The road's rumble: two quick, smooth wobbles across the view (not per-frame noise), and the dip.
         float t = _rumbleClock;
         Vector3 rumble = new Vector3(MathF.Sin(t * 71f) + 0.6f * MathF.Sin(t * 113f + 1.3f), MathF.Sin(t * 83f + 0.7f) + 0.6f * MathF.Sin(t * 131f + 2.1f), 0) * (_rumble * 0.6f);
-        Vector3 eye = _focus + _viewOffset + (ShakeEnabled ? _driveSetback : Vector3.Zero) + jitter + Basis.LookingAt(-_viewOffset.Normalized(), Vector3.Up) * rumble
-            - _viewOffset.Normalized() * _dip;
-        Far = Math.Max(260f, _viewOffset.Length() + 200f); // High scenic views must still render the ground and distant landmarks.
-        GlobalTransform = CollisionPose(new Transform3D(Basis.LookingAt(-_viewOffset.Normalized(), Vector3.Up), eye), dt);
+        // In a zone the view keeps the car where the zone puts it up and down the screen: the look-ahead and the follow's lag move the view along the compass only sideways (along the screen's width), so a road
+        // turning towards or away from the view cannot push the car, already low in the picture, down to the edge.
+        Vector3 focus = _focus;
+        if (_zone > 0.001f) focus.Z = Mathf.Lerp(focus.Z, _carNow.Z, _zone);
+        Vector3 arm = _zone > 0.001f ? _viewOffset.Lerp(ZoneEye, _zone) : _viewOffset;      // (the zone's eye, eased in)
+        Vector3 look = -arm.Normalized();
+        if (_zone > 0.001f) look = Tilted(look, ZoneTilt * _zone);      // (the view is tilted up from the line to the car by the same share)
+        Basis view = Basis.LookingAt(look, Vector3.Up);
+        Vector3 eye = focus + arm + (ShakeEnabled ? _driveSetback : Vector3.Zero) + jitter + view * rumble
+            + look * _dip;
+        Far = Math.Max(260f, arm.Length() + 200f); // High scenic views must still render the ground and distant landmarks.
+        GlobalTransform = CollisionPose(new Transform3D(view, eye), dt);
         if (_ear != null) _ear.GlobalTransform = new Transform3D(Basis.LookingAt(-new Vector3(_viewOffset.X, 0, _viewOffset.Z).Normalized(), Vector3.Up), (_listener ?? _focus) + Vector3.Up * 1.5f);
     }
 }

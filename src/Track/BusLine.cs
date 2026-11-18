@@ -605,7 +605,7 @@ public partial class SovietBus : Node3D
             if (slurry.CrossingBarnRoad) Check(slurry.Position2D, 2f, true);
         }
         // ...and to the gulag truck when it is out on the road.
-        foreach (var c in GulagTruck.Body) Check(c, GulagTruck.BodyRadius, false);
+        foreach (var s in GulagTruck.Solids) Check(s.Centre, s.Radius, false);
         if (trafficAhead < 42f)
             target = Math.Min(target, Math.Max(0f, (trafficAhead - 9f) * 0.45f));
 

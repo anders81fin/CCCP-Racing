@@ -61,6 +61,10 @@ public class TrackData : IGround
     public bool Winter;
     /// <summary>An autumn track (TrackDef.Season "autumn"): yellow birches, brown grass strewn with leaves.</summary>
     public bool Autumn;
+    /// <summary>TrackDef.ViewTurned: the overhead camera and the minimap are turned 180 degrees.</summary>
+    public bool ViewTurned;
+    /// <summary>TrackDef.ViewZones: where the overhead camera pulls back.</summary>
+    public List<ViewZoneDef> ViewZones = new();
     /// <summary>The zone (TrackDef.Radiation): the bear wears a gas mask.</summary>
     public bool Zone;
     public int N;                 // tiles per side

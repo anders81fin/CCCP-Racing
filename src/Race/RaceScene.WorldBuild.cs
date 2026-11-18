@@ -329,6 +329,7 @@ public partial class RaceScene
     async Task BuildCameraHudAudioTimer()
     {
         _cam = new ChaseCamera();
+        if (_track.ViewTurned) _cam.Offset = new Vector3(-_cam.Offset.X, _cam.Offset.Y, -_cam.Offset.Z);      // (TrackDef.ViewTurned: the picture turned 180 degrees about the car)
         if (_booting) await LoadingFrame();      // LOADSLICES
         AddChild(_cam);
         if (ViewerMode) _cam.Snap(_track.StartPos);      // (the viewer looks at the start from now on: what is drawn there is drawn, and its pipelines compiled, as the world builds up, not all in the one frame the camera first gets there)
@@ -507,7 +508,7 @@ public partial class RaceScene
                 _lookAt = new Vector2(float.Parse(xz[0], System.Globalization.CultureInfo.InvariantCulture), float.Parse(xz[1], System.Globalization.CultureInfo.InvariantCulture));
             }
             else if (a.StartsWith("--tractor-warp=")) _tractorWarp = float.Parse(a["--tractor-warp=".Length..], System.Globalization.CultureInfo.InvariantCulture);
-            else if (a == "--camera-classic") CCCPRacing.Camera.ChaseCamera.DirectedLead = false;      // the old look-ahead, whatever VISUALS > TOP-DOWN LEAD says (Minimap.cs applies the setting afterwards, with this flag)
+            else if (a == "--camera-classic") { }      // (read by LoadCameraDiscoveries: the camera starts as the classic overhead one)
             else if (a.StartsWith("--at=")) _startAt = int.Parse(a["--at=".Length..]); // test: start at centre index
             else if (a.StartsWith("--shot=")) _shotPath = a["--shot=".Length..];
             else if (a.StartsWith("--record=")) _recordPath = a["--record=".Length..];   // test: capture audio to WAV

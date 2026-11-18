@@ -546,6 +546,7 @@ public partial class Hud : Control
         }
 
         DrawMinimap();     // bottom-left (HudMinimap.cs)
+        DrawCameraLabel();      // under it
 
         // Top-right emblem.
         if (LanLaps > 0)

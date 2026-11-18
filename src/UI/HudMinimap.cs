@@ -25,14 +25,14 @@ public partial class Hud
     public Color MinimapCarColor = Gold;
     public readonly List<(Vector2 position, Color color)> MinimapOthers = new();
 
-    const float MapSize = 82f, MapPad = 6f;
+    const float MapSize = 82f, MapPad = 6f, LabelRoom = 13f;      // (the room under the map for the camera's name)
 
     void DrawMinimap()
     {
         if (!Minimap || MinimapPath == null || MinimapPath.Length < 2) return;
         var s = Screen;
         float w = MinimapAspect >= 1f ? MapSize : MapSize * MinimapAspect, h = MinimapAspect >= 1f ? MapSize / MinimapAspect : MapSize;
-        Vector2 o = new(MapPad, Mathf.Floor(s.Y - h - MapPad)), size = new(w, h);
+        Vector2 o = new(MapPad, Mathf.Floor(s.Y - h - MapPad - LabelRoom)), size = new(w, h);
         Vector2 P(Vector2 p) => o + p * size;
 
         var pts = new Vector2[MinimapPath.Length + 1];
@@ -87,5 +87,13 @@ public partial class Hud
         var tri = new[] { at + f * 4.5f, at - f * 2.8f + r * 3f, at - f * 1.6f, at - f * 2.8f - r * 3f };
         DrawColoredPolygon(tri, MinimapCarColor);
         DrawPolyline(new[] { tri[0], tri[1], tri[2], tri[3], tri[0] }, new Color(0.1f, 0.05f, 0.03f, 0.9f), 1.2f, true);
+    }
+
+    /// <summary>Under the map, bottom-left: the camera in use (shown while the camera can be chosen).</summary>
+    void DrawCameraLabel()
+    {
+        if (GameplayCameraName == null) return;
+        var s = Screen;
+        PixelFont.Draw(this, "CAMERA: " + GameplayCameraName.Replace(" CAMERA", ""), new Vector2(MapPad, s.Y - 10), Paper, 1, new Color(0, 0, 0, 0.7f));
     }
 }

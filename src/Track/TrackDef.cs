@@ -58,6 +58,10 @@ public class TrackDef
     public List<PlateauDef> Plateaus { get; set; } = new();
     /// <summary>Height the map edge rises to (hides the end of the world); null: 16 m above the noise.</summary>
     public float? EdgeRim { get; set; }
+    /// <summary>The overhead view is turned half a circle (the camera looks from the north, the minimap follows): only the picture turns, the track, its signature, the records and the tapes stay as they are.</summary>
+    public bool ViewTurned { get; set; }
+    /// <summary>Stretches of the track where the overhead camera pulls far back and tilts to show a landmark (the plant's roofs and stack); see ViewZoneDef.</summary>
+    public List<ViewZoneDef> ViewZones { get; set; } = new();
     /// <summary>The rim the ROAD's heights are graded with (null: EdgeRim). Lowering EdgeRim where the road runs within the edge margin would change the road's heights and with them the track signature (the records); set this to the old rim to keep both and let only the ground around the road follow the new rim.</summary>
     public float? RoadEdgeRim { get; set; }
     /// <summary>Extra scattered scenery (loose rocks, boulders, stumps, trees) over the grass, clumped by noise (TrackBuilder.Scatter.cs).</summary>
@@ -202,6 +206,10 @@ public class TankRangeDef
     public int Tanks { get; set; } = 2;
     public float[][] PositionsA { get; set; }
     public float[][] PositionsB { get; set; }
+    /// <summary>Roaming exercise: the tanks drive about the whole range (not between fixed firing positions), fast, stop where they are to fire, and now and then park across the road (BlockChance); the range's Z0 is the line they never cross.</summary>
+    public bool Roam { get; set; }
+    /// <summary>The share of a roaming tank's goals that are on the road itself (null: 0.4).</summary>
+    public float? BlockChance { get; set; }
 }
 
 /// <summary>A bus stop at a road distance, on the given side of the direction of travel.</summary>
@@ -210,6 +218,28 @@ public class BusStopDef
     public float At { get; set; }
     public string Side { get; set; } = "left";
     public int Drunks { get; set; } = 3;
+}
+
+/// <summary>
+/// A rectangle (X0,Z0)-(X1,Z1) in which the overhead camera moves to Height metres above the car's ground and Back metres behind it (the standard view: 31 and 23),
+/// looking Pitch degrees down along the ground (standard: 53), easing in and out over Ramp metres outside the rectangle.
+/// Only the picture changes: the track, its signature, the records and the tapes do not. Only the directed camera takes a zone; the classic one is not changed.
+/// </summary>
+public class ViewZoneDef
+{
+    public float X0 { get; set; }
+    public float Z0 { get; set; }
+    public float X1 { get; set; }
+    public float Z1 { get; set; }
+    public float Ramp { get; set; } = 20f;
+    /// <summary>The ease-in distance on one side where it differs from Ramp (null: Ramp): a long one lets the view begin to change far ahead, slowly.</summary>
+    public float? RampEast { get; set; }
+    public float? RampNorth { get; set; }
+    public float? RampWest { get; set; }
+    public float? RampSouth { get; set; }
+    public float Height { get; set; } = 31f;
+    public float Back { get; set; } = 23f;
+    public float Pitch { get; set; } = 53f;
 }
 
 /// <summary>Highway strip markings between two road distances; Numbers = designators at From/To ends.</summary>
