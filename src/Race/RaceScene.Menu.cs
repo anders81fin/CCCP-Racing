@@ -17,22 +17,23 @@ namespace CCCPRacing.Race;
 /// </summary>
 public partial class RaceScene
 {
-    enum MenuItem { Race, Training, Lan, Board, Single, Multi, Quit, School, Files, Office, Credits, Recordings, Personnel }
+    enum MenuItem { Race, Training, Lan, Board, Single, Multi, Quit, School, Files, Office, Credits, Recordings, Personnel, Settings }
 
-    static readonly MenuItem[] TopItems = { MenuItem.Single, MenuItem.Multi, MenuItem.Office };
+    static readonly MenuItem[] TopItems = { MenuItem.Single, MenuItem.Multi, MenuItem.Settings, MenuItem.Office };
     static readonly MenuItem[] SingleItems = { MenuItem.School, MenuItem.Race, MenuItem.Training };
     static readonly MenuItem[] MultiItems = { MenuItem.Lan };
     static readonly MenuItem[] OfficeItems = { MenuItem.Files, MenuItem.Credits, MenuItem.Quit };
     static readonly MenuItem[] FilesItems = { MenuItem.Personnel, MenuItem.Board, MenuItem.Recordings };     // PARTY OFFICE > KGB FILES
-    static readonly string[] TopLabels = { "SINGLE PLAYER", "MULTIPLAYER", "PARTY OFFICE" }, TopShort = { "1 PLAYER", "MULTI", "OFFICE" };
+    static readonly string[] TopLabels = { "SINGLE PLAYER", "MULTIPLAYER", "SETTINGS", "PARTY OFFICE" }, TopShort = { "1 PLAYER", "MULTI", "SETTINGS", "OFFICE" };
     static readonly string[] OfficeLabels = { "KGB FILES", "CREDITS", "RESIGN" }, OfficeShort = { "FILES", "CREDITS", "RESIGN" };
     static readonly string[] FilesLabels = { "PERSONNEL", "LEADERBOARDS", "RECORDINGS" }, FilesShort = { "PERSONNEL", "TOP 10", "REC" };
     static readonly string[] SingleLabels = { "DRIVING SCHOOL", Hud.RaceLabel, Hud.TrainingLabel }, SingleShort = { "SCHOOL", Hud.RaceShort, Hud.TrainingShort };
     static readonly string[] MultiLabels = { Hud.LanLabel }, MultiShort = { Hud.LanShort };
 
-    MenuItem _menu = MenuItem.Multi;
+    MenuItem _menu = MenuItem.Single;      // a first launch: SINGLE PLAYER, and in it SOCIALIST RALLY (the owner's order, 2026-11-19)
     MenuItem? _menuParent;                  // the open row's parent (null: the top row)
-    MenuItem _lastPlayed = MenuItem.Lan;
+    MenuItem _lastPlayed = MenuItem.Race;      // (a returning player: the mode played last, kept between launches in settings.cfg [menu] last)
+    bool _menuMemoryLoaded;
     bool _menuSingleTest;
 
     MenuItem[] MenuRow => _menuParent switch { MenuItem.Single => SingleItems, MenuItem.Multi => MultiItems, MenuItem.Office => OfficeItems, MenuItem.Files => FilesItems, _ => TopItems };
@@ -49,19 +50,29 @@ public partial class RaceScene
     /// <summary>The title's menu after EnterTitle: the top row, on the parent of the mode played last.</summary>
     void ResetMenu()
     {
+        if (!_menuMemoryLoaded && _records != null && !ViewerMode) { _menuMemoryLoaded = true; _lastPlayed = MenuMemory.Load(_records.Dir, _lastPlayed); }
         _menuParent = null;
         _menu = ParentOf(_lastPlayed);
     }
 
-    /// <summary>A mode chosen from the title (or started by a flag): the menu comes back to it.</summary>
-    void MenuPlayed(MenuItem mode) => _lastPlayed = mode;
+    /// <summary>A mode chosen from the title (or started by a flag): the menu comes back to it, and the next launch finds it there.</summary>
+    void MenuPlayed(MenuItem mode)
+    {
+        if (mode != _lastPlayed && _records != null && !ViewerMode && InstructionTrack == null) MenuMemory.Save(_records.Dir, mode);
+        _lastPlayed = mode;
+    }
 
     /// <summary>Opens a row (Single Player defaults to SOCIALIST RALLY; other rows use the last mode or first).</summary>
     void OpenMenu(MenuItem parent, MenuItem? at = null)
     {
+        if (parent == MenuItem.Multi)      // MULTIPLAYER has no row of its own: it is the LAN race's start (EnterLanMenu); coming back stands on MULTIPLAYER in the top row
+        {
+            _menuParent = null; _menu = MenuItem.Multi;
+            return;
+        }
         _menuParent = parent;
         var row = MenuRow;
-        MenuItem pick = at ?? (parent == MenuItem.Single ? MenuItem.Race : _lastPlayed);
+        MenuItem pick = at ?? (parent == MenuItem.Single ? (Array.IndexOf(SingleItems, _lastPlayed) >= 0 ? _lastPlayed : MenuItem.Race) : _lastPlayed);
         _menu = Array.IndexOf(row, pick) >= 0 ? pick : row[0];
     }
 
@@ -70,7 +81,9 @@ public partial class RaceScene
     {
         switch (_menu)
         {
-            case MenuItem.Single or MenuItem.Multi or MenuItem.Office or MenuItem.Files:
+            case MenuItem.Multi: MenuPlayed(MenuItem.Lan); EnterLanMenu(); break;      // MULTIPLAYER goes straight to the LAN race's start
+            case MenuItem.Settings: OpenSettings(); break;      // the Party Meeting's SETTINGS, before a drive (RaceScene.Settings.cs)
+            case MenuItem.Single or MenuItem.Office or MenuItem.Files:
                 OpenMenu(_menu, _menu switch { MenuItem.Office => MenuItem.Files, MenuItem.Files => MenuItem.Personnel, _ => null });
                 break;
             case MenuItem.Board: EnterBoard(); break;
@@ -117,8 +130,9 @@ public partial class RaceScene
         _hud.MenuShort = top ? TopShort : _menuParent switch { MenuItem.Single => SingleShort, MenuItem.Office => OfficeShort, MenuItem.Files => FilesShort, _ => MultiShort };
         _hud.MenuHeader = top ? null : MenuHeaderLabel(_menuParent.Value);
         _hud.MenuDim = -1;
+        _hud.TitleMenuHidden = _titleMenuHidden;
         _hud.MenuSelection = Math.Max(0, Array.IndexOf(row, _menu));
-        _hud.MenuHint = top || _askName ? null : MenuHint(_menu);   // over a card too: the card goes under it
+        _hud.MenuHint = _askName ? null : top ? TopHint(_menu) : MenuHint(_menu);   // over a card too: the card goes under it
     }
 
     /// <summary>A row's header: its parent's own label (a top-row item, or KGB FILES in PARTY OFFICE).</summary>
@@ -129,6 +143,14 @@ public partial class RaceScene
         i = Array.IndexOf(OfficeItems, parent);
         return i >= 0 ? OfficeLabels[i] : null;
     }
+
+    /// <summary>The hint of a top-row item that has no row of its own: MULTIPLAYER (the LAN race's explanation) and PARTY OFFICE (what is in the archive). SINGLE PLAYER shows its modes' hints one level down.</summary>
+    (string title, string[] lines)? TopHint(MenuItem m) => m switch
+    {
+        MenuItem.Multi => MenuHint(MenuItem.Lan),
+        MenuItem.Office => ("PARTY OFFICE", new[] { "DRIVER FILES, RECORDS AND SAVED REPLAYS." }),
+        _ => null,
+    };
 
     /// <summary>What a mode is: explanatory lines; the shared HUD leaves a blank row below the heading.</summary>
     (string title, string[] lines)? MenuHint(MenuItem m) => m switch
@@ -142,6 +164,7 @@ public partial class RaceScene
         MenuItem.Race => (Hud.RaceLabel, new[]
         {
             "A PEASANT CHOSEN TO BECOME A HERO OF THE STATE.",
+            "BEAT LAP NORMS TO EARN MEDALS.",
             "BRUTAL QUALIFYING. THE WINNER TAKES IT ALL.",
             "THE GULAG HAS ROOM FOR THE REST.",
         }),

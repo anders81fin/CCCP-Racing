@@ -99,6 +99,7 @@ public partial class Hud
 
         if ((int)(_clock * 2) % 2 == 0)
             PixelFont.DrawCentered(this, AnyKey, cx, Math.Min(r.End.Y + 12, s.Y - 34), Gold);
+        if (EndWatchHint != null) PixelFont.DrawCentered(this, EndWatchHint, cx, Math.Min(r.End.Y + 24, s.Y - 22), Paper);      // WATCH LAP before leaving
 
         void Row(string label, string value, float y)
         {

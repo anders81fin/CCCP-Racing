@@ -86,20 +86,7 @@ public partial class PhysicsTest
             Check(c4.Wheels[0].ForceLong > 0 && c4.Wheels[1].ForceLong > 0 && c4.Wheels[2].ForceLong > 0, "all four wheels push the car forward");
         }
 
-        foreach (string id in new[] { "ilyich", "siberia", "atomgrad", "bonus" })
-        {
-            var def = TrackDef.Load($"res://tracks/{id}.json").Norms;
-            var petrol = NormPlan.LadderFor(def, FuelGrade.Petrol);
-            var diesel = NormPlan.LadderFor(def, FuelGrade.Diesel);
-            var rocket = NormPlan.LadderFor(def, FuelGrade.Rocket);
-            var sputnik = NormPlan.LadderFor(def, FuelGrade.Sputnik);
-            Check(petrol.Length == diesel.Length && petrol.Length == rocket.Length && petrol.Length == sputnik.Length, $"{id}: every fuel has the same number of norms");
-            Check(Enumerable.Range(0, petrol.Length).All(i => diesel[i] > petrol[i] && petrol[i] > rocket[i] && rocket[i] > sputnik[i]),
-                $"{id}: each better fuel is tighter on every norm (diesel is the reference)");
-            Check(def.Ladder.SequenceEqual(petrol), $"{id}: the stored petrol ladder is petrol's");
-            Check(diesel.Zip(diesel.Skip(1)).All(p => p.First > p.Second) && sputnik.Zip(sputnik.Skip(1)).All(p => p.First > p.Second), $"{id}: the ladders still descend");
-            Check(diesel.Concat(sputnik).All(t => System.MathF.Abs(t * 10f - System.MathF.Round(t * 10f)) < 1e-3f), $"{id}: norms are in tenths of a second");
-        }
+        FuelLaddersTest();      // (the norms' ladders per fuel: also in the default suite)
 
         var rs = new RecordStore("user://test_fuel_records/", "ilyich", "sig");
         var paths = Enumerable.Range(0, RecordStore.Sets).SelectMany(s => new[] { rs.GhostForSet(s), rs.BoardForSet(s) }).ToList();
@@ -131,5 +118,28 @@ public partial class PhysicsTest
             "...and is kept apart per fuel (the old silver stays petrol's)");
         Check(!campaign.Award("ilyich", NormPlan.Medal.Bronze, FuelGrade.Diesel) && campaign.BestOn("ilyich", FuelGrade.Diesel) == NormPlan.Medal.Bronze,
             "a lower medal on another fuel is kept for that fuel, the track's best stays");
+    }
+
+    /// <summary>
+    /// The norms' ladders of every track and fuel (in the default suite since 2026-11-20: a 0.1 s slip once made Ilyich's third norm looser on jet fuel than on petrol and only the FUELLAB run could have caught it): the same
+    /// number of norms for every fuel, each better fuel tighter on every norm, the stored petrol ladder petrol's, every ladder descending, norms in tenths of a second.
+    /// </summary>
+    void FuelLaddersTest()
+    {
+        GD.Print("Norm ladders per track and fuel");
+        foreach (string id in new[] { "ilyich", "siberia", "atomgrad", "bonus" })
+        {
+            var def = TrackDef.Load($"res://tracks/{id}.json").Norms;
+            var petrol = NormPlan.LadderFor(def, FuelGrade.Petrol);
+            var diesel = NormPlan.LadderFor(def, FuelGrade.Diesel);
+            var rocket = NormPlan.LadderFor(def, FuelGrade.Rocket);
+            var sputnik = NormPlan.LadderFor(def, FuelGrade.Sputnik);
+            Check(petrol.Length == diesel.Length && petrol.Length == rocket.Length && petrol.Length == sputnik.Length, $"{id}: every fuel has the same number of norms");
+            Check(Enumerable.Range(0, petrol.Length).All(i => diesel[i] > petrol[i] && petrol[i] > rocket[i] && rocket[i] > sputnik[i]),
+                $"{id}: each better fuel is tighter on every norm (diesel is the reference)");
+            Check(def.Ladder.SequenceEqual(petrol), $"{id}: the stored petrol ladder is petrol's");
+            Check(diesel.Zip(diesel.Skip(1)).All(p => p.First > p.Second) && sputnik.Zip(sputnik.Skip(1)).All(p => p.First > p.Second), $"{id}: the ladders still descend");
+            Check(diesel.Concat(sputnik).All(t => System.MathF.Abs(t * 10f - System.MathF.Round(t * 10f)) < 1e-3f), $"{id}: norms are in tenths of a second");
+        }
     }
 }

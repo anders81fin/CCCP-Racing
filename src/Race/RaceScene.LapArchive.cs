@@ -47,7 +47,7 @@ public partial class RaceScene
         var archive = board ? LeaderboardLapArchive : LapArchiveBox;
         if (board) _boardLapArchiveUsed = archive; else _lapArchiveUsed = archive;
         var res = archive.Submit(cap);
-        if (res.Accepted) { _sessionLapArchives[res.Id] = archive; _sessionLapOrder[res.Id] = ++_sessionLapSequence; }
+        if (res.Accepted) { _sessionLapArchives[res.Id] = archive; _sessionLapOrder[res.Id] = ++_sessionLapSequence; NoteLastLap(res.Id, cap.LapNumber, time, kind); }
         if (board && res.Accepted)
         {
             _lastBoardRecordingId = res.Id;
@@ -68,6 +68,12 @@ public partial class RaceScene
 
     /// <summary>The scene leaves the tree: a retain or compression in flight gets a bounded time to finish.</summary>
     void LapArchiveExit()
+    {
+        StallWatch.Waiting("the lap archive and leaderboard recording workers at the scene's exit");
+        try { LapArchiveExitWait(); } finally { StallWatch.Waiting(null); }
+    }
+
+    void LapArchiveExitWait()
     {
         if (_boardLapArchiveUsed != null && !_boardLapArchiveUsed.Flush(System.TimeSpan.FromSeconds(10)))
             GD.PushWarning("Leaderboard recording save still pending on exit");

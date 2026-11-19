@@ -327,12 +327,15 @@ public partial class RaceScene
         var ids = _hud.PauseRowIds;
         VwLog("main-rows", ("ids", string.Join(",", ids)), ("selection", _hud.PauseSelection));
         {
-            int n0 = _norms.Enabled ? 2 : 1;      // REPLAY (and NORMS) first
-            VwCheck(_state == State.Paused && ids[0] == PauseRowId.Replay && (!_norms.Enabled || ids[1] == PauseRowId.Norms) && ids[n0] == PauseRowId.Instructions && ids[n0 + 1] == PauseRowId.Settings
-                && ids[n0 + 2] == PauseRowId.Continue && ids[n0 + 3] == PauseRowId.Restart && ids[n0 + 4] == PauseRowId.Exit && ids.Length == n0 + 5,
-                $"the Party Meeting rows: REPLAY, (NORMS), DRIVING SCHOOL, SETTINGS, CONTINUE, RESTART RACE, EXIT RACE ({string.Join(",", ids)})");
+            int laps = _sessionLapOrder.Count;      // (the order of 2026-11-19: CONTINUE first, then this run's replay rows, NORMS, DRIVING SCHOOL, SETTINGS, RESTART RACE, EXIT RACE)
+            var want = new System.Collections.Generic.List<PauseRowId> { PauseRowId.Continue };
+            if (laps >= 1) want.Add(PauseRowId.WatchLastLap);
+            if (laps >= 2) want.Add(PauseRowId.BrowseLaps);
+            if (_norms.Enabled) want.Add(PauseRowId.Norms);
+            want.AddRange(new[] { PauseRowId.Instructions, PauseRowId.Settings, PauseRowId.Restart, PauseRowId.Exit });
+            VwCheck(_state == State.Paused && ids.SequenceEqual(want), $"the Party Meeting rows: CONTINUE, (WATCH LAST LAP, BROWSE LAPS by the laps of the run: {laps}), (NORMS), DRIVING SCHOOL, SETTINGS, RESTART RACE, EXIT RACE ({string.Join(",", ids)})");
         }
-        VwCheck(ids[_hud.PauseSelection] is PauseRowId.Continue or PauseRowId.Norms, "the cursor starts on CONTINUE (or NORMS AND MEDALS), not on REPLAY");
+        VwCheck(ids[_hud.PauseSelection] == PauseRowId.Continue && _hud.PauseSelection == 0, "the cursor starts on CONTINUE, the top row");
         foreach (var x in VrShot("menu-main")) yield return x;
         foreach (var x in VrToRow(0)) yield return x;
         foreach (var x in VrTap(Key.Escape)) yield return x;
@@ -634,9 +637,8 @@ public partial class RaceScene
         {
             VwLog("countdown-context", ("countdown", _countdown));
             foreach (var x in VrTap(Key.Escape)) yield return x;
-            VwCheck(_state == State.Paused && _hud.PauseReplayShown, "the Party Meeting opens from the countdown and has the REPLAY row");
-            foreach (var x in VrToRow(PauseReplayRow)) yield return x;
-            foreach (var x in VrTap(Key.Enter)) yield return x;
+            VwCheck(_state == State.Paused && _hud.PauseReplayShown && _sessionLapOrder.Count == 0 && PauseRowsNow[0] == PauseRowId.Continue && !PauseRowsNow.Contains(PauseRowId.WatchLastLap), "the Party Meeting opens from the countdown on CONTINUE, with no replay row (0 laps)");
+            OpenReplayList();      // (no row leads to the list before a lap: the empty list is opened directly)
             foreach (var x in VrUntil(() => _hud.ReplayListOpen && _hud.ReplayList.Rows.Length == 0, 60, "the empty list opens from the countdown's meeting")) yield return x;
             foreach (var x in VrTap(Key.Escape)) yield return x;
             foreach (var x in VrTap(Key.Escape)) yield return x;
@@ -649,12 +651,10 @@ public partial class RaceScene
         foreach (var x in VrTap(Key.Escape)) yield return x;
         VwCheck(_state == State.Paused, "the Party Meeting is up (State.Paused)");
         for (int i = 0; i < 3; i++) yield return null;
-        VwCheck(_hud.PauseReplayShown && !_hud.PauseReplayAvailable, $"the REPLAY row shows as unavailable before the first lap (shown {_hud.PauseReplayShown}, available {_hud.PauseReplayAvailable})");
+        VwCheck(_hud.PauseReplayShown && !_hud.PauseReplayAvailable && PauseReplayRow < 0 && _hud.PauseSelection == 0, $"before the first lap there is no replay row (0 laps) and the cursor is on CONTINUE (shown {_hud.PauseReplayShown}, row {PauseReplayRow})");
         foreach (var x in VrShot("meeting-no-laps")) yield return x;
-        foreach (var x in VrToRow(PauseReplayRow)) yield return x;
-        VwCheck(_hud.PauseSelection == PauseReplayRow, $"REPLAY is row {PauseReplayRow} and selected");
-        foreach (var x in VrTap(Key.Enter)) yield return x;
-        VwCheck(_hud.ReplayListOpen && _hud.ReplayList.Rows.Length == 0, "selecting it before a lap opens the empty list");
+        OpenReplayList();      // (the list is reached with BROWSE LAPS from two laps on: opened directly here)
+        VwCheck(_hud.ReplayListOpen && _hud.ReplayList.Rows.Length == 0, "the list opened before a lap is empty");
         foreach (var x in VrUntil(() => _hud.ReplayList.Notice.Contains("NO LAPS"), 120, "the empty-state notice")) yield return x;
         foreach (var x in VrShot("list-empty")) yield return x;
         long tick0 = (long)Engine.GetPhysicsFrames();
@@ -666,23 +666,22 @@ public partial class RaceScene
         // ---- a lap completes (the archive takes it)
         var archive = LapArchiveBox;
         var liveCam = new List<CamSample>();
-        for (int i = 0; i < 60 * 200 && archive.List().Count < 1; i++)
+        for (int i = 0; i < 60 * 200 && _sessionLapOrder.Count < 1; i++)      // (this run's lap: the temporary profile's archive may hold laps of earlier runs)
         {
             if (_state == State.Racing && _lapClock > 3f && i % 3 == 0) liveCam.Add(VrCamSample(this));
             yield return null;
         }
-        VwCheck(archive.List().Count >= 1, $"a completed lap in the archive ({liveCam.Count} live camera samples)");
-        foreach (var x in VrUntil(() => archive.List().Any(i => i.Openable), 60 * 20, "the lap is openable")) yield return x;
+        VwCheck(_sessionLapOrder.Count >= 1 && archive.List().Count >= 1, $"a completed lap in the archive ({liveCam.Count} live camera samples)");
+        foreach (var x in VrUntil(() => archive.List().Any(i => i.Id == _lastLapId && i.Openable), 60 * 20, "the lap is openable")) yield return x;
 
         // ---- the Party Meeting with a lap
         foreach (var x in VrTap(Key.Escape)) yield return x;
-        for (int i = 0; i < 20; i++) yield return null;
-        VwCheck(_hud.PauseReplayShown && _hud.PauseReplayAvailable, "the REPLAY row is available after the first lap");
+        foreach (var x in VrUntil(() => _hud.PauseReplayAvailable, 60 * 5, "the meeting's listing has the lap")) yield return x;      // (the listing arrives within a second or two of the meeting opening)
+        VwCheck(_hud.PauseReplayShown && _hud.PauseReplayAvailable && PauseReplayRow == 1 && _sessionLapOrder.Count >= 1, $"the WATCH LAST LAP row is there after the first lap (row {PauseReplayRow}, below CONTINUE; BROWSE LAPS only from two laps; the run's laps {_sessionLapOrder.Count}, listed {_replayInfos.Count})");
         foreach (var x in VrShot("meeting-with-laps")) yield return x;
         var sigMeeting = VwSig();
         var filesBefore = VrFiles();      // (the lap just driven wrote its own records; from here on only the viewer is used)
-        foreach (var x in VrToRow(PauseReplayRow)) yield return x;
-        foreach (var x in VrTap(Key.Enter)) yield return x;
+        OpenReplayList();      // (the list: BROWSE LAPS exists from two laps on; WATCH LAST LAP is checked in the watch-lap scenario)
         foreach (var x in VrUntil(() => _hud.ReplayListOpen && _hud.ReplayList.Rows.Length >= 1, 60 * 5, "the list shows the lap")) yield return x;
         VwLog("list-row", ("title", _hud.ReplayList.Rows[0].Title), ("detail", _hud.ReplayList.Rows[0].Detail), ("flag", _hud.ReplayList.Rows[0].Flag));
         VwCheck(_hud.ReplayList.Rows[0].Selectable, "the first row can be opened");

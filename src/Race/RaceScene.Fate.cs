@@ -423,12 +423,14 @@ public partial class RaceScene
     {
         if (!_gulag) return false;
         if (Engine.GetProcessFrames() <= _overlayFrame) return true;
+        if (e is InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.F3 }) { WatchLastLap(WatchFrom.Card); return true; }      // WATCH LAP before leaving
         bool press = e is InputEventKey { Pressed: true, Echo: false } or InputEventMouseButton { Pressed: true }
             or InputEventJoypadButton { Pressed: true };
         if (!press) return true;
         _gulag = false;
         _overlayExitFrame = Engine.GetProcessFrames();
         if (_lastPlayed == MenuItem.Race) ReturnRallyToTrackSelect();
+        else if (_lastPlayed == MenuItem.Training) ReturnLapsToFuelSelect();
         else { EnterTitle(); OpenMenu(MenuItem.Single, _lastPlayed); }
         return true;
     }

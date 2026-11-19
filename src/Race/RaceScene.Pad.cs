@@ -269,6 +269,8 @@ public partial class RaceScene
                 };
                 break;
             case PadCtx.Title:
+                if (_titleMenuHidden) { key = Key.Space; break; }      // any button brings the menu back
+                if (b == JoyButton.RightShoulder && TitleMenuToggleAllowed) { key = Key.Space; break; }      // RB hides it (Space on the keys)
                 if (TitleDirect)
                 {
                     // A, Start and the d-pad act at once (the same code as the keys), not through a key press the next frame has to notice.

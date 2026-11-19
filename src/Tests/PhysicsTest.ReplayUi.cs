@@ -169,9 +169,9 @@ public partial class PhysicsTest
             int rows0 = hud.PauseRowIds.Length;
             float yLast0 = TopOff(rows0) + (rows0 - 1) * 10 + 4;
             Check(hud.PauseRowAt(new Vector2(size.X / 2, yLast0)) == rows0 - 1 && hud.PauseRowAt(new Vector2(size.X / 2, yLast0 + 10)) == -1, $"{sz}: pause rows without REPLAY");
-            hud.PauseRowIds = new[] { PauseRowId.Replay, PauseRowId.Norms, PauseRowId.Instructions, PauseRowId.Settings, PauseRowId.Continue, PauseRowId.Restart, PauseRowId.Exit };
-            float yLast1 = TopOff(7) + 6 * 10 + 4;
-            Check(hud.PauseRowAt(new Vector2(size.X / 2, yLast1)) == 6 && hud.PauseRowAt(new Vector2(size.X / 2, yLast1 + 10)) == -1, $"{sz}: pause rows with REPLAY count it");
+            hud.PauseRowIds = new[] { PauseRowId.Continue, PauseRowId.WatchLastLap, PauseRowId.BrowseLaps, PauseRowId.Norms, PauseRowId.Instructions, PauseRowId.Settings, PauseRowId.Restart, PauseRowId.Exit };
+            float yLast1 = TopOff(8) + 7 * 10 + 4;
+            Check(hud.PauseRowAt(new Vector2(size.X / 2, yLast1)) == 7 && hud.PauseRowAt(new Vector2(size.X / 2, yLast1 + 10)) == -1, $"{sz}: pause rows with the two replay rows count them");
 
             // Draw every screen once.
             int draws0 = ReplayOverlay.DrawCount;

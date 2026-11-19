@@ -27,15 +27,18 @@ public partial class RaceScene
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
         VwCheck(_menuParent == MenuItem.Single && _menu == MenuItem.Race, "the SOCIALIST RALLY is selected");
-        foreach (var x in VrTap(Key.Enter)) yield return x;      // the track card
+        foreach (var x in VrTap(Key.Enter)) yield return x;      // the rally asks for the car first (CHOOSE FUEL), then the track
         for (int i = 0; i < 6; i++) yield return null;
-        VwCheck(_card == TitleCard.Track, "the track card");
+        VwCheck(_card == TitleCard.RallyFuel && _rallyFuelFirst, "CHOOSE FUEL comes first");
+        foreach (var x in VrTap(Key.Enter)) yield return x;      // the fuel
+        for (int i = 0; i < 6; i++) yield return null;
+        VwCheck(_card == TitleCard.Track, "then the track card");
         if (!resume) foreach (var x in VtbTrackCardBoards(false)) yield return x;      // L LEADERBOARDS on the card (RaceScene.ViewerWindowedTrackBoards.cs), back on KOLKHOZ
-        foreach (var x in VrTap(Key.Enter)) yield return x;
+        foreach (var x in VrTap(Key.Enter)) yield return x;      // the track
         for (int i = 0; i < 6; i++) yield return null;
-        VwCheck(_card == (resume ? TitleCard.RallyResume : TitleCard.RallyFuel), $"the next card is {(resume ? "SAVED RALLY" : "FUEL")} (and no time of day card at all) ({_card})");
-        VwCheck(!_hud.CardBoards, "L LEADERBOARDS belongs to CHOOSE TRACK only, not the next card");
-        foreach (var x in VrTap(Key.Enter)) yield return x;      // CONTINUE (resume) / the chosen fuel
+        VwCheck(resume ? _card == TitleCard.RallyResume : _card == TitleCard.None, $"after the track: {(resume ? "SAVED RALLY" : "the run starts")}, no second fuel card and no time of day ({_card})");
+        if (resume) VwCheck(!_hud.CardBoards, "L LEADERBOARDS belongs to CHOOSE TRACK only, not the next card");
+        if (resume) foreach (var x in VrTap(Key.Enter)) yield return x;      // CONTINUE
         bool modal = false, countdown = false, racing = false; int frames = 0;
         int readyFor = 0, controlOff = -1; bool clutchHeld = false;
         for (; frames < 60 * 90 && !racing; frames++)

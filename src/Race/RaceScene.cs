@@ -218,6 +218,7 @@ public partial class RaceScene : Node3D
     // phases, and start the next slice after the frame so rendering/waiting is not build work.
     async Task LoadingFrame([System.Runtime.CompilerServices.CallerLineNumber] int profLine = 0)
     {
+        StallWatch.Load(_trackId, _loadSteps, profLine);
         if (AudioMix.Closing) throw new OperationCanceledException("Application shutdown");
         if (_booting) LoadStep();      // RaceScene.LoadProgress.cs: one more checkpoint for the loading card's bar
         if (!_booting || _loadingWorkSlice.ElapsedMilliseconds < LoadingWorkSliceMs) { LoadProf.Checkpoint(profLine, false); return; }   // LOADPROF
@@ -232,6 +233,7 @@ public partial class RaceScene : Node3D
 
     public override async void _Ready()
     {
+        if (!ViewerMode && InstructionTrack == null) StallWatch.Start(OS.GetUserDataDir());      // (the watchdog thread, once: StallWatch.cs)
         if (!ViewerMode && LanPlaybackSource == null && InstructionTrack == null && CCCPRacing.Race.ExportChild.Active) CCCPRacing.Race.ExportChild.Begin(this);      // the MP4 exporter child (ExportChild.cs)
         try { await BuildWorld(); }
         catch (OperationCanceledException) when (AudioMix.Closing) { }
@@ -407,11 +409,13 @@ public partial class RaceScene : Node3D
         _titleReplayStart = TapeStart(TitleReplayStart());
         _replayClock = _titleReplayStart;
         if (TrackLoadingScreen.Active is not { HasMusic: true }) _radio.Play();     // (a loading card already carries the music on)
+        TitleStationApply();     // RaceScene.TitleStation.cs: the menu's song as chosen in SETTINGS > SOUNDS (the theme by default)
         _carRadio.Suspend(true);
         _timer.Stop();
         _ghostVis.Visible = false;
         _run = RunMode.Title;     // the title replay runs in the full rally world
         ResetMenu();             // the top row, on the parent of the mode played last
+        _titleMenuHidden = false;
         TitleSoundApply();       // RaceScene.TitleRec.cs: music only, or the recorded background lap's sounds at half volume
         if (_menuSingleTest) OpenMenu(MenuItem.Single);
         _watching = _showBoard = _boardScoped = _showLog = _showFiles = _showLessons = _showKeys = _replaySelected = false;
@@ -646,7 +650,7 @@ public partial class RaceScene : Node3D
 
     void EnterCountdown()
     {
-        _sessionLapArchives.Clear(); _sessionLapOrder.Clear(); _sessionLapSequence = 0;
+        _sessionLapArchives.Clear(); _sessionLapOrder.Clear(); _sessionLapSequence = 0; _lastLapId = null; _watchTask = null;
         _replayListTask = null; _replayInfos.Clear(); _replayKnownLaps = -1;
         _sessionBest = -1f;      // a run's start or a restart opens a new session; a norm advancing, a pause or a viewer visit never reaches here
         if (!InLanRace) { _sessionGhost = null; _timer.ClearLast(); }      // ...and so do its ghost (born with the first valid lap) and LAST: nothing of the previous run (e.g. before the gulag) carries over
@@ -1604,6 +1608,7 @@ public partial class RaceScene : Node3D
 
     public override void _Process(double delta)
     {
+        StallWatch.Beat();      // (the watchdog: a main thread that goes quiet is reported with what it was doing)
         if(LanPlaybackSource!=null) {if(!_lanPlaybackExternallyDriven) {if(!LanPlaybackCheckAccess()) return;if(!_booting) {LanExportTick();LanExportUiProbe();LanPlaybackFrame((float)delta);}}return;}
         if(!ViewerMode && InstructionTrack==null) LanReplayPoll();
         if (_booting) return;
@@ -1735,6 +1740,7 @@ public partial class RaceScene : Node3D
         ResignTick(dt);
         DayNightFrame(dt);
         CardFrame(dt);
+        WatchTick(dt);      // RaceScene.WatchLap.cs
         SpeedTrapFrame();
         UpdateSound(dt);
         AudioMix.Tick(dt);
@@ -1748,11 +1754,18 @@ public partial class RaceScene : Node3D
         if (_watching || _showBoard || _showLog || _showFiles || _showLessons || _showKeys || CardShown || _gulag || _planScreen || _askName || _resignOut >= 0 || _recordingsOpen || _keepNameOpen || _lanKeep.OwnsInput || _hud.StakhanovBoardOpen) return;      // modal screens own the keys, including the paused Stakhanov board
         if (Engine.GetProcessFrames() <= _overlayExitFrame + 1) return;
         if(LanSession.Current?.LeavePrompt is {ConsumedFrame:>0} leave && Engine.GetProcessFrames()<=leave.ConsumedFrame+1) return;
+        if (TitleHideInput()) return;      // RaceScene.TitleMusic.cs: Space hides or shows the main menu, over its rows and cards
         if (LanInput() || TitleCardInput() || SchoolInput()) return;
         bool alt = Input.IsKeyPressed(Key.Alt);
         switch (_state)
         {
             case State.Title:
+                if (TitleSettingsOpen)
+                {
+                    SyncPauseHud();      // (the screens read the scene: the same SETTINGS as the Party Meeting's)
+                    _ = VisualInput(alt) || MixerInput(alt) || SettingsInput(alt);
+                    break;
+                }
                 if (_replayNextAt > 0 && _clock >= _replayNextAt)
                 {
                     _replayNextAt = -1;
@@ -1786,6 +1799,7 @@ public partial class RaceScene : Node3D
                 break;
         }
         GameplayCameraInput();
+        if (Input.IsActionJustPressed("watch_lap")) WatchKey();      // RaceScene.WatchLap.cs
         if (Input.IsActionJustPressed("debug")) _hud.ShowDebug = !_hud.ShowDebug;
         if (_state is State.Countdown or State.Racing or State.Paused && Input.IsActionJustPressed("minimap") && !InSchool) ToggleMinimap();
         if (_state is State.Countdown or State.Racing or State.Paused && Input.IsActionJustPressed("comments"))
@@ -1927,15 +1941,25 @@ public partial class RaceScene : Node3D
         LanHud();
     }
 
+    bool _titleMixerSounds;
+
     void UpdateSound(float dt)
     {
         bool paused = _state is State.Paused || SchoolFrozen || StartClutchWaiting;
         _hindsAll?.SetAudioPaused(paused || !InWorld(Actors.Jets));
         _btrAll?.SetAudioPaused(paused || !InWorld(Actors.Btr));
-        if (_state == State.Paused && MixerPreview(dt))
+        bool titleMixer = _state == State.Title && _hud.MixerOpen;      // SOUNDS from the main menu: the same demonstrations as in the Party Meeting, over the menu's video
+        if ((_state == State.Paused || titleMixer) && MixerPreview(dt))
         {
+            if (titleMixer) { AudioMix.MuteSfx(false); _titleMixerSounds = true; }      // (the menu keeps the world's sound off: the demonstration needs it on)
             _snd.Volume = 0.8f;
             return;
+        }
+        if (_titleMixerSounds && _state == State.Title && !_hud.MixerOpen)
+        {
+            _titleMixerSounds = false;
+            _carRadio.SetPreview(false); DropMixerTractor();
+            TitleSoundApply();      // the menu's own sound again
         }
         // The dashboard's lights sound when one comes on (live drive only: a replay and a viewer have the lights but not the chime).
         if (_chime != null)

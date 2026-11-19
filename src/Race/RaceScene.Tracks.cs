@@ -100,6 +100,16 @@ public partial class RaceScene
         // (a track-opening ceremony of the laps reward comes with the track card)
     }
 
+    /// <summary>After STAKHANOV LAPS are left (EXIT RACE, a failure screen): back to the laps' CHOOSE FUEL, the fuel last used selected, and forward the track card stands on the track just driven (not the main menu).</summary>
+    void ReturnLapsToFuelSelect()
+    {
+        int index = Math.Max(0, Array.FindIndex(Tracks, t => t.id == _trackId));
+        EnterTitle();
+        OpenMenu(MenuItem.Single, MenuItem.Training);
+        OpenLapsStart();      // CHOOSE FUEL (the last used selected), then the track card, then the time of day
+        _lapsTrackHighlight = index;
+    }
+
     /// <summary>The rally medal on the required track that opens a track for this mode: bronze for Stakhanov laps, silver for the rally.</summary>
     static NormPlan.Medal MedalToOpen(MenuItem mode) => mode == MenuItem.Race ? NormPlan.Medal.Silver : NormPlan.Medal.Bronze;
 

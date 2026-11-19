@@ -32,6 +32,7 @@ public partial class RaceScene
     void SyncSettingsHud()
     {
         _hud.LabModeOn = _labMode;
+        _hud.SettingsTitleMode = _state == State.Title;
         _hud.SettingsRowIds = SettingsRowsNow.ToArray();
         if (_hud.SettingsOpen) _hud.SettingsSelection = Math.Clamp(_hud.SettingsSelection, 0, _hud.SettingsRowIds.Length - 1);
     }
@@ -72,7 +73,7 @@ public partial class RaceScene
         {
             case SettingsRowId.Sounds: OpenMixer(); break;
             case SettingsRowId.Visuals: OpenVisual(); break;
-            case SettingsRowId.Lab: ApplyOnOff(_labMode, toggleValue, () => LabSetMode(!_labMode)); SyncSettingsHud(); break;
+            case SettingsRowId.Lab: if (_state != State.Title) { ApplyOnOff(_labMode, toggleValue, () => LabSetMode(!_labMode)); SyncSettingsHud(); } break;      // (the main menu: shown OFF, passive)
             case SettingsRowId.LabTune: LabOpen(false); break;
             case SettingsRowId.Rumble: ApplyOnOff(_rumble.Enabled, toggleValue, ToggleRumble); break;
             case SettingsRowId.Keys: ShowKeys(); break;      // (the help card; any key closes it and SETTINGS is there at its KEYS row, the race still paused)

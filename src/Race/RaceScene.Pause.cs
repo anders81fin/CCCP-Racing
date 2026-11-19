@@ -49,6 +49,7 @@ public partial class RaceScene
         _hud.PauseHasNorms = _norms.Enabled;
         _hud.PauseRowIds = PauseRowsNow.ToArray();
         _hud.RadioOn = _carRadio.On;
+        SyncTitleMixerHud();      // RaceScene.TitleStation.cs: the main menu's SOUNDS has its own radio rows
         _hud.RadioVolume = _carRadio.Volume;
         _hud.RadioStation = _carRadio.StationNumber;
         _hud.RadioStationCount = _carRadio.StationCount;
@@ -60,23 +61,25 @@ public partial class RaceScene
     }
 
     /// <summary>
-    /// The Party Meeting's rows, top to bottom: the single list the draw (Hud.PauseLines), the mouse hit test and the actions (PauseChoose) all read. REPLAY first where it applies (a single-player drive
-    /// that can be resumed), then NORMS AND MEDALS, DRIVING SCHOOL, SETTINGS (sounds, visuals, rumble, keys), then CONTINUE, RESTART RACE and EXIT RACE. A row is found by its id, never by a position.
+    /// The Party Meeting's rows, top to bottom (the owner's order, 2026-11-19): the single list the draw (Hud.PauseLines), the mouse hit test and the actions (PauseChoose) all read. CONTINUE first and the
+    /// default; then this run's laps to watch (laps captured in this run: none, no row; one, WATCH LAST LAP; two or more, WATCH LAST LAP and BROWSE LAPS), the situation (LEADERBOARDS in the Stakhanov laps,
+    /// NORMS AND MEDALS in the rally), DRIVING SCHOOL and SETTINGS (sounds, visuals, rumble, keys); RESTART RACE and EXIT RACE last. A row is found by its id, never by a position.
     /// </summary>
-    internal static System.Collections.Generic.List<PauseRowId> PauseRowList(bool norms, bool replay, bool leaderboards = false)
+    internal static System.Collections.Generic.List<PauseRowId> PauseRowList(bool norms, int laps, bool leaderboards = false)
     {
-        var l = new System.Collections.Generic.List<PauseRowId>();
-        if (replay) l.Add(PauseRowId.Replay);
+        var l = new System.Collections.Generic.List<PauseRowId> { PauseRowId.Continue };
+        if (laps >= 1) l.Add(PauseRowId.WatchLastLap);
+        if (laps >= 2) l.Add(PauseRowId.BrowseLaps);
         if (leaderboards) l.Add(PauseRowId.Leaderboards);
         if (norms) l.Add(PauseRowId.Norms);
         l.Add(PauseRowId.Instructions); l.Add(PauseRowId.Settings);
-        l.Add(PauseRowId.Continue); l.Add(PauseRowId.Restart); l.Add(PauseRowId.Exit);
+        l.Add(PauseRowId.Restart); l.Add(PauseRowId.Exit);
         return l;
     }
-    System.Collections.Generic.List<PauseRowId> PauseRowsNow => PauseRowList(_norms.Enabled, ReplayRowShown, StakhanovBoardAvailable);
+    System.Collections.Generic.List<PauseRowId> PauseRowsNow => PauseRowList(_norms.Enabled, ReplayRowShown ? _sessionLapOrder.Count : 0, StakhanovBoardAvailable);
     int PauseRowIndex(PauseRowId id) => PauseRowsNow.IndexOf(id);
-    /// <summary>Where the cursor starts when the meeting opens: NORMS AND MEDALS when there are norms, else CONTINUE (what row 0 was before REPLAY took the top).</summary>
-    int PauseStartRow => PauseRowIndex(_norms.Enabled ? PauseRowId.Norms : PauseRowId.Continue);
+    /// <summary>Where the cursor starts when the meeting opens: CONTINUE, the top row.</summary>
+    int PauseStartRow => PauseRowIndex(PauseRowId.Continue);
 
     // Edge smoothing of the 3D view: off, or MSAA at 2x/4x/8x; chosen in the pause menu, remembered in settings.cfg.
     static readonly string[] AaNames = { "OFF", "MSAA 2X", "MSAA 4X", "MSAA 8X" };
@@ -224,7 +227,8 @@ void fragment() {
     {
         switch (id)
         {
-            case PauseRowId.Replay: OpenReplayList(); break;
+            case PauseRowId.WatchLastLap: WatchLastLap(WatchFrom.PartyMeeting); break;
+            case PauseRowId.BrowseLaps: OpenReplayList(); break;
             case PauseRowId.Leaderboards: OpenStakhanovBoard(); break;
             case PauseRowId.Norms: OpenPauseNorms(); break;
             case PauseRowId.Continue:
@@ -235,6 +239,7 @@ void fragment() {
             case PauseRowId.Exit:
                 if (InSchool) _sc.End(false);
                 else if (_lastPlayed == MenuItem.Race) AskLeaveRally();
+                else if (_lastPlayed == MenuItem.Training && !InLanRace) ReturnLapsToFuelSelect();      // the Stakhanov laps: back to CHOOSE FUEL, not the main menu
                 else EnterTitle();
                 break;
             case PauseRowId.Instructions: EnterLessons(); break;

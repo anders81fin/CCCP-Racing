@@ -129,6 +129,9 @@ public class TapePairSaves
     public delegate void ApplyFn(TapePairJob job, TapePairResult res, WorldTape tape);
     readonly ApplyFn _apply; readonly Action<string> _log, _warn;
     public int DiagAfterMs = 5000;
+    /// <summary>The longest the main thread waits for a worker (ms): a worker that never ends (a stuck disk, a hang) must not freeze the game for good (a Steam Deck froze while a new track loaded, 2026-11-19). The worker is left running; its result is applied later by Poll if it ends.</summary>
+    public int MaxWaitMs = 20000;
+    public int GaveUp;      // how many waits ended by this limit
     public int Diagnostics;      // how many diagnostic lines were logged
     public TapePairJob Pending { get; protected set; }
 
@@ -137,7 +140,7 @@ public class TapePairSaves
     /// <summary>Hands over a new job: an earlier one is finished and applied first (two saves never run at once), then the new one starts.</summary>
     public virtual void Submit(TapePairJob job)
     {
-        Join("the next record");
+        if (!Join("the next record")) { _warn($"world tape: the earlier pair save did not end within {MaxWaitMs / 1000} s: this lap's recording is not saved (two saves never run at once)"); return; }
         Pending = job; job.Start();
     }
 
@@ -150,30 +153,40 @@ public class TapePairSaves
     }
 
     /// <summary>Waits for the pending job (if any) and applies it.</summary>
-    public virtual void Join(string where)
+    /// <summary>Returns false when the worker did not end within <see cref="MaxWaitMs"/>: the job stays pending (a later Poll applies it if it ends).</summary>
+    public virtual bool Join(string where)
     {
         var j = Pending;
-        if (j != null) Complete(j, true, where);
+        return j == null || Complete(j, true, where);
     }
 
-    void Complete(TapePairJob job, bool wait, string where)
+    bool Complete(TapePairJob job, bool wait, string where)
     {
         long waited = 0; bool blocked = false;
         if (wait && !job.Task.IsCompleted)
         {
             var sw = Stopwatch.StartNew(); blocked = true;
             job.Gate?.MainWaiting(where);
+            StallWatch.Waiting($"the pair save of set {job.Set} at {where}", () => $"worker phase '{job.Phase}', task {job.Task.Status}");
             int rounds = 0;
             try
             {
-                while (!job.Task.Wait(DiagAfterMs))
+                while (!job.Task.Wait(Math.Max(1, Math.Min(DiagAfterMs, MaxWaitMs - (int)sw.ElapsedMilliseconds))))
                 {
                     rounds++; Diagnostics++;
                     _log(Diagnose(job, where, sw.ElapsedMilliseconds, rounds));
+                    if (sw.ElapsedMilliseconds >= MaxWaitMs)
+                    {
+                        GaveUp++;
+                        _warn($"world tape: the main thread stopped waiting for the pair save of set {job.Set} at {where} after {sw.ElapsedMilliseconds / 1000.0:F1} s (the worker is left running, phase '{job.Phase}'); the game goes on");
+                        StallWatch.Waiting(null);
+                        return false;
+                    }
                 }
             }
             catch (AggregateException) { }      // (a faulted task is reported below; the worker catches its own exceptions, so this is the last resort)
             waited = sw.ElapsedMilliseconds;
+            StallWatch.Waiting(null);
         }
         Pending = null;      // (cleared before anything can throw: a failing apply never leaves the slot stuck)
         (TapePairResult Res, WorldTape Tape) r;
@@ -183,6 +196,7 @@ public class TapePairSaves
         if (job.Gate != null) _log($"World tape: gate trace [{string.Join("; ", job.Gate.Trace)}]");
         _apply(job, r.Res, r.Tape);
         if (blocked) _log($"World tape: the main thread waited {waited} ms for that pair save at {where}");
+        return true;
     }
 
     /// <summary>The diagnostic of a long wait: where, how long, the task, the gate and the main thread's own stack.</summary>

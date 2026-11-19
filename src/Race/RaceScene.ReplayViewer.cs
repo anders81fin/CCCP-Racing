@@ -87,6 +87,10 @@ public partial class RaceScene
         internal void DeferProcessMode(ProcessModeEnum mode) => _priorMode = mode;
 
         public ReplayViewerState State => _state;
+        /// <summary>The archive id and the time of the lap this viewer plays (tests: WATCH LAP opens exactly the lap asked for).</summary>
+        public string LapId => _lap?.Meta.Id;
+        public float LapSeconds => _lap?.Meta.LapSeconds ?? 0f;
+        public LapKind LapKindOf => _lap?.Meta.Kind ?? LapKind.Normal;
         public RaceScene Scene => _scene;
         public RaceScene Live => _live;
         /// <summary>Why the viewer failed to build, or null.</summary>
@@ -199,6 +203,7 @@ public partial class RaceScene
 
         public override void _Process(double delta)
         {
+            StallWatch.Beat();      // (the live scene is suspended while the viewer is open: this is the main thread's pulse then)
             // RENDERING switched or the window resized while the viewer is open (its scene's own refit stops when it is paused)
             if (IsInstanceValid(_viewport) && IsInstanceValid(_live)) PixelFrame.Mirror(_viewport, _live.GetViewport());
             if (_state is ReplayViewerState.Building or ReplayViewerState.Playing) UiFrame((float)delta);

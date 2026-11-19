@@ -7,7 +7,15 @@ namespace CCCPRacing.Race;
 /// lap strictly under the current norm moves the driver up one step, however fast it was (the
 /// norms are beaten one at a time), and the next norm gets five laps plus the ones the driver had
 /// left over (at most MaxLaps in all); beating the last step, the
-/// Stakhanovite norm, fulfils the plan. Every lap that does not beat the norm uses one lap of the
+/// Stakhanovite norm, fulfils the plan. The MEDAL JUMPS (2026-11-19, the owner's order): a ranked lap
+/// strictly under the bronze norm's own time (the time of norm BronzeAt, with the climate's allowance)
+/// takes a run that has not yet earned its bronze straight to BronzeAt norms beaten, however much
+/// faster it was (one lap gives at most the bronze); once the bronze is earned in THIS run, a lap
+/// strictly under the silver norm's time takes it straight to SilverAt; any other lap under the
+/// current norm climbs one step as before, so norms after the silver come one a lap. A jump uses the
+/// one real lap and gives the window of one success (five and the laps saved), and records the lap's
+/// time only on the norm it lands on: the norms it skipped have no time (no lap was driven for them).
+/// A career medal from an earlier run never moves the run's steps: only Step does. Every lap that does not beat the norm uses one lap of the
 /// window, void laps included; a window used up means the gulag. Wrecks, seized engines, restart
 /// requests and empty-tank tows take laps from the window too (Penalize). Every norm has the
 /// climate's allowance on top (Climate; none by default). Training laps and the title demo have
@@ -121,7 +129,8 @@ public class NormPlan
     public int Left { get; private set; } = WindowLaps;
     /// <summary>Laps completed in the run (void ones included).</summary>
     public int Used { get; private set; }
-    /// <summary>Steps the last NewNorm jumped (1: the next step, more: norm exceeded).</summary>
+    /// <summary>Steps the last NewNorm moved (1: the next norm; more: a medal jump over the norms between).</summary>
+    public int Jumped { get; private set; } = 1;
     /// <summary>The plan was fulfilled or a window ran out: later laps change nothing.</summary>
     public bool Finished { get; private set; }
     public bool Fulfilled { get; private set; }
@@ -176,6 +185,22 @@ public class NormPlan
     }
 
     /// <summary>
+    /// The step a ranked lap that beat the current norm stands at: BronzeAt when the run has not earned its bronze and the lap is strictly under the bronze norm's time and every norm up to it;
+    /// SilverAt when the bronze is earned (Step >= BronzeAt) and the lap is strictly under the silver norm's time and every norm up to it; otherwise the next step. Never more than one medal.
+    /// </summary>
+    int JumpTarget(float time, float allow)
+    {
+        int medalStep = Step < BronzeAt ? BronzeAt : Step < SilverAt ? SilverAt : -1;
+        if (medalStep > Step + 1 && medalStep < Ladder.Length)
+        {
+            bool beatsAll = true;
+            for (int i = Step; i < medalStep && beatsAll; i++) beatsAll = time < Ladder[i] + allow;      // (strictly under, as every norm: a lap exactly on a limit does not jump)
+            if (beatsAll) return medalStep;
+        }
+        return Step + 1;
+    }
+
+    /// <summary>
     /// A lap reached the line. ranked: neither void nor unranked. A lap under the norm climbs one
     /// step (Success past the last), any other uses up a lap.
     /// </summary>
@@ -186,15 +211,18 @@ public class NormPlan
         float allow = Allowance;
         if (ranked && time > 0 && time < Ladder[Step] + allow)
         {
-            PassedTimes[Step] = time;
-            PassedTargets[Step] = Ladder[Step] + allow;
-            if (Step + 1 >= Ladder.Length)
+            int to = JumpTarget(time, allow);      // the norms beaten by this lap: the step to stand at (Step + 1 unless a medal jump)
+            PassedTimes[to - 1] = time;            // (only the norm the lap landed on: no lap was driven for the norms it skipped)
+            PassedTargets[to - 1] = Ladder[to - 1] + allow;
+            if (to >= Ladder.Length)
             {
+                Jumped = 1;
                 Finished = Fulfilled = true;
                 return Outcome.Success;
             }
-            Step++;
-            Left = Math.Min(MaxLaps, WindowLaps + Left - 1);     // the laps saved come along, up to MaxLaps
+            Jumped = to - Step;
+            Step = to;
+            Left = Math.Min(MaxLaps, WindowLaps + Left - 1);     // the laps saved come along, up to MaxLaps (one success's window, however many norms the lap jumped)
             return Outcome.NewNorm;
         }
         if (--Left > 0) return Outcome.Continue;

@@ -29,7 +29,7 @@ public partial class RaceScene
         for (int i = 0; i < 600 && !(_state == State.Title && _card == TitleCard.None && !_showLog && !_askName); i++) yield return null;
         for (int i = 0; i < 60; i++) yield return null;
         VwCheck(_state == State.Title && _menuParent == null, $"the title's top row is up ({_state}, parent {_menuParent})");
-        VwCheck(_hud.MenuLabels.SequenceEqual(new[] { "SINGLE PLAYER", "MULTIPLAYER", "PARTY OFFICE" }), $"top row unchanged: {string.Join(" | ", _hud.MenuLabels)}");
+        VwCheck(_hud.MenuLabels.SequenceEqual(new[] { "SINGLE PLAYER", "MULTIPLAYER", "SETTINGS", "PARTY OFFICE" }), $"top row (SETTINGS added 2026-11-19): {string.Join(" | ", _hud.MenuLabels)}");
         int fileBefore = _file;
         // to PARTY OFFICE
         for (int i = 0; i < 6 && _menu != MenuItem.Office; i++) foreach (var x in VrTap(Key.Right)) yield return x;
@@ -163,10 +163,10 @@ public partial class RaceScene
         for (int i = 0; i < 6 && _menu != MenuItem.Multi; i++) foreach (var x in VrTap(Key.Left)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
-        VwCheck(_menuParent == MenuItem.Multi && _hud.MenuLabels.SequenceEqual(new[] { "LAN / INTERNET" }), "MULTIPLAYER displays LAN / INTERNET");
+        VwCheck(_menuParent == null && _lanPage != LanPage.None, $"MULTIPLAYER goes straight to the LAN race's start (page {_lanPage}, parent {_menuParent})");
         foreach (var x in VrShot("title-multiplayer")) yield return x;
         foreach (var x in VrTap(Key.Escape)) yield return x;
-        VwCheck(_menuParent == null && _menu == MenuItem.Multi && VwCalm(), "ESC from LAN / INTERNET returns to MULTIPLAYER on the top row");
+        VwCheck(_menuParent == null && _menu == MenuItem.Multi && VwCalm(), "ESC from the LAN start returns to MULTIPLAYER on the top row");
         VwCheck(true, $"(the title survived: state {_state}, resign asked {_resignOut})");
     }
 }

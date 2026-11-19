@@ -42,6 +42,19 @@ public partial class PhysicsTest
             var p = NormCardModel.Build(ladder, 3.5f, pt, pl, 1, false, bz, sv);
             Check(p.LastPassed != null && p.LastPassed.Passed && MathF.Abs(p.LastPassed.Time - pt[0]) < 1e-4f && p.LastPassed.Status.StartsWith("PASSED ") && p.LastPassed.Status.Contains(LapTimer.Format(pl[0])), $"{tag}: a passed step keeps its own target and shows its lap time");
         }
+        // After a medal jump (the bronze at once, 2026-11-19): the card's passed row is the norm the lap landed on, with the lap's time; the skipped norms have no time and no row of their own.
+        {
+            NormPlan.UseTrack(null);
+            var plan = new NormPlan(); plan.Reset(true);
+            plan.OnLap(50f, true);
+            var v = NormCardModel.Build(NormPlan.Ladder, 0f, plan.PassedTargets, plan.PassedTimes, plan.Step, plan.Fulfilled, NormPlan.BronzeAt, NormPlan.SilverAt);
+            Check(v.Current != null && v.Current.Step == NormPlan.BronzeAt + 1 && v.LastPassed != null && v.LastPassed.Step == NormPlan.BronzeAt && v.LastPassed.Medal == "BRONZE" && v.LastPassed.Status == "PASSED " + LapTimer.Format(50f),
+                "after the bronze jump: current norm 5, the passed row is norm 4 (BRONZE) with the lap's time, no invented times for norms 1-3");
+            plan.OnLap(50f, true);
+            var v2 = NormCardModel.Build(NormPlan.Ladder, 0f, plan.PassedTargets, plan.PassedTimes, plan.Step, plan.Fulfilled, NormPlan.BronzeAt, NormPlan.SilverAt);
+            Check(v2.LastPassed != null && v2.LastPassed.Step == NormPlan.SilverAt && v2.LastPassed.Medal == "SILVER" && v2.LastPassed.Status == "PASSED " + LapTimer.Format(50f) && v2.Current.Step == NormPlan.SilverAt + 1,
+                "after the silver jump: the passed row is norm 7 (SILVER) with that lap's time");
+        }
         GD.Print("Norm card rows (from the production data): " + sb);
         // the lap panel with norms (NORM row first): the long case (norm 10/10, rocket fuel, climate, wrecks) fits inside its panel
         {

@@ -43,16 +43,18 @@ public partial class RaceScene
     void SyncMixerHud()
     {
         Array.Copy(SoundBalance.Levels, _hud.MixerLevels, SoundBalance.Count);
-        _hud.MixerLevels[SoundBalance.Count] = _carRadio.Volume;
+        _hud.MixerLevels[SoundBalance.Count] = TitleMixer ? TitleVolume : _carRadio.Volume;      // (the main menu: RADIO VOLUME is the menu's music level)
     }
 
     /// <summary>SOUND SETTINGS: first the radio (on/off), then its station (only while the radio is on), then the balance rows as before.</summary>
-    int MixerLead => _carRadio.On ? 2 : 1;
+    int MixerLead => TitleMixer || _carRadio.On ? 2 : 1;      // (the main menu: the passive RADIO row and the STATION row of the menu's music)
 
     void ChooseMixer(int row, int step = 1, bool? toggleValue = null)
     {
         _hud.MixerSelection = row;
-        if (row == 0) ApplyOnOff(_carRadio.On, toggleValue, () => { _carRadio.Toggle(); RememberRadio(); });
+        if (TitleMixer && row == 0) { }      // RADIO is the car's: shown ON, passive in the main menu
+        else if (TitleMixer && row == 1) StepTitleStation(step < 0 ? -1 : 1);      // the menu's background music (RaceScene.TitleStation.cs)
+        else if (row == 0) ApplyOnOff(_carRadio.On, toggleValue, () => { _carRadio.Toggle(); RememberRadio(); });
         else if (_carRadio.On && row == 1) _carRadio.StepStation(step < 0 ? -1 : 1);
         else
         {
@@ -64,13 +66,16 @@ public partial class RaceScene
                 else SoundBalance.Step(row, step);
                 SoundBalance.Save(_records.Dir + "settings.cfg");
             }
+            else if (row == SoundBalance.Count && TitleMixer)      // the main menu: the menu's own music level
+                SetTitleVolume(TitleVolume + (step > 0 && TitleVolume >= CarRadio.MaxVolume ? -CarRadio.MaxVolume : step));
             else if (row == SoundBalance.Count)      // the car radio's own volume (saved by the radio)
                 _carRadio.StepVolume(step > 0 && _carRadio.Volume >= CarRadio.MaxVolume ? -CarRadio.MaxVolume : step);
             else if (row == SoundBalance.Count + 1)
             {
                 SoundBalance.Reset();
                 SoundBalance.Save(_records.Dir + "settings.cfg");
-                _carRadio.StepVolume(CarRadio.DefaultVolume - _carRadio.Volume);
+                if (TitleMixer) SetTitleVolume(TitleVolumeDefault);      // (the main menu: the menu's level; the car's radio is reset in a run)
+                else _carRadio.StepVolume(CarRadio.DefaultVolume - _carRadio.Volume);
             }
             else CloseMixer();
         }
@@ -113,7 +118,7 @@ public partial class RaceScene
     {
         // On the RADIO row the music plays even with the radio off, so the level can be found by ear.
         int sel = _hud.MixerSelection - MixerLead;      // the balance rows after the radio's on/off and station rows
-        _carRadio.SetPreview(_hud.MixerOpen && sel == SoundBalance.Count);
+        _carRadio.SetPreview(_hud.MixerOpen && sel == SoundBalance.Count && !TitleMixer);      // (the main menu: the menu's own music is playing already)
         if (!_hud.MixerOpen || sel < 0) { DropMixerTractor(); return false; }
         _mixClock += dt;
         float t = _mixClock, cycle = t % 3f;

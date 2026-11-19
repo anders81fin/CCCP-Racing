@@ -17,6 +17,7 @@ namespace CCCPRacing.Audio;
 public partial class CarRadio : Node
 {
     public const string Folder = "res://assets/music/radio";
+    public const string ThemePath = "res://assets/music/he_katsoivat_lanteen.mp3", ThemeName = "He katsoivat länteen";
 
     readonly List<(string name, string path)> _stations = new();
     RadioMusic _radio;
@@ -88,6 +89,8 @@ public partial class CarRadio : Node
             return ix != iy ? ix.CompareTo(iy) : StringComparer.OrdinalIgnoreCase.Compare(x, y);
         });
         foreach (string f in files) _stations.Add((f[..^4], Folder + "/" + f));
+        // The menu's theme song is the radio's last station too (the owner's order, 2026-11-19): on the tracks as in the main menu.
+        if (ResourceLoader.Exists(ThemePath)) _stations.Add((ThemeName, ThemePath));
     }
 
     public void Toggle()

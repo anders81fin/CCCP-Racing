@@ -42,7 +42,7 @@ public partial class Hud
         {
             case SettingsRowId.Sounds: label = "SOUNDS"; value = ">"; break;
             case SettingsRowId.Visuals: label = "VISUALS"; value = ">"; break;
-            case SettingsRowId.Lab: label = "LAB MODE"; value = LabModeOn ? "ON" : "OFF"; break;
+            case SettingsRowId.Lab: label = "LAB MODE"; value = LabModeOn && !SettingsTitleMode ? "ON" : "OFF"; break;
             case SettingsRowId.LabTune: label = "LAB TUNING"; value = ">"; break;
             case SettingsRowId.Rumble: label = "RUMBLE"; value = Rumble ? "ON" : "OFF"; break;
             case SettingsRowId.Keys: label = "KEYS"; break;
@@ -50,8 +50,12 @@ public partial class Hud
         }
     }
 
+    /// <summary>SETTINGS opened from the main menu (before a drive): LAB MODE is shown OFF and passive there (switched in the Party Meeting of a run).</summary>
+    public bool SettingsTitleMode;
+
     internal bool? SettingsToggleValue(SettingsRowId id) => id switch
     {
+        SettingsRowId.Lab when SettingsTitleMode => null,
         SettingsRowId.Lab => LabModeOn,
         SettingsRowId.Rumble => Rumble,
         _ => null,
@@ -88,6 +92,8 @@ public partial class Hud
             SettingsRowTexts(SettingsRowIds[i], out string label, out string value);
             string key = SettingsRowKey(SettingsRowIds[i]);
             if (key != null) PixelFont.Draw(this, key, new Vector2(x, y), selected ? Gold : Grey);
+            bool passive = SettingsTitleMode && SettingsRowIds[i] == SettingsRowId.Lab;      // (greyed: not changeable here)
+            if (passive) c = Grey;
             PixelFont.Draw(this, label, new Vector2(SettingsLabelX(r), y), c);
             if (SettingsToggleValue(SettingsRowIds[i]) is bool on) DrawOnOffSwitch(OnOffRowRect(r, y).Position, on, selected);
             else if (value != null) PixelFont.Draw(this, value, new Vector2(r.End.X - 12 - PixelFont.Measure(value), y), c);

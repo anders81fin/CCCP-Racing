@@ -230,6 +230,26 @@ public partial class PhysicsTest
                 TapeCheck(applied.Count == 1 && applied[0].Res.Whole, "tape 23g: and the wait still ended with the worker's result: nothing was abandoned");
                 File.Delete(gp); File.Delete(tp);
             }
+
+            // ---- (h) a worker that never ends: the wait has an upper bound (the main thread goes on), the job stays pending and a later Poll applies it
+            {
+                var rec = new WorldTapeRecorder(); var saves = Saves(); applied.Clear(); log.Clear(); warns.Clear(); saves.DiagAfterMs = 50; saves.MaxWaitMs = 300;
+                TapeAsyncLap(rec, w, 3f, 0f);
+                var gate = new TapeWorkerGate("compressed") { ReleaseOnMainWait = false };
+                var job = Track(TapeAsyncJob(rec, 3f, gA, dir, real, gate)); saves.Submit(job);
+                TapeAsyncWaitReached(gate);
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                bool finished = saves.Join("the scene's exit");
+                long took = sw.ElapsedMilliseconds;
+                TapeCheck(!finished && saves.GaveUp == 1 && took >= 250 && took < 3000 && saves.Pending == job && applied.Count == 0, $"tape 23h: a held worker: the wait ended by its upper bound after {took} ms, the job is still pending, nothing applied");
+                TapeCheck(warns.Any(x => x.Contains("stopped waiting") && x.Contains("the scene's exit")), "tape 23h: the give-up is warned about, with the wait site");
+                var rec2 = new WorldTapeRecorder(); TapeAsyncLap(rec2, w, 3f, 0f);
+                saves.Submit(Track(TapeAsyncJob(rec2, 3f, gA, dir, real, null)));
+                TapeCheck(saves.Pending == job && warns.Any(x => x.Contains("is not saved")), "tape 23h: a new save while the old one is stuck is refused (two saves never run at once)");
+                gate.Release(); job.Task.Wait(20000); saves.Poll();
+                TapeCheck(applied.Count == 1 && applied[0].Res.Whole && saves.Pending == null, "tape 23h: when the worker does end, a later Poll applies its result");
+                File.Delete(gp); File.Delete(tp);
+            }
         }
         finally
         {

@@ -19,7 +19,7 @@ public partial class RaceScene
     /// <summary>The row exists in a single-player rally or Stakhanov Party Meeting only (the archive's own eligibility; not the school, LAN, a demonstration, a viewer).</summary>
     bool ReplayRowShown => !ViewerMode && InstructionTrack == null && _run is RunMode.Rally or RunMode.Training && !InSchool && !InLanRace && !_tourCapture && !_cinematicTour && !_previewMovie;
 
-    int PauseReplayRow => PauseRowIndex(PauseRowId.Replay);
+    int PauseReplayRow => PauseRowIndex(PauseRowId.WatchLastLap);
 
     List<LapEntryInfo> _replayInfos = new();
     Task<List<LapEntryInfo>> _replayListTask;
@@ -43,6 +43,7 @@ public partial class RaceScene
         if (_replayListTask == null && (_replayKnownLaps < 0 || _replayListAge > 1.5f)) StartReplayListing();      // (a lap finished since, a tape now ready: a cheap look at what the archive holds)
         PollReplayListing();
         _hud.PauseReplayAvailable = _replayKnownLaps > 0;
+        _hud.PauseWatchState = WatchStateNow();      // (WATCH LAST LAP: the last lap's own state, never an older lap's)
     }
 
     void StartReplayListing()

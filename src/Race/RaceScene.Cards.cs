@@ -123,6 +123,7 @@ public partial class RaceScene
     bool CardInput(InputEvent e)
     {
         if (_stopCard == null) return false;
+        if (e is InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.F3 }) { if (_cardAge >= CardMinShow) WatchLastLap(WatchFrom.Card); return true; }      // WATCH LAP on the card (CONTINUE stays the default: any other key)
         bool press = e is InputEventKey { Pressed: true, Echo: false } or InputEventMouseButton { Pressed: true }
             or InputEventJoypadButton { Pressed: true };
         if (!press || _cardAge < CardMinShow) return true;

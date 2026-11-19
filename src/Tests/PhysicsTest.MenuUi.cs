@@ -20,34 +20,28 @@ public partial class PhysicsTest
     async System.Threading.Tasks.Task MenuUiTestsBody()
     {
         GD.Print("Menu UI: main, settings, visuals, sounds");
-        var allIds = new[] { PauseRowId.Replay, PauseRowId.Norms, PauseRowId.Instructions, PauseRowId.Settings, PauseRowId.Continue, PauseRowId.Restart, PauseRowId.Exit };
+        var allIds = new[] { PauseRowId.WatchLastLap, PauseRowId.BrowseLaps, PauseRowId.Norms, PauseRowId.Instructions, PauseRowId.Settings, PauseRowId.Continue, PauseRowId.Restart, PauseRowId.Exit };
 
-        // --- main labels for every subset of {Replay, Norms}, in id order ---
+        // --- main labels for every laps count and norms flag, in the meeting's order ---
         foreach (bool pad in new[] { false, true })
-        for (int mask = 0; mask < 4; mask++)
+        for (int laps = 0; laps <= 2; laps++)
+        foreach (bool norms in new[] { false, true })
         {
-            bool replay = (mask & 1) != 0, norms = (mask & 2) != 0;
-            var ids = new List<PauseRowId>();
-            if (replay) ids.Add(PauseRowId.Replay);
-            if (norms) ids.Add(PauseRowId.Norms);
-            ids.AddRange(new[] { PauseRowId.Instructions, PauseRowId.Settings, PauseRowId.Continue, PauseRowId.Restart, PauseRowId.Exit });
-            foreach (bool avail in new[] { false, true })
-            {
-                var hud = new Hud { PauseRowIds = ids.ToArray(), PauseReplayAvailable = avail, Pad = pad };
-                var lines = hud.PauseLines(out string replayLine);
-                string tag = $"replay={replay} norms={norms} pad={pad} avail={avail}";
-                bool ok = lines.Count == ids.Count;
-                string[] words = { "REPLAY", "NORMS AND MEDALS", "DRIVING SCHOOL", "SETTINGS", "CONTINUE", "RESTART RACE", "EXIT RACE" };      // (by enum order)
-                for (int i = 0; ok && i < ids.Count; i++) ok &= lines[i].Contains(words[(int)ids[i]]);
-                Check(ok, $"pause labels follow the ids ({tag})");
-                Check(replay ? ReferenceEquals(replayLine, lines[0]) && lines[0].Contains("NO LAPS") == !avail : replayLine == null, $"replay line object and NO LAPS wording ({tag})");
-                Check(!lines.Exists(l => l.Contains("MAP") || l.Contains("COMMENTS") || l.Contains("RADIO") || l.Contains("RUMBLE") || l.Contains("VISUAL") || l.Contains("SOUND") || l.Contains("KEYS")), $"no setting rows in the main menu ({tag})");
-                hud.Free();
-            }
+            var ids = CCCPRacing.Race.RaceScene.PauseRowList(norms, laps);
+            var hud = new Hud { PauseRowIds = ids.ToArray(), Pad = pad };
+            var lines = hud.PauseLines(out _);
+            string tag = $"laps={laps} norms={norms} pad={pad}";
+            bool ok = lines.Count == ids.Count;
+            string[] words = { "WATCH LAST LAP", "BROWSE LAPS", "NORMS AND MEDALS", "DRIVING SCHOOL", "SETTINGS", "CONTINUE", "RESTART RACE", "EXIT RACE", "LEADERBOARDS" };      // (by enum order)
+            for (int i = 0; ok && i < ids.Count; i++) ok &= lines[i].Contains(words[(int)ids[i]]);
+            Check(ok, $"pause labels follow the ids ({tag})");
+            Check(ids[0] == PauseRowId.Continue && (laps == 0) == !ids.Contains(PauseRowId.WatchLastLap) && (laps >= 2) == ids.Contains(PauseRowId.BrowseLaps), $"CONTINUE first; 0 laps no replay row, 1 WATCH LAST LAP, 2+ WATCH LAST LAP and BROWSE LAPS ({tag})");
+            Check(!lines.Exists(l => l.Contains("MAP") || l.Contains("COMMENTS") || l.Contains("RADIO") || l.Contains("RUMBLE") || l.Contains("VISUAL") || l.Contains("SOUND") || l.Contains("KEYS")), $"no setting rows in the main menu ({tag})");
+            hud.Free();
         }
         {
             var hud = new Hud();
-            Check(hud.PauseLines(out _).Count == 5 && hud.PauseLines(out _)[1].Contains("SETTINGS") && hud.PauseLines(out _)[4].Contains("EXIT RACE"), "the default main menu has 5 rows: DRIVING SCHOOL, SETTINGS, CONTINUE, RESTART RACE, EXIT RACE");
+            Check(hud.PauseLines(out _).Count == 5 && hud.PauseLines(out _)[0].Contains("CONTINUE") && hud.PauseLines(out _)[2].Contains("SETTINGS") && hud.PauseLines(out _)[4].Contains("EXIT RACE"), "the default main menu has 5 rows: CONTINUE, DRIVING SCHOOL, SETTINGS, RESTART RACE, EXIT RACE");
             hud.Free();
         }
         {
@@ -86,7 +80,7 @@ public partial class PhysicsTest
                 hud.PadLost = lost;
                 foreach (int n in new[] { 5, 6, 7 })
                 {
-                    hud.PauseRowIds = allIds[(7 - n)..];
+                    hud.PauseRowIds = allIds[(allIds.Length - n)..];
                     float h = 52 + n * 10 + (lost ? 12 : 0), top = Mathf.Floor(size.Y / 2 - h / 2);
                     float y0 = top + 28 + (lost ? 12 : 0);
                     bool ok = true;

@@ -3,7 +3,7 @@
 Rally-Sport-inspired time trial on a Soviet kolkhoz. Power: ACCORDING TO PLAN. Suspension: NYET.
 
 Source code: [anders81fin/CCCP-Racing](https://github.com/anders81fin/CCCP-Racing).
-Source for version **0.912**: [v0.912](https://github.com/anders81fin/CCCP-Racing/tree/v0.912).
+Source for version **0.913**: [v0.913](https://github.com/anders81fin/CCCP-Racing/tree/v0.913).
 GitHub account: [anders81fin](https://github.com/anders81fin).
 
 Source code is offered under **GPL-3.0-or-later** and game models, images, track
@@ -55,23 +55,34 @@ LT brake (and reverse), left stick or D-pad steer, A handbrake, LB clutch, Y hor
 Back radio, D-pad up/down power (Stakhanov). Rumble on/off: LB in the pause menu.
 
 Controls: arrows/WASD drive, Space handbrake, Shift clutch, Ctrl horn, R rescue (voids the lap), Esc pause, Enter start,
-Alt+Enter / F11 fullscreen toggle, F1 engineer's view (wheel loads, roll, resolution).
+Alt+Enter / F11 fullscreen toggle, F1 engineer's view (wheel loads, roll, resolution), F3 watch the lap you just drove (a pad: Start, Down, A for WATCH LAST LAP).
 Horn: hold Ctrl. It wakes the mechanic asleep on the first bus stop's bench (within ~60 m). Park by the
 shelter with a damaged car and he comes over and beats it with a sledgehammer for 10 seconds (the race
 clock keeps running): the engine's health climbs evenly meanwhile and the bodywork is straightened blow by blow, as new
 at the end. Pressing the throttle breaks the repair off at any point and the engine keeps the health it got so far.
 PARTY MEETING settings use compact OFF/ON switches for boolean choices: Left selects OFF, Right selects ON, and Enter toggles. You can also click either half of a switch. Camera, rendering, antialiasing, stations and volume levels keep their named selections.
 
-Car radio: Backspace on/off; choose the SONG row in PARTY MEETING and use left/right to change stations. Stations are the mp3 files in
-`assets/music/radio/` (sorted by file name; the file name is shown as the song title).
+Car radio: Backspace on/off; in PARTY MEETING > SETTINGS > SOUNDS choose the STATION row and use left/right to change stations (RADIO on/off and RADIO VOLUME are there too). Stations are the mp3 files in
+`assets/music/radio/` (sorted by file name; the file name is shown as the song title), and the menu's theme song, "He katsoivat länteen", is the last station: sixth of six.
 
-Title menu: SINGLE PLAYER (DRIVING SCHOOL, SOCIALIST RALLY, STAKHANOV LAPS), MULTIPLAYER
-(LAN / INTERNET), PARTY OFFICE (KGB FILES: PERSONNEL, LEADERBOARDS with the 10 fastest laps and their drivers,
-RECORDINGS; CREDITS; RESIGN); a hint
-box explains the selected mode, Down selects the replay of the record lap. The name is asked when a rally or Stakhanov laps are
+Title menu: SINGLE PLAYER (DRIVING SCHOOL, SOCIALIST RALLY, STAKHANOV LAPS), MULTIPLAYER, SETTINGS, PARTY OFFICE (KGB FILES: PERSONNEL,
+LEADERBOARDS with the 10 fastest laps and their drivers, RECORDINGS; CREDITS; RESIGN). A first launch stands on SINGLE PLAYER > SOCIALIST RALLY;
+after that the menu stands on the mode you played last, also between launches. A hint box explains the selected mode (the rally's: beat lap norms to earn medals) and, for the top row,
+MULTIPLAYER (it opens the LAN RACE start directly; Esc comes back to MULTIPLAYER) and PARTY OFFICE (driver files, records and saved replays). Esc or B always goes back ONE step with your
+choices kept: the track card back to the fuel (the fuel you chose stays selected), TIME OF DAY back to the track, SAVED RALLY back to the track, and forward again the track card stands where you left it.
+SPACE (a pad: RB) hides the menu, its rows, its cards and SETTINGS to watch the background video, the CCCP RACING banner staying; press it again (or Esc, Enter, or any pad button) to bring it back.
+SETTINGS before a drive has the settings shared with the Party Meeting (SOUNDS, VISUALS, rumble, keys); what belongs to a run is shown greyed and cannot be changed there: LAB MODE (OFF),
+the RADIO (ON, the car's) and VISUALS' COMMENTS, LAP INFO, MAP and CAR INSTRUMENTS. In SOUNDS the STATION row chooses the menu's own background music out of the radio's six stations (the theme is the default) and RADIO VOLUME
+is the menu music's level; the balance rows (engine, tyres and road, surroundings, alerts) play their demonstrations over the menu. Down from the menu selects the replay of the record lap. The name is asked when a rally or Stakhanov laps are
 chosen on the title; a top-10 lap goes on the board under it at once, the race going on. The boards are stored in
 `user://leaderboard_<track>*.cfg`. In-race messages go by importance (docs/comments.csv):
 TAB (X on a pad) turns off only the jokes.
+
+PARTY MEETING (Esc, Start): CONTINUE first and the default; then this run's laps to watch (none: no row; one lap: WATCH LAST LAP; two or more: WATCH LAST LAP and BROWSE LAPS), then
+LEADERBOARDS (Stakhanov laps) or NORMS AND MEDALS (the rally), DRIVING SCHOOL, SETTINGS, and last RESTART RACE and EXIT RACE. A few seconds after every real lap of a single-player rally or Stakhanov drive a hint
+("F3  WATCH LAP 3", a pad: "START > WATCH LAST LAP") fades in at the bottom; F3 opens that lap in the replay viewer (the AUTO camera) while driving, at a stop card and at the end of a rally, and WATCH LAST LAP does the same from the
+Party Meeting. It is always the lap just driven, never an older one: if its recording is still being prepared or could not be saved, WATCH LAST LAP says so and nothing else opens. The race stands still while you watch and comes back exactly as it was
+(car, clock, norm, attempts), to the driving, the card or the Party Meeting's row you left.
 
 LAN RACE (title menu): up to 6 players race on the local network with the rally's moving
 vehicles and hazards. Cars collide with one another and the world; damage affects engine power,
@@ -98,14 +109,15 @@ the next track for STAKHANOV LAPS, its SOCIALIST RALLY takes a silver. The track
 the rally chooses, opening on the first track, a locked one in black and white (LAN votes among the host's available tracks). The DRIVING SCHOOL (SINGLE PLAYER) teaches car control on Ilyich's Lamp: the clutch start,
 steering, brakes, the slide techniques, R. Each track has its own rally school, offered before a
 rally there, with only what is new on it (Ilyich's Lamp and the bonus track so far); Stakhanov laps have none. The title's LEADERBOARD and record-lap replay cover every track. Medals per
-track in user://campaign.cfg (bronze 4 norms, silver 7, gold the plan; the norms are beaten one a lap,
-the laps saved go on to the next norm, at most 10); the GAI speed trap's
+track in user://campaign.cfg (bronze 4 norms, silver 7, gold the plan). In the rally a lap strictly under the bronze norm's time takes a run straight to the bronze (4 norms, never
+more than the bronze for one lap), then a lap strictly under the silver norm's time straight to the silver (7); every other lap under the norm beats one norm, so 8, 9 and the gold come one a lap.
+A jump uses one real lap and gives one norm's window (five laps and the laps saved, at most 10); a void or unranked lap never moves on, and a medal from an earlier rally does not skip the steps. The GAI speed trap's
 records in user://speedtrap.cfg. In the rally the Kozlik's bear may wait in ambush past the radar
 and chase a speeder (once a lap); caught, both stop and he asks for an autograph.
 
 The plan (SOCIALIST RALLY): the liaison officer's lap-time norms, per track (bonus track 1:15 down to
-0:52.50, Ilyich's Lamp 1:20 down to 0:57.50, Siberia 2:00 down to 1:27, Atomgrad-4 1:07 down to 0:48.50), five laps for each (a fast lap can skip several and brings their laps along; at night the climate change allowance eases the
-norm). Stop cards after every lap, at 25 % fuel or engine and when a revenge begins explain what
+0:52.50, Ilyich's Lamp 1:20 down to 0:57.50, Siberia 2:00 down to 1:27, Atomgrad-4 1:07 down to 0:48.50), five laps for each (the bronze and silver times jump ahead, see above; at night the climate change allowance eases the
+norm, the medal times too). Stop cards after every lap, at 25 % fuel or engine and when a revenge begins explain what
 to do. The rally ghost drives the session's best lap. Day and night come round every 12 laps in
 every mode. Fuel: a 50 l tank, babushkas'
 20 l canisters (a rare golden OCTANE BOOSTER canister gives 3.5 times the fuel's power for 20 s), the depot by the start line.

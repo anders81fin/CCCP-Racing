@@ -28,6 +28,7 @@ public partial class RaceScene
     void SyncVisualHud()
     {
         _hud.VisualRowIds = VisualRowsNow.ToArray();
+        _hud.VisualTitleMode = _state == State.Title;      // (the main menu: the run's HUD rows are passive)
         _hud.VisualCameraName = _hud.GameplayCameraName == null ? null : _hud.GameplayCameraName.Replace(" CAMERA", "");
         if (_hud.VisualOpen) _hud.VisualSelection = Math.Clamp(_hud.VisualSelection, 0, _hud.VisualRowIds.Length - 1);
     }
@@ -73,6 +74,7 @@ public partial class RaceScene
         var rows = _hud.VisualRowIds;
         if (row < 0 || row >= rows.Length) return;
         _hud.VisualSelection = row;
+        if (_hud.VisualRowPassive(rows[row])) return;      // (the main menu: COMMENTS, LAP INFO, MAP and CAR INSTRUMENTS are shown, not changed)
         switch (rows[row])
         {
             case VisualRowId.Map: ApplyOnOff(_minimapOn, toggleValue, ToggleMinimap); break;

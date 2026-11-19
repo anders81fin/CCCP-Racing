@@ -60,6 +60,32 @@ public partial class PhysicsTest
         legacy.Save(dir + RallyResume.Filename);
         Check(RallyResume.Load(dir, "ilyich", "layout-a").PassedTimes.All(t => t == 0),
             "old checkpoints resume without invented passing times");
+        // Medal jumps (the owner's order, 2026-11-19): a checkpoint after a jump saves and resumes exactly, with no lap times invented for the norms the jump skipped.
+        {
+            plan.Reset(true);
+            plan.OnLap(50f, true);      // (a gold-time lap from the start: the bronze, 4 norms)
+            var jumpPoint = new RallyResume.Checkpoint(plan.Step, plan.Left, plan.Used, 0, 61.5f, plan.Used, 0) { PassedTimes = plan.PassedTimes, PassedTargets = plan.PassedTargets };
+            Check(plan.Step == NormPlan.BronzeAt && plan.Used == 1, "a jump run: the bronze after one real lap");
+            Check(RallyResume.Save(dir, "ilyich", "layout-a", jumpPoint) == Error.Ok, "the checkpoint after a jump saves");
+            var back = RallyResume.Load(dir, "ilyich", "layout-a");
+            Check(back != null && back.Step == NormPlan.BronzeAt && back.Used == 1 && back.PassedTimes[NormPlan.BronzeAt - 1] == 50f && back.PassedTimes.Take(NormPlan.BronzeAt - 1).All(t => t == 0)
+                && back.PassedTargets.Take(NormPlan.BronzeAt - 1).All(t => t == 0), "it loads with the lap's time on the norm it landed on and none on the skipped ones");
+            var resumed = new NormPlan();
+            resumed.Restore(back.Step, back.Left, back.Used, back.PassedTimes, back.PassedTargets);
+            Check(resumed.Step == NormPlan.BronzeAt && resumed.Used == 1 && resumed.Left == back.Left && NormPlan.MedalFor(resumed.Step) == NormPlan.Medal.Bronze, "the resumed run has its bronze, its one lap and its window");
+            Check(resumed.OnLap(50f, true) == NormPlan.Outcome.NewNorm && resumed.Step == NormPlan.SilverAt && resumed.Used == 2 && resumed.PassedTimes.Count(t => t > 0) == 2,
+                "and the next gold-time lap jumps to the silver: the bronze was earned in this run, saved with it (two real laps, two times)");
+            // A checkpoint from before the jumps (every norm beaten by its own lap): resumes with all its times, and the jump rules apply to its next lap.
+            var oldPoint = new RallyResume.Checkpoint(2, 7, 6, 0, 300f, 6, 0) { PassedTimes = new[] { 74f, 72f }, PassedTargets = new[] { 75f, 72.5f } };
+            RallyResume.Save(dir, "ilyich", "layout-a", oldPoint);
+            var old = RallyResume.Load(dir, "ilyich", "layout-a");
+            var oldPlan = new NormPlan();
+            oldPlan.Restore(old.Step, old.Left, old.Used, old.PassedTimes, old.PassedTargets);
+            Check(oldPlan.Step == 2 && oldPlan.PassedTimes[0] == 74f && oldPlan.PassedTimes[1] == 72f && oldPlan.Used == 6, "an old checkpoint resumes with its own times and laps");
+            Check(oldPlan.OnLap(60f, true) == NormPlan.Outcome.NewNorm && oldPlan.Step == NormPlan.BronzeAt && oldPlan.Jumped == 2 && oldPlan.PassedTimes[0] == 74f && oldPlan.PassedTimes[2] == 0 && oldPlan.PassedTimes[3] == 60f && oldPlan.Used == 7,
+                "its next lap under the bronze time jumps to the bronze (norms 3-4): the old times stay, the skipped norm 3 has none, one real lap more");
+            RallyResume.Clear(dir, "ilyich");
+        }
         PlayerFiles.Erase(root, 1);
         Check(RallyResume.Load(dir, "siberia", "layout-a") == null, "erasing a profile also erases its checkpoints");
     }

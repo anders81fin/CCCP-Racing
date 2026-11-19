@@ -53,6 +53,8 @@ public partial class PhysicsTest : Node
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--yaw-low-test")){YawLowTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--scrub-rest-test")){ScrubRestTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--side-dig-test")){SideDigTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--stall-watch-test")){StallWatchTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--plan-tests")){LapBudgetTest();FuelLaddersTest();RallyResumeTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--tank-btr-test")){TankBtrTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--btr-clear-test")){BtrClearTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--busstop-leave-test")){BusStopLeaveTest();GetTree().Quit(_failures==0?0:1);return;}
@@ -454,6 +456,7 @@ public partial class PhysicsTest : Node
             YawLowTest();
             ScrubRestTest();
             SideDigTest();
+            StallWatchTest();
             AtomgradSolidTest();
             GetTree().Quit(_failures == 0 ? 0 : 1);
             return;
@@ -604,6 +607,7 @@ public partial class PhysicsTest : Node
         YawLowTest();
         ScrubRestTest();
         SideDigTest();
+        StallWatchTest();
         AtomgradSolidTest();
         StartHillAssistTest();
         HandbrakeThrottleTest();
@@ -618,6 +622,7 @@ public partial class PhysicsTest : Node
         HindAirbaseTest();
         HindExerciseTest();
         LapBudgetTest();
+        FuelLaddersTest();
         FuelTest();
         WaterEntryTest();
         BreakablesTest();

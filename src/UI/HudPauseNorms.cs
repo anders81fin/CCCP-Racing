@@ -33,7 +33,7 @@ public partial class Hud
         var r = new Rect2(Mathf.Floor(Screen.X / 2 - 150), Mathf.Floor(Screen.Y / 2 - h / 2), 300, h);
         Panel(r, 1f);
         DrawHeading("NORMS AND MEDALS", Screen.X / 2, r.Position.Y + 8, _menuTextClock);
-        PixelFont.DrawCentered(this, PauseNormsStart && PauseNormsResumed ? $"SAVED RALLY - {PlanLeft} LAPS LEFT" : "BEAT EACH TIME IN ORDER - RANKED LAPS", Screen.X / 2, r.Position.Y + 30, Paper);
+        PixelFont.DrawCentered(this, PauseNormsStart && PauseNormsResumed ? $"SAVED RALLY - {PlanLeft} LAPS LEFT" : "BEAT EACH TIME - A MEDAL TIME JUMPS AHEAD", Screen.X / 2, r.Position.Y + 30, Paper);
         for (int i = 0; i < PauseNormTimes.Length; i++)
         {
             bool done = i < PauseNormBeaten;

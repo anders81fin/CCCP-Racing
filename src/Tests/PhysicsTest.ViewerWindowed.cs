@@ -258,6 +258,21 @@ public partial class PhysicsTest
                     VwJudge("norm-card-" + t, c);
                 }
             }
+            if (On("titlesettings"))
+            {
+                var (c, _) = VwChild("title-settings", false, new[] { "--viewer-windowed=title-settings", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 300);
+                VwJudge("title-settings", c);
+            }
+            if (On("stakhanovexit"))
+            {
+                var (c, _) = VwChild("stakhanov-exit", false, new[] { "--viewer-windowed=stakhanov-exit", "--start", "--training", "--autodrive", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 300);
+                VwJudge("stakhanov-exit", c);
+            }
+            if (On("watchlap"))
+            {
+                var (c, _) = VwChild("watch-lap-ilyich", false, new[] { "--viewer-windowed=watch-lap", "--start", "--autodrive", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 400);
+                VwJudge("watch-lap-ilyich", c);
+            }
             if (On("rallystart"))
             {
                 var (c, _) = VwChild("rally-start-fresh", false, new[] { "--viewer-windowed=rally-start", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 300);

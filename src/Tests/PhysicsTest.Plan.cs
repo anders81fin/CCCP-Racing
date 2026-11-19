@@ -25,16 +25,17 @@ public partial class PhysicsTest
         Check(p.OnLap(72.5f, true) == C && p.Left == 7, "exactly the norm is not under it");
         Check(p.OnLap(72.4f, true) == N && p.Step == 2 && p.Left == 10, "under 1:12.50: norm 3 with five and six saved, capped at ten");
 
-        // No skips: however fast, a lap beats one norm, the next comes with five laps.
+        // Ordinary progress below a medal time: a lap under the current norm beats one norm, the next comes with five laps (the medal jumps: NormJumpTest).
         p.Reset(true);
-        Check(p.OnLap(61f, true) == N && p.Step == 1 && p.Norm == 72.5f && p.Left == 9, "61.0 s from norm 1: only norm 1 beaten, next 1:12.50 with five laps and four saved (9)");
-        for (int k = 0; k < 7; k++) p.OnLap(50f, true);
-        Check(p.Step == 8 && p.Left == NormPlan.MaxLaps && !p.Finished, "a 50 s lap each time: one norm a lap, at norm 9 after eight laps");
+        Check(p.OnLap(74f, true) == N && p.Step == 1 && p.Norm == 72.5f && p.Left == 9, "74 s from norm 1: only norm 1 beaten (over the bronze time 1:07.50), next 1:12.50 with five laps and four saved (9)");
+        p.Reset(true, 4);
+        Check(p.OnLap(62f, true) == N && p.Step == 5 && p.Jumped == 1, "62 s from norm 5 (over the silver time 1:00.00): one norm a lap");
+        Check(p.OnLap(62f, true) == N && p.Step == 6 && p.Jumped == 1, "and 62 s beats norm 6 (1:02.50) too: one norm again, no jump over the silver time");
+        p.Reset(true, 7);
+        Check(p.OnLap(54f, true) == N && p.Step == 8 && p.Norm == 55f, "under norm 8 (0:57.50): norm 9 next");
         Check(p.OnLap(54f, true) == N && p.Step == 9 && p.Norm == 52.5f, "under norm 9: the Stakhanovite 0:52.50 next");
         Check(p.OnLap(52.4f, true) == S && p.Fulfilled && p.Finished, "52.4 s beats the Stakhanovite 0:52.50: PLAN FULFILLED");
-        Check(p.OnLap(40f, true) == C && p.Used == 10, "after the end nothing counts");
-        p.Reset(true);
-        Check(p.OnLap(50f, true) == N && p.Step == 1 && !p.Fulfilled, "one lap under every norm: still only norm 1");
+        Check(p.OnLap(40f, true) == C && p.Used == 3, "after the end nothing counts");
 
         // A window used up: out of laps (the gulag flow), void laps use laps and never climb.
         p.Reset(true, 5);
@@ -69,5 +70,6 @@ public partial class PhysicsTest
         Check(p.Norm == 61f && p.LadderTime == 57.5f, "a 3.5 s allowance: norm 8 is 1:01.00");
         Check(p.OnLap(58f, true) == N && p.Step == 8 && p.Norm == 58.5f, "58 s under 61.0 (and 58.5): one norm only, norm 9 (0:58.50 with the allowance)");
         p.Climate = null;
+        NormJumpTest();
     }
 }

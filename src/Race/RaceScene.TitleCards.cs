@@ -35,11 +35,12 @@ public partial class RaceScene
 
     /// <summary>The STAKHANOV LAPS ask for the car first as well: CHOOSE FUEL, then CHOOSE TRACK, then the time of day.</summary>
     bool _lapsFuelFirst, _lapsFuelPicked;
+    int _lapsTrackHighlight = -1;      // the track card of the Stakhanov laps comes up on the track it was left on (Esc from the next card)
 
     void OpenLapsStart()
     {
         _trackFor = MenuItem.Training;
-        _lapsFuelFirst = true; _lapsFuelPicked = false;
+        _lapsFuelFirst = true; _lapsFuelPicked = false; _lapsTrackHighlight = -1;
         _chosenRunTrack = null;
         OpenCard(TitleCard.LapsFuel);
     }
@@ -109,13 +110,52 @@ public partial class RaceScene
         // One step at a time: the track card has more than two.
         if (Input.IsActionJustPressed("steer_left")) _cardSel = Math.Max(0, _cardSel - 1);
         else if (Input.IsActionJustPressed("steer_right")) _cardSel = Math.Min(CardCount - 1, _cardSel + 1);
-        else if (Input.IsActionJustPressed("pause")) { _card = TitleCard.None; _rallyFuelFirst = _rallyFuelPicked = _lapsFuelFirst = _lapsFuelPicked = false; }
+        else if (Input.IsActionJustPressed("pause")) CardBack();
         else if (Input.IsActionJustPressed("start") && !Input.IsKeyPressed(Key.Alt))
         {
             if (_card is TitleCard.RallyFuel or TitleCard.LapsFuel && FuelLocked((FuelGrade)_cardSel)) return true;      // (the card says what opens it)
             ChooseTitleCard();
         }
         return true;
+    }
+
+    /// <summary>
+    /// Esc / B on a card: ONE step back along the choices of the chain (the owner's order, 2026-11-19), the choices already made kept: the track card goes back to the fuel (the fuel chosen is the one
+    /// selected), TIME OF DAY back to the track chosen (the pick stays), SAVED RALLY back to the track chosen; and forward again the track card stands on the track it was left on. The first card of a
+    /// chain, and a card with nothing before it (a direct route: the tour or the unlock lead to the track card, the LAN's track card), goes back to the menu, as before.
+    /// </summary>
+    void CardBack()
+    {
+        int chosen = Math.Max(0, Array.FindIndex(Tracks, t => t.id == _chosenRunTrack));
+        switch (_card)
+        {
+            case TitleCard.Track when _trackFor == MenuItem.Race && _rallyFuelPicked:
+                _rallyTrackHighlight = _cardSel;      // (forward again: the track card on this track)
+                _rallyFuelFirst = true; _rallyFuelPicked = false;
+                OpenCard(TitleCard.RallyFuel);      // (the fuel chosen was saved: it is the one selected)
+                return;
+            case TitleCard.Track when _trackFor == MenuItem.Training && _lapsFuelPicked:
+                _lapsTrackHighlight = _cardSel;
+                _lapsFuelFirst = true; _lapsFuelPicked = false;
+                OpenCard(TitleCard.LapsFuel);
+                _cardSel = (int)_lapsFuelPick;      // (the fuel picked on the way here)
+                return;
+            case TitleCard.RallyResume:
+                OpenTrackCard(MenuItem.Race); _cardSel = chosen;
+                return;
+            case TitleCard.LapsTime:
+                OpenTrackCard(MenuItem.Training); _cardSel = chosen;      // (the fuel pick stays: _lapsFuelPicked)
+                return;
+            case TitleCard.RallyFuel when !_rallyFuelFirst:      // (the fuel asked after the track: back to the track)
+                OpenTrackCard(MenuItem.Race); _cardSel = chosen;
+                return;
+            case TitleCard.LapsFuel when !_lapsFuelFirst:
+                OpenTrackCard(MenuItem.Training); _cardSel = chosen;
+                return;
+        }
+        _card = TitleCard.None;
+        _rallyFuelFirst = _rallyFuelPicked = _lapsFuelFirst = _lapsFuelPicked = false;
+        _rallyTrackHighlight = _lapsTrackHighlight = -1;
     }
 
     void ChooseTitleCard()
@@ -151,7 +191,7 @@ public partial class RaceScene
         else if (c == TitleCard.LapsFuel)
         {
             _lapsFuelPick = (FuelGrade)_cardSel;
-            if (_lapsFuelFirst) { _lapsFuelFirst = false; _lapsFuelPicked = true; OpenTrackCard(MenuItem.Training); return; }      // the car first, the track next
+            if (_lapsFuelFirst) { _lapsFuelFirst = false; _lapsFuelPicked = true; OpenTrackCard(MenuItem.Training); if (_lapsTrackHighlight >= 0 && _lapsRewardIndex < 0) _cardSel = _lapsTrackHighlight; _lapsTrackHighlight = -1; return; }      // the car first, the track next (on the track it was left on)
             OpenCard(TitleCard.LapsTime);
         }      // (Esc on TIME OF DAY drops the pick)
         else if (c == TitleCard.LapsTime)

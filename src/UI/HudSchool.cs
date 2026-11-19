@@ -223,6 +223,8 @@ public partial class Hud
 
     /// <summary>The rally's stop card (RaceScene.Cards): title, lines; set while the game stands under it.</summary>
     public (string title, string[] lines, Color color)? StopCard;
+    /// <summary>WATCH LAP on a stop card ("F3  WATCH LAP 3"): the card's offer to open the lap just driven; null when there is none.</summary>
+    public string StopCardWatch;
     /// <summary>The card takes a key now (after RaceScene.CardMinShow): only then does it say PRESS ANY KEY.</summary>
     public bool StopCardReady;
 
@@ -254,6 +256,7 @@ public partial class Hud
             PixelFont.DrawCentered(this, lines[i], tx, y, i == 0 ? Gold : Paper);
         string go = P("PRESS ANY KEY", "PRESS ANY BUTTON");
         if (StopCardReady && (int)(_clock * 2) % 2 == 0) PixelFont.Draw(this, go, new Vector2(r.End.X - PixelFont.Measure(go) - 6, r.End.Y - 11), Grey);
+        if (StopCardWatch != null) PixelFont.Draw(this, StopCardWatch, new Vector2(r.Position.X + 56, r.End.Y - 11), Gold);      // (CONTINUE is the default: any other key; F3 watches the lap)
     }
 
     /// <summary>The TELL card: the instructor, one or two big lines, the controls, the way on.</summary>

@@ -303,6 +303,7 @@ public static class InputSetup
         Add("track_boards", Key.L);        // CHOOSE TRACK: the highlighted track's leaderboards
         Add("comments", Key.Tab);          // centre-screen comments on/off
         Add("camera", Key.C);              // top-down / cinematic / bonnet
+        Add("watch_lap", Key.F3);          // the lap just driven in the replay viewer (RaceScene.WatchLap.cs)
         Add("minimap", Key.M);             // the minimap on/off
         Add("rumble", Key.V);              // pause menu: the pad's rumble on/off
         Add("radio_toggle", Key.Backspace);

@@ -58,6 +58,10 @@ public partial class Hud
         }
     }
 
+    /// <summary>VISUALS opened from the main menu (before a drive): the rows of the HUD of a run (COMMENTS, LAP INFO, MAP, CAR INSTRUMENTS) are passive there, shown greyed and not changeable (set in the Party Meeting of a run).</summary>
+    public bool VisualTitleMode;
+    internal bool VisualRowPassive(VisualRowId id) => VisualTitleMode && id is VisualRowId.Comments or VisualRowId.LapInfo or VisualRowId.Map or VisualRowId.CarInstruments or VisualRowId.NormsCard;
+
     internal bool? VisualToggleValue(VisualRowId id) => id switch
     {
         VisualRowId.Map => MapOn,
@@ -69,7 +73,7 @@ public partial class Hud
         _ => null,
     };
 
-    internal bool? VisualSwitchValueAt(int row, Vector2 p) => row >= 0 && row < VisualRowIds.Length && VisualToggleValue(VisualRowIds[row]) != null
+    internal bool? VisualSwitchValueAt(int row, Vector2 p) => row >= 0 && row < VisualRowIds.Length && VisualToggleValue(VisualRowIds[row]) != null && !VisualRowPassive(VisualRowIds[row])
         ? OnOffValueAt(OnOffRowRect(VisualRect, VisualRect.Position.Y + 38 + row * 16), p) : null;
 
     internal void DrawVisual()
@@ -87,6 +91,14 @@ public partial class Hud
             if (selected) DrawRect(new Rect2(r.Position.X + 4, y - 2, r.Size.X - 8, 12), new Color(Red, 0.55f));
             Color c = selected ? Gold : Paper;
             VisualRowTexts(VisualRowIds[i], out string label, out string value);
+            if (VisualRowPassive(VisualRowIds[i]))
+            {
+                // passive in the main menu: the label and the saved state greyed, no switch
+                string state = VisualToggleValue(VisualRowIds[i]) is bool b && b ? "ON" : "OFF";
+                PixelFont.Draw(this, label, new Vector2(x, y), selected ? Gold : Grey);
+                PixelFont.Draw(this, state, new Vector2(r.End.X - 12 - PixelFont.Measure(state), y), Grey);
+                continue;
+            }
             PixelFont.Draw(this, label, new Vector2(x, y), c);
             if (VisualToggleValue(VisualRowIds[i]) is bool on) DrawOnOffSwitch(OnOffRowRect(r, y).Position, on, selected);
             else if (value != null) PixelFont.Draw(this, value, new Vector2(r.End.X - 12 - PixelFont.Measure(value), y), c);

@@ -3,6 +3,19 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.913
+
+- SOCIALIST RALLY: a lap under the bronze norm time jumps a new rally straight to the bronze (4 norms), and once the bronze is earned a lap under the silver norm time jumps straight to the silver (7). One lap gives at most one medal, a jump uses one lap and one norm window, a lap exactly on a limit does not jump, and a void lap or an earlier rally medal never skips norms. The norm table shows no times for the norms a jump skipped
+- KOLKHOZ: the third norm on JET FUEL is 0:56.20 (it was looser than on petrol)
+- The GAI duty officer chases with 250 % of the performance of your car
+- MAIN MENU: a first launch stands on SINGLE PLAYER - SOCIALIST RALLY (with its goal: beat lap norms to earn medals) and later launches on the mode you played last. MULTIPLAYER goes straight to the LAN race start. SETTINGS is in the main menu: SOUNDS and VISUALS before a drive, with what belongs to a run greyed (LAB MODE, the radio, comments, lap info, map, car instruments). PARTY OFFICE has a hint
+- MAIN MENU: SPACE (a pad: RB) hides the menu and its cards and settings to watch the background video, the banner staying. The menu music is chosen in SETTINGS - SOUNDS - STATION (six songs, the theme He katsoivat lanteen by default) and its level with RADIO VOLUME. The balance rows play their demonstrations over the menu
+- RADIO: He katsoivat lanteen is the sixth station of the car radio too
+- ESC or B goes back one step in the choices: the track card to the fuel, TIME OF DAY to the track, SAVED RALLY to the track, with your choices kept. Leaving STAKHANOV LAPS with EXIT RACE returns to CHOOSE FUEL
+- PARTY MEETING: CONTINUE first and the default, then WATCH LAST LAP (one lap in this run) and BROWSE LAPS (two or more), then the situation, DRIVING SCHOOL, SETTINGS, RESTART RACE and EXIT RACE
+- WATCH LAST LAP: a hint after every real lap, and the key F3 opens exactly the lap you just drove in the replay viewer while driving, at a stop card and at the end of a rally. The drive comes back as it was. A lap still being prepared says so
+- A frozen game: the game logs what it was waiting for in stall.log, and the wait for a lap to be saved ends after 20 seconds instead of for ever
+
 ## 0.912
 
 - Rocks are now angular, pale grey blocks that never look green, so you can tell a stone from a bush at a glance

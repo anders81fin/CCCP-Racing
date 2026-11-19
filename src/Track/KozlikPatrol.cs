@@ -33,8 +33,8 @@ public partial class KozlikPatrol : Node3D
 
     // The chase: flat out on the straights, quicker than on patrol through the bends, closing in to
     // TailGap metres behind the car; caught after CatchTime there, given up after GiveUpTime or GiveUpGap.
-    /// <summary>The duty officer's UAZ in a chase has this much of the car's own performance: 175 % of the top speed and of the pull it has shown in this run (never less than the fixed ChaseMax and 4 m/s²).</summary>
-    public const float ChasePerformance = 1.75f;
+    /// <summary>The duty officer's UAZ in a chase has this much of the car's own performance: 250 % of the top speed and of the pull it has shown in this run (never less than the fixed ChaseMax and 4 m/s²).</summary>
+    public const float ChasePerformance = 2.5f;
     float _carTopSeen, _carPullSeen;
     const float ChaseBrake = 9f;
     const float ChaseMax = 40f, ChaseBend = 13f, ChaseOut = 12f, TailGap = 6.5f, KissGap = 4.35f, RamDelta = 9.5f, CatchTime = 1.5f, GiveUpTime = 30f, GiveUpGap = 170f;

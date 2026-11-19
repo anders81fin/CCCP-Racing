@@ -10,10 +10,16 @@ public partial class Hud
     public int[] MixerLevels = { 5, 5, 5, 5, 8 };
 
     /// <summary>RADIO on/off, STATION (only while the radio is on), the five levels, then RESET and BACK.</summary>
-    public int MixerLeadRows => 1 + (RadioOn ? 1 : 0);
+    public int MixerLeadRows => MixerTitleMode ? 2 : 1 + (RadioOn ? 1 : 0);
+
+    /// <summary>SOUNDS opened from the main menu (SETTINGS before a drive): RADIO shows ON as a passive field (it is the car's radio: changed in a run), and STATION chooses the menu's own background music out of
+    /// the radio's stations and the menu's theme song (the title's number, count and song name).</summary>
+    public bool MixerTitleMode;
+    public int TitleStationNumber, TitleStationCount;
+    public string TitleStationName = "";
     public int MixerRowCount => MixerLeadRows + 5 + 2;
 
-    internal bool? MixerSwitchValueAt(int row, Vector2 p) => row == 0
+    internal bool? MixerSwitchValueAt(int row, Vector2 p) => row == 0 && !MixerTitleMode
         ? OnOffValueAt(OnOffRowRect(MixerRect, MixerRect.Position.Y + 38), p) : null;
 
     public void SetMixerOpen(bool open)
@@ -58,7 +64,14 @@ public partial class Hud
             int k = i - lead;
             if (i < lead)
             {
-                string value = i == 0 ? (RadioOn ? "ON" : "OFF") : RadioStation + " / " + RadioStationCount;
+                string value = i == 0 ? (RadioOn ? "ON" : "OFF") : MixerTitleMode ? TitleStationNumber + " / " + TitleStationCount : RadioStation + " / " + RadioStationCount;
+                if (MixerTitleMode && i == 0)
+                {
+                    // passive: the menu's music has no off switch here (the car's radio is switched in a run)
+                    PixelFont.Draw(this, "RADIO", new Vector2(x, y), selected ? Gold : Grey);
+                    PixelFont.Draw(this, "ON", new Vector2(r.End.X - 12 - PixelFont.Measure("ON"), y), Grey);
+                    continue;
+                }
                 PixelFont.Draw(this, i == 0 ? "RADIO" : "STATION", new Vector2(x, y), c);
                 if (i == 0) DrawOnOffSwitch(OnOffRowRect(r, y).Position, RadioOn, selected);
                 else PixelFont.Draw(this, value, new Vector2(r.End.X - 12 - PixelFont.Measure(value), y), c);
@@ -74,6 +87,7 @@ public partial class Hud
         }
         string hint = P("UP/DOWN CHOOSE  LEFT/RIGHT CHANGE", "D-PAD CHOOSE / CHANGE  A SELECT");
         if (PixelFont.Measure(hint) > r.Size.X - 12) hint = P("UP/DOWN SELECT  < > CHANGE", "D-PAD SELECT / CHANGE");
+        if (MixerTitleMode && MixerSelection == 1) hint = TitleStationName;      // (the menu's song, in the hint line while the station row is on)
         PixelFont.DrawCentered(this, hint, Screen.X / 2, r.End.Y - 12, Grey);
     }
 }

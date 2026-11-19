@@ -207,6 +207,7 @@ public partial class Hud : Control
             DrawNormMiss();
             DrawMedalCelebration();
         }
+        if (WatchHint != null && Mode == HudMode.Race && !Clean) DrawWatchHint();
         if (Mode == HudMode.Card && StopCard is var (title, lines, color)) DrawStopCard(title, lines, color);
         if (!Clean && School && Mode is HudMode.Race or HudMode.Countdown) DrawSchool();
         if (CardTitle != null && Mode == HudMode.Title) DrawCard();
@@ -279,9 +280,27 @@ public partial class Hud : Control
                 PixelFont.DrawCentered(this, "> REPLAY OF THE RECORD LAP <", cx, ry + 11, Gold);
             return;
         }
+        if (TitleMenuHidden)
+        {
+            // The menu hidden to watch the background video: the CCCP RACING banner stays, and the hint at the bottom centre.
+            DrawTitleBanner();
+            string showHint = P("SPACE  SHOW MENU", "ANY BUTTON  SHOW MENU");
+            float sw = PixelFont.Measure(showHint) + 12;
+            var hr = new Rect2(Mathf.Floor(cx - sw / 2), s.Y - 15, Mathf.Ceil(sw), 12);
+            DrawRect(hr, new Color(0, 0, 0, 0.45f));
+            PixelFont.DrawCentered(this, showHint, cx, hr.Position.Y + 2, new Color(Paper, 0.85f));
+            return;
+        }
         DrawRect(new Rect2(0, 0, s.X, s.Y), new Color(0, 0, 0, 0.25f));
 
         DrawTitleBanner();
+
+        // SETTINGS from the top row: the Party Meeting's own screens over the title, the menu and the notes give way.
+        if (SettingsOpen || VisualOpen || MixerOpen)
+        {
+            if (VisualOpen) DrawVisual(); else if (MixerOpen) DrawMixer(); else DrawSettings();
+            return;
+        }
 
         // A one-off announcement (records archived) right under the banner.
         if (TitleNotice != null)
@@ -353,7 +372,14 @@ public partial class Hud : Control
         float room = s.X - PixelFont.Measure(version) - 16;
         while (file.Length > 0 && PixelFont.Measure(file) > room) file = file[..^1];
         if (file.Length > 0) PixelFont.Draw(this, file, new Vector2(4, s.Y - 10), Grey);
+        // The hint of the hidden menu's key, always at the bottom centre (a narrow window: the short form, or none when the file's name and the version leave no room).
+        string hint = P("SPACE  HIDE MENU", "RB  HIDE MENU");
+        if (PixelFont.Measure(hint) > s.X - 2 * Math.Max(PixelFont.Measure(file) + 12, PixelFont.Measure(version) + 12)) hint = P("SPACE  HIDE", "RB  HIDE");
+        if (PixelFont.Measure(hint) <= s.X - 2 * Math.Max(PixelFont.Measure(file) + 12, PixelFont.Measure(version) + 12)) PixelFont.DrawCentered(this, hint, cx, s.Y - 10, Paper);
     }
+
+    /// <summary>The main menu is hidden (Space / the pad's RB): only the hint to bring it back shows (RaceScene.TitleMusic.cs).</summary>
+    public bool TitleMenuHidden;
 
     string _noteText, _noteSub;
     float _noteUntil = -1;
@@ -383,6 +409,20 @@ public partial class Hud : Control
         DrawHeading(title, cx, y + 5, _hintTextClock);
         for (int i = 0; i < lines.Length; i++) PixelFont.DrawCentered(this, lines[i], cx, y + HelpTop + i * RowPitch, Paper);
         return y + h;
+    }
+
+    /// <summary>The hint after a real lap in a single-player rally or Stakhanov drive ("F3  WATCH LAP 3", a pad: "START > WATCH LAST LAP"): a few seconds, fading out at the end (RaceScene.WatchLap.cs).</summary>
+    public string WatchHint;
+    public float WatchHintAlpha = 1f;
+
+    void DrawWatchHint()
+    {
+        var s = Screen;
+        float w = PixelFont.Measure(WatchHint) + 12, a = Mathf.Clamp(WatchHintAlpha, 0f, 1f);
+        var r = new Rect2(Mathf.Floor(s.X / 2 - w / 2), s.Y - 24, Mathf.Ceil(w), 13);
+        DrawRect(r, new Color(0, 0, 0, 0.6f * a));
+        DrawRect(r, new Color(Gold, 0.9f * a), false, 1f);
+        PixelFont.DrawCentered(this, WatchHint, s.X / 2, r.Position.Y + 3, new Color(Gold, a));
     }
 
     void DrawMenuNote(float cx, float y)
@@ -655,8 +695,10 @@ public partial class Hud : Control
     public string AntialiasingName = "OFF", SofteningName = "OFF";
     /// <summary>The REPLAY row of the pause menu (after TAB/COMMENTS): shown, and whether any lap can be watched.</summary>
     public bool PauseReplayShown, PauseReplayAvailable;
+    /// <summary>WATCH LAST LAP's state when the last lap cannot be opened yet ("PREPARING", "NOT SAVED"...), empty when it can.</summary>
+    public string PauseWatchState = "";
     /// <summary>The Party Meeting's rows in order (RaceScene supplies them; the labels come from the ids).</summary>
-    public PauseRowId[] PauseRowIds = { PauseRowId.Instructions, PauseRowId.Settings, PauseRowId.Continue, PauseRowId.Restart, PauseRowId.Exit };
+    public PauseRowId[] PauseRowIds = { PauseRowId.Continue, PauseRowId.Instructions, PauseRowId.Settings, PauseRowId.Restart, PauseRowId.Exit };
 
     /// <summary>The pause menu's lines, top to bottom: one source for the drawing, the mouse hit test and the rows' tests (RaceScene maps a selected row to its action by the same order).</summary>
     public List<string> PauseLines(out string replayLine)
@@ -669,7 +711,8 @@ public partial class Hud : Control
         {
             string line = id switch
             {
-                PauseRowId.Replay => "       " + (PauseReplayAvailable ? "REPLAY" : "REPLAY - NO LAPS"),
+                PauseRowId.WatchLastLap => "       WATCH LAST LAP" + (PauseWatchState == "" ? "" : " - " + PauseWatchState),
+                PauseRowId.BrowseLaps => "       BROWSE LAPS",
                 PauseRowId.Norms => "       NORMS AND MEDALS",
                 PauseRowId.Leaderboards => "       LEADERBOARDS",
                 PauseRowId.Continue => P("ESC    ", "BACK   ") + "CONTINUE",
@@ -678,7 +721,7 @@ public partial class Hud : Control
                 PauseRowId.Instructions => "       DRIVING SCHOOL",
                 _ => "       SETTINGS",
             };
-            if (id == PauseRowId.Replay) replayLine = line;
+            if (id == PauseRowId.WatchLastLap && PauseWatchState != "") replayLine = line;
             lines.Add(line);
         }
         return lines;
@@ -704,7 +747,7 @@ public partial class Hud : Control
             float y = y0 + i * 10;
             bool selected = i == PauseSelection;
             if (selected) DrawRect(new Rect2(r.Position.X + 4, y - 2, r.Size.X - 8, 10), new Color(Red, 0.55f));
-            PixelFont.Draw(this, lines[i], new Vector2(x, y), selected ? Gold : ReferenceEquals(lines[i], replayLine) && !PauseReplayAvailable ? Grey : Paper);
+            PixelFont.Draw(this, lines[i], new Vector2(x, y), selected ? Gold : ReferenceEquals(lines[i], replayLine) ? Grey : Paper);
         }
         PixelFont.DrawCentered(this, P("UP/DOWN CHOOSE  ENTER SELECT", "D-PAD CHOOSE  A SELECT"), s.X / 2, r.End.Y - 12, Grey);
     }
