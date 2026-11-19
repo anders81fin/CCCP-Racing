@@ -55,6 +55,28 @@ Uses the Windows system Direct3D runtime (no bundled Agility SDK).
 Runtime on Windows has not been tested on this Linux machine.
 EOF
     fi
+    if [ "$p" = macos ]; then
+        cat > "$dir/MACOS-README.txt" <<EOF
+CCCP Racing $V - opening the game on macOS
+
+This app is not signed or notarized by Apple. When you download it, macOS may
+say that "CCCP Racing" is damaged and cannot be opened. The app is not broken:
+this is Gatekeeper's message for an unsigned download. Do this once:
+
+1. Extract the ZIP and move "CCCP Racing.app" to the Applications folder.
+2. Open Terminal and remove the download quarantine:
+     xattr -cr "/Applications/CCCP Racing.app"
+3. Open the app. If macOS still refuses (Apple Silicon Macs), sign it locally:
+     codesign --force --deep --sign - "/Applications/CCCP Racing.app"
+   and open it again.
+
+Alternative: Control-click (right-click) the app, choose Open, then Open; or in
+System Settings > Privacy & Security press "Open Anyway" after the first attempt.
+
+The package has not been tested on a Mac by the author; if it still does not
+start, please report your macOS version and the exact message.
+EOF
+    fi
     case "$p" in
         windows|windows-d3d12)
             cat > "$dir/VIDEO-EXPORT.txt" <<EOF
@@ -78,7 +100,7 @@ EOF
     if [ "$p" = macos ]; then
         # Export the bundle directly onto disk: Godot's ZIP exporter stages the
         # whole app in its temporary directory, which may have a small quota.
-        (cd "$dir" && zip -qry "$zipfile" "$out")
+        (cd "$dir" && zip -qry "$zipfile" "$out" MACOS-README.txt)
         zip -qr "$zipfile" $EXTRAS -x 'steam-artwork/.gdignore'
     else
         for f in $EXTRAS; do cp -r "$f" "$dir/"; done

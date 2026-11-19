@@ -59,7 +59,7 @@ internal static class BuildKit
             float w = rng.RandfRange(0.17f, 0.27f), a = u, b = Math.Min(length, u + w); u += w;
             float mid = (a + b) * 0.5f;
             bool open = false;
-            float y0 = 0f, y1 = height;
+            float y1 = height;
             foreach (var h in holes) if (mid > h.U0 && mid < h.U1) { if (h.Y0 <= 0.01f && h.Y1 >= height - 0.01f) { open = true; break; } }
             if (open) continue;
             // Boards are split by any window / hatch into a lower and an upper piece.

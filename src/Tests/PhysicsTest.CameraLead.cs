@@ -218,7 +218,6 @@ public partial class PhysicsTest
         // 4. A slide: the velocity swings 35 degrees to both sides of the heading at 1.3 Hz; the look-ahead follows only the calm part of it.
         var slide = new CamPath(t => { float a = Mathf.DegToRad(35f) * MathF.Sin(MathF.Tau * 1.3f * t); return new Vector3(MathF.Sin(a), 0, -MathF.Cos(a)) * 28f; }, new Vector3(300, 0, 300), 10f);
         var sn = CamRun(true, slide, 10f, 1f / 60f); var sc = CamRun(false, slide, 10f, 1f / 60f);
-        float swing(List<CamSample> s) { float m = 0; for (int i = 120; i < s.Count; i++) m = MathF.Max(m, MathF.Abs(MathF.IEEERemainder(s[i].Lead.Angle() - s[120].Lead.Angle(), MathF.Tau))); return m; }
         float slideScreen = sn.Skip(120).Max(s => MathF.Abs(s.Ndc.X)), slideScreenOld = sc.Skip(120).Max(s => MathF.Abs(s.Ndc.X));
         float DirSwing(List<CamSample> s) { float lo = 9, hi = -9; for (int i = 240; i < s.Count; i++) { float a = MathF.IEEERemainder(s[i].Lead.Angle() + MathF.PI * 0.5f, MathF.Tau); lo = MathF.Min(lo, a); hi = MathF.Max(hi, a); } return hi - lo; }
         float swingDirNew = DirSwing(sn), swingDirOld = DirSwing(sc);

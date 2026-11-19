@@ -3,6 +3,15 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.912
+
+- Rocks are now angular, pale grey blocks that never look green, so you can tell a stone from a bush at a glance
+- The GAI duty officer chases with 175 % of the performance of your car and rams it at once instead of following it first
+- KOLKHOZ: the camera after the river crossing looks a little steeper, so the car sits higher on the screen
+- Driving at walking pace with the gas off: held steering now scrubs the speed off steplessly with the steering angle (full lock stops a coasting car in a moment), the yaw assist and the arcade drift forgiveness are weaker below 50 km/h, and a car sliding sideways on grass, field, mud or deep snow digs in and brakes hard. With the gas on nothing changes. The Scandinavian flick starts only above 50 km/h
+- LAB: new settings YawAssistRest, YawAssistFullSpeed, ScrubCancelRest, ScrubCancelFullSpeed and SideDig
+- The macOS package has a MACOS-README.txt about the "damaged" message of an unsigned app
+
 ## 0.911
 
 - ATOMGRAD-4: the town apartment blocks, the palace of culture and the bumper-car hall are solid all the way to their corners and walls (the car could drive through a corner), and the goods train has no gaps in its length any more

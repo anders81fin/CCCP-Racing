@@ -33,8 +33,8 @@ public partial class KozlikPatrol : Node3D
 
     // The chase: flat out on the straights, quicker than on patrol through the bends, closing in to
     // TailGap metres behind the car; caught after CatchTime there, given up after GiveUpTime or GiveUpGap.
-    /// <summary>The duty officer's UAZ in a chase has this much of the car's own performance: 120 % of the top speed and of the pull it has shown in this run (never less than the fixed ChaseMax and 4 m/s²).</summary>
-    public const float ChasePerformance = 1.2f;
+    /// <summary>The duty officer's UAZ in a chase has this much of the car's own performance: 175 % of the top speed and of the pull it has shown in this run (never less than the fixed ChaseMax and 4 m/s²).</summary>
+    public const float ChasePerformance = 1.75f;
     float _carTopSeen, _carPullSeen;
     const float ChaseBrake = 9f;
     const float ChaseMax = 40f, ChaseBend = 13f, ChaseOut = 12f, TailGap = 6.5f, KissGap = 4.35f, RamDelta = 9.5f, CatchTime = 1.5f, GiveUpTime = 30f, GiveUpGap = 170f;
@@ -739,6 +739,7 @@ public partial class KozlikPatrol : Node3D
         float gap = ((ck - _s) % n + n) % n;                  // road metres to the car ahead
         if (gap > n * 0.5f) gap -= n;                        // ...or behind us
         _gapToCar = MathF.Abs(gap);
+        _kissing = true;      // his aim is to ram the car at once: no tailing it for a while first (2026-11-19), and he never settles for a gap
         int i = (int)_s % n;
         float turn = 0;
         Vector2 d0 = _t.CenterDir(i);
@@ -767,10 +768,6 @@ public partial class KozlikPatrol : Node3D
         _lat = Mathf.MoveToward(_lat, gap < 40f ? Math.Clamp(clat, -0.8f * hw, 0.8f * hw) : Lane * hw, 3f * dt);
         PlaceOnRoad(n);
 
-        bool onTail = MathF.Abs(gap) < TailGap + 2.5f && MathF.Abs(clat - _lat) < 2.2f;
-        _caughtT = onTail ? _caughtT + dt : Math.Max(0f, _caughtT - dt);
-        if (_kissing && (MathF.Abs(gap) > TailGap + 5f || MathF.Abs(clat - _lat) > 3f)) { _kissing = false; _caughtT = 0; }
-        else if (_caughtT >= CatchTime) _kissing = true;       // he lost the tail: back to chasing
         if (_kissing && gap > 0f && gap <= KissGap + 0.15f && MathF.Abs(clat - _lat) < 1.6f)
         {
             _kissing = false;

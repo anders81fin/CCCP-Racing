@@ -253,7 +253,7 @@ public partial class PhysicsTest
         float steadyMax = 0, prev = zone.HorseHip(0, 0).Rotation.X;
         for (int tick = 0; tick < 120 * 6; tick++) { drive.Step(dt, 262f); zone.Tick(dt, drive.Car); float h = zone.HorseHip(0, 0).Rotation.X; steadyMax = MathF.Max(steadyMax, MathF.Abs(h - prev)); prev = h; }
         zone.HorseHardStop(0);
-        float stopMax = 0, settled = -1, neutralAt = -1; prev = zone.HorseHip(0, 0).Rotation.X; float t0 = 0;
+        float stopMax = 0, neutralAt = -1; prev = zone.HorseHip(0, 0).Rotation.X; float t0 = 0;
         for (int tick = 0; tick < 120 * 3; tick++)
         {
             // The car stays away: no new scare, the horse only stands.

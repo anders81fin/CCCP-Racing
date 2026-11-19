@@ -18,7 +18,7 @@ public partial class PhysicsTest
             var patrol = new KozlikPatrol(); AddChild(patrol);
             patrol.Init(track, fx, null, null, 100);
             int n = track.Center.Length; int obs = track.Obstacles.Count; track.Obstacles.Add(new Obstacle(Vector2.Zero, 1.5f));
-            float m = 160f; bool passed = false, hit = false; float closest = 99f; float startS = 0;
+            float m = 160f; bool passed = false, hit = false; float closest = 99f;
             for (int frame = 0; frame < 60 * 150; frame++)
             {
                 m = (m + 2.5f / 60f) % n; int mi = (int)m; Vector2 d = track.CenterDir(mi); Vector2 pos = track.Center[mi] + new Vector2(-d.Y, d.X) * offset;

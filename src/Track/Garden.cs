@@ -65,7 +65,7 @@ public static class Garden
         for (int b = 0; b < 5; b++)
         {
             float x = bedX[b] + (b > 2 ? 0.9f : 0f);
-            float mid = (bz0 + bz1) * 0.5f, len = bz1 - bz0, yaw = 0f;
+            float mid = (bz0 + bz1) * 0.5f, len = bz1 - bz0;
             // The bed in 0.7 m lengths, each on the ground under it (a long box would float at one end on a slope), sunk a little into the slope across it.
             int segs = Math.Max(1, (int)MathF.Ceiling(len / 0.7f));
             for (int k = 0; k < segs; k++)

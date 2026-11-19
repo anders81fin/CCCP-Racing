@@ -102,6 +102,9 @@ public partial class RaceScene
     }
 
     /// <summary>The rescue tractor or the substeps of the car.</summary>
+    static readonly bool CarTelemetry = OS.HasEnvironment("CARTELE");
+    float _teleT;
+
     CarStepResult StepCar(float dt)
     {
         _maxImpact = 0;
@@ -131,6 +134,11 @@ public partial class RaceScene
                 suspHit = Math.Max(suspHit, _car.SuspensionHit);
                 pothole = Math.Max(pothole, _car.PotholeBangStep);
             }
+        if (CarTelemetry && (_teleT += dt) >= 0.1f)      // (CARTELE=1: the car's state ten times a second, for watching a slide or a coast)
+        {
+            _teleT = 0f;
+            GD.Print($"cartele t {_clock:F1} speed {_car.Speed:F2} vF {_car.ForwardSpeed:F2} lat {_car.Vel.Dot(_car.Right):F2} yaw {_car.AngVel.Y:F2} steer {_car.SteerAngle:F2} in {_car.SteerIn:F2} gas {_car.Throttle:F2} brake {_car.Brake:F1} hb {_car.Handbrake:F1} gear {_car.Gear} rpm {_car.Rpm:F0} slide {_car.Slide:F2} spun {_car.Spun}");
+        }
         return new CarStepResult(suspHit, pothole, speedIn, beforeDiscovery, startNoseBefore);
     }
 

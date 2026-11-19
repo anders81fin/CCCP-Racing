@@ -49,6 +49,10 @@ public partial class PhysicsTest : Node
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--kozlik-gulag-test")){KozlikGulagTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--tank-roam-test")){TankRoamTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--atomgrad-solid-test")){AtomgradSolidTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--lock-scrub-test")){LockScrubTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--yaw-low-test")){YawLowTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--scrub-rest-test")){ScrubRestTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--side-dig-test")){SideDigTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--tank-btr-test")){TankBtrTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--btr-clear-test")){BtrClearTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--busstop-leave-test")){BusStopLeaveTest();GetTree().Quit(_failures==0?0:1);return;}
@@ -446,6 +450,10 @@ public partial class PhysicsTest : Node
             GulagSolidsTest();
             BtrClearTest();
             TankBtrTest();
+            LockScrubTest();
+            YawLowTest();
+            ScrubRestTest();
+            SideDigTest();
             AtomgradSolidTest();
             GetTree().Quit(_failures == 0 ? 0 : 1);
             return;
@@ -592,6 +600,10 @@ public partial class PhysicsTest : Node
         GulagSolidsTest();
         BtrClearTest();
         TankBtrTest();
+        LockScrubTest();
+        YawLowTest();
+        ScrubRestTest();
+        SideDigTest();
         AtomgradSolidTest();
         StartHillAssistTest();
         HandbrakeThrottleTest();

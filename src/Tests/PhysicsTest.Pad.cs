@@ -80,7 +80,9 @@ public partial class PhysicsTest
         // 2 November: the owner's steering (MaxSteer 0.8, SteerSpeedFalloff 70, FastSteerAssist 0.46; before: 0.7, 50, 0.25) turns the same scenario
         // a little tighter and further (previously "25.386398 -57.631176 -3.06181 -1.9607791 0 1").
         // 2 November: the petrol car's power +25 % (MaxTorque 310 -> 387.5): previously "26.37102 -56.936016 -2.8184862 -0.68292654 0 1" (with the new steering).
-        const string Before = "26.301962 -29.718458 -0.0014739368 0.057875082 0 1";      // (9 November: the petrol car 200 Nm and 1050 kg)
+        // 19 November: the held steering scrubs a coasting car (CarSim LockScrub, stepless with the steering angle, off on the gas): previously "26.301962 -29.718458 -0.0014739368 0.057875082 0 1".
+        // 19 November: the yaw assist rises with speed, 1 up to 22 km/h to the car's own value at 50 km/h (CarParams YawAssistRest 3, on the gas the whole assist), then a coasting slide at walking pace brakes with its tyres (CarParams ScrubCancelRest 0; the car stops 6 m sooner): previously "25.048449 -26.867517 -0.0026894996 -0.021183811 0 1"; before that "23.873478 -27.274282 0.009058071 -0.021003325 0 1" (rest 1, no gas dependence), before that "24.374702 -26.570587 0.008153226 -0.021598017 0 1" (a fade below 30 km/h with no drive) and before that "25.245094 -27.426174 -0.007912164 -0.016527835 0 1".
+        const string Before = "18.789797 -22.453482 -0.0022275574 0.0011155719 0 1";      // (9 November: the petrol car 200 Nm and 1050 kg)
         string now = KeyPathScenario();
         GD.Print($"  key path: {now}");
         Check(now == Before, "keyboard trajectory retains the current idle/handling baseline (bit for bit)");

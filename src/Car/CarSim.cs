@@ -592,6 +592,17 @@ public partial class CarSim
                 tyre -= hvc / wheelSpeed * drag;
             }
 
+            // A tyre sliding sideways on soft, rough ground (grass, field, mud, deep snow) digs in: a drag against its motion that grows with the sideways share of that motion (2026-11-19: broadside on
+            // grass the car slowed 4.4 m/s², less than on the road; off the road it must brake as hard or harder). Off on the gas (1 - throttle): a power slide on grass keeps its speed as before.
+            // Not while spun round tail first: the dig below counts that.
+            if (!Spun && si.Loose && si.Rolling >= 0.05f && wheelSpeed > 0.3f && P.SideDig > 0f)
+            {
+                var hvc = new Vector3(vc.X, 0, vc.Z);
+                float sideways = Math.Clamp(MathF.Abs(vLat) / wheelSpeed, 0f, 1f);
+                float dig = Math.Min(P.SideDig * si.Rolling * fs * sideways * Math.Min(1f, wheelSpeed / 1.5f) * (1f - Math.Clamp(Throttle, 0f, 1f)), wheelSpeed * mShare / dt);
+                tyre -= hvc / wheelSpeed * dig;
+            }
+
             // Spun round on soft ground: the tyres sliding tail first or sideways dig in.
             if (Spun && si.Loose && si.Rolling >= 0.05f && wheelSpeed > 0.5f)
             {
@@ -667,7 +678,12 @@ public partial class CarSim
                 float alignment = heading.Dot(vdir) * (Gear >= 0 ? 1f : -1f);
                 along = Math.Clamp(alignment / 0.5f, 0f, 1f);
             }
-            if (scrub > 0) force += vdir * scrub * P.ScrubCancel * along;
+            // The forgiveness of a coasting car rises with speed: ScrubCancelRest (0) up to 22 km/h, steplessly to ScrubCancel at ScrubCancelFullSpeed; on the gas it is the whole of it at any speed.
+            // (2026-11-19, measured: at 8 m/s a car sliding sideways slowed down 2.5 m/s², a quarter of what its tyres grip, and so circled on at walking pace with nothing to stop it.)
+            float rest = Math.Min(P.ScrubCancelRest, P.ScrubCancel);
+            float coasting = rest + (P.ScrubCancel - rest) * Mathf.SmoothStep(ScrubHoldUntil, Math.Max(P.ScrubCancelFullSpeed, ScrubHoldUntil + 0.1f), hv.Length());
+            float cancel = coasting + (P.ScrubCancel - coasting) * Math.Clamp(Throttle, 0f, 1f);
+            if (scrub > 0) force += vdir * scrub * cancel * along;
         }
 
         Slide = slide;
@@ -823,7 +839,21 @@ public partial class CarSim
         float vLat = Vel.Dot(Right);
         float slideAmt = Math.Clamp(MathF.Atan2(Math.Abs(vLat), Math.Max(Math.Abs(vF), 1f)) / 0.35f, 0f, 1f);
         float slideRotate = slideAmt * P.SlideRotation;
-        float maxYaw = (grip * G * 1.05f + P.BaseRotation + looseRotate + slideRotate) / Math.Max(Math.Abs(vF), 2f);
+        // The yaw assist of a coasting car rises with speed: YawAssistRest (1/s) up to 22 km/h, steplessly to the car's own YawAssist at YawAssistFullSpeed; on the gas it is the whole of it at any speed.
+        // At walking pace with no drive the front tyres turn the car and the rear follows, instead of the assist forcing the nose round faster than the rear tyres can follow (the tail slid out sideways,
+        // 2026-11-19, measured: 0.84 m/s of rear slip at 5 m/s with the whole assist, 0.17 without). Whole too with the handbrake, a technique's swing or a car swapping ends (those need it).
+        float assistScale = 1f;
+        {
+            bool needed = Handbrake > 0 || Spun || Math.Abs(_rotBoost) > 0.1f;
+            if (!needed && P.YawAssist > 0f)
+            {
+                float rest = Math.Min(P.YawAssistRest, P.YawAssist);
+                float speedShare = Mathf.SmoothStep(YawAssistHoldUntil, Math.Max(P.YawAssistFullSpeed, YawAssistHoldUntil + 0.1f), new Vector2(Vel.X, Vel.Z).Length());
+                float coasting = rest + (P.YawAssist - rest) * speedShare;
+                assistScale = (coasting + (P.YawAssist - coasting) * Math.Clamp(Throttle, 0f, 1f)) / P.YawAssist;
+            }
+        }
+        float maxYaw = (grip * G * 1.05f + (P.BaseRotation + slideRotate) * assistScale + looseRotate) / Math.Max(Math.Abs(vF), 2f);
         float fastSteer = FastSteeringBoost();
         maxYaw *= 1f + fastSteer;
         target = Math.Clamp(target, -maxYaw, maxYaw);
@@ -850,7 +880,7 @@ public partial class CarSim
         }
         // Yaw authority falls off gently with grip (sqrt), so slippery ground still steers.
         float authority = MathF.Sqrt(Math.Min(grip, 1f));
-        torque += up * ((target - yawRate) * P.YawAssist * P.Inertia.Y * authority * hb);
+        torque += up * ((target - yawRate) * P.YawAssist * P.Inertia.Y * authority * hb * assistScale);
 
         // Bleed off drift by turning the velocity toward where the car points, keeping its speed:
         // a slide changes direction instead of scrubbing the car to a halt.
@@ -870,8 +900,28 @@ public partial class CarSim
             hv = hv.Rotated(ang * k);
             Vel = new Vector3(hv.X, Vel.Y, hv.Y);
         }
+        LockScrubStep(grip, dt);
     }
 
+    /// <summary>Deceleration (m/s², at full steering lock and good grip, gas off) from the turned front tyres dragging against the car's way: it grows steplessly with the steering angle (none with the wheels
+    /// straight, all of it at full lock), fades out between LockScrubFrom and LockScrubTo m/s, is off on the gas (1 - throttle) and follows the grip. A car left on a held wheel stops in a moment instead of
+    /// circling on with only the rolling resistance to slow it (2026-11-19, watched in play: 3 m/s at full lock took 4 s to stop).</summary>
+    const float LockScrub = 2.4f, LockScrubFrom = 6f, LockScrubTo = 12f;
+
+    void LockScrubStep(float grip, float dt)
+    {
+        float spd = new Vector2(Vel.X, Vel.Z).Length();
+        if (spd < 0.05f || P.MaxSteer <= 0f) return;
+        float lockShare = Math.Clamp(MathF.Abs(SteerAngle) / P.MaxSteer, 0f, 1f);
+        float a = LockScrub * lockShare * (1f - Math.Clamp(Throttle, 0f, 1f)) * Math.Min(grip, 1f) * (1f - Mathf.SmoothStep(LockScrubFrom, LockScrubTo, spd));
+        if (a <= 0f) return;
+        float keep = MathF.Max(0f, spd - a * dt) / spd;
+        Vel = new Vector3(Vel.X * keep, Vel.Y, Vel.Z * keep);
+    }
+
+    const float ScrubHoldUntil = 6f;      // (22 km/h: a coasting car's ScrubCancel holds its low value up to here, then rises)
+    const float YawAssistHoldUntil = 6f;      // (22 km/h: the coasting yaw assist holds its low value up to here, then rises; CarParams.YawAssistRest, YawAssistFullSpeed)
+    const float FlickFrom = 13.9f, FlickRamp = 3f;      // the Scandinavian flick starts above 50 km/h (13.9 m/s), whole 3 m/s above that
     float _rotBoost, _flickSide, _flickAge = 99f;
     /// <summary>The swing of a slide technique now (rad/s, signed as the yaw rate): tests, the school.</summary>
     public float RotationBoost => _rotBoost;
@@ -918,9 +968,9 @@ public partial class CarSim
         {
             float side = MathF.Sign(SteerIn);
             float share = Throttle < 0.4f || Brake > 0 ? 1f : P.FlickOnThrottle;
-            if (_flickSide != 0 && side != _flickSide && _flickAge < 0.7f && vF > 7f && share > 0f)
+            if (_flickSide != 0 && side != _flickSide && _flickAge < 0.7f && vF > FlickFrom && share > 0f)
             {
-                _rotBoost = into * (P.FlickRotate + 0.8f * MathF.Abs(yawRate)) * speedK * share;
+                _rotBoost = into * (P.FlickRotate + 0.8f * MathF.Abs(yawRate)) * speedK * share * Mathf.SmoothStep(FlickFrom, FlickFrom + FlickRamp, vF);      // (none below 50 km/h, growing steplessly over the next 3 m/s)
                 LastTechnique = "flick";
                 LastFlickLifted = share >= 1f;
                 _techSlideT = 0f;

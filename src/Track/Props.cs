@@ -984,24 +984,65 @@ public static partial class Props
     /// <summary>A round bale on its side (axis along X), settled under its own weight: the rolled layers
     /// show on both ends, twine bands round it, loose straw sticking out and lying about its foot;
     /// the shade and the stray straw differ from bale to bale. One batched mesh.</summary>
-    /// <summary>A loose rock or boulder (size 0.4 small stone .. 1.6 boulder): two or three squashed grey lumps, part sunk in the ground, a mossy tint on some.</summary>
+    /// <summary>A loose rock or boulder (size 0.4 small stone .. 1.6 boulder): one to three angular, flat-shaded blocks in pale cold grey, part sunk in the ground. 2026-11-19: the old rocks were soft grey-green
+    /// lumps that read as bushes from the road; now they are sharp-edged, lighter and never green, so a player sees at once that this is stone.</summary>
     static Node3D Rock(float size, int seed)
     {
         var n = new Node3D();
         var rng = new RandomNumberGenerator { Seed = (ulong)Math.Abs(seed) + 17 };
         int lumps = size > 1.0f ? 3 : size > 0.6f ? 2 : 1;
-        bool moss = rng.Randf() < 0.45f;
         for (int k = 0; k < lumps; k++)
         {
-            float r = (k == 0 ? 0.62f : rng.RandfRange(0.28f, 0.45f)) * size;
-            float grey = rng.RandfRange(0.42f, 0.58f);
-            Color c = moss && k == 0 ? new Color(grey * 0.78f, grey * 0.9f, grey * 0.66f) : new Color(grey, grey * 0.97f, grey * 0.9f);
-            var lump = Part(Ball(r, 7), c, new Vector3(k == 0 ? 0 : rng.RandfRange(-0.7f, 0.7f) * size, r * 0.35f, k == 0 ? 0 : rng.RandfRange(-0.7f, 0.7f) * size),
-                new Vector3(rng.RandfRange(-12, 12), rng.RandfRange(0, 360), rng.RandfRange(-12, 12)));
-            lump.Scale = new Vector3(rng.RandfRange(1.0f, 1.35f), rng.RandfRange(0.55f, 0.8f), rng.RandfRange(0.85f, 1.2f));
+            float r = (k == 0 ? 0.7f : rng.RandfRange(0.32f, 0.5f)) * size;
+            float grey = rng.RandfRange(0.62f, 0.74f);
+            var c = new Color(grey * 0.97f, grey, grey * 1.04f);
+            var lump = Part(FacetRock(rng.RandiRange(0, RockVariants - 1)), c, new Vector3(k == 0 ? 0 : rng.RandfRange(-0.75f, 0.75f) * size, 0, k == 0 ? 0 : rng.RandfRange(-0.75f, 0.75f) * size),
+                new Vector3(rng.RandfRange(-6, 6), rng.RandfRange(0, 360), rng.RandfRange(-6, 6)));
+            lump.Scale = new Vector3(r, r * rng.RandfRange(0.8f, 1.1f), r * rng.RandfRange(0.85f, 1.15f));
             n.AddChild(lump);
         }
         return n;
+    }
+
+    const int RockVariants = 6;
+    static readonly ArrayMesh[] _rockMeshes = new ArrayMesh[RockVariants];
+
+    /// <summary>One boulder of unit size: a flat-topped, five-sided block, its upper ring jittered in radius and height so every face is a different angle. Flat normals: each facet takes the light on its own. Shared by variant.</summary>
+    static ArrayMesh FacetRock(int variant)
+    {
+        if (_rockMeshes[variant] != null) return _rockMeshes[variant];
+        var rng = new RandomNumberGenerator { Seed = (ulong)variant * 7919UL + 311UL };
+        const int Sides = 5;
+        var low = new Vector3[Sides]; var mid = new Vector3[Sides]; var top = new Vector3[Sides];
+        float phase = rng.RandfRange(0, MathF.Tau);
+        for (int i = 0; i < Sides; i++)
+        {
+            float a = phase + i * MathF.Tau / Sides + rng.RandfRange(-0.28f, 0.28f);
+            Vector3 dir = new(MathF.Cos(a), 0, MathF.Sin(a));
+            low[i] = dir * rng.RandfRange(0.95f, 1.25f) + Vector3.Down * 0.15f;
+            mid[i] = dir * rng.RandfRange(0.8f, 1.2f) + Vector3.Up * rng.RandfRange(0.25f, 0.5f);
+            top[i] = dir * rng.RandfRange(0.32f, 0.6f) + Vector3.Up * rng.RandfRange(0.75f, 1.0f);
+        }
+        var inside = new Vector3(0, 0.4f, 0);
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        void Tri(Vector3 a, Vector3 b, Vector3 c)
+        {
+            Vector3 normal = (b - a).Cross(c - a).Normalized();
+            if (normal.Dot((a + b + c) / 3f - inside) < 0f) { (b, c) = (c, b); normal = -normal; }      // (the normal out; the front face is clockwise, so the corners go a, c, b)
+            st.SetNormal(normal); st.AddVertex(a);
+            st.SetNormal(normal); st.AddVertex(c);
+            st.SetNormal(normal); st.AddVertex(b);
+        }
+        for (int i = 0; i < Sides; i++)
+        {
+            int j = (i + 1) % Sides;
+            Tri(low[i], low[j], mid[j]); Tri(low[i], mid[j], mid[i]);
+            Tri(mid[i], mid[j], top[j]); Tri(mid[i], top[j], top[i]);
+        }
+        var crown = new Vector3(rng.RandfRange(-0.1f, 0.1f), rng.RandfRange(0.95f, 1.1f), rng.RandfRange(-0.1f, 0.1f));
+        for (int i = 0; i < Sides; i++) Tri(top[i], top[(i + 1) % Sides], crown);
+        return _rockMeshes[variant] = st.Commit();
     }
 
     /// <summary>A felled tree's stump: a short trunk with a pale cut top, a few root flares and, on some, a chipped notch.</summary>

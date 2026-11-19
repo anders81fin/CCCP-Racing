@@ -171,7 +171,7 @@ public partial class PhysicsTest
     {
         foreach (var fuel in new[] { FuelGrade.Diesel, FuelGrade.Petrol, FuelGrade.Rocket, FuelGrade.Sputnik })
         {
-            (float J, float t100, float mid, float t400, float g1, float p) best = (1e9f, 0, 0, 0, 0, 0), cur = default;
+            (float J, float t100, float mid, float t400, float g1, float p) best = (1e9f, 0, 0, 0, 0, 0);
             for (int gi = 0; gi <= 12; gi++) for (int pi = 0; pi <= 6; pi++)
             {
                 float g1 = 3.4f + 0.2f * gi, pw = 0.9f + 0.1f * pi;

@@ -1508,3 +1508,11 @@ src/Tests/PhysicsTest.TankBtr.cs
 src/Tests/PhysicsTest.TankBtr.cs.uid
 src/Tests/PhysicsTest.AtomgradSolid.cs
 src/Tests/PhysicsTest.AtomgradSolid.cs.uid
+src/Tests/PhysicsTest.LockScrub.cs
+src/Tests/PhysicsTest.LockScrub.cs.uid
+src/Tests/PhysicsTest.YawLow.cs
+src/Tests/PhysicsTest.YawLow.cs.uid
+src/Tests/PhysicsTest.ScrubRest.cs
+src/Tests/PhysicsTest.ScrubRest.cs.uid
+src/Tests/PhysicsTest.SideDig.cs
+src/Tests/PhysicsTest.SideDig.cs.uid

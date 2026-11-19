@@ -79,7 +79,13 @@ public partial class CarParams : Resource
     [Export] public float DriveWheelInertia { get; set; } = 1.2f;
     [Export] public float EngineInertia { get; set; } = 0.04f;
     /// <summary>Fraction of sliding-tyre scrub that does not slow the car (0 = realistic, 1 = none).</summary>
+    /// <summary>Soft ground (grass, field, mud, deep snow): a tyre sliding sideways digs in and the rough ground catches it, this many times the surface's rolling resistance times the share of the wheel's motion that is sideways (nothing rolling straight, all of it broadside). Off the road a car sliding sideways brakes about as hard as on it.</summary>
+    [Export] public float SideDig { get; set; } = 4.5f;
     [Export] public float ScrubCancel { get; set; } = 0.7f;
+    /// <summary>ScrubCancel of a coasting car at walking pace (up to 22 km/h): 0 is realistic (a sliding car brakes as hard as its tyres grip), so a slide at walking pace takes the speed off. It rises from here to ScrubCancel at ScrubCancelFullSpeed; on the gas the whole ScrubCancel applies at any speed.</summary>
+    [Export] public float ScrubCancelRest { get; set; } = 0f;
+    /// <summary>Speed (m/s) at which a coasting car's ScrubCancel has risen to its full value (13.9 = 50 km/h).</summary>
+    [Export] public float ScrubCancelFullSpeed { get; set; } = 13.9f;
     /// <summary>Longitudinal grip multiplier while braking: arcade brakes that stop 1.5× harder.</summary>
     [Export] public float BrakeGrip { get; set; } = 1.5f;
     /// <summary>Remaining arcade steering authority with both front tyres brake-locked.</summary>
@@ -139,6 +145,10 @@ public partial class CarParams : Resource
     [Export] public float PadSteerRate { get; set; } = 30f;
     /// <summary>Per second: how hard yaw is pulled toward what the steering asks for.</summary>
     [Export] public float YawAssist { get; set; } = 6f;
+    /// <summary>The yaw assist (1/s) of a coasting car at walking pace (up to 22 km/h): it rises from here to YawAssist at YawAssistFullSpeed, and on the gas it is YawAssist at any speed. Low, the car does not swing its tail out when coasting round a turn; high, it turns more sharply at walking pace.</summary>
+    [Export] public float YawAssistRest { get; set; } = 3f;
+    /// <summary>Speed (m/s) at which a coasting car's yaw assist has risen to YawAssist (13.9 = 50 km/h).</summary>
+    [Export] public float YawAssistFullSpeed { get; set; } = 13.9f;
     /// <summary>Rotation headroom (m/s²) beyond tyre grip on any surface: how eagerly the nose tucks in.</summary>
     [Export] public float BaseRotation { get; set; } = 5f;
     /// <summary>Per second: how fast the velocity swings toward the car's heading (drift bleed-off).</summary>
