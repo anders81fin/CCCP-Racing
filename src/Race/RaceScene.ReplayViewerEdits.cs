@@ -124,8 +124,7 @@ public partial class RaceScene
                 _wKeys.Add((k.T, m));
             }
             _wLoop = e.Playback.Loop; _wOverlay = e.Playback.Overlay; _wSpeed = Speeds.Contains(e.Playback.Speed) ? e.Playback.Speed : 1f;
-            var cam = ModeOf(e.Playback.Camera);
-            if (cam == ViewerCameraMode.TopDown) cam = ViewerCameraMode.Auto;      // (a replay always opens in the automatic broadcast: the old saved default, top-down, is that now)
+            var cam = ModeOf(LapEdits.OwnCamera(e.Playback.Camera, e.Version));      // (a file older than version 4 saved top-down as every lap's default: that is the TV broadcast the viewer opens in now; from version 4 on it is the DIRECTED camera the player chose)
             if (!avail.Contains(cam)) { cam = ViewerCameraMode.TopDown; lost = true; }
             _wCamera = cam;
             if (lost) SetNotice("A SAVED CAMERA IS NOT FOUND YET - TOP-DOWN USED", 6f);
@@ -157,7 +156,7 @@ public partial class RaceScene
 
         // row ids: 0 IN, 1 OUT, 2 CLEAR TRIM, 3 TRIM, 4 ADD KEY, 5 CLEAR KEYS, 6 LOOP, 7 PIN, 8 SAVE, 9 RESET, 10 CLOSE, 11 EXPORT MP4, 12 KEEP/RENAME
         // A kept lap lists all of them; a lap that is not kept lists EXPORT (always available), KEEP, and CLOSE.
-        int[] EditRowIds() => _editable ? new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 10 } : new[] { 11, 12, 13, 10 };
+        int[] EditRowIds() => _editable ? new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 12, 11, 10 } : new[] { 13, 12, 11, 10 };      // (the owner's order, 2026-11-21: the edit rows of a kept lap, then FREE CAMERA, KEEP / RENAME RECORDING, EXPORT MP4, CLOSE)
 
         string[] EditRows()
         {

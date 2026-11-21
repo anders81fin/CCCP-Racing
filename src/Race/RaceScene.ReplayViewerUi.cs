@@ -145,6 +145,7 @@ public partial class RaceScene
         void UiBack()
         {
             if (_state == ReplayViewerState.Building) Close("REPLAY CANCELLED");
+            else if (_overlayHidden && !_exportChild && !PrefsBlocked()) UiToggleOverlay();      // (the hidden overlay comes back first: Esc / B leave the hide mode, the next one leaves the viewer)
             else if (EditBack()) { }      // (a save in flight, the open panel or unsaved edits answer first)
             else Close();
         }

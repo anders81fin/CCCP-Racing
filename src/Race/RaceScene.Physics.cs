@@ -192,8 +192,10 @@ public partial class RaceScene
                 if (!_roofHinted)
                 {
                     _roofHinted = true;
-                    _hud.Show(Slogans.Pick(Slogans.Flip), _padMode ? "PRESS B TO GET BACK ON THE ROAD" : "PRESS R TO GET BACK ON THE ROAD", 3f, Hud.Red, Prio.Critical,
-                        plain: "UPSIDE DOWN", plainSub: _padMode ? "PRESS B TO GET BACK ON THE ROAD" : "PRESS R TO GET BACK ON THE ROAD");
+                    // the action and the lap's fate in the heading, the joke below
+                    string flipKey = _padMode ? "B" : "R", flipCost = InLanRace ? "THE CLOCK KEEPS RUNNING" : "LAP VOID";
+                    _hud.Show($"UPSIDE DOWN: PRESS {flipKey}, {flipCost}", Slogans.Pick(Slogans.Flip), 3f, Hud.Red, Prio.Critical,
+                        plain: $"UPSIDE DOWN: PRESS {flipKey}", plainSub: flipCost);
                 }
                 if (_car.UpsideDownTime > AutoRescue) CallMechanic();
             }

@@ -159,7 +159,8 @@ public partial class RaceScene
         if (s == null) yield break;
         var v = s.Scene;
         v.ViewerSetPaused(true);
-        VwCheck(v.ViewerCamera == ViewerCameraMode.Auto, "the viewer's default camera is the automatic broadcast");
+        VwCheck(v.ViewerCamera == ViewerCameraMode.Auto, "the viewer's default camera is the TV broadcast");
+        v.ViewerCamera = ViewerCameraMode.TopDown;      // (the live game's default is the DIRECTED camera: that is the one the viewer must frame identically; the broadcast cuts between cameras of its own)
         bool cfg = v._cam.Offset == _cam.Offset && v._cam.FollowRate == _cam.FollowRate && v._cam.LookAhead == _cam.LookAhead && v._cam.ShakeEnabled == _cam.ShakeEnabled;
         VwLog("camera-config", ("live_offset", _cam.Offset), ("viewer_offset", v._cam.Offset), ("live_follow_rate", _cam.FollowRate), ("viewer_follow_rate", v._cam.FollowRate), ("live_lookahead", _cam.LookAhead), ("viewer_lookahead", v._cam.LookAhead),
             ("live_fov", _cam.Fov), ("viewer_fov", v._cam.Fov), ("live_near_far", $"{_cam.Near}/{_cam.Far}"), ("viewer_near_far", $"{v._cam.Near}/{v._cam.Far}"), ("live_shake", _cam.ShakeEnabled), ("viewer_shake", v._cam.ShakeEnabled));
@@ -182,6 +183,7 @@ public partial class RaceScene
                 var pos = p0 + vel * (f * dt);
                 _car.Pos = pos; v._car.Pos = pos;
                 // the live Racing frame with the channels a ghost has: the feel of the speed, no rumble, no drive acceleration, no landing
+                if (_track.ViewZones.Count > 0) ViewZoneFeel();      // (the directed view's pull-back on the hard parts: the viewer's CameraFeel does it too)
                 _cam.Acceleration(_car.Vel, 0f, dt); _cam.Feel(_car.Speed * 3.6f, 0f, false, 0f, dt); _cam.FollowDrive(_car.Pos, _car.Vel, dt);
                 v.ViewerGameplayCameraFrameForTest(dt);
                 if (f % 75 == 0)
@@ -237,7 +239,7 @@ public partial class RaceScene
 
     /// <summary>
     /// The viewer's cameras with the extra gameplay views locked and unlocked (scenario cam-unlocked). The child runs on a temporary data dir (--data-dir), so unlocking through the game's own
-    /// CameraDiscoveries API touches no real profile. Locked: TOP-DOWN and AUTO only. Unlocked: BONNET and CINEMATIC too; each is reached through the C key of the actual viewer, checked for a finite
+    /// CameraDiscoveries API touches no real profile. Locked: DIRECTED, CLASSIC, ROAD-ALIGNED and TV BROADCAST. Unlocked: BONNET and the three FOLLOW-BEHIND ones too; each is reached through the C key of the actual viewer, checked for a finite
     /// pose, a sane fov and a camera that stays near the car through play, pause, seek and a switch; then back and cleanup.
     /// </summary>
     IEnumerable VwCamUnlocked()
@@ -255,9 +257,9 @@ public partial class RaceScene
         if (s == null) yield break;
         for (int i = 0; i < 30; i++) yield return null;
         var seen = new List<ViewerCameraMode> { s.Scene.ViewerCamera };
-        for (int k = 0; k < 4; k++) { foreach (var x in VrTap(Key.C)) yield return x; seen.Add(s.Scene.ViewerCamera); }
+        for (int k = 0; k < 4; k++) { foreach (var x in VrTap(Key.C)) yield return x; seen.Add(s.Scene.ViewerCamera); }   // locked ring: DIRECTED, CLASSIC, ROAD-ALIGNED, TV BROADCAST
         VwLog("locked-cycle", ("modes", string.Join(",", seen)));
-        VwCheck(!seen.Contains(ViewerCameraMode.Bonnet) && !seen.Contains(ViewerCameraMode.Cinematic) && seen.Contains(ViewerCameraMode.Auto) && seen[0] == ViewerCameraMode.TopDown && seen[2] == ViewerCameraMode.TopDown, $"locked: C cycles TOP-DOWN and AUTO only ({string.Join(",", seen)})");
+        VwCheck(seen.SequenceEqual(new[] { ViewerCameraMode.Auto, ViewerCameraMode.TopDown, ViewerCameraMode.Classic, ViewerCameraMode.RoadAligned, ViewerCameraMode.Auto }), $"locked: C cycles from the TV BROADCAST the viewer opens on: DIRECTED, CLASSIC, ROAD-ALIGNED, TV BROADCAST again ({string.Join(",", seen)})");
         s.Close();
         foreach (var x in VrUntil(() => ReplayViewer == null && s.State == ReplayViewerState.Closed, 60 * 30, "locked viewer closed")) yield return x;
 
@@ -270,7 +272,7 @@ public partial class RaceScene
         var v = s.Scene;
         for (int i = 0; i < 30; i++) yield return null;
         var order = new List<ViewerCameraMode> { v.ViewerCamera };
-        for (int k = 0; k < 4; k++)
+        for (int k = 0; k < 8; k++)
         {
             foreach (var x in VrTap(Key.C)) yield return x;
             order.Add(v.ViewerCamera);
@@ -300,7 +302,7 @@ public partial class RaceScene
             Frame("playing again");
         }
         VwLog("unlocked-cycle", ("modes", string.Join(",", order)));
-        VwCheck(order.Contains(ViewerCameraMode.Bonnet) && order.Contains(ViewerCameraMode.Cinematic) && order.Contains(ViewerCameraMode.Auto) && order[0] == ViewerCameraMode.TopDown && order[4] == ViewerCameraMode.TopDown, $"unlocked: C cycles TOP-DOWN, BONNET, CINEMATIC, AUTO and back ({string.Join(",", order)})");
+        VwCheck(order.SequenceEqual(new[] { ViewerCameraMode.Auto, ViewerCameraMode.TopDown, ViewerCameraMode.Classic, ViewerCameraMode.Bonnet, ViewerCameraMode.CinematicClose, ViewerCameraMode.Cinematic, ViewerCameraMode.CinematicFar, ViewerCameraMode.RoadAligned, ViewerCameraMode.Auto }), $"unlocked: C cycles from the TV BROADCAST the viewer opens on: DIRECTED, CLASSIC, BONNET, FOLLOW-BEHIND CLOSE, FOLLOW-BEHIND, FOLLOW-BEHIND FAR, ROAD-ALIGNED, TV BROADCAST again ({string.Join(",", order)})");
         foreach (var x in VrTap(Key.Escape)) yield return x;
         foreach (var x in VrUntil(() => ReplayViewer == null && s.State == ReplayViewerState.Closed, 60 * 30, "unlocked viewer closed by ESC")) yield return x;
         for (int i = 0; i < 10; i++) yield return null;
@@ -684,6 +686,15 @@ public partial class RaceScene
         foreach (var x in VrShot("meeting-with-laps")) yield return x;
         var sigMeeting = VwSig();
         var filesBefore = VrFiles();      // (the lap just driven wrote its own records; from here on only the viewer is used)
+        // The lap's pair (ghost and tape) and its first record are written by a worker a little after the lap: wait until the files stop changing, so only the viewer's own writes could differ afterwards.
+        for (int settle = 0; settle < 20; settle++)
+        {
+            for (int i = 0; i < 60; i++) yield return null;
+            var again = VrFiles();
+            bool same = again.Count == filesBefore.Count && again.All(kv => filesBefore.GetValueOrDefault(kv.Key) == kv.Value);
+            filesBefore = again;
+            if (same) break;
+        }
         OpenReplayList();      // (the list: BROWSE LAPS exists from two laps on, where a list never opens a lap by itself; WATCH LAST LAP is checked in the watch-lap scenario)
         _replayAutoSingle = false;      // (one lap would be opened directly: the list is what this scenario drives)
         foreach (var x in VrUntil(() => _hud.ReplayListOpen && _hud.ReplayList.Rows.Length >= 1, 60 * 5, "the list shows the lap")) yield return x;
@@ -761,7 +772,16 @@ public partial class RaceScene
         for (int i = 0; i < 4; i++) yield return null;
         VwCheck(!s.OverlayView.Shown, "H hides the overlay");
         foreach (var x in VrShot("viewer-overlay-hidden")) yield return x;
+        // Esc leaves the hide mode first (the viewer stays open), and so does the pad's B; the next Esc would close the viewer
+        foreach (var x in VrTap(Key.Escape)) yield return x;
+        for (int i = 0; i < 6; i++) yield return null;
+        VwCheck(s.OverlayView.Shown && s.State == ReplayViewerState.Playing, "Esc in the hide mode brings the overlay back and the viewer stays open");
         foreach (var x in VrTap(Key.H)) yield return x;
+        for (int i = 0; i < 4; i++) yield return null;
+        VwCheck(!s.OverlayView.Shown, "H hides it again");
+        foreach (var x in VrPad(JoyButton.B)) yield return x;
+        for (int i = 0; i < 6; i++) yield return null;
+        VwCheck(s.OverlayView.Shown && s.State == ReplayViewerState.Playing, "the pad's B in the hide mode brings the overlay back and the viewer stays open");
         foreach (var x in VrTap(Key.Space)) yield return x;
         for (int i = 0; i < 30; i++) yield return null;
         VwCheck(!s.Scene.ViewerPaused, "SPACE plays again");
@@ -864,6 +884,8 @@ public partial class RaceScene
         VwCheck(s.Scene.ViewerCamera != ViewerCameraMode.Auto, "pad Y changes the camera (a viewer opens on the automatic broadcast)");
         foreach (var x in VrPad(JoyButton.X)) yield return x;
         VwCheck(!s.OverlayView.Shown, "pad X hides the overlay");
+        foreach (var x in VrPad(JoyButton.B)) yield return x;      // (the first B only brings the hidden overlay back)
+        VwCheck(s.OverlayView.Shown && s.State == ReplayViewerState.Playing, "pad B on the hidden overlay shows it again and the viewer stays open");
         foreach (var x in VrPad(JoyButton.B)) yield return x;
         if (s.Editable)
         {

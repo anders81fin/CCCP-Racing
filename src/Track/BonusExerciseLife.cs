@@ -21,7 +21,7 @@ public partial class BonusExerciseLife : Node3D
     readonly List<Worker> _workers = new();
     TrackData _track;
     TyreEffects _fx;
-    float _time, _smoke, _alarm, _kitchenCooldown;
+    float _time, _smoke, _alarm, _kitchenCooldown, _soupBubble;
     Vector3 _shot;
     AudioStreamPlayer _radio;
     DieselSound _generator,_campGenerator;
@@ -139,7 +139,7 @@ public partial class BonusExerciseLife : Node3D
     }
     public void Reset()
     {
-        _time=_smoke=_alarm=_kitchenCooldown=0;
+        _time=_smoke=_alarm=_kitchenCooldown=_soupBubble=0;
         if(_combineWheels!=null) _combineWheels.Rotation=Vector3.Zero;
         if(_combineReel!=null) _combineReel.Rotation=Vector3.Zero;
         _radio?.Stop();
@@ -149,7 +149,12 @@ public partial class BonusExerciseLife : Node3D
     {
         _shot=at; _alarm=2.8f;
         if(car!=null && at.DistanceTo(Ground(_track,BonusAirbase.Kitchen.X,BonusAirbase.Kitchen.Y))<260 && car.Pos.DistanceTo(Ground(_track,BonusAirbase.Kitchen.X,BonusAirbase.Kitchen.Y))<60 && _kitchenCooldown<=0)
-        { SoupUnshaken?.Invoke(); _kitchenCooldown=75; }
+        { SoupUnshaken?.Invoke(); _soupBubble=3.4f; _kitchenCooldown=75; }
+    }
+    /// <summary>The cook's remark when a shell lands near the field kitchen (a speech bubble over the kitchen, where the cook is, not a line on the HUD): the soup has seen worse. The distances that make it relevant are in Shot().</summary>
+    public System.Collections.Generic.IEnumerable<(Vector3 pos, string text)> ActiveShouts()
+    {
+        if(_soupBubble>0) yield return (Ground(_track,BonusAirbase.Kitchen.X,BonusAirbase.Kitchen.Y)+Vector3.Up*2.7f, "СУП ВИДАЛ И ХУЖЕ.");
     }
     public void RadioCall(Vector3 target,CarSim car)
     {
@@ -158,7 +163,7 @@ public partial class BonusExerciseLife : Node3D
     public void SetAudioPaused(bool paused) { _radio.StreamPaused=paused; _generator.StreamPaused=paused; _campGenerator.StreamPaused=paused; }
     public void Tick(float dt,CarSim car,Vector3? taxi,bool batteryAlert)
     {
-        _time+=dt; _alarm=Math.Max(0,_alarm-dt); _kitchenCooldown-=dt; _smoke-=dt;
+        _time+=dt; _alarm=Math.Max(0,_alarm-dt); _kitchenCooldown-=dt; _smoke-=dt; _soupBubble=Math.Max(0,_soupBubble-dt);
         if(_smoke<=0)
         {
             _smoke=.24f;

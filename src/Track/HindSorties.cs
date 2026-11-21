@@ -80,6 +80,8 @@ public partial class HindSorties : Node3D
         return false;
     }
     public void GroundShot(Vector3 at, CarSim car) => _life?.Shot(at, car);
+    /// <summary>The cook's bubble at the field kitchen.</summary>
+    public System.Collections.Generic.IEnumerable<(Vector3 pos, string text)> ActiveShouts() => _life?.ActiveShouts() ?? System.Array.Empty<(Vector3, string)>();
     static readonly bool DebugSorties = OS.HasEnvironment("HINDDBG");
     float _debugClock;
     int _debugImpacts, _debugProtectedImpacts;

@@ -78,12 +78,13 @@ public partial class Hud
         string earned = LapsRewardSource + " / SOCIALIST RALLY / " + Campaign.Name(_lapsRewardMedal);
         PixelFont.DrawCentered(this, earned, cx, starY + (_lapsRewardRally ? 28 : 23), medal);
         string text = _lapsRewardRally ? "SOCIALIST RALLY UNLOCKED" : "STAKHANOV LAPS AUTHORIZED";
-        int scale = !compact && PixelFont.Measure(text, 2) < Screen.X - 24 ? 2 : 1;
+        int scale = !compact && PixelFont.Measure(text, 2) < card.Size.X - 16 ? 2 : 1;      // (the letters that fit the CARD, not the screen: the stamp stays inside the card's frame)
         float y = card.Position.Y + optionY + (compact ? 4 : 3);
         // The authorization is stamped directly across the still grey track names.
         if (age < 2.5f)
         {
-            DrawRect(new Rect2(4, y - 2, Screen.X - 8, 7 * scale + 4), new Color(0.08f, 0.07f, 0.06f, 0.9f));
+            float barW = Math.Min(card.Size.X - 8, PixelFont.Measure(text, scale) + 16);      // (a bar as wide as the stamp, in the card: it was the whole screen's width)
+            DrawRect(new Rect2(Mathf.Floor(cx - barW / 2), y - 2, Mathf.Ceil(barW), 7 * scale + 4), new Color(0.08f, 0.07f, 0.06f, 0.9f));
             DrawTypewriter(text, cx, y, Gold, Math.Max(0, age - 0.5f), RewardTypewriterRate, scale, HeadingShadow);
         }
         else PixelFont.DrawCentered(this, _lapsRewardRally ? "RALLY UNLOCKED!" : "AUTHORIZED", cx, card.End.Y - 12, Gold);

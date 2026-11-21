@@ -56,13 +56,16 @@ public sealed record LapEditsPlayback
 
 public sealed record LapEdits
 {
-    public const int CurrentVersion = 3;
+    /// <summary>1 the original sidecar, 2 free-camera keys, 3 animated shots, 4 the lap's own camera may be DIRECTED ("TopDown"): in a file of version 3 or older "TopDown" is the old default and the viewer reads it as the TV broadcast (LapEdits.OwnCamera).</summary>
+    public const int CurrentVersion = 4;
     public const string TopDown = "TopDown", Bonnet = "Bonnet", Cinematic = "Cinematic", Auto = "Auto", Free = "Free", Classic = "Classic", CinematicClose = "CinematicClose", CinematicFar = "CinematicFar", RoadAligned = "RoadAligned";      // (Cinematic is the medium follow-behind view; the last three were added later)
     public const string Absent = "absent";
     public static readonly string[] CameraModes = { TopDown, Bonnet, Cinematic, Auto, Free, Classic, CinematicClose, CinematicFar, RoadAligned };
     public static readonly string[] PresetCameraModes = { TopDown, Bonnet, Cinematic, Auto, Classic, CinematicClose, CinematicFar, RoadAligned };
     /// <summary>The viewer's speed set (RaceScene.ReplayViewerUi Speeds).</summary>
     public static readonly float[] Speeds = { 0.25f, 0.5f, 1f, 2f };
+    /// <summary>The camera a lap opens in before its first camera key. A file older than version 4 saved "TopDown" as the default every lap had, and the viewer has opened laps in the TV broadcast since: that value reads as Auto there. From version 4 on it means the DIRECTED camera the player chose.</summary>
+    public static string OwnCamera(string saved, int fileVersion) => saved == TopDown && fileVersion < 4 ? Auto : saved;
     public const int MaxCameraKeys = 256;
     public const long MaxFileBytes = 1 << 20;
 

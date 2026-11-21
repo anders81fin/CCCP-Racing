@@ -211,6 +211,9 @@ public partial class RaceScene
             return true;
         }
         var ctx = PadContext();
+        // A new screen (the context changed since PadFrame last looked): the held keys of the old one are let go of NOW, before this press is made a key. PadFrame would do it a frame later, after the press: a press in the first
+        // frame of a screen (on a Steam Deck that frame can last two seconds, and everything pressed meanwhile arrives in the frame after it) was let go of again before the game had read it.
+        if (ctx != _padCtx) { ReleasePadKeys(); _padHeld = null; _padCtx = ctx; }
         bool dpad = b is JoyButton.DpadUp or JoyButton.DpadDown or JoyButton.DpadLeft or JoyButton.DpadRight;
         if (!echo && dpad && (ctx is PadCtx.Title or PadCtx.Menu or PadCtx.Wheel or PadCtx.Pause || ctx == PadCtx.Race && _labOpen))
         {
@@ -269,6 +272,12 @@ public partial class RaceScene
                 };
                 break;
             case PadCtx.Title:
+                if (TitleSettingsOpen && !_titleMenuHidden)
+                {
+                    // SETTINGS and its screens (VISUALS, SOUNDS) in the main menu: the same buttons as in the Party Meeting's SETTINGS (above): B, Start and VIEW go one screen back, A chooses, Y shows the keys.
+                    key = b switch { JoyButton.A => Key.Enter, JoyButton.B or JoyButton.Start or JoyButton.Back => Key.Escape, JoyButton.Y when _hud.SettingsOpen && !_hud.VisualOpen && !_hud.MixerOpen => Key.K, _ => DpadKey(b) };
+                    break;
+                }
                 if (_titleMenuHidden) { key = Key.Space; break; }      // any button brings the menu back
                 if (b == JoyButton.RightShoulder && TitleMenuToggleAllowed) { key = Key.Space; break; }      // RB hides it (Space on the keys)
                 if (TitleDirect)
@@ -301,13 +310,13 @@ public partial class RaceScene
     }
 
     /// <summary>
-    /// The pad's Back button (the small one left of the big centre button) on the title menu: PARTY OFFICE opens (on KGB FILES,
-    /// also from the KGB FILES row), and in PARTY OFFICE it hands in the resignation. B is always just back (Esc) one level.
+    /// The pad's Back button (the small one left of the big centre button) on the title menu: PARTY OFFICE opens with RESIGN selected
+    /// (as Esc on the top row does), and in PARTY OFFICE it hands in the resignation. B is always just back (Esc) one level.
     /// </summary>
     void PadBackButtonOnTitle()
     {
         if (_menuParent == MenuItem.Office) { AskResignation(); return; }
-        OpenMenu(MenuItem.Office, MenuItem.Files);
+        OpenMenu(MenuItem.Office, _menuParent == MenuItem.Files ? MenuItem.Files : MenuItem.Quit);      // (PARTY OFFICE with RESIGN selected, as Esc on the top row; from the KGB FILES row it stays on KGB FILES)
     }
 
     static Key DpadKey(JoyButton b) => b switch

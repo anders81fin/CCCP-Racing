@@ -36,6 +36,7 @@ public partial class Hud
         public bool Top;          // the alert line (else the comment in the middle)
         public bool Ages;         // posted while frozen (a key's confirmation): its clock runs anyway
         public float Waited;      // in the queue
+        public System.Func<bool> Valid;      // asked when it comes off the queue: false drops it (the situation it was about has passed)
     }
 
     Message _center, _top;
@@ -60,11 +61,13 @@ public partial class Hud
     /// <summary>A comment in the middle of the screen.</summary>
     /// <param name="plain">What it says with the comments off (TAB): the news without the joke (null: the message as it is).</param>
     /// <param name="plainSub">The plain version's second line.</param>
-    public void Show(string text, string sub = null, float duration = 2.5f, Color? color = null, Prio prio = Prio.Important, bool urgent = false,
-        string plain = null, string plainSub = null)
+    /// <returns>True when the message was shown or queued, false when it was dropped (the HUD was busy and the warning urgent, a joke's quiet time not met): a caller that must not lose a real encounter tries again.</returns>
+    /// <param name="stillValid">Asked when a queued message's turn comes: false drops it (the car is already back on the road, the thing has passed).</param>
+    public bool Show(string text, string sub = null, float duration = 2.5f, Color? color = null, Prio prio = Prio.Important, bool urgent = false,
+        string plain = null, string plainSub = null, System.Func<bool> stillValid = null)
     {
         if (!Comments && plain != null) { text = plain; sub = plainSub; }
-        Post(new Message { Text = text, Sub = sub, Color = color ?? Gold, Duration = duration, Prio = prio }, urgent);
+        return Post(new Message { Text = text, Sub = sub, Color = color ?? Gold, Duration = duration, Prio = prio, Valid = stillValid }, urgent);
     }
 
     /// <summary>A comment that shows whatever else is up and with the comments off (confirmations of a key press).</summary>
@@ -72,8 +75,8 @@ public partial class Hud
         => Show(text, sub, duration, color, Prio.Critical);
 
     /// <summary>The alert line above the comments.</summary>
-    public void Alert(string text, string sub, float duration, Color color, Prio prio = Prio.Critical, bool urgent = false)
-        => Post(new Message { Text = text, Sub = sub, Color = color, Duration = duration, Prio = prio, Top = true }, urgent);
+    public bool Alert(string text, string sub, float duration, Color color, Prio prio = Prio.Critical, bool urgent = false, System.Func<bool> stillValid = null)
+        => Post(new Message { Text = text, Sub = sub, Color = color, Duration = duration, Prio = prio, Top = true, Valid = stillValid }, urgent);
 
     public void ClearMessages()
     {
@@ -91,22 +94,23 @@ public partial class Hud
 
     static readonly bool MsgDbg = OS.HasEnvironment("MSGDBG");
 
-    void Post(Message m, bool urgent)
+    bool Post(Message m, bool urgent)
     {
         m.Ages = Frozen;
-        if (_startReservation > 0 && m.Prio != Prio.Critical) { Log("dropped", m); return; }
+        if (_startReservation > 0 && m.Prio != Prio.Critical) { Log("dropped", m); return false; }
         switch (m.Prio)
         {
             case Prio.Nice:
-                if (!Comments || Danger || _center != null || _top != null || _quiet < QuietGap) { Log("dropped", m); return; }
+                if (!Comments || Danger || _center != null || _top != null || _quiet < QuietGap) { Log("dropped", m); return false; }
                 break;
             case Prio.Important when Busy:
-                if (!urgent && _queue.Count < 4) { _queue.Add(m); Log("queued", m); }
-                else Log("dropped", m);
-                return;
+                if (!urgent && _queue.Count < 4) { _queue.Add(m); Log("queued", m); return true; }
+                Log("dropped", m);
+                return false;
         }
         Log("shown", m);
         Place(m);
+        return true;
     }
 
     void Log(string what, Message m)
@@ -142,10 +146,11 @@ public partial class Hud
         if (_center == null && _top == null) _quiet += dt;
         foreach (var q in _queue) q.Waited += dt;
         _queue.RemoveAll(q => q.Waited > QueueLife);
-        if (_queue.Count > 0 && !Busy)
+        while (_queue.Count > 0 && !Busy)
         {
             var next = _queue[0];
             _queue.RemoveAt(0);
+            if (next.Valid != null && !next.Valid()) { Log("expired (no longer true)", next); continue; }      // (a situational message is asked again when its turn comes)
             Place(next);
         }
     }

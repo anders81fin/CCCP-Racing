@@ -236,8 +236,10 @@ public partial class PhysicsTest : Node
         { ReplayCameraTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--atomgrad-terrain-tests"))
         { AtomgradTerrainTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--road-warnings-tests"))
+        { RoadWarningsTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--atomgrad-landmark-tests"))
-        { AtomgradLandmarkTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        { AtomgradLandmarkTest(); AtomgradPlantWallsTest(); BuildingBoxWallsTest(); AtomgradWashYardTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--export-card-tests"))
         { ExportCardDefaultsTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--prisoner-knee-tests"))
@@ -658,7 +660,8 @@ public partial class PhysicsTest : Node
         CatfishTest();
         PrisonerKneeTest();
         ExportCardDefaultsTest();
-        AtomgradLandmarkTest();
+        RoadWarningsTest();
+        AtomgradLandmarkTest(); AtomgradPlantWallsTest(); BuildingBoxWallsTest(); AtomgradWashYardTest();
         PlayerFilesTest();
         CameraDiscoveriesTest();
         BonusMigrationTest();

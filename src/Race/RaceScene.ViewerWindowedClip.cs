@@ -41,7 +41,8 @@ public partial class RaceScene
         foreach (var x in VrShot("makeclip-overlay")) yield return x;
         // the loop keeps the playback inside the clip
         float lo = 99f, hi = -1f;
-        for (int i = 0; i < 60 * 14; i++) { yield return null; float t = scene.ViewerClock; lo = Math.Min(lo, t); hi = Math.Max(hi, t); }
+        ulong loopStart = Time.GetTicksMsec();      // (14 s of the clock, not 840 frames: a fast machine draws more than 60 a second)
+        while (Time.GetTicksMsec() - loopStart < 14000) { yield return null; float t = scene.ViewerClock; lo = Math.Min(lo, t); hi = Math.Max(hi, t); }
         VwCheck(lo >= stop - 8.5f && hi <= stop + 4.5f && hi - lo > 10f, $"the playback loops inside the clip ({lo:F2} - {hi:F2})");
 
         // ---- ENTER opens the export card on the cut

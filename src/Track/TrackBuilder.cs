@@ -1329,8 +1329,8 @@ public static partial class TrackBuilder
                 break;
             }
             // ATOMGRAD-4 (Track.Atomgrad).
-            case "turbinehall": AddBox(t, p, rot + MathF.PI / 2f, 22f, 81f); break;
-            case "reactor": AddSolidBox(t, p + az * 4f, rot, 26f, 36f); break;
+            case "turbinehall": AddSolidBox(t, p, rot + MathF.PI / 2f, 22f, 80f); break;      // (a long wall as a row of circles as wide as it is leaves its corners open: the walls are solid all round, as the reactors')
+            case "reactor": AddSolidBox(t, p + az * 4f, rot, 26f, 36f); AddSolidBox(t, p + az * 17f, rot, 30f, 8f); break;      // (the block, and the wider annex on its front: its ends stood out of the first box)
             case "sarcophagus": AddSolidBox(t, p - az * 8f, rot, 31f, 50f); break;
             case "stack": t.Obstacles.Add(new Obstacle(p, 4.6f)); break;
             case "pipebridge":
@@ -1357,6 +1357,11 @@ public static partial class TrackBuilder
                 AddBox(t, p + ax * 4f, rot, 0.8f, 16f);
                 AddBox(t, p - ax * 4f, rot, 0.8f, 16f);
                 AddBox(t, p + ax * 7.2f + az * 3f, rot, 5f, 6f);
+                // The yard beside the bay (the model's left side, Atomgrad.Service.cs): the water tank on legs, the hose reel, the five drums and the two traffic-light posts stood without a collider.
+                t.Obstacles.Add(new Obstacle(p - ax * 7f - az * 3f, 1.9f, Material: ImpactMaterial.Metal));
+                t.Obstacles.Add(new Obstacle(p - ax * 4.5f + az * 3.5f, 0.3f, Material: ImpactMaterial.Metal));
+                for (int k = 0; k < 5; k++) t.Obstacles.Add(new Obstacle(p + ax * (-5.2f + (k % 3) * 0.75f) + az * (6.3f + (k / 3) * 0.8f), 0.35f, Material: ImpactMaterial.Metal));
+                foreach (float side in new[] { -1f, 1f }) t.Obstacles.Add(new Obstacle(p - ax * 5.2f + az * (side * 8.9f), 0.2f, Material: ImpactMaterial.Metal));
                 break;
             case "railyard":
                 Atomgrad.RailYardObstacles(t, p, rot);
@@ -1388,7 +1393,22 @@ public static partial class TrackBuilder
     /// laid along the whole footprint's edge as well (2026-11-19, Atomgrad town: the car drove through corners). The footprint is the model's: sizeX across, sizeZ along.</summary>
     static void AddSolidBox(TrackData t, Vector2 c, float rot, float sizeX, float sizeZ)
     {
-        AddBox(t, c, rot, sizeX, sizeZ);
+        AddRow(t, c, rot, sizeX, sizeZ);
+        AddRing(t, c, rot, sizeX, sizeZ);
+    }
+
+    /// <summary>
+    /// A box as a row of circles along its length. A row alone covers a thin wall, but a wide box (a building) is left with open corners: the circles are as wide as the box, so its four corners lie outside
+    /// them (the power plant's turbine hall could be driven through at the corners). A box three metres wide and deep or more therefore gets the ring of AddRing too (ring: false keeps the plain row).
+    /// </summary>
+    internal static void AddBox(TrackData t, Vector2 c, float rot, float sizeX, float sizeZ, bool ring = true)
+    {
+        AddRow(t, c, rot, sizeX, sizeZ);
+        if (sizeX >= 3f && sizeZ >= 3f && ring) AddRing(t, c, rot, sizeX, sizeZ);
+    }
+
+    static void AddRing(TrackData t, Vector2 c, float rot, float sizeX, float sizeZ)
+    {
         Vector2 along = new(MathF.Sin(rot), MathF.Cos(rot)), across = new(along.Y, -along.X);
         float rho = MathF.Min(1.5f, sizeX * 0.5f), hx = sizeX * 0.5f - rho, hz = sizeZ * 0.5f - rho, step = rho * 1.2f;
         for (int side = 0; side < 2; side++)
@@ -1408,7 +1428,7 @@ public static partial class TrackBuilder
         }
     }
 
-    static void AddBox(TrackData t, Vector2 c, float rot, float sizeX, float sizeZ)
+    static void AddRow(TrackData t, Vector2 c, float rot, float sizeX, float sizeZ)
     {
         // Local +Z rotated by yaw 'rot' (Godot rotation around Y): (sin, cos).
         Vector2 along = new(MathF.Sin(rot), MathF.Cos(rot));

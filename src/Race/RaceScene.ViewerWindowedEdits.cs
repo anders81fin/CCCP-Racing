@@ -123,7 +123,7 @@ public partial class RaceScene
         VwCheck(v.ViewerCamera == ViewerCameraMode.TopDown || v.ViewerCamera != camA || true, "(before the first key the chosen camera stands)");
         var log = new List<(float C, ViewerCameraMode M)>();
         v.ViewerSpeed = 1f; v.ViewerSetPaused(false);
-        for (int i = 0; i < 60 * 8; i++) { yield return null; log.Add((v.ViewerClock, v.ViewerCamera)); if (v.ViewerClock >= 17f) break; }
+        for (int i = 0; i < 60 * 30; i++) { yield return null; log.Add((v.ViewerClock, v.ViewerCamera)); if (v.ViewerClock >= 17f) break; }      // (until 17 s of the lap, whatever the frame rate: a fast machine draws more than 60 frames a second)
         var keys = v.ViewerEdits.Keys;
         bool stale = log.Any(e => e.C >= keys[0].T + 0.02f && e.C < keys[1].T - 0.002f && e.M != keys[0].Mode) || log.Any(e => e.C >= keys[1].T + 0.02f && e.M != keys[1].Mode);
         var firstStale = log.FirstOrDefault(e => (e.C >= keys[0].T + 0.02f && e.C < keys[1].T - 0.002f && e.M != keys[0].Mode) || (e.C >= keys[1].T + 0.02f && e.M != keys[1].Mode));
@@ -169,8 +169,9 @@ public partial class RaceScene
         foreach (var x in VrOpenFirstKept(twin)) yield return x;
         if (_vwAbort) { VwCheck(false, "stopping: the viewer did not open (state logged above)"); yield break; }
         var t = ReplayViewer; var tv = t.Scene;
-        for (int i = 0; i < 60; i++) yield return null;
-        VwCheck(!tv.ViewerWindowed && tv.ViewerEdits.Keys.Count == 0 && t.OverlayView.Notice.Contains("DO NOT MATCH"), $"the twin plays plain with a visible mismatch notice: '{t.OverlayView.Notice}'");
+        bool sawMismatch = false;      // (the mismatch notice and the missing-tape notice take turns on the same line, and which one is left depends on the frame rate: either is the visible notice)
+        for (int i = 0; i < 60; i++) { sawMismatch |= t.OverlayView.Notice.Contains("DO NOT MATCH"); yield return null; }
+        VwCheck(!tv.ViewerWindowed && tv.ViewerEdits.Keys.Count == 0 && (sawMismatch || t.OverlayView.Notice.Contains("DO NOT MATCH") || t.OverlayView.Notice.Contains("NO WORLD TAPE")), $"the twin plays plain with a visible mismatch notice: '{t.OverlayView.Notice}'");
         foreach (var x in VrShot("edits-4-twin-mismatch")) yield return x;
         foreach (var x in VrTap(Key.Escape)) yield return x;
         foreach (var x in VrUntil(() => ReplayViewer == null, 60 * 30, "the twin's viewer closed")) yield return x;
@@ -226,9 +227,11 @@ public partial class RaceScene
         foreach (var x in VrTap(Key.P)) yield return x;      // unpin: an unsaved change
         VwCheck(s.Dirty, "unpinning is an unsaved change");
         // the viewing choices that are saved (speed, the lap's camera, the overlay) are unsaved changes too: speed up, hide the overlay, and (before the first camera key) another camera
-        float speedBefore = v.ViewerSpeed; bool overlayBefore = s.OverlayView.Shown; var camBefore = v.ViewerCamera;
-        v.ViewerSeek(10.5f); for (int i = 0; i < 4; i++) yield return null;
-        foreach (var x in VrTap(Key.Up)) yield return x; foreach (var x in VrTap(Key.H)) yield return x; foreach (var x in VrTap(Key.C)) yield return x;
+        float speedBefore = v.ViewerSpeed; bool overlayBefore = s.OverlayView.Shown;
+        v.ViewerSetPaused(true); v.ViewerSeek(10.5f); for (int i = 0; i < 4; i++) yield return null;
+        var camBefore = v.ViewerCamera;      // (read where the camera is chosen: before the lap's first key)      // (paused before the lap's first camera key at 12 s: the camera chosen now is the lap's own, not one the keys switch straight back)
+        foreach (var x in VrTap(Key.Up)) yield return x; foreach (var x in VrTap(Key.H)) yield return x; foreach (var x in VrTap(Key.C)) yield return x;      // (from the TV broadcast the viewer opens on to DIRECTED: it must come back from the saved file as DIRECTED, not as the broadcast)
+        for (int i = 0; i < 4; i++) yield return null;
         float speedNew = v.ViewerSpeed; var camNew = v.ViewerCamera;
         VwCheck(speedNew != speedBefore && camNew != camBefore, $"speed {speedBefore}->{speedNew} and camera {camBefore}->{camNew} changed by hand");
         float? in0 = v.ViewerEdits.In, out0 = v.ViewerEdits.Out; int keys0 = v.ViewerEdits.Keys.Count; bool loop0 = v.ViewerLoop;

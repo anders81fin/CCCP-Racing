@@ -354,6 +354,7 @@ public partial class DayNight : Node3D
         while (pending.Count > 0)
         {
             var node = pending.Pop();
+            if (!GodotObject.IsInstanceValid(node) || node.IsQueuedForDeletion()) continue;      // (the world goes on between the slices: a node pushed a frame ago may have freed itself since, and a freed node would end the whole load with an exception, leaving the loading card spinning for ever)
             Collect(node, false);
             var children = node.GetChildren();
             for (int i = children.Count - 1; i >= 0; i--) pending.Push(children[i]);

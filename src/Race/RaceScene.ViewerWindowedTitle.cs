@@ -152,14 +152,21 @@ public partial class RaceScene
         foreach (var x in VrPad(JoyButton.B)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
         VwCheck(_menuParent == null && _menu == MenuItem.Office && VwCalm(), "pad: B goes up to the top row, no resignation");
-        // the Back shortcut from the top row: PARTY OFFICE on KGB FILES (Back there would resign: not pressed), then B up again
+        // the Back shortcut from the top row: PARTY OFFICE with RESIGN selected (Back there would resign: not pressed), then B up again
         foreach (var x in VrPad(JoyButton.Back)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
-        VwCheck(_menuParent == MenuItem.Office && _menu == MenuItem.Files && VwCalm(), $"pad: Back on the top row opens PARTY OFFICE on KGB FILES (on {_menu})");
+        VwCheck(_menuParent == MenuItem.Office && _menu == MenuItem.Quit && VwCalm(), $"pad: Back on the top row opens PARTY OFFICE with RESIGN selected, nothing resigned (on {_menu})");
         foreach (var x in VrPad(JoyButton.B)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
         VwCheck(_menuParent == null && _menu == MenuItem.Office && VwCalm() && _file == fileBefore, "pad: B back to the top row; the personnel file in use never changed");
         _padMode = false;
+        // Esc on the top row: PARTY OFFICE opens with RESIGN selected (no resignation), a second Esc goes back to the top row
+        foreach (var x in VrTap(Key.Escape)) yield return x;
+        for (int i = 0; i < 6; i++) yield return null;
+        VwCheck(_menuParent == MenuItem.Office && _menu == MenuItem.Quit && VwCalm(), $"Esc on the top row opens PARTY OFFICE with RESIGN selected, nothing resigned (on {_menu}, resign {_resignOut})");
+        foreach (var x in VrTap(Key.Escape)) yield return x;
+        for (int i = 0; i < 6; i++) yield return null;
+        VwCheck(_menuParent == null && _menu == MenuItem.Office && VwCalm(), "a second Esc goes back to the top row");
         for (int i = 0; i < 6 && _menu != MenuItem.Multi; i++) foreach (var x in VrTap(Key.Left)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using CCCPRacing.Audio;
 using CCCPRacing.Car;
@@ -495,6 +496,9 @@ public partial class TankBattle : Node3D
     }
 
     /// <summary>How deep (m) the hull, two circles along it, is in fixed things or in the other tanks at <paramref name="at"/> heading <paramref name="yaw"/>; 0 if clear.</summary>
+    /// <summary>How much deeper than it already is a step or a turn may take a tank before it is refused: only float noise. It was 5 mm, and a tank pushing against its margin made steps of 0.3 to 0.5 mm (a frame's acceleration at the standstill), each inside the 5 mm, so it crept into a BTR beside it for minutes at 0.007 m/s while no step was ever refused.</summary>
+    const float StepTolerance = 0.00002f;
+
     float HullPenetration(Tank k, Vector2 at, float yaw)
     {
         Vector2 f = new(-MathF.Sin(yaw), -MathF.Cos(yaw));
@@ -514,6 +518,26 @@ public partial class TankBattle : Node3D
         {
             if (o == k) continue;
             Vector2 fo = new(-MathF.Sin(o.Yaw), -MathF.Cos(o.Yaw)), oa = o.Pos + fo * 2.2f, ob = o.Pos - fo * 2.2f;      // (circle against circle: two hulls' circles, 1.9 m each and a couple of metres of air between the hulls)
+            worst = MathF.Max(worst, MathF.Max(MathF.Max(6f - a.DistanceTo(oa), 6f - a.DistanceTo(ob)), MathF.Max(6f - b.DistanceTo(oa), 6f - b.DistanceTo(ob))));
+        }
+        return worst;
+    }
+
+    /// <summary>The same as HullPenetration, for what MOVES only: the BTRs and the other tanks. It is kept apart because the margin check lets a tank move on as long as it is no deeper than it already is, and "no deeper" was judged on the worst of everything: a tank pinned 0.5 m into a wall could then press on into a BTR standing beside it, up to the wall's depth, and creep through it (tank-btr-test).</summary>
+    float MoverPenetration(Tank k, Vector2 at, float yaw)
+    {
+        Vector2 f = new(-MathF.Sin(yaw), -MathF.Cos(yaw));
+        Vector2 a = at + f * 2.2f, b = at - f * 2.2f;
+        float worst = 0f;
+        foreach (var (c, r) in _movers)
+        {
+            float reach = r + 1.9f + 0.6f;
+            worst = MathF.Max(worst, MathF.Max(reach - a.DistanceTo(c), reach - b.DistanceTo(c)));
+        }
+        foreach (var o in _tanks)
+        {
+            if (o == k) continue;
+            Vector2 fo = new(-MathF.Sin(o.Yaw), -MathF.Cos(o.Yaw)), oa = o.Pos + fo * 2.2f, ob = o.Pos - fo * 2.2f;
             worst = MathF.Max(worst, MathF.Max(MathF.Max(6f - a.DistanceTo(oa), 6f - a.DistanceTo(ob)), MathF.Max(6f - b.DistanceTo(oa), 6f - b.DistanceTo(ob))));
         }
         return worst;
@@ -764,14 +788,15 @@ public partial class TankBattle : Node3D
                 }
                 break;
         }
-        float pushNow = 0f;
+        float pushNow = 0f, pushMov = 0f;
         bool pivotRefused = false;
         if (_roam)
         {
             // The pivot or the steering must not swing the hull into something (it may only come out of it).
             pushNow = HullPenetration(k, k.Pos, k.Yaw);
+            pushMov = MoverPenetration(k, k.Pos, k.Yaw);
             float give = 0.05f + 0.45f * Math.Clamp(k.Wedge / 4f, 0f, 1f);      // (the margin's give: 5 cm, up to 50 cm for a tank that has been held for seconds)
-            if (turn != 0f && HullPenetration(k, k.Pos, k.Yaw + turn * dt) > MathF.Max(give, pushNow) + 0.0005f) { turn = 0f; pivotRefused = true; }      // (the margin is round the hull's real size: 5 cm of it may be used, not more, and a hull already deeper may only come out)
+            if (turn != 0f && (HullPenetration(k, k.Pos, k.Yaw + turn * dt) > MathF.Max(give, pushNow) + StepTolerance || MoverPenetration(k, k.Pos, k.Yaw + turn * dt) > MathF.Max(give, pushMov) + StepTolerance)) { turn = 0f; pivotRefused = true; }      // (the margin is round the hull's real size: 5 cm of it may be used, not more, and a hull already deeper may only come out)
         }
         k.Yaw += turn * dt;
         float rate = MathF.Abs(targetSpeed) > MathF.Abs(k.Speed) && MathF.Sign(targetSpeed) != -MathF.Sign(k.Speed) ? _accel : _brake;
@@ -781,7 +806,8 @@ public partial class TankBattle : Node3D
         if (_roam)
         {
             // The roaming exercise drives anywhere, road included; only fixed things and the other tanks stop it.
-            bool stepRefused = k.Speed != 0 && HullPenetration(k, next, k.Yaw) > MathF.Max(0.05f + 0.45f * Math.Clamp(k.Wedge / 4f, 0f, 1f), pushNow) + 0.0005f;
+            bool stepRefused = k.Speed != 0 && (HullPenetration(k, next, k.Yaw) > MathF.Max(0.05f + 0.45f * Math.Clamp(k.Wedge / 4f, 0f, 1f), pushNow) + StepTolerance
+                || MoverPenetration(k, next, k.Yaw) > MathF.Max(0.05f + 0.45f * Math.Clamp(k.Wedge / 4f, 0f, 1f), pushMov) + StepTolerance);
             if (stepRefused) { k.Speed = 0; }
             else k.Pos = next;
             if (stepRefused || pivotRefused) k.Wedge += dt; else if (k.Speed != 0 || turn != 0f) k.Wedge = Math.Max(0f, k.Wedge - 2f * dt);

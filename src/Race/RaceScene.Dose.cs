@@ -102,7 +102,7 @@ public partial class RaceScene
                 if (!_radEngineWarned && _doseRate > 0.4f)
                 {
                     _radEngineWarned = true;
-                    _hud.Show("THE RADIATION IS EATING THE ENGINE", "GET OUT OF THE HOT SPOT, TOVARISH", 3f, Hud.Red, Prio.Important, plain: "RADIATION DAMAGE");
+                    _hud.Show("RADIATION DAMAGE: GET OUT OF THE HOT SPOT", "THE RADIATION IS EATING THE ENGINE", 3f, Hud.Red, Prio.Important, plain: "RADIATION DAMAGE", stillValid: () => _doseRate > 0.2f);
                 }
             }
         }
@@ -118,19 +118,19 @@ public partial class RaceScene
         if (wash != _washing)
         {
             _washing = wash;
-            if (wash) _hud.Show("DECONTAMINATION", "THE CLOCK KEEPS RUNNING, TOVARISH", 2.5f, Hud.Paper, plain: "DECONTAMINATION");
+            if (wash) _hud.Show("DECONTAMINATION", "THE CLOCK KEEPS RUNNING, TOVARISH", 2.5f, Hud.Paper, plain: "DECONTAMINATION", stillValid: () => _washing);
             else if (_dose <= 0.01f) _hud.Show("CLEAN AS A NEW KOPECK", "GLORY TO SOVIET HYGIENE", 2.5f, Hud.Gold, plain: "DOSE CLEARED");
             if (DoseDebug) GD.Print($"dose: {(wash ? "washing" : "out of the wash")} at {_clock:F1} s, {_dose:F1} mSv");
         }
         if (_dose >= 0.7f * _rad.Limit && !_doseWarned && racing)
         {
             _doseWarned = true;
-            _hud.Alert("YOUR DOSE IS HIGH", "WASH AT THE DECONTAMINATION STATION BY THE BIRCHES", 3.5f, Hud.Gold);
+            _hud.Alert("DOSE HIGH: WASH AT THE BIRCHES", "SOAP IS FREE. THE CLOCK IS NOT.", 3.5f, Hud.Gold, stillValid: () => _dose >= 0.7f * _rad.Limit);      // (the action in the heading, the joke below)
         }
         if (_dose < 0.5f * _rad.Limit) _doseWarned = false;
         bool over = _dose >= _rad.Limit;
         if (over && !_doseOver && racing)
-            _hud.Alert("DOSE OVER THE NORM!", "THE DOSIMETRIST WILL STOP YOU AT THE CHECKPOINT", 3.5f, Hud.Red, Prio.Important);
+            _hud.Alert("OVER THE NORM: WASH AT THE BIRCHES!", "THE DOSIMETRIST WILL STOP YOU AT THE CHECKPOINT", 3.5f, Hud.Red, Prio.Important, stillValid: () => _dose >= _rad.Limit);
         _doseOver = over;
 
         // The dosimetrist's check: the car is held, then washed down on the spot.

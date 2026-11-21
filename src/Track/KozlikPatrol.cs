@@ -103,6 +103,8 @@ public partial class KozlikPatrol : Node3D
     public bool HitThisTick { get; private set; }
 
     float _warnCd, _hitCd;
+    readonly CCCPRacing.Race.EncounterGate _gate = new();
+    RoadWarnings.PatrolState _patrolStateNow;      // RoadWarnings.cs: once per encounter
 
     public void Init(TrackData t, TyreEffects fx, BalalaikaSorties jets, SovietBus bus, float startS)
     {
@@ -1057,11 +1059,23 @@ public partial class KozlikPatrol : Node3D
             _hitCd = 8f;
             _warnCd = 25f;
         }
-        else if (d < 30f && car.Speed > 8f && _warnCd <= 0)
+        else
         {
-            hud.Show(Guarding ? "THE BEAR IS ON GUARD DUTY" : "THE BEAR HAS A DRIVING LICENCE", "KEEP DISTANCE FROM THE BEAR", 2.5f, Hud.Gold, Prio.Important, urgent: true, plain: "BEAR AHEAD!", plainSub: "KEEP DISTANCE FROM THE BEAR");
-            _warnCd = 40f;
-            if (OS.HasEnvironment("KOZLIKDBG")) GD.Print($"Kozlik warning at {_clock:F1} s, car {d:F0} m away");
+            // Kozlik is announced once per encounter, and only when it matters (RoadWarnings.Patrol): in view from the car's nose, ahead on the same stretch of road, on the driving line or on its way onto it.
+            // A patrol on guard at the side, hidden, behind or across a bend stays silent; the chase has its own messages (above).
+            Vector2 heading = new(-car.Rot.Z.X, -car.Rot.Z.Z);
+            heading = heading.LengthSquared() < 1e-4f ? Vector2.Down : heading.Normalized();
+            var state = RoadWarnings.Patrol(_t, car.Pos, heading, new Vector2(car.Vel.X, car.Vel.Z), Position2D, Forward2D, _speed, out _);
+            _patrolStateNow = state;
+            if (_gate.Due(state != RoadWarnings.PatrolState.None, dt) && _warnCd <= 0)
+            {
+                string title = state == RoadWarnings.PatrolState.Joining ? "BEAR PATROL PULLING OUT!" : "BEAR PATROL AHEAD!";
+                if (hud.Show(title, null, 2f, Hud.Gold, Prio.Important, plain: title, stillValid: () => _patrolStateNow != RoadWarnings.PatrolState.None))      // (queued while the screen is busy, asked again when its turn comes)
+                {
+                    _gate.Spend();
+                    if (OS.HasEnvironment("KOZLIKDBG")) GD.Print($"Kozlik warning '{title}' at {_clock:F1} s, car {d:F0} m away");
+                }
+            }
         }
     }
 }

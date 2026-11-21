@@ -318,7 +318,7 @@ public partial class Hud : Control
             _cardTop = by + 58;
             // Exactly where it stood over the mode row (the row's header line above it).
             float cardHh = MenuHeader == null ? 0 : 11;
-            if (MenuHint is var (cardHintTitle, cardHintLines)) _cardTop = DrawMenuHint(cardHintTitle, cardHintLines, cx, by + 58, my - cardHh - 8, typed: false) + 4;   // the card is the active one: only it types
+            if (MenuHint is var (cardHintTitle, cardHintLines)) _cardTop = DrawMenuHint(cardHintTitle, cardHintLines, cx, by + 58, my - cardHh - 8, typed: false, hidden: LapsRewardSource != null) + 4;   // the card is the active one: only it types
             DrawCredits(s, cx);
             return;
         }
@@ -394,7 +394,7 @@ public partial class Hud : Control
 
     /// <summary>The hint box between the banner (top) and the menu (bottom): the mode's name and a few lines.</summary>
     /// <summary>The selected mode's hint card, centred between top and bottom (not above top): its bottom edge.</summary>
-    float DrawMenuHint(string title, string[] lines, float cx, float top, float bottom, bool typed = true)
+    float DrawMenuHint(string title, string[] lines, float cx, float top, float bottom, bool typed = true, bool hidden = false)
     {
         // Menu cards leave one empty text row between the heading and the help.
         const int HelpTop = 34, RowPitch = 10;
@@ -403,6 +403,7 @@ public partial class Hud : Control
         w += 20;
         float h = HelpTop + lines.Length * RowPitch + 2;
         float y = Mathf.Floor(Math.Max(top, (top + bottom) / 2 - h / 2));
+        if (hidden) { _hintTitle = title; return y + h; }      // (the layout stays, nothing is drawn: a medal ceremony takes the place)
         Panel(new Rect2(Mathf.Floor(cx - w / 2), y, Mathf.Ceil(w), h), 0.88f);
         // A new hint types out, unless another panel is the active one (a card under it): then it is just there.
         if (_hintTitle != title) { _hintTitle = title; _hintTextClock = typed ? 0 : 999f; }
@@ -833,7 +834,7 @@ public partial class Hud : Control
         if (_center is { } m)
         {
             if (NormMissActive && m.Prio > Prio.Critical) return;
-            if (m.Time < 0.6f && (int)(m.Time * 10) % 2 == 1) return; // blink in
+            if (m.Prio == Prio.Nice && m.Time < 0.6f && (int)(m.Time * 10) % 2 == 1) return; // a joke blinks in; a message that tells what to do (Critical, Important) is steady from its first frame, so its beginning can be read
             int scale = PixelFont.Measure(m.Text, 2) < s.X - 16 ? 2 : 1;
             float y = float.IsNaN(_messageY) ? Mathf.Floor(s.Y * 0.36f) : Mathf.Floor(_messageY);
             PixelFont.DrawCentered(this, m.Text, s.X / 2, y, m.Color, scale, new Color(0.35f, 0, 0));

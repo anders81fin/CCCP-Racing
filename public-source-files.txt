@@ -547,10 +547,12 @@ src/Race/RaceScene.ViewerWindowedRecordings.cs
 src/Race/RaceScene.ViewerWindowedRecordings.cs.uid
 src/Race/RaceScene.ViewerWindowedReplayUi.cs
 src/Race/RaceScene.ViewerWindowedReplayUi.cs.uid
+src/Race/RaceScene.ViewerWindowedReward.cs
 src/Race/RaceScene.ViewerWindowedScreenshot.cs
 src/Race/RaceScene.ViewerWindowedScreenshot.cs.uid
 src/Race/RaceScene.ViewerWindowedSessionBest.cs
 src/Race/RaceScene.ViewerWindowedSessionBest.cs.uid
+src/Race/RaceScene.ViewerWindowedSituations.cs
 src/Race/RaceScene.ViewerWindowedStakhanovBoard.cs
 src/Race/RaceScene.ViewerWindowedStakhanovBoard.cs.uid
 src/Race/RaceScene.ViewerWindowedStakhanovStart.cs
@@ -575,6 +577,7 @@ src/Race/RallySky.cs
 src/Race/RallySky.cs.uid
 src/Race/RecordStore.cs
 src/Race/RecordStore.cs.uid
+src/Race/RoadWarnings.cs
 src/Race/Rumble.cs
 src/Race/Rumble.cs.uid
 src/Race/SchoolMarks.cs
@@ -649,6 +652,7 @@ src/Tests/CameraDiscoveryIntegrationTest.cs
 src/Tests/CameraDiscoveryIntegrationTest.cs.uid
 src/Tests/CareerCardsTest.cs
 src/Tests/CareerCardsTest.cs.uid
+src/Tests/DrunkTractor.TestAccess.cs
 src/Tests/IdleAudioSceneTest.cs
 src/Tests/IdleAudioSceneTest.cs.uid
 src/Tests/LanSession.BoardFixture.cs
@@ -657,6 +661,7 @@ src/Tests/LanSession.Fixture.cs
 src/Tests/LanSession.Fixture.cs.uid
 src/Tests/LanUiReview.cs
 src/Tests/LanUiReview.cs.uid
+src/Tests/LapTimer.TestAccess.cs
 src/Tests/PhysicsTest.AtomgradLandmarks.cs
 src/Tests/PhysicsTest.AtomgradRailYard.cs
 src/Tests/PhysicsTest.AtomgradRailYard.cs.uid
@@ -861,6 +866,7 @@ src/Tests/PhysicsTest.RiverReview.cs
 src/Tests/PhysicsTest.RiverReview.cs.uid
 src/Tests/PhysicsTest.RoadReview.cs
 src/Tests/PhysicsTest.RoadReview.cs.uid
+src/Tests/PhysicsTest.RoadWarnings.cs
 src/Tests/PhysicsTest.School.cs
 src/Tests/PhysicsTest.School.cs.uid
 src/Tests/PhysicsTest.SiberiaDetails.cs
@@ -972,6 +978,7 @@ src/Tests/ReplayCameraIntegrationTest.cs
 src/Tests/ReplayCameraIntegrationTest.cs.uid
 src/Tests/ResourceCriterion.cs
 src/Tests/ResourceCriterion.cs.uid
+src/Tests/SlurryTractor.TestAccess.cs
 src/Tests/TrackDump.cs
 src/Tests/TrackDump.cs.uid
 src/Tools/MapExport.cs

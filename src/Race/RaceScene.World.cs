@@ -110,7 +110,7 @@ public partial class RaceScene
         Add(_kozlikAll, () => new() { Who = Actors.Kozlik, Node = _kozlikAll, Reset = _kozlikAll.Reset, Shouts = _kozlikAll.ActiveShouts,
             Tick = (dt, _) => _kozlikAll.Tick(dt, _car, _maxImpact) });
         Add(_jetsAll, () => new() { Who = Actors.Jets, Node = _jetsAll, Reset = _jetsAll.Reset, TapeDrive = on => _jetsAll.TapeDriven = on, Tick = (dt, _) => _jetsAll.Tick(dt, _car) });
-        Add(_hindsAll, () => new() { Who = Actors.Jets, Node = _hindsAll, Reset = _hindsAll.Reset, TapeDrive = on => _hindsAll.TapeDriven = on, Tick = (dt, _) => _hindsAll.Tick(dt, _state == State.Racing ? _car : null) });
+        Add(_hindsAll, () => new() { Who = Actors.Jets, Node = _hindsAll, Reset = _hindsAll.Reset, Shouts = _hindsAll.ActiveShouts, TapeDrive = on => _hindsAll.TapeDriven = on, Tick = (dt, _) => _hindsAll.Tick(dt, _state == State.Racing ? _car : null) });
         // The airbase crew sees the ghost's car in a replay, not the autopilot's on the title.
         Add(_detailsAll, () => new() { Who = Actors.Details, Node = _detailsAll, Show = _detailsAll.SetWorkersActive, Reset = _detailsAll.Reset,
             Tick = (dt, replay) => _detailsAll.Tick(dt, replay ? _car : Seen()) });

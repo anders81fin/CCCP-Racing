@@ -37,7 +37,7 @@ public partial class Hud
         DrawMissileArrows();
         if (_top is not { } al) return;
         float age = al.Time;
-        if (age < 0.6f && (int)(age * 10) % 2 == 1) return;   // blink in
+        if (al.Prio == Prio.Nice && age < 0.6f && (int)(age * 10) % 2 == 1) return;   // a joke blinks in; an alert that tells what to do is steady from its first frame
         // Big when it fits, but not over the lap panel once the WRECKS line has made it taller.
         float w2 = PixelFont.Measure(al.Text, 2);
         int scale = w2 < s.X - 16 && (PlanExtraRows == 0 || s.X / 2 - w2 / 2 > 112) ? 2 : 1;

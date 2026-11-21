@@ -224,6 +224,49 @@ public partial class RaceScene
         foreach (var x in VrTap(Key.Space)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
         VwCheck(!_titleMenuHidden && _menuParent == MenuItem.Office, "and shows it again");
+
+        // ---- SETTINGS and its screens step back with the pad's B (and Start, VIEW) too, as in the Party Meeting
+        foreach (var x in VrTap(Key.Escape)) yield return x;
+        for (int i = 0; i < 6; i++) yield return null;
+        _menu = MenuItem.Settings;
+        PadButton(JoyButton.A, true, false); PadButton(JoyButton.A, false, false);
+        for (int i = 0; i < 8; i++) yield return null;
+        VwCheck(TitleSettingsOpen && _hud.SettingsOpen, "the pad's A opens SETTINGS over the title");
+        foreach (var b in new[] { JoyButton.B, JoyButton.Start, JoyButton.Back })
+        {
+            _hud.SettingsSelection = Array.IndexOf(_hud.SettingsRowIds, SettingsRowId.Sounds);
+            PadButton(JoyButton.A, true, false); PadButton(JoyButton.A, false, false);
+            for (int i = 0; i < 8; i++) yield return null;
+            VwCheck(_hud.MixerOpen, $"{b}: the pad's A opens SOUNDS");
+            PadButton(b, true, false); PadButton(b, false, false);
+            for (int i = 0; i < 8; i++) yield return null;
+            VwCheck(!_hud.MixerOpen && _hud.SettingsOpen, $"the pad's {b} from SOUNDS: back on SETTINGS");
+            _hud.SettingsSelection = Array.IndexOf(_hud.SettingsRowIds, SettingsRowId.Visuals);
+            PadButton(JoyButton.A, true, false); PadButton(JoyButton.A, false, false);
+            for (int i = 0; i < 8; i++) yield return null;
+            VwCheck(_hud.VisualOpen, $"{b}: the pad's A opens VISUALS");
+            PadButton(b, true, false); PadButton(b, false, false);
+            for (int i = 0; i < 8; i++) yield return null;
+            VwCheck(!_hud.VisualOpen && _hud.SettingsOpen, $"the pad's {b} from VISUALS: back on SETTINGS");
+        }
+        PadButton(JoyButton.B, true, false); PadButton(JoyButton.B, false, false);
+        for (int i = 0; i < 8; i++) yield return null;
+        VwCheck(!TitleSettingsOpen && _state == State.Title && _menu == MenuItem.Settings && _menuParent == null, "the pad's B from SETTINGS: the main menu, still on SETTINGS");
+
+        // ---- a press in the first frame of a new screen is read (a Steam Deck draws a new screen's first frame for two seconds, and everything pressed meanwhile lands in the frame after it)
+        // SETTINGS is open and the pad's context still says "something else" (the last frame's): the screen appeared after the pad code looked.
+        PadButton(JoyButton.A, true, false); PadButton(JoyButton.A, false, false);
+        for (int i = 0; i < 8; i++) yield return null;
+        VwCheck(TitleSettingsOpen && _hud.SettingsOpen, "SETTINGS is open again");
+        _hud.SettingsSelection = Array.IndexOf(_hud.SettingsRowIds, SettingsRowId.Sounds);
+        _padCtx = PadCtx.Race;
+        PadButton(JoyButton.A, true, false);      // (held: the key stays down while the game looks)
+        for (int i = 0; i < 4; i++) yield return null;
+        VwCheck(_hud.MixerOpen, "the pad's A in the first frame of a screen opens SOUNDS: the press is not let go of by the context catching up");
+        PadButton(JoyButton.A, false, false);
+        for (int i = 0; i < 6; i++) yield return null;
+        PadButton(JoyButton.B, true, false); PadButton(JoyButton.B, false, false);
+        for (int i = 0; i < 8; i++) yield return null;
     }
 
 }

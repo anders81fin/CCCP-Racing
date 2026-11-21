@@ -62,7 +62,7 @@ public partial class RaceScene
         {
             _slurryAll.RevengeOnTheRoad += () =>
             {
-                if (_state == State.Racing) _hud.Alert("THE TRACTOR IS ON THE ROAD", "SLURRY AHEAD. DO NOT BRAKE IN IT", 3f, Hud.Red, Prio.Important);
+                if (_state == State.Racing) _hud.Alert("SLURRY ON THE ROAD: EASE OFF, DO NOT BRAKE", "THE TRACTOR IS ON THE ROAD", 3f, Hud.Red, Prio.Important, stillValid: () => _slurryAll.Avenging);      // (the way to drive it in the heading: lift, keep straight, no braking in the slurry)
             };
             _slurryAll.RevengeLapPassed += left =>
             {

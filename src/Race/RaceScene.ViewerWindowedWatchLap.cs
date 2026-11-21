@@ -83,10 +83,14 @@ public partial class RaceScene
         VwCheck(_state == State.Racing, "CONTINUE (row 0) resumes the drive");
         _stopQueue.Clear();
         bool keepAuto = _autodrive; _autodrive = false;      // (the test drive closes cards by itself: this one is held for the check)
-        _stopCard = new StopCard("test_watch", "A CARD", new[] { "THE RACE IS STOPPED UNDER IT" }, Hud.Gold, "", "");
+        _stopCard = new StopCard("norm_missed", "A CARD", new[] { "THE RACE IS STOPPED UNDER IT" }, Hud.Gold, "", "");
         _cardAge = 5f; _state = State.Paused; _hud.Mode = HudMode.Card; _hud.StopCard = (_stopCard.Title, _stopCard.Lines, _stopCard.Color); _hud.StopCardReady = true;
         for (int i = 0; i < 10; i++) yield return null;
-        VwCheck(_hud.StopCardWatch != null && _hud.StopCardWatch.StartsWith("F3  WATCH LAP"), $"the stop card offers '{_hud.StopCardWatch}'");
+        VwCheck(_hud.StopCardWatch == "F3  WATCH LAST LAP AS REPLAY", $"the lap's own card (LAP NOT COUNTED) offers '{_hud.StopCardWatch}'");
+        // a card that comes in the middle of another lap (a radar trap, fuel, engine) does not offer the last lap
+        var lapCard = _stopCard; _stopCard = new StopCard("gai_chase", "RADAR TRAP!", new[] { "THE OFFICER IS AFTER YOU!" }, Hud.Red, "", ""); for (int i = 0; i < 6; i++) yield return null;
+        VwCheck(_hud.StopCardWatch == null, "a card from the middle of a lap offers no replay");
+        _stopCard = lapCard; for (int i = 0; i < 6; i++) yield return null;
         foreach (var x in VrShot("watchlap-card")) yield return x;
         foreach (var x in VrTap(Key.F3)) yield return x;
         foreach (var x in VrUntil(() => ReplayViewer is { State: ReplayViewerState.Playing }, 60 * 30, "the viewer plays from the card")) yield return x;

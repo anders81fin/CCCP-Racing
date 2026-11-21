@@ -240,14 +240,12 @@ public partial class RaceScene
             _hindsAll.CannonTargets = HindCannonTargets;
             _hindsAll.AttackStarted += p =>
             {
-                if (_state == State.Racing && p.DistanceTo(_car.Pos) < 200)
+                // the run has begun: only for a car near the impact line, and not again for a run whose INBOUND was just shown
+                if (_state == State.Racing && p.DistanceTo(_car.Pos) < 80 && _clock - _hindInboundAt > 20f)
                     _hud.Show("HIND: CANNON RUN!", "KEEP CLEAR OF THE IMPACT LINE", 2.8f, Hud.Red, Prio.Important, urgent: true);
             };
             _hindsAll.AttackApproaching += OnHindWarning;
-            _hindsAll.SoupUnshaken += () =>
-            {
-                if (_state == State.Racing) _hud.Show("THE SOUP HAS SEEN WORSE.","THE COOK CONTINUES.",3,Hud.Paper,Prio.Nice);
-            };
+            // (the field kitchen's joke is the cook's speech bubble at the kitchen now: BonusExerciseLife.ActiveShouts, not a line on the HUD)
             _hindsAll.Collision += p =>
             {
                 if (_state == State.Racing) _hud.Show("EXERCISE COMPLETED", "TWO LANDINGS CONFIRMED", 3f, Hud.Gold, Prio.Important);
@@ -366,7 +364,7 @@ public partial class RaceScene
         _timer.LapCompleted += OnLap;
         _timer.LineMissed += () => _hud.Alert("MISSED THE LINE!", "THE LAP ENDS BETWEEN THE POSTS. BACK THROUGH, TOVARISH", 4f, Hud.Red, Prio.Critical, urgent: true);
         _timer.VoidLapCompleted += OnVoidLap;
-        _timer.ShortcutDetected += () => _hud.Show(Slogans.Shortcut, "GO BACK TO THE ROAD", 3f, Hud.Red, Prio.Critical);
+        _timer.ShortcutDetected += () => _hud.Show("SHORTCUT: DRIVE THE MISSED STRETCH", Slogans.Shortcut, 3f, Hud.Red, Prio.Critical, plain: "SHORTCUT: DRIVE THE MISSED STRETCH", plainSub: "THE LAP COUNTS ONLY WHEN YOU DO");      // (the lap cannot be completed until the skipped gates are driven: the heading says what to do)
     }
 
     StartIntent ApplyCommandLine()

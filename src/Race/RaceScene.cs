@@ -41,6 +41,14 @@ public partial class RaceScene : Node3D
     float _drunkCd, _busWarnCd, _busHitCd, _busHeatDent, _busSwerveAt = -1;
     bool _busHeatTest;
     float _tractorWarnCd, _tractorHitCd, _fenceCd, _breakCd;
+    bool _offRoadJokeGiven;
+    readonly EncounterGate _tankAreaGate = new(6f), _runwayGate = new(4f);
+    float _hindInboundAt = -99f;
+    static readonly bool RoadWarnDbg = OS.HasEnvironment("ROADWARNDBG");      // (a log of the bus's and the tractor's warning decisions, for the production runs)
+    float _roadWarnLog, _roadWarnLogT;
+    RoadWarnings.TractorState _tractorStateNow;
+    readonly EncounterGate _busGate = new();      // RoadWarnings.cs: once per encounter, armed again when it is over
+    readonly TractorGate _tractorGate = new();
     ChaseCamera _cam;
     Hud _hud;
     EngineSound _snd;
@@ -233,6 +241,7 @@ public partial class RaceScene : Node3D
 
     public override async void _Ready()
     {
+        if (!ViewerMode && InstructionTrack == null) StallWatch.ContextProvider = () => $"state {_state}, card {_card}, menu {_menu}/{_menuParent}, hidden {_titleMenuHidden}, settings {_hud?.SettingsOpen}/{_hud?.VisualOpen}/{_hud?.MixerOpen}, booting {_booting}, loading card {TrackLoadingScreen.Active != null}";
         if (!ViewerMode && InstructionTrack == null) StallWatch.Start(OS.GetUserDataDir());      // (the watchdog thread, once: StallWatch.cs)
         if (!ViewerMode && LanPlaybackSource == null && InstructionTrack == null && CCCPRacing.Race.ExportChild.Active) CCCPRacing.Race.ExportChild.Begin(this);      // the MP4 exporter child (ExportChild.cs)
         try { await BuildWorld(); }
@@ -1363,21 +1372,23 @@ public partial class RaceScene : Node3D
         if (distToCar < 12f)
         {
             _car.Blast(p, 1f);
-            if (_incomingCd <= 0)
-            {
-                _hud.Show("INCOMING!", distToCar < 5f ? "FRIENDLY FIRE, TOVARISH" : "ACCURACY: ACCORDING TO PLAN", 2f, Hud.Red, Prio.Important, urgent: true, plain: "INCOMING!");
-                _incomingCd = 6f;
-            }
             if (distToCar <= EngineHealth.ShellLethal) DestroyCar(p, "TANK SHELL");
-            else HealthChanged(_health.Damage(EngineHealth.ShellDamage(distToCar), "shell", distToCar));
+            else
+            {
+                HealthChanged(_health.Damage(EngineHealth.ShellDamage(distToCar), "shell", distToCar));
+                // The shell has landed and the car is still there: a reaction to the near miss, not "INCOMING!" after the hit (the owner's order of 2026-11-21). No warning ahead of it: the tank's aim at the car is not reliable
+                // enough to announce.
+                if (_incomingCd <= 0 && _state == State.Racing && _hud.Show("THAT WAS CLOSE!", distToCar < 5f ? "FRIENDLY FIRE, TOVARISH" : "ACCURACY: ACCORDING TO PLAN", 2f, Hud.Red, Prio.Important, urgent: true, plain: "SHELL NEAR MISS!")) _incomingCd = 6f;
+            }
         }
     }
 
     void ShowHindWarning(Vector3 p)
     {
         AddChild(new ExerciseWarningSound {Position=p});
-        if(_state==State.Racing && p.DistanceTo(_car.Pos)<260)
-            _hud.Show("HIND: INBOUND","AMBER LIGHTS MARK THE FIRING LINE",3,Hud.Gold,Prio.Important,urgent:true);
+        // Only when the car is where the run is aimed (the target is the middle of the impact line): not for a Hind that attacks the far end of the range. Once per run.
+        if(_state==State.Racing && p.DistanceTo(_car.Pos)<130 && _clock - _hindInboundAt > 25f && _hud.Show("HIND: INBOUND","AMBER LIGHTS MARK THE FIRING LINE",3,Hud.Gold,Prio.Important,urgent:true))
+            _hindInboundAt = _clock;
     }
 
     void OnHindWarning(Vector3 p)
@@ -1511,20 +1522,19 @@ public partial class RaceScene : Node3D
         _fenceCd -= dt;
         _breakCd -= dt;
         _tankWarnCd -= dt;
-        if (_tanks != null && _tankWarnCd <= 0 && _track.TankRange is { } rng
-            && _car.Pos.X > rng.X0 && _car.Pos.X < rng.X1 && _car.Pos.Z > rng.Z0 && _car.Pos.Z < rng.Z1)
+        // The tank exercise: once per visit to the range, and only while a tank is near enough to matter (the owner's order of 2026-11-21): not every 40 s for as long as the car is somewhere inside the rectangle.
+        bool tankNear = false;
+        if (_tanks != null && _track.TankRange is { } rng && _car.Pos.X > rng.X0 && _car.Pos.X < rng.X1 && _car.Pos.Z > rng.Z0 && _car.Pos.Z < rng.Z1)
         {
-            _hud.Show("TANK EXERCISE IN PROGRESS!", "ACCURACY: ACCORDING TO PLAN", 2.5f, Hud.Gold, Prio.Important, urgent: true, plain: "TANK EXERCISE IN PROGRESS!");
-            _tankWarnCd = 40f;
+            var hulls = new System.Collections.Generic.List<(Vector2 p, float r)>(); _tanks.HullCircles(hulls);
+            Vector2 c2 = new(_car.Pos.X, _car.Pos.Z);
+            foreach (var (hp, _) in hulls) if (hp.DistanceTo(c2) < 170f) { tankNear = true; break; }
         }
+        if (_tankAreaGate.Due(tankNear, dt) && _hud.Show("TANK EXERCISE IN PROGRESS!", "ACCURACY: ACCORDING TO PLAN", 2.5f, Hud.Gold, Prio.Important, urgent: true, plain: "TANK EXERCISE IN PROGRESS!")) _tankAreaGate.Spend();
 
         _jetWarnCd -= dt;
-        if (_jetWarnCd <= 0 && ((_jets?.RunwayBusyAt(new Vector2(_car.Pos.X, _car.Pos.Z)) ?? false)
-            || (_hinds?.RunwayBusyAt(new Vector2(_car.Pos.X, _car.Pos.Z)) ?? false)))
-        {
-            _hud.Show(_hinds != null ? "MI-24 HIND TAKING OFF!" : "MIK TAKING OFF!", "CLEAR THE RUNWAY, TOVARISH", 2.5f, Hud.Red, Prio.Critical, urgent: true);
-            _jetWarnCd = 10f;
-        }
+        bool onBusyRunway = (_jets?.RunwayBusyAt(new Vector2(_car.Pos.X, _car.Pos.Z)) ?? false) || (_hinds?.RunwayBusyAt(new Vector2(_car.Pos.X, _car.Pos.Z)) ?? false);
+        if (_runwayGate.Due(onBusyRunway, dt) && _hud.Show(_hinds != null ? "MI-24 HIND TAKING OFF!" : "MIK TAKING OFF!", "CLEAR THE RUNWAY, TOVARISH", 2.5f, Hud.Red, Prio.Critical, urgent: true)) _runwayGate.Spend();      // (once per time on the runway, again at the next)
 
         _drunkCd -= dt;
         if (_drunks is { HitThisTick: true } && _drunkCd <= 0)
@@ -1543,10 +1553,18 @@ public partial class RaceScene : Node3D
                 _busHitCd = 8f;
                 _busWarnCd = 20f;
             }
-            else if (bd < 40f && headOn && _busWarnCd <= 0)
+            // The Ilyich bus (the owner's order of 2026-11-21): up to 100 m from the nose, inside a 120 degree cone along the road's own direction, coming towards the car on the stretch of road ahead and in view (not across a
+            // bend, behind a crest or a building). Once per encounter; the next one after it has passed.
+            Vector2 carHeading = new(-_car.Rot.Z.X, -_car.Rot.Z.Z);
+            if (carHeading.LengthSquared() < 1e-4f) carHeading = Vector2.Down;
+            carHeading = carHeading.Normalized();
+            var busV = RoadWarnings.Ahead(_track, _car.Pos, carHeading, _bus.Position2D, _bus.Forward2D, RoadWarnings.BusRange, RoadWarnings.BusHalfAngle, true, RoadWarnings.BusProbes, _bus.Position2D, 6f);
+            bool oncoming = busV.Ahead && _bus.Forward2D.Dot(RoadWarnings.RoadForward(_track, cp, carHeading, out _)) < -0.3f;
+            if (RoadWarnDbg && (_roadWarnLog -= dt) <= 0f && bd < 130f) { _roadWarnLog = 1f; GD.Print($"roadwarn bus t={_clock:F1} car ({_car.Pos.X:F0},{_car.Pos.Z:F0}) {_car.Speed * 3.6f:F0} km/h, bus ({_bus.Position2D.X:F0},{_bus.Position2D.Y:F0}) {bd:F0} m: {busV}, oncoming {oncoming}"); }
+            if (_busGate.Due(oncoming, dt) && !(bd < 6f && _maxImpact > 2f))
             {
-                _hud.Show("BUS! KEEP RIGHT, TOVARISH!", "IT RUNS AGAINST THE RACE", 2.5f, Hud.Gold, Prio.Critical, urgent: true, plain: "BUS! KEEP RIGHT", plainSub: "IT RUNS AGAINST THE RACE");
-                _busWarnCd = 30f;
+                if (RoadWarnDbg) GD.Print($"roadwarn bus WARN t={_clock:F1} car ({_car.Pos.X:F0},{_car.Pos.Z:F0}) bus ({_bus.Position2D.X:F0},{_bus.Position2D.Y:F0}) {busV}");
+                if (_hud.Show("BUS! KEEP RIGHT, TOVARISH!", "IT RUNS AGAINST THE RACE", 2.5f, Hud.Gold, Prio.Critical, urgent: true, plain: "BUS! KEEP RIGHT", plainSub: "IT RUNS AGAINST THE RACE")) _busGate.Spend();
             }
         }
 
@@ -1569,20 +1587,37 @@ public partial class RaceScene : Node3D
                 _tractorHitCd = 8f;
                 _tractorWarnCd = 20f;
             }
-            else if (d < 30f && (_tractor.CrossingBarnRoad || _tractor.HasDeparted) && _tractorWarnCd <= 0)
+            else
             {
-                _hud.Show("DRUNK TRACTORIST AHEAD!", _tractor.Dozing ? "HE IS SLEEPING AT THE WHEEL" : "HE HAS HAD HIS 300 GRAMS", 2.5f, Hud.Gold, Prio.Important, urgent: true, plain: "TRACTOR AHEAD!");
-                _tractorWarnCd = 35f;
+                // The drunk tractor: up to 50 m, a 140 degree cone along the road, the body or the plough in view; TRACTOR AHEAD! when it (or its plough) already stands on the road, TRACTOR CROSSING! when it is on its way
+                // onto it and the car gets there about when it does; one that ploughs at the side says nothing. Each state once per encounter.
+                Vector2 tHeading = new(-_car.Rot.Z.X, -_car.Rot.Z.Z);
+                tHeading = tHeading.LengthSquared() < 1e-4f ? Vector2.Down : tHeading.Normalized();
+                var tState = RoadWarnings.Tractor(_track, _car.Pos, tHeading, _car.Speed, _tractor.Position2D, _tractor.Forward2D, _tractor.Speed, _tractor.Position2D - _tractor.Forward2D * 3.5f, out _);
+                if (RoadWarnDbg && (_roadWarnLogT -= dt) <= 0f && d < 90f) { _roadWarnLogT = 1f; GD.Print($"roadwarn tractor t={_clock:F1} car ({_car.Pos.X:F0},{_car.Pos.Z:F0}) {_car.Speed * 3.6f:F0} km/h, tractor ({_tractor.Position2D.X:F0},{_tractor.Position2D.Y:F0}) {d:F0} m speed {_tractor.Speed:F1}: {tState}"); }
+                _tractorStateNow = tState;
+                var due = _tractorGate.Due(tState, dt);
+                if (due != RoadWarnings.TractorState.None)
+                {
+                    // A tractor on or coming onto the road is a danger like the bus: Critical, shown at once and over a less important message (a production run queued the CROSSING behind Kozlik's warning and
+                    // it expired unseen: the car was past the tractor when its turn came).
+                    bool shown = due == RoadWarnings.TractorState.Ahead
+                        ? _hud.Show("TRACTOR AHEAD!", _tractor.Dozing ? "HE IS SLEEPING AT THE WHEEL" : "HE HAS HAD HIS 300 GRAMS", 2.5f, Hud.Gold, Prio.Critical, urgent: true, plain: "TRACTOR AHEAD!")
+                        : _hud.Show("TRACTOR CROSSING!", "HE HAS HAD HIS 300 GRAMS", 2.5f, Hud.Gold, Prio.Critical, urgent: true, plain: "TRACTOR CROSSING!");
+                    if (shown) _tractorGate.Given(due);
+                }
             }
         }
 
         _grassCd -= dt; _airCd -= dt; _crashCd -= dt; _slowCd -= dt;
 
-        if (_car.OffRoadTime > 2.5f && _grassCd <= 0)
+        if (_car.OffRoadTime <= 0f) _offRoadJokeGiven = false;      // (back on the road: the next run off it may have its joke)
+        if (_car.OffRoadTime > 2.5f && !_offRoadJokeGiven && _grassCd <= 0)
         {
             bool snow = Array.Exists(_car.Wheels, w => w.Contact && w.Surface == SurfaceType.DeepSnow);
-            _hud.Show(Slogans.Pick(snow ? Slogans.Snow : Slogans.Grass), null, 2f, Hud.Paper, Prio.Nice);
-            _grassCd = 12f;
+            // once per continuous run off the road, the snow's and the grass's alike (the owner's order of 2026-11-21): a new one only after the car has been back on the road
+            if (_hud.Show(Slogans.Pick(snow ? Slogans.Snow : Slogans.Grass), null, 2f, Hud.Paper, Prio.Nice)) { _offRoadJokeGiven = true; _grassCd = 12f; }
+            else _grassCd = 1.5f;      // (not shown now (a busy or dangerous moment): asked again in a moment, not every frame)
         }
         bool air = _car.AirTime > 0.45f;
         if (air && !_wasAirborne && _airCd <= 0)
@@ -1599,7 +1634,10 @@ public partial class RaceScene : Node3D
             && !GameplayCinematicCamera.RoadForward(_track, _car.Pos).HasValue ? _slowTime + dt : 0;
         if (_slowTime > 6f && _slowCd <= 0)
         {
-            _hud.Show(Slogans.Pick(Slogans.Slow), (_padMode ? "B" : "R") + " RETURNS YOU TO THE ROAD" + (InLanRace ? "" : " (LAP VOID)"), 2.5f, Hud.Paper, plain: "STUCK?", plainSub: (_padMode ? "B" : "R") + " RETURNS YOU TO THE ROAD" + (InLanRace ? "" : " (LAP VOID)"));
+            // The action and what it costs in the heading, the joke below (the owner's order of 2026-11-21): the right key or button, and the lap's fate by the rules of this run (a LAN race keeps its clock and its lap).
+            string key = _padMode ? "B" : "R", cost = InLanRace ? "THE CLOCK KEEPS RUNNING" : "LAP VOID";
+            _hud.Show($"STUCK? PRESS {key}: {cost}", Slogans.Pick(Slogans.Slow), 2.5f, Hud.Paper, plain: $"STUCK? PRESS {key}", plainSub: cost,
+                stillValid: () => _slowTime > 3f);      // (asked again when it comes off the queue: a car that has got going again is not told it is stuck)
             _slowCd = 15f;
         }
     }
@@ -1773,7 +1811,7 @@ public partial class RaceScene : Node3D
                     SwitchReplayTrack(1);
                 }
                 if (Input.IsActionJustPressed("start") && !alt) TitleStart();
-                else if (Input.IsActionJustPressed("pause") && !MenuBack()) AskResignation();
+                else if (Input.IsActionJustPressed("pause") && !MenuBack()) OpenMenu(MenuItem.Office, MenuItem.Quit);      // (Esc on the top row: PARTY OFFICE opens with RESIGN selected; the resignation itself is Enter on it)
                 // Menu: Left/A and Right/D move along the row.
                 else if (Input.IsActionJustPressed("steer_left")) TitleSide(-1);
                 else if (Input.IsActionJustPressed("steer_right")) TitleSide(1);

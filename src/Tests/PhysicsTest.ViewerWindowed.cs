@@ -263,6 +263,19 @@ public partial class PhysicsTest
                 var (c, _) = VwChild("title-settings", false, new[] { "--viewer-windowed=title-settings", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 300);
                 VwJudge("title-settings", c);
             }
+            if (On("situations"))
+            {
+                foreach (var (name, track) in new[] { ("sit-tractor", "ilyich"), ("sit-stuck", "ilyich"), ("sit-shortcut", "ilyich"), ("sit-slurry", "ilyich"), ("sit-snow", "siberia"), ("sit-kitchen", "bonus") })
+                {
+                    var (c, _) = VwChild(name, false, new[] { "--viewer-windowed=" + name, "--start", "--autodrive", "--track=" + track, "--no-intro", "--ap-speed=0.8" }.Concat(fxArgs).ToArray(), 400);
+                    VwJudge(name, c);
+                }
+            }
+            if (On("rewardlook"))
+            {
+                var (c, _) = VwChild("reward-look", false, new[] { "--viewer-windowed=reward-look", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 300);
+                VwJudge("reward-look", c);
+            }
             if (On("stakhanovexit"))
             {
                 var (c, _) = VwChild("stakhanov-exit", false, new[] { "--viewer-windowed=stakhanov-exit", "--start", "--training", "--autodrive", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 300);

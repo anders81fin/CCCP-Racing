@@ -8,7 +8,7 @@ namespace CCCPRacing.Race;
 /// Hundreds-of-checkpoints lap validation in the spirit of Rally-Sport 1.27: the centre line is
 /// split into gates every few metres and they must be passed in order.
 /// </summary>
-public class LapTimer
+public partial class LapTimer
 {
     public const int GateStep = 20;    // metres between gates
     const float Tolerance = 25f;       // how far off the road still counts as on track

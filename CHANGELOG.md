@@ -3,6 +3,20 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.915
+
+- LOADING: a node that freed itself while a track was loading could end the load with an error and leave the loading card turning for ever. Fixed
+- STEAM DECK: stall.log now also records long frames, and in a long freeze it records where the busy thread is (a small helper is written next to the saves). It helps to find the Atomgrad load freeze seen on the Deck. It changes nothing in play
+- MENUS: SETTINGS, VISUALS and SOUNDS in the main menu go back with B, Start and VIEW on a pad. A pad press in the first frame of a new screen is no longer lost
+- MENUS: Esc on the main menu and the pad Back button open PARTY OFFICE with RESIGN selected. Nothing resigns until Enter
+- REPLAY: Esc and B leave the hide mode first. The EDIT menu goes edit rows, FREE CAMERA, KEEP or RENAME RECORDING, EXPORT MP4, CLOSE. A lap can now keep DIRECTED as its own camera (saved edits are version 4: older games cannot read them)
+- CARDS: the medal ceremony on the track card no longer draws over the hint card, and the AUTHORIZED stamp stays inside the card. The LAP NOT COUNTED card offers START (pad) or F3: WATCH LAST LAP AS REPLAY, and only that card
+- COLLISIONS: buildings are closed all round. The corners of the Atomgrad turbine hall could be driven through, and so could the reactor annex and the decontamination yard (water tank, drums, hose reel, light posts). Wide buildings on every track have closed corners now
+- TANKS: a tank no longer creeps into a BTR beside it
+- WARNINGS: the Ilyich bus (100 m ahead), the drunk tractor (TRACTOR CROSSING! and TRACTOR AHEAD!, 50 m) and the Kozlik patrol (BEAR PATROL AHEAD! and PULLING OUT!, 80 m) warn only when they are in view along the road ahead, once per meeting. The tractor warning shows over other messages
+- MESSAGES: stuck, upside down, shortcut and slurry say what to do, with the right key or button and what happens to the lap, in the heading. DOSE HIGH: WASH AT THE BIRCHES. Action messages no longer blink at the start. The grass and snow joke comes once per run off the road
+- MESSAGES: THAT WAS CLOSE! after a shell that missed. The field kitchen cook says his line in a speech bubble. The tank exercise, runway and Hind warnings come once per visit and only where the car is
+
 ## 0.914
 
 - CAMERAS: the camera key now goes DIRECTED, CLASSIC, BONNET, FOLLOW-BEHIND (CLOSE), FOLLOW-BEHIND, FOLLOW-BEHIND (FAR), ROAD-ALIGNED. The old CINEMATIC camera is now FOLLOW-BEHIND, and the same secret now opens all three distances

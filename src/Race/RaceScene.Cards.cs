@@ -124,6 +124,7 @@ public partial class RaceScene
     {
         if (_stopCard == null) return false;
         if (e is InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.F3 }) { if (_cardAge >= CardMinShow) WatchLastLap(WatchFrom.Card); return true; }      // WATCH LAP on the card (CONTINUE stays the default: any other key)
+        if (e is InputEventJoypadButton { Pressed: true, ButtonIndex: JoyButton.Start } && _hud.StopCardWatch != null) { if (_cardAge >= CardMinShow) WatchLastLap(WatchFrom.Card); return true; }      // the pad's START, as F3, when the card offers the lap (any other button continues)
         bool press = e is InputEventKey { Pressed: true, Echo: false } or InputEventMouseButton { Pressed: true }
             or InputEventJoypadButton { Pressed: true };
         if (!press || _cardAge < CardMinShow) return true;

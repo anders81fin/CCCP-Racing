@@ -10,7 +10,7 @@ namespace CCCPRacing.Race;
 /// KGB FILES | CREDITS | RESIGN; KGB FILES is a third row: PERSONNEL | LEADERBOARDS | RECORDINGS;
 /// the DRIVING SCHOOL teaches car control on ILYICH'S LAMP and comes back here, a rally's own school
 /// is offered before a rally on a track that has one, Stakhanov laps have none),
-/// Esc goes back up one level with the parent selected (on the top row Esc hands in the resignation). Left/Right move
+/// Esc goes back up one level with the parent selected (on the top row Esc opens PARTY OFFICE with RESIGN selected). Left/Right move
 /// along a row, Down/Up select and leave the replay line at every level. Back from a run the top row
 /// has the parent of the mode played last, and Enter opens its row on that mode. In a mode row a
 /// hint box in the middle of the screen says what the selected mode is.

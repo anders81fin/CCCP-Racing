@@ -14,6 +14,7 @@ public partial class PhysicsTest
     void TankBtrTest()
     {
         var track = TrackBuilder.Build(TrackDef.Load("res://tracks/bonus.json"));
+        for (int d = 0; d < (int.TryParse(OS.GetEnvironment("TB_DUMMY"), out int nd) ? nd : 0); d++) track.Obstacles.Add(new Obstacle(new Vector2(-500f - d, -500f), 1f));      // (a far-away obstacle: how much a change that does not touch the range changes the ten minutes)
         var fx = new TyreEffects(); AddChild(fx); fx.Init(track);
         var tanks = new TankBattle(); AddChild(tanks);
         var tr = track.TankRange;
@@ -31,6 +32,7 @@ public partial class PhysicsTest
             {
                 float pen = tr2 + br - tp.DistanceTo(bp);
                 if (pen > deepest) { deepest = pen; where = tp; when = i / 60f; }
+                if (pen > 0.3f && OS.HasEnvironment("TB_DBG") && i % 30 == 0) GD.Print($"TBDBG t={i / 60f:F1} tank {tp} r{tr2} btr {bp} r{br} pen {pen:F2}; static near: " + string.Join(" ", track.Obstacles.Where(o => o.Center.DistanceTo(tp) < 14f && o.Center.X > -9000f && o.Radius > 0.5f).Select(o => $"({o.Center.X:F0},{o.Center.Y:F0})r{o.Radius:F1}").Take(14)));
                 if (pen > -1f) close++;
             }
             if (i % 60 == 59) { int k = 0; foreach (var p in btr.Positions) { var q = new Vector2(p.X, p.Z); travelledBtr += q.DistanceTo(prev[k]); prev[k++] = q; } }
