@@ -652,7 +652,10 @@ public partial class TyreEffects : Node3D
         _count = n;
     }
 
-    public void Tick(float dt, Basis cam)
+    /// <summary>The FOLLOW-BEHIND camera hangs a few metres behind the car, in its own spray: a particle nearer to the lens than LensFar is thinned (smaller, more see-through, almost gone at LensNear) so mud never fills the picture.</summary>
+    const float LensNear = 1.2f, LensFar = 7f;
+
+    public void Tick(float dt, Basis cam, (Vector3 eye, float scale)? lens = null)
     {
         AdvancePlayback(dt);
         for (int i = 0; i < _count; i++)
@@ -662,6 +665,12 @@ public partial class TyreEffects : Node3D
             float size = Mathf.Lerp(q.Size0, q.Size1, t);
             if (q.Landed) size = q.Size1 * 1.4f;
             float alpha = q.Solid || q.Gravity > 5f ? q.Alpha * Math.Clamp((1f - t) * 5f, 0f, 1f) : q.Alpha * (1f - t);
+            if (lens is var (eye, lensScale))
+            {
+                float f = Mathf.SmoothStep(0f, 1f, Math.Clamp((q.Pos.DistanceTo(eye) - LensNear * lensScale) / ((LensFar - LensNear) * lensScale), 0f, 1f));
+                size *= Mathf.Lerp(0.3f, 1f, f);
+                alpha *= Mathf.Lerp(0.08f, 1f, f);
+            }
             Basis b = cam.Scaled(Vector3.One * size);
             int o = i * 16;
             _buf[o + 0] = b.X.X; _buf[o + 1] = b.Y.X; _buf[o + 2] = b.Z.X; _buf[o + 3] = q.Pos.X;

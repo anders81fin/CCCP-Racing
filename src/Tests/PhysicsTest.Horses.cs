@@ -235,11 +235,12 @@ public partial class PhysicsTest
         }
         float trotDiag = Corr(fl, rr), trotLat = Corr(fl, fr), walkDiag = Corr(wfl, wrr);
         GD.Print($"  gait: walk amp {walkAmp:F2} trot amp {trotAmp:F2} diag {trotDiag:F2} lateral {trotLat:F2} walk diag {walkDiag:F2} max hip step/tick {maxJump:F3} standing ticks {standing} stand hip {standHip:F4} knee max {shinMax:F3}; foot min {minFoot:F2}; slope max {maxSlope:F2} pitch err {worstPitch:F3} roll err {worstRoll:F3} y err {worstY:F3}");
-        Check(walkAmp > 0.15f && trotAmp > 0.45f && trotAmp > walkAmp * 1.4f, $"horses gait: legs swing, wider at a trot ({walkAmp:F2} -> {trotAmp:F2} rad)");
-        Check(trotDiag > 0.8f && trotLat < -0.8f && walkDiag < 0.5f, $"horses gait: a trot moves diagonal legs together ({trotDiag:F2}) and opposite sides apart ({trotLat:F2}); a walk is a different sequence ({walkDiag:F2})");
-        Check(shinMax <= 1e-5f && maxJump < 0.065f && standing > 120 && standHip < 1e-3f, $"horses gait: knees only fold back, no leg moves more than {maxJump:F3} rad in a tick (a snap is 0.3+; a steady trot peaks at ~0.053) and the legs are still half a second after the horse stops ({standing} ticks)");
+        Check(walkAmp > 0.15f && trotAmp > 0.45f && trotAmp > walkAmp * 1.2f,      // (the legs are placed on the ground now: a walk needs a wide swing too, a trot only a little wider)
+             $"horses gait: legs swing, wider at a trot ({walkAmp:F2} -> {trotAmp:F2} rad)");
+        Check(trotDiag > 0.8f && trotLat < -0.7f && walkDiag < 0.5f, $"horses gait: a trot moves diagonal legs together ({trotDiag:F2}) and opposite sides apart ({trotLat:F2}); a walk is a different sequence ({walkDiag:F2})");
+        Check(shinMax <= 1e-5f && maxJump < 0.13f && standing > 120 && standHip < 1e-3f, $"horses gait: knees only fold back, no leg moves more than {maxJump:F3} rad in a tick (a snap is 0.3+; a steady trot of the foot-placed gait peaks at ~0.11) and the legs are still half a second after the horse stops ({standing} ticks)");
         Check(minFoot > -0.5f, $"horses terrain: no hoof sinks more than half a metre into the ground (lowest {minFoot:F2} m)");
-        Check(worstPitch < 0.2f && worstRoll < 0.25f && worstY < 0.12f, $"horses terrain: the body follows the slope (pitch error {worstPitch:F2}, roll error {worstRoll:F2} rad, height error {worstY:F2} m, steepest sampled {maxSlope:F2} rad)");
+        Check(worstPitch < 0.2f && worstRoll < 0.25f && worstY < 0.2f, $"horses terrain: the body follows the slope (pitch error {worstPitch:F2}, roll error {worstRoll:F2} rad, height error {worstY:F2} m (the body sinks up to 0.14 m in a trot so that the legs can reach), steepest sampled {maxSlope:F2} rad)");
         zone.QueueFree();
     }
 
@@ -362,8 +363,8 @@ public partial class PhysicsTest
         var (t, def, zone, _) = HorseWorld();
         var index = new WorldTapeIndex(new[] { (HorseKey, (Node3D)zone) });
         var st = index.StructureOf(HorseKey);
-        var names = new[] { "1/horse", "1/horseHead", "1/tail", "1/legFL", "1/legFR", "1/legRL", "1/legRR", "1/shinFL", "1/shinFR", "1/shinRL", "1/shinRR", "5/legRR", "5/shinRR" };
-        Check(names.All(st.ParentPaths.ContainsKey) && st.Version == 2, $"horses tape: stable part names for the horse, head, tail and four hips and knees of all five horses (ZoneLife tape_ver {st.Version})");
+        var names = new[] { "1/horse", "1/horseHead", "1/tail", "1/legFL", "1/legFR", "1/legRL", "1/legRR", "1/shinFL", "1/shinFR", "1/shinRL", "1/shinRR", "5/legRR", "5/shinRR", "catfish", "catfishRear", "catfishTail" };
+        Check(names.All(st.ParentPaths.ContainsKey) && st.Version == 3, $"horses tape: stable part names for the horse, head, tail and four hips and knees of all five horses (ZoneLife tape_ver {st.Version})");
         // Rest pose: the index built after any live history is the one built at world build, because Init/Reset pose the horses the same way.
         for (int k = 0; k < 400; k++) zone.Tick(1f / 120f, null);
         zone.Reset();

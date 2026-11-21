@@ -674,14 +674,18 @@ public partial class RaceScene
         VwCheck(_sessionLapOrder.Count >= 1 && archive.List().Count >= 1, $"a completed lap in the archive ({liveCam.Count} live camera samples)");
         foreach (var x in VrUntil(() => archive.List().Any(i => i.Id == _lastLapId && i.Openable), 60 * 20, "the lap is openable")) yield return x;
 
-        // ---- the Party Meeting with a lap
+        // ---- the Party Meeting with a lap (the lap's own stop card, a norm beaten, comes first and owns the keys: Enter closes it)
+        for (int i = 0; i < 180 && !CardShown; i++) yield return null;
+        for (int i = 0; i < 5 && CardShown; i++) { foreach (var x in VrTap(Key.Enter)) yield return x; for (int k = 0; k < 20; k++) yield return null; }
+        foreach (var x in VrUntil(() => _state == State.Racing && !CardShown, 60 * 5, "the stop card is closed and the drive runs")) yield return x;
         foreach (var x in VrTap(Key.Escape)) yield return x;
         foreach (var x in VrUntil(() => _hud.PauseReplayAvailable, 60 * 5, "the meeting's listing has the lap")) yield return x;      // (the listing arrives within a second or two of the meeting opening)
         VwCheck(_hud.PauseReplayShown && _hud.PauseReplayAvailable && PauseReplayRow == 1 && _sessionLapOrder.Count >= 1, $"the WATCH LAST LAP row is there after the first lap (row {PauseReplayRow}, below CONTINUE; BROWSE LAPS only from two laps; the run's laps {_sessionLapOrder.Count}, listed {_replayInfos.Count})");
         foreach (var x in VrShot("meeting-with-laps")) yield return x;
         var sigMeeting = VwSig();
         var filesBefore = VrFiles();      // (the lap just driven wrote its own records; from here on only the viewer is used)
-        OpenReplayList();      // (the list: BROWSE LAPS exists from two laps on; WATCH LAST LAP is checked in the watch-lap scenario)
+        OpenReplayList();      // (the list: BROWSE LAPS exists from two laps on, where a list never opens a lap by itself; WATCH LAST LAP is checked in the watch-lap scenario)
+        _replayAutoSingle = false;      // (one lap would be opened directly: the list is what this scenario drives)
         foreach (var x in VrUntil(() => _hud.ReplayListOpen && _hud.ReplayList.Rows.Length >= 1, 60 * 5, "the list shows the lap")) yield return x;
         VwLog("list-row", ("title", _hud.ReplayList.Rows[0].Title), ("detail", _hud.ReplayList.Rows[0].Detail), ("flag", _hud.ReplayList.Rows[0].Flag));
         VwCheck(_hud.ReplayList.Rows[0].Selectable, "the first row can be opened");
@@ -742,11 +746,17 @@ public partial class RaceScene
         foreach (var x in VrTap(Key.Up)) yield return x; foreach (var x in VrTap(Key.Up)) yield return x; foreach (var x in VrTap(Key.Up)) yield return x;
         VwCheck(s.Scene.ViewerSpeed == 2f, "UP x3: 2x");
         foreach (var x in VrTap(Key.Down)) yield return x;
-        foreach (var x in VrTap(Key.C)) yield return x;
-        var cam1 = s.Scene.ViewerCamera;
-        foreach (var x in VrShot("viewer-camera-2")) yield return x;
-        foreach (var x in VrTap(Key.C)) yield return x;
-        VwCheck(cam1 != ViewerCameraMode.TopDown && s.Scene.ViewerCamera == ViewerCameraMode.TopDown, $"C cycles the cameras and comes back to top-down ({cam1})");
+        var camStart = s.Scene.ViewerCamera;      // (the automatic broadcast: the cycle is Auto, top-down, bonnet, cinematic (, classic where the track has one))
+        var camSeen = new List<ViewerCameraMode>();
+        for (int k = 0; k < 8; k++)
+        {
+            foreach (var x in VrTap(Key.C)) yield return x;
+            camSeen.Add(s.Scene.ViewerCamera);
+            if (k == 0) foreach (var x in VrShot("viewer-camera-2")) yield return x;
+            if (s.Scene.ViewerCamera == camStart) break;
+        }
+        VwCheck(camSeen.Count >= 3 && camSeen[0] != camStart && camSeen[^1] == camStart && camSeen.Distinct().Count() == camSeen.Count, $"C cycles the cameras and comes back to where it started ({camStart}: {string.Join(" > ", camSeen)})");
+        s.Scene.ViewerCamera = ViewerCameraMode.TopDown;      // (what the rest of the scenario had after its two presses)
         foreach (var x in VrTap(Key.H)) yield return x;
         for (int i = 0; i < 4; i++) yield return null;
         VwCheck(!s.OverlayView.Shown, "H hides the overlay");
@@ -851,7 +861,7 @@ public partial class RaceScene
         foreach (var x in VrPad(JoyButton.DpadUp)) yield return x;
         VwCheck(s.Scene.ViewerSpeed == 2f, "pad D-pad up: 2x");
         foreach (var x in VrPad(JoyButton.Y)) yield return x;
-        VwCheck(s.Scene.ViewerCamera != ViewerCameraMode.TopDown, "pad Y changes the camera");
+        VwCheck(s.Scene.ViewerCamera != ViewerCameraMode.Auto, "pad Y changes the camera (a viewer opens on the automatic broadcast)");
         foreach (var x in VrPad(JoyButton.X)) yield return x;
         VwCheck(!s.OverlayView.Shown, "pad X hides the overlay");
         foreach (var x in VrPad(JoyButton.B)) yield return x;

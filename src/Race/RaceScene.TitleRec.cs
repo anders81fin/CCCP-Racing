@@ -50,6 +50,7 @@ public partial class RaceScene
     /// <summary>The recorded background lap (ghost, world tape and fuel list in assets/replays), if it was made on this very track: it plays on the title before the older demonstration.</summary>
     bool LoadBundledRallyTake()
     {
+        if (Array.IndexOf(OS.GetCmdlineUserArgs(), "--no-bundled-title") >= 0) return false;      // (development: the tape tests replay the record sets they drove, not the take that ships on the title)
         if (_track.Id != "ilyich" || !FileAccess.FileExists(BundledRallyTake + ".sig") || !FileAccess.FileExists(BundledRallyTake + ".bin")) return false;
         if (FileAccess.GetFileAsString(BundledRallyTake + ".sig").StripEdges() != _records.Signature) return false;      // (the terrain changed: the take no longer fits)
         var ghost = Ghost.Load(BundledRallyTake + ".bin", _params, _track);

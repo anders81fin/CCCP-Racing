@@ -33,8 +33,13 @@ public sealed class ReplayOverlayView
     public float Clock, Duration;             // seconds
     public bool Paused, Ended;
     public float Speed = 1f;                   // 0.25, 0.5, 1, 2
-    public string Camera = "GAMEPLAY";       // "GAMEPLAY", "BONNET", "AUTO", ...
+    public string Camera = "GAMEPLAY";       // "GAMEPLAY", "BONNET", "TV BROADCAST", ...
     public bool FreeCamera, FreeFollow, FreeLook;
+    /// <summary>The free camera's decision line, always one of: "K · USE THIS SHOT" (the view in hand is not on the timeline yet), "SHOT ADDED AT m:ss.hh" (it is) or "KEEP FIRST TO USE THIS SHOT" (a recording not yet kept cannot take camera keys). Shown under FREE CAMERA.</summary>
+    public string FreeShot = "";
+    /// <summary>MAKE CLIP: the clip's span (empty: none) and what its keys do.</summary>
+    public string ClipText = "", ClipHint = "";
+    public bool FreeShotAdded;
     public Godot.Vector3 FreePosition;               // the free camera's world position
     public float FreeHeading, FreePitch;       // degrees: compass heading 0-359 (0 = -Z, 90 = +X), pitch -90..90 (0 = level)
     public bool PadMode;                       // hints in pad buttons

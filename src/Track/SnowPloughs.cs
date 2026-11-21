@@ -35,6 +35,9 @@ public partial class SnowPloughs : Node3D
     {
         public float S, Speed, StartS, HonkCd, SprayL, SprayR, Clock, Lane = LaneShare;
         public bool Against, Mixer;
+        /// <summary>The distance driven (m, signed along the nose, the road's real metres): the wheels turn odometer / (radius x Size), standing still and reversing included.</summary>
+        public float Odo;
+        public readonly List<(Node3D Pivot, float Radius)> Wheels = new();
         public Node3D Drum;
         public int Obs;
         public Node3D Model, Beacon, PileL, PileR;
@@ -66,12 +69,12 @@ public partial class SnowPloughs : Node3D
     {
         _t = t;
         _fx = fx;
-        Tape.Version(this, 1); Tape.Part(this, "root");
+        Tape.Version(this, 2); Tape.Part(this, "root");      // (v2: the six wheels of each truck are turning parts, wheel0..5)
         foreach (var d in defs)
         {
             var p = new Plough { StartS = d.Start, Against = d.Against, Mixer = d.Kind == "mixer", Obs = t.Obstacles.Count };
             foreach (var _ in p.Mixer ? MixerCircles : Circles) t.Obstacles.Add(new Obstacle(new Vector2(-1e4f, -1e4f), 0.1f));
-            p.Model = p.Mixer ? BuildMixer(out p.Beacon, out p.Drum) : BuildModel(out p.Beacon, out p.PileL, out p.PileR);
+            p.Model = p.Mixer ? BuildMixer(out p.Beacon, out p.Drum, p.Wheels) : BuildModel(out p.Beacon, out p.PileL, out p.PileR, p.Wheels);
             AddChild(p.Model);
             // The registered beacon part stays (old tapes fit it) but is empty: the lamp is the rotating beacon, which is not taped.
             ((MeshInstance3D)p.Beacon).Mesh = null;
@@ -92,6 +95,12 @@ public partial class SnowPloughs : Node3D
         string n = $"{no}/";
         Tape.Part(p.Model, n + "model"); Tape.Part(p.Beacon, n + "beacon"); Tape.Part(p.Sound, n + "sound");
         if (p.Drum != null) { Tape.Part(p.Drum, n + "drum"); Tape.Spin(p.Drum, Vector3.Back, () => p.Clock * 1.6f); }
+        for (int i = 0; i < p.Wheels.Count; i++)
+        {
+            float r = p.Wheels[i].Radius * Size;
+            Tape.Part(p.Wheels[i].Pivot, n + "wheel" + i);
+            Tape.Spin(p.Wheels[i].Pivot, Vector3.Right, () => -p.Odo / r);      // (the real, unwrapped angle: a wheel turns by the distance driven)
+        }
         Tape.Sound(p.Model, TapeSoundChannel.DieselSpeed, () => p.Sound.Speed,
             v => { p.Sound.Speed = v; SnowLoad(p, v); });
     }
@@ -121,6 +130,7 @@ public partial class SnowPloughs : Node3D
             p.S = p.StartS;
             p.Speed = Cruise;
             p.Lane = LaneShare;
+            p.Odo = 0f;
             Place(p, 0f);
         }
     }
@@ -197,6 +207,7 @@ public partial class SnowPloughs : Node3D
             p.Lane = Mathf.MoveToward(p.Lane, lane, 0.35f * dt);
             p.Speed = Mathf.MoveToward(p.Speed, target, (target < p.Speed ? 4f : 1.2f) * dt);
             p.S = ((p.S + sign * p.Speed * dt) % n + n) % n;
+            p.Odo += p.Speed * dt;
             Place(p, dt);
         }
     }
@@ -238,6 +249,7 @@ public partial class SnowPloughs : Node3D
         p.Model.GlobalTransform = new Transform3D(b.Scaled(Vector3.One * Size), new Vector3(pos.X, (hF + hB) * 0.5f, pos.Y));
         p.Sound.Position = p.Model.Position;
         p.Sound.Speed = p.Speed;
+        foreach (var (pivot, radius) in p.Wheels) pivot.Rotation = new Vector3(-p.Odo / (radius * Size), 0, 0);
 
         Vector2 vel = fwd * p.Speed;
         var circles = p.Mixer ? MixerCircles : Circles;
@@ -304,13 +316,32 @@ public partial class SnowPloughs : Node3D
         truck.AddChild(beam);
     }
 
-    static Node3D BuildMixer(out Node3D beacon, out Node3D drum)
+    /// <summary>One road wheel on a pivot at its axle, so it can turn by the distance driven. The tyre is plain black (as before); the outer face carries a steel rim, a hub and five nuts, and ONE pale paint bar from the hub to the rim, so
+    /// a turning wheel can be read from the side, in a pass-by of the replay as well (a plain cylinder shows no turning). Returns the pivot; the wheel and its radius go to the list.</summary>
+    static Node3D RoadWheel(List<(Node3D, float)> wheels, float radius, float width, Vector3 pos)
+    {
+        var pivot = new Node3D { Position = pos, Name = "Wheel" + wheels.Count };
+        pivot.AddChild(Props.Part(Props.Cyl(radius, width, 10), Black, Vector3.Zero, new Vector3(0, 0, 90)));
+        float face = MathF.Sign(pos.X) * (width * 0.5f + 0.02f), outer = face + MathF.Sign(pos.X) * 0.05f;
+        pivot.AddChild(Props.Part(Props.Cyl(radius * 0.58f, 0.05f, 10), Steel, new Vector3(face, 0, 0), new Vector3(0, 0, 90)));
+        pivot.AddChild(Props.Part(Props.Cyl(radius * 0.2f, 0.07f, 8), Black, new Vector3(outer, 0, 0), new Vector3(0, 0, 90)));
+        for (int k = 0; k < 5; k++)
+        {
+            float a = k * MathF.Tau / 5f;
+            pivot.AddChild(Props.Part(Props.Ball(0.04f), new Color(0.6f, 0.6f, 0.56f), new Vector3(outer + MathF.Sign(pos.X) * 0.035f, MathF.Cos(a) * radius * 0.36f, MathF.Sin(a) * radius * 0.36f)));
+        }
+        pivot.AddChild(Props.Part(Props.Box(0.05f, radius * 0.34f, 0.08f), Edge, new Vector3(face + MathF.Sign(pos.X) * 0.02f, radius * 0.4f, 0)));      // (the one paint bar: it starts at the hub and ends before the rim)
+        wheels.Add((pivot, radius));
+        return pivot;
+    }
+
+    static Node3D BuildMixer(out Node3D beacon, out Node3D drum, List<(Node3D, float)> wheels)
     {
         var m = new Node3D { Name = "Mixer" };
         m.AddChild(Props.Part(Props.Box(2.4f, 0.5f, 8.2f), Black, new Vector3(0, 0.95f, 0)));
         foreach (float z in new[] { -2.6f, 1.6f, 3.1f })
         foreach (float x in new[] { -1.25f, 1.25f })
-            m.AddChild(Props.Part(Props.Cyl(0.58f, 0.48f, 10), Black, new Vector3(x, 0.58f, z), new Vector3(0, 0, 90)));
+            m.AddChild(RoadWheel(wheels, 0.58f, 0.48f, new Vector3(x, 0.58f, z)));
         BuildMixerCab(m);
         Lamps(m, new Vector3(0.8f, 1.5f, -4.08f), 4.14f, 1.1f);
         // Bearings and cradle stay still while the drum rotates about its inclined axis.
@@ -346,14 +377,14 @@ public partial class SnowPloughs : Node3D
 
     // ------------------------------------------------------------ the truck
 
-    static Node3D BuildModel(out Node3D beacon, out Node3D pileL, out Node3D pileR)
+    static Node3D BuildModel(out Node3D beacon, out Node3D pileL, out Node3D pileR, List<(Node3D, float)> wheels)
     {
         var m = new Node3D { Name = "Plough" };
         // Frame, six big wheels.
         m.AddChild(Props.Part(Props.Box(2.5f, 0.5f, 9.2f), Black, new Vector3(0, 0.95f, 0)));
         foreach (float z in new[] { -2.9f, 1.6f, 3.3f })
         foreach (float x in new[] { -1.3f, 1.3f })
-            m.AddChild(Props.Part(Props.Cyl(0.62f, 0.5f, 10), Black, new Vector3(x, 0.62f, z), new Vector3(0, 0, 90)));
+            m.AddChild(RoadWheel(wheels, 0.62f, 0.5f, new Vector3(x, 0.62f, z)));
         // Bonnet and cab, road-service orange; a dark windscreen; the beacon on the roof.
         m.AddChild(Props.Part(Props.Box(2.3f, 0.95f, 1.3f), Orange, new Vector3(0, 1.75f, -3.85f)));
         m.AddChild(Props.Part(Props.Box(2.1f, 0.25f, 0.06f), Black, new Vector3(0, 1.55f, -4.52f)));      // grille

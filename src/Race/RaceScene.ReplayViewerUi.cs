@@ -65,20 +65,39 @@ public partial class RaceScene
         public void HideForExport() { if (_uiLayer != null) _uiLayer.Visible = false; _overlayHidden = true; _exportChild = true; }
 
         /// <summary>The cameras the player may pick: the directed and the classic overhead ones, the bonnet and the cinematic one only where this personnel file has found them, and the automatic director.</summary>
+        /// <summary>The free camera's recording state, unmistakable at the moment of deciding: the shot in hand is either on the timeline already (a key here that matches it) or still only on the screen.</summary>
+        (string text, bool added) FreeShotLine(bool pad)
+        {
+            if (!_editable) return ("KEEP FIRST TO USE THIS SHOT", false);
+            var now = _scene.ViewerCaptureFreeCamera();
+            float clock = _scene.ViewerClock;
+            if (now != null)
+                foreach (var k in _wKeys)
+                    if (Math.Abs(k.T - clock) < .05f && _wFreeKeys.TryGetValue(k.T, out var key) && SameShot(key, now))
+                        return ("SHOT ADDED AT " + $"{(int)(k.T / 60f)}:{k.T % 60f:00.00}", true);      // (hundredths: the key's own time, as it will be cut)
+            return ((pad ? "X" : "K") + " · USE THIS SHOT", false);
+        }
+
+        static bool SameShot(LapFreeCamera a, LapFreeCamera b) =>
+            Math.Abs(a.X - b.X) < .02f && Math.Abs(a.Y - b.Y) < .02f && Math.Abs(a.Z - b.Z) < .02f && Math.Abs(a.OffsetX - b.OffsetX) < .02f && Math.Abs(a.OffsetY - b.OffsetY) < .02f && Math.Abs(a.OffsetZ - b.OffsetZ) < .02f
+            && Math.Abs(a.Yaw - b.Yaw) < .002f && Math.Abs(a.Pitch - b.Pitch) < .002f && Math.Abs(a.Fov - b.Fov) < .05f && a.Follow == b.Follow && a.Look == b.Look;
+
         List<ViewerCameraMode> AvailableCameras()
         {
-            var list = new List<ViewerCameraMode> { ViewerCameraMode.TopDown, ViewerCameraMode.Classic };      // (directed and classic: always there)
+            // The game's own order (CameraDiscoveries.Order), then the TV broadcast: directed, classic, the found bonnet and the three found follow-behind ones, the road-aligned one (always there).
+            var list = new List<ViewerCameraMode> { ViewerCameraMode.TopDown, ViewerCameraMode.Classic };
             var found = _live._cameraDiscoveries;
             if (found != null)
             {
                 if (found.Has(_track, GameplayView.Bonnet)) list.Add(ViewerCameraMode.Bonnet);
-                if (found.Has(_track, GameplayView.Cinematic)) list.Add(ViewerCameraMode.Cinematic);
+                if (found.Has(_track, GameplayView.Cinematic)) { list.Add(ViewerCameraMode.CinematicClose); list.Add(ViewerCameraMode.Cinematic); list.Add(ViewerCameraMode.CinematicFar); }
             }
+            list.Add(ViewerCameraMode.RoadAligned);
             list.Add(ViewerCameraMode.Auto);
             return list;
         }
 
-        static string CameraName(ViewerCameraMode m) => m switch { ViewerCameraMode.Bonnet => "BONNET", ViewerCameraMode.Cinematic => "CINEMATIC", ViewerCameraMode.Auto => "AUTO", ViewerCameraMode.Classic => "CLASSIC", _ => "DIRECTED" };
+        static string CameraName(ViewerCameraMode m) => m switch { ViewerCameraMode.Bonnet => "BONNET", ViewerCameraMode.Cinematic => "FOLLOW-BEHIND", ViewerCameraMode.CinematicClose => "FOLLOW-BEHIND (CLOSE)", ViewerCameraMode.CinematicFar => "FOLLOW-BEHIND (FAR)", ViewerCameraMode.RoadAligned => "ROAD-ALIGNED", ViewerCameraMode.Auto => "TV BROADCAST", ViewerCameraMode.Classic => "CLASSIC", _ => "DIRECTED" };
 
         public void SetNotice(string text, float seconds = 3f) { _notice = text ?? ""; _noticeLeft = seconds; }
 
@@ -234,7 +253,9 @@ public partial class RaceScene
                 v.FreePosition = pose.Origin;
                 v.FreeHeading = (Mathf.RadToDeg(Mathf.Atan2(fwd.X, -fwd.Z)) % 360f + 360f) % 360f;
                 v.FreePitch = Mathf.RadToDeg(Mathf.Asin(Mathf.Clamp(fwd.Y, -1f, 1f)));
+                (v.FreeShot, v.FreeShotAdded) = FreeShotLine(v.PadMode);
             }
+            else { v.FreeShot = ""; v.FreeShotAdded = false; }
             v.Building = _state == ReplayViewerState.Building;
             if (v.Building)
             {

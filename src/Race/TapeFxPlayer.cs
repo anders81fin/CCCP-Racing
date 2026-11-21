@@ -134,6 +134,8 @@ public sealed partial class TapeFxPlayer
                     if (age <= .00001f) Feel?.Invoke(e, age);
                     break;
                 case TapeFxKind.CanisterBurst: Feel?.Invoke(e, age); break;      // (the splash restores by age through the tagged particles; its thump the host skips when old)
+                case TapeFxKind.CatfishLaunch: ZoneLife.LaunchSplashFx(_fx, _rng, e.Pos, e.Dir); break;      // (the live functions: restored by age through the tagged particles)
+                case TapeFxKind.CatfishSplash: ZoneLife.SplashFx(_fx, _rng, e.Pos); break;
                 case TapeFxKind.SlurryPatch: Slurry?.Invoke(new Vector2(e.Pos.X, e.Pos.Z), e.Param > .5f, age); break;
                 case TapeFxKind.RunWarning: Warning(e, age); break;
                 case TapeFxKind.BukLaunch: Buk21Battery.LaunchFx(_fx, _track, SoundParent(age), e.Pos, e.Dir); break;

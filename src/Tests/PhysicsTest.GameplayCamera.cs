@@ -8,7 +8,7 @@ namespace CCCPRacing.Tests;
 
 public partial class PhysicsTest
 {
-    /// <summary>The CINEMATIC view is a close chase camera: behind and a little above the car, a soft lag in turns, a roll into a corner, a pitch for braking and a launch, a bounded shake.</summary>
+    /// <summary>The FOLLOW-BEHIND view is a close chase camera: behind and a little above the car, a soft lag in turns, a roll into a corner, a pitch for braking and a launch, a bounded shake.</summary>
     void GameplayRearCameraTest()
     {
         var cam = new GameplayRearCamera();
@@ -133,9 +133,33 @@ public partial class PhysicsTest
         Check(finite && maxMove < 0.01f && maxRoll > 0.005f && maxRoll <= 0.0601f, $"bonnet camera: the lens stays on the bonnet (moved {maxMove * 1000f:F1} mm) and a corner leans the picture ({maxRoll * 57.3f:F1} degrees)");
     }
 
+    /// <summary>The ROAD-ALIGNED view: high above the car, looking steeply down, the screen's up along the road (also with the car's nose turned away), eased when the road bends, finite and clear of the ground.</summary>
+    void GameplayRoadCameraTest()
+    {
+        var cam = new GameplayRoadCamera();
+        Vector3 road = new(1, 0, 0), car = Vector3.Zero, vel = new(30, 0, 0);
+        (Vector3 eye, Vector3 target) f = default;
+        for (int i = 0; i < 180; i++) { car += vel / 60f; f = cam.Frame(car, vel, new Vector3(0.6f, 0, 0.8f), road, 1f / 60f, (_, _) => 0f); }      // (the nose turned 53 degrees away from the road)
+        Vector3 view = f.target - f.eye, flat = new(view.X, 0, view.Z);
+        float pitch = Mathf.RadToDeg(MathF.Atan2(-view.Y, flat.Length()));
+        Vector3 toCar = car - f.eye; float carPitch = Mathf.RadToDeg(MathF.Atan2(-toCar.Y, new Vector2(toCar.X, toCar.Z).Length()));
+        Check(flat.Normalized().Dot(road) > 0.999f && f.eye.Y - car.Y > 20f && pitch > 35f && pitch < 60f && carPitch - pitch > 8f && carPitch - pitch < 24f,
+            $"road-aligned camera: above and behind the car, a slanted view ({pitch:0} degrees, not straight down) along the road whatever way the nose points, the car {carPitch - pitch:0} degrees below the middle");
+        float maxStep = 0; Vector3 last = f.target - f.eye;
+        for (int i = 0; i < 120; i++)
+        {
+            double a = Math.Min(i / 60.0, 1.0) * 1.2;      // the road bends 69 degrees in a second
+            Vector3 bend = new((float)Math.Cos(a), 0, (float)Math.Sin(a));
+            car += vel / 60f; f = cam.Frame(car, vel, bend, bend, 1f / 60f, (_, _) => 0f);
+            Vector3 now = f.target - f.eye; maxStep = Math.Max(maxStep, last.AngleTo(now)); last = now;
+        }
+        Check(maxStep < 0.03f && f.eye.IsFinite() && f.target.IsFinite(), $"road-aligned camera: a bend turns the picture softly (largest step {Mathf.RadToDeg(maxStep):0.00} degrees a frame)");
+    }
+
     void GameplayCameraTest()
     {
         GameplayRearCameraTest();
+        GameplayRoadCameraTest();
         GameplayBonnetFeelTest();
         bool visible = true, aheadVisible = true, smooth = true, terrainClear = true;
         foreach (float aspect in new[] { 16f / 9f, 4f / 3f, 9f / 16f })

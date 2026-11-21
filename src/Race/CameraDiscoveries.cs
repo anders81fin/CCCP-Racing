@@ -4,8 +4,8 @@ using Godot;
 
 namespace CCCPRacing.Race;
 
-/// <summary>TopDown is the directed overhead camera (the default); Classic the original overhead one. Both are always there; Cinematic (follow behind) and Bonnet are found on the track.</summary>
-public enum GameplayView { TopDown, Cinematic, Bonnet, Classic }
+/// <summary>TopDown is the directed overhead camera (the default); Classic the original overhead one. Both are always there; Cinematic (follow behind: CinematicClose, Cinematic = medium and CinematicFar, all three opened by one find) and Bonnet are found on the track.</summary>
+public enum GameplayView { TopDown, Cinematic, Bonnet, Classic, CinematicClose, CinematicFar, RoadAligned }
 
 /// <summary>Per-track camera discoveries belong to the active personnel file, not the shared settings.</summary>
 public sealed class CameraDiscoveries
@@ -21,16 +21,19 @@ public sealed class CameraDiscoveries
         foreach (string key in cfg.GetSectionKeys("cameras"))
             if (cfg.GetValue("cameras", key).VariantType == Variant.Type.Bool && cfg.GetValue("cameras", key).AsBool()) _owned.Add(key);
     }
-    static string Key(string track, GameplayView view) => track + "/" + view.ToString().ToLowerInvariant();
+    static string Key(string track, GameplayView view) => track + "/" + (view is GameplayView.CinematicClose or GameplayView.CinematicFar ? GameplayView.Cinematic : view).ToString().ToLowerInvariant();
+    public static bool IsFollowBehind(GameplayView view) => view is GameplayView.Cinematic or GameplayView.CinematicClose or GameplayView.CinematicFar;
     /// <summary>The Konami code (RaceScene.Cheat.cs): every camera of every track counts as found. Nothing is written; the real discoveries stay as they were.</summary>
     public Func<bool> AllOpen { get; set; }
     public static bool IsOverhead(GameplayView view) => view is GameplayView.TopDown or GameplayView.Classic;
-    /// <summary>The cycle: directed, classic, then the found follow-behind and bonnet views.</summary>
-    static readonly GameplayView[] Order = { GameplayView.TopDown, GameplayView.Classic, GameplayView.Cinematic, GameplayView.Bonnet };
-    public bool Has(string track, GameplayView view) => IsOverhead(view) || AllOpen?.Invoke() == true || _owned.Contains(Key(track, view));
+    /// <summary>Always there, nothing to find: the two overhead views and the road-aligned one above the car.</summary>
+    public static bool AlwaysOpen(GameplayView view) => IsOverhead(view) || view == GameplayView.RoadAligned;
+    /// <summary>The cycle: directed, classic, the found bonnet, the found follow-behind (close, medium, far) and last the road-aligned view (always there).</summary>
+    static readonly GameplayView[] Order = { GameplayView.TopDown, GameplayView.Classic, GameplayView.Bonnet, GameplayView.CinematicClose, GameplayView.Cinematic, GameplayView.CinematicFar, GameplayView.RoadAligned };
+    public bool Has(string track, GameplayView view) => AlwaysOpen(view) || AllOpen?.Invoke() == true || _owned.Contains(Key(track, view));
     public bool Discover(string track, GameplayView view)
     {
-        if (IsOverhead(view) || Has(track, view)) return false;
+        if (AlwaysOpen(view) || Has(track, view)) return false;
         if (_path != null)
         {
             // Reload before writing: the driver's name, tutorial and KGB sections share this file.

@@ -431,6 +431,7 @@ public partial class RaceScene
                 _tapeEmit.AddSoot(buk.TapeGenerator, TapeEmitters.Kind.Soot, Buk21Battery.GeneratorPipe, Buk21Battery.GeneratorSootPower, fixedThrottle: Buk21Battery.GeneratorThrottle);
                 _tapeEmit.AddSoot(buk.TapeLoader, TapeEmitters.Kind.Soot, Buk21Battery.LoaderPipe, Buk21Battery.LoaderSootPower, Buk21Battery.LoaderSpeedRef, minSpeed: Buk21Battery.LoaderMinSpeed);
             }
+            else if (a.Node == _dosimetrist) _tapeEmit.Add(_dosimetrist.WashFlag, TapeEmitters.Kind.Wash);      // (the hose over the car in the wash bay, from the flag)
             else if (a.Node == _rescue) _tapeEmit.AddSoot(_rescue.Model, TapeEmitters.Kind.Soot, DrunkTractor.SootPipe, 1.4f, 4f);
         }
         TapeLog($"replay of set {TitleSet} from tape: covers [{string.Join(", ", covered)}], live [{string.Join(", ", live)}]");

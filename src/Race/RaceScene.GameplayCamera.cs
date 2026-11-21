@@ -15,7 +15,8 @@ public partial class RaceScene
     Node3D _cameraSecretModels;
     bool _gameplayCameraActive;
     GameplayView _gameplayLastView;
-    string GameplayCameraName => _gameplayView switch { GameplayView.Cinematic => "CINEMATIC CAMERA", GameplayView.Bonnet => "BONNET CAMERA", GameplayView.Classic => "CLASSIC CAMERA", _ => "DIRECTED CAMERA" };
+    readonly GameplayRoadCamera _roadCamera = new();
+    string GameplayCameraName => _gameplayView switch { GameplayView.CinematicClose => "FOLLOW-BEHIND CAMERA (CLOSE)", GameplayView.Cinematic => "FOLLOW-BEHIND CAMERA", GameplayView.CinematicFar => "FOLLOW-BEHIND CAMERA (FAR)", GameplayView.Bonnet => "BONNET CAMERA", GameplayView.Classic => "CLASSIC CAMERA", GameplayView.RoadAligned => "ROAD-ALIGNED CAMERA", _ => "DIRECTED CAMERA" };
 
     /// <summary>
     /// The camera a new run starts with: the directed overhead one in the Socialist Rally, the classic one in the Stakhanov run and the LAN race (the development flag --camera-classic: classic everywhere).
@@ -64,7 +65,7 @@ public partial class RaceScene
             var p = secret.Position;
             if (!_cameraDiscoveries.Has(_track.Id, secret.View)
                 && CameraDiscoveries.Touches(before, _car.Pos, _car.Rot, new Vector3(p.X, _track.MeshHeight(p.X, p.Y) + 0.6f, p.Y), 0.4f))
-                DiscoverCamera(secret.View, secret.View == GameplayView.Bonnet ? "BONNET CAMERA FOUND" : "CINEMATIC CAMERA FOUND");
+                DiscoverCamera(secret.View, secret.View == GameplayView.Bonnet ? "BONNET CAMERA FOUND" : "FOLLOW-BEHIND CAMERA FOUND");
         }
     }
     void DiscoverCamera(GameplayView view, string message)
@@ -83,8 +84,11 @@ public partial class RaceScene
     }
     float _gameplayOldFov, _gameplayOldNear, _gameplayOldFar;
     float _rearFov = RearFovStanding;
+    GameplayRearCamera.Rig RearRig => _gameplayView switch { GameplayView.CinematicClose => GameplayRearCamera.Rig.Close, GameplayView.CinematicFar => GameplayRearCamera.Rig.Far, _ => GameplayRearCamera.Rig.Medium };
+    /// <summary>The spray-thinning point for the follow-behind views (null on the others): the eye, and how far the thinning reaches.</summary>
+    (Vector3 eye, float scale)? LensThin => CameraDiscoveries.IsFollowBehind(_gameplayView) ? (_cam.GlobalPosition, GameplayRearCamera.Params(RearRig).lensScale) : null;
     /// <summary>The follow-behind view's lens: narrower standing, wider at speed (a wide field of view makes the roadside race past faster), a smooth step over 0..45 m/s, eased in time.</summary>
-    const float RearFovStanding = 64f, RearFovFast = 76f;
+    const float RearFovStanding = 64f, RearFovFast = 76f, RearFovSlide = 5f;
 
     // Schools and recordings own their camera. Scripted failures, towing and plan endings do too.
     bool GameplayCameraAllowed => (_state is State.Countdown or State.Racing or State.Paused or State.Finished or State.Failed || ViewerMode && _state == State.Title)
@@ -97,7 +101,7 @@ public partial class RaceScene
     {
         if (_lanLeaveAsk || !GameplayCameraAllowed || !Input.IsActionJustPressed("camera")) return;
         CycleGameplayCamera();
-        _hud.ShowAlways(GameplayCameraName, null, 1.5f, !CameraDiscoveries.IsOverhead(_gameplayView) ? UI.Hud.Gold : UI.Hud.Paper);
+        _hud.ShowAlways(GameplayCameraName, null, 1.5f, !CameraDiscoveries.AlwaysOpen(_gameplayView) ? UI.Hud.Gold : UI.Hud.Paper);
     }
 
     /// <summary>The overhead views differ in the look-ahead only (ChaseCamera.DirectedLead): the camera is cut to the car's framing when it changes, so neither starts from the other's state.</summary>
@@ -133,8 +137,17 @@ public partial class RaceScene
             _gameplayCameraActive = true;
         }
         else if (_state == State.Paused && _gameplayLastView == _gameplayView) return true;
-        if (_gameplayLastView != _gameplayView) { _gameplayCamera.Reset(); _bonnetFeel.Reset(); _rearFov = RearFovStanding; }
+        if (_gameplayLastView != _gameplayView) { _gameplayCamera.Reset(); _roadCamera.Reset(); _bonnetFeel.Reset(); _rearFov = RearFovStanding; }
         _gameplayLastView = _gameplayView;
+        if (_gameplayView == GameplayView.RoadAligned)
+        {
+            var above = _roadCamera.Frame(_car.Pos, _car.Vel, _car.Forward, GameplayCinematicCamera.RoadForward(_track, _car.Pos), dt, _track.MeshHeight);
+            _cam.Fov = 50f;
+            _cam.Near = 0.5f;
+            _cam.Far = 450f;
+            _cam.Pose(above.eye, above.target, _car.Pos, dt);
+            return true;
+        }
         if (_gameplayView == GameplayView.Bonnet)
         {
             var bonnet = GameplayBonnetCamera.Frame(_car.Pos, _car.Rot);
@@ -149,10 +162,11 @@ public partial class RaceScene
             else _cam.Pose(bonnet.eye, bonnet.target, _car.Pos, dt);
             return true;
         }
+        _gameplayCamera.Setup = RearRig;
         var frame = _gameplayCamera.Frame(_car.Pos, _car.Vel, _car.Forward, dt, _track.MeshHeight, _cam.Rumble);
         float rearSpeed = new Vector2(_car.Vel.X, _car.Vel.Z).Length();
         float rearSp = Math.Clamp(rearSpeed / 45f, 0f, 1f); rearSp = rearSp * rearSp * (3f - 2f * rearSp);
-        _rearFov = Mathf.Lerp(_rearFov, Mathf.Lerp(RearFovStanding, RearFovFast, rearSp), 1f - MathF.Exp(-2.5f * Math.Clamp(dt, 0f, 0.05f)));
+        _rearFov = Mathf.Lerp(_rearFov, Mathf.Lerp(RearFovStanding, RearFovFast, rearSp) + RearFovSlide * _gameplayCamera.Slide + GameplayRearCamera.Params(RearRig).fovOffset, 1f - MathF.Exp(-2.5f * Math.Clamp(dt, 0f, 0.05f)));
         _cam.Fov = _rearFov;      // (a wide lens that widens with the speed: the roadside races past faster in a close chase)
         _cam.Near = 0.2f;
         _cam.Far = 600f;

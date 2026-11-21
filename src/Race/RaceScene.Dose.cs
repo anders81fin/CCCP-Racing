@@ -112,10 +112,9 @@ public partial class RaceScene
         if (wash)
         {
             _dose = Math.Max(0f, _dose - WashRate * dt);
-            if (_rng.Randf() < dt * 40f)
-                _fx.Burst(_car.Pos + new Vector3(_rng.RandfRange(-1.5f, 1.5f), 3.2f, _rng.RandfRange(-2f, 2f)), Vector3.Down * 3f + new Vector3(_rng.RandfRange(-1f, 1f), 0, _rng.RandfRange(-1f, 1f)),
-                    new Color(0.75f, 0.85f, 1f), 0.6f, 0.25f, 0.6f, 0.7f, 6f, 0.6f, false);
+            ZoneDosimetrist.WashSprayFx(_fx, _rng, _car.Pos, dt);      // (the same function the replay's emitters call from the wash flag)
         }
+        _dosimetrist?.SetWash(wash, _car.Pos);
         if (wash != _washing)
         {
             _washing = wash;
@@ -135,6 +134,7 @@ public partial class RaceScene
         _doseOver = over;
 
         // The dosimetrist's check: the car is held, then washed down on the spot.
+        _dosimetrist?.Inspect(_doseCheckT > 0 ? DoseCheckTime - _doseCheckT : -1f, DoseCheckTime, _car.Pos);
         if (_doseCheckT > 0)
         {
             _doseCheckT -= dt;

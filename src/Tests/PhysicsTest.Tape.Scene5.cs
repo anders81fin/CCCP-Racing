@@ -79,15 +79,15 @@ public partial class PhysicsTest
         int passes = Math.Max(0, seeks.Count - 1);
         TapeCheck(passes >= minPasses && seeks.All(s => Math.Abs(s.At - t0) < 0.02f), $"{label}: the replay of [{t0:F1} s, {t0 + w:F1} s) started and wrapped {passes} times, every seek at {t0:F1} s");
         var kinds = ev.Where(TapeIsFx).Select(e => e.Kind).Distinct().OrderBy(k => k).ToList();
-        var bad = new List<string>(); var seen = new List<string>();
+        var bad = new List<string>(); var seen = new List<string>(); bool anyExpected = false;
         foreach (var k in kinds)
         {
-            var (low, high) = TapeFxBounds(ev, k, t0, w); int got = made.GetValueOrDefault(k);
+            var (low, high) = TapeFxBounds(ev, k, t0, w); anyExpected |= high > 0; int got = made.GetValueOrDefault(k);
             seen.Add($"{k}: made {got} for {low}..{high} per pass");
             if (got < passes * low || got > (passes + 1) * high) bad.Add($"{k} {got} not in [{passes * low}, {(passes + 1) * high}]");
         }
         foreach (var k in made.Keys.Where(k => !kinds.Contains(k))) bad.Add($"{k} made {made[k]} but the tape has none");
-        TapeCheck(bad.Count == 0 && made.Count > 0, $"{label}: the sink made exactly the effects the tape has in the window, pass after pass ({string.Join("; ", seen)}){(bad.Count == 0 ? "" : " BAD: " + string.Join("; ", bad))}");
+        TapeCheck(bad.Count == 0 && (made.Count > 0 || !anyExpected), $"{label}: the sink made exactly the effects the tape has in the window, pass after pass ({string.Join("; ", seen)}){(bad.Count == 0 ? "" : " BAD: " + string.Join("; ", bad))}");
         // the restored state at every wrap is the same: nothing multiplies and nothing is left from the pass before
         TapeCheck(seeks.Count >= 2 && seeks.All(s => s.State == seeks[0].State), $"{label}: effect nodes, particles, projectiles and pieces restored at every one of {seeks.Count} seeks are identical (no leak): {(seeks.Count > 0 ? seeks[0].State.ToString() : "none")}");
     }

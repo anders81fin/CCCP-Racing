@@ -268,6 +268,11 @@ public partial class PhysicsTest
                 var (c, _) = VwChild("stakhanov-exit", false, new[] { "--viewer-windowed=stakhanov-exit", "--start", "--training", "--autodrive", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 300);
                 VwJudge("stakhanov-exit", c);
             }
+            if (On("makeclip"))
+            {
+                var (c, _) = VwChild("make-clip-ilyich", false, new[] { "--viewer-windowed=make-clip", "--start", "--autodrive", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 400);
+                VwJudge("make-clip-ilyich", c);
+            }
             if (On("watchlap"))
             {
                 var (c, _) = VwChild("watch-lap-ilyich", false, new[] { "--viewer-windowed=watch-lap", "--start", "--autodrive", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 400);

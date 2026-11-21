@@ -1340,7 +1340,10 @@ public static partial class TrackBuilder
                 t.Obstacles.Add(new Obstacle(p - ax * span / 2f, 1.3f));
                 break;
             }
-            case "apartments": AddSolidBox(t, p, rot + MathF.PI / 2f, 12f, 50f); break;
+            case "apartments":
+                AddSolidBox(t, p, rot + MathF.PI / 2f, 12f, 50f);
+                foreach (var (fx, fz, fr) in Atomgrad.ApartmentFeatureCircles(text)) t.Obstacles.Add(new Obstacle(p + ax * fx + az * fz, fr, Material: ImpactMaterial.Stone));      // (the stair tower, the canopy posts)
+                break;
             case "ferriswheel": t.Obstacles.Add(new Obstacle(p + ax * 6f, 2.6f)); t.Obstacles.Add(new Obstacle(p - ax * 6f, 2.6f)); break;
             case "culture": AddSolidBox(t, p, rot + MathF.PI / 2f, 16f, 26f); break;
             case "bumpercars": AddSolidBox(t, p, rot + MathF.PI / 2f, 10f, 14f); break;

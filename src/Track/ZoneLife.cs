@@ -41,8 +41,8 @@ public partial class ZoneLife : Node3D
     /// <summary>The world tape parts: the catfish (it shows and hides), each horse and its head, the lunokhod and its dish (a spinner), the train with each vehicle's own pose and its engine sound, the crossing lamps (they show and hide).</summary>
     void MarkTape()
     {
-        Tape.Version(this, 2); Tape.Part(this, "root");      // 2: the horses have legs, a tail and a gait (1: a stiff body and a head)
-        if (_def.Catfish != null) Tape.Part(_fish, "catfish");
+        Tape.Version(this, 3); Tape.Part(this, "root");      // 3: the catfish's rear body and tail turn (2: the horses have legs, a tail and a gait; 1: a stiff body and a head)
+        if (_def.Catfish != null) { Tape.Part(_fish, "catfish"); Tape.Part(_fishRear, "catfishRear"); Tape.Part(_fishTail, "catfishTail"); }
         MarkHorseTape();
         if (_robot != null) { Tape.Part(_robot, "lunokhod"); Tape.Part(_dish, "dish"); Tape.Spin(_dish, Vector3.Up, () => _clock * 0.8f); }
         if (_train == null) return;
@@ -59,6 +59,7 @@ public partial class ZoneLife : Node3D
         _clock = 0;
         _fishT = -1;
         _fishNext = 4f;
+        _fishRear.Rotation = Vector3.Zero; _fishTail.Rotation = Vector3.Zero;
         ResetHorses();
         _robotT = 0;
         _robotWait = 0;
@@ -84,7 +85,7 @@ public partial class ZoneLife : Node3D
 
     // ------------------------------------------------------------ the catfish
 
-    Node3D _fish;
+    Node3D _fish, _fishRear, _fishTail;
     float _fishT = -1, _fishNext;
     Vector3 _fishFrom, _fishTo;
 
@@ -100,9 +101,31 @@ public partial class ZoneLife : Node3D
         var under = Props.Part(Props.Ball(0.45f, 8), belly, new Vector3(0, -0.15f, -0.2f));
         under.Scale = new Vector3(0.8f, 0.5f, 1.8f);
         _fish.AddChild(under);
-        _fish.AddChild(Props.Part(Props.Box(0.06f, 0.7f, 0.6f), skin, new Vector3(0, 0, 1.35f)));          // the tail
+        // The rear body and the tail hang on pivots so the fish can bend: the rear half (a tapering body) turns at the middle of the fish, the tail at the end of it.
+        _fishRear = new Node3D { Name = "CatfishRear", Position = new Vector3(0, 0, 0.55f) };
+        _fish.AddChild(_fishRear);
+        var rearBody = Props.Part(Props.Ball(0.4f, 8), skin, new Vector3(0, 0, 0.45f));
+        rearBody.Scale = new Vector3(0.7f, 0.55f, 1.6f);
+        _fishRear.AddChild(rearBody);
+        _fishTail = new Node3D { Name = "CatfishTail", Position = new Vector3(0, 0, 0.95f) };
+        _fishRear.AddChild(_fishTail);
+        _fishTail.AddChild(Props.Part(Props.Box(0.06f, 0.7f, 0.6f), skin, new Vector3(0, 0, 0.25f)));          // the tail fin
         foreach (float s in new[] { -1f, 1f })
             _fish.AddChild(Props.Part(Props.Box(0.03f, 0.03f, 0.9f), skin, new Vector3(s * 0.25f, -0.1f, -1.4f), new Vector3(0, s * 25f, 0)));   // whiskers
+    }
+
+    const float FishTime = 1.3f;
+
+    /// <summary>The bend of the rear body and the tail by the time in the jump (0..1): the tail beats hard in the first moments (the launch from the water), the body settles straight in the air,
+    /// bends into a C over the top of the arc (so a short jump reads as a fish and not a floating log) and straightens for the dive. Returns the rear body's and the tail's yaw (rad).</summary>
+    internal static (float rear, float tail) FishBend(float t)
+    {
+        float launch = Math.Clamp(1f - t / 0.22f, 0f, 1f);                       // the first fifth of the jump
+        float beat = MathF.Sin(t * 62f) * launch;                                // the tail's strokes: about 2.5 fast beats
+        float apex = MathF.Sin(MathF.PI * Math.Clamp((t - 0.25f) / 0.5f, 0f, 1f));      // the arch over the top
+        float rear = 0.4f * beat + 0.55f * apex;
+        float tail = 1.0f * beat + 0.45f * apex;
+        return (rear, tail);
     }
 
     void TickCatfish(float dt)
@@ -121,29 +144,69 @@ public partial class ZoneLife : Node3D
             _fishTo = new Vector3(x + dir * 2f, level - 0.3f, c.Z + _rng.RandfRange(-1f, 1f));
             _fishT = 0;
             _fish.Visible = true;
-            Splash(_fishFrom);
+            LaunchSplash(_fishFrom, new Vector3(_fishTo.X - _fishFrom.X, 0, _fishTo.Z - _fishFrom.Z).Normalized());
             if (OS.HasEnvironment("ZONEDBG")) GD.Print($"zone: the catfish jumps at ({x:F0},{c.Z:F0}), t {_clock:F1}");
         }
-        _fishT += dt / 1.3f;
+        _fishT += dt / FishTime;
         float t = Math.Min(_fishT, 1f);
         var p = _fishFrom.Lerp(_fishTo, t) + Vector3.Up * 2.4f * 4f * t * (1f - t);
         var d = (_fishTo - _fishFrom).Normalized();
         _fish.GlobalPosition = p;
         _fish.Rotation = new Vector3(Mathf.Lerp(0.9f, -0.9f, t) * 0.9f, MathF.Atan2(d.X, d.Z) + MathF.PI, MathF.Sin(t * 12f) * 0.15f);
+        var (rearBend, tailBend) = FishBend(t);
+        _fishRear.Rotation = new Vector3(0, rearBend, 0); _fishTail.Rotation = new Vector3(0, tailBend, 0);
         if (_fishT >= 1f)
         {
             Splash(_fishTo);
             _fish.Visible = false;
+            _fishRear.Rotation = Vector3.Zero; _fishTail.Rotation = Vector3.Zero;
             _fishT = -1;
             _fishNext = _rng.RandfRange(7f, 15f);
         }
     }
 
+    /// <summary>The tape's effect host (null: not recording). The catfish's two splashes are events (docs/replay-tape.md): the launch and the dive, each made by the static functions below, live and in the replay.</summary>
+    public ITapeFxHost TapeFx;
+    const float SplashLife = 1.6f;
+
+    void LaunchSplash(Vector3 at, Vector3 forward)
+    {
+        TapeFx?.Fx(new TapeEvent(0f, TapeEventType.Effect, Kind: TapeFxKind.CatfishLaunch, Pos: at, Dir: forward, Life: SplashLife));
+        LaunchSplashFx(_fx, _rng, at, forward);
+    }
+
     void Splash(Vector3 at)
     {
-        if (_fx == null) return;
+        TapeFx?.Fx(new TapeEvent(0f, TapeEventType.Effect, Kind: TapeFxKind.CatfishSplash, Pos: at, Life: SplashLife));
+        SplashFx(_fx, _rng, at);
+    }
+
+    /// <summary>The launch from the water: the tail strikes the surface behind the fish (a fan of spray thrown back and out, a pale flat ring spreading on the surface) and the body breaks out in a heavy column.</summary>
+    internal static void LaunchSplashFx(TyreEffects fx, RandomNumberGenerator rng, Vector3 at, Vector3 forward)
+    {
+        if (fx == null) return;
+        Vector3 back = -forward, side = new Vector3(-forward.Z, 0, forward.X);
+        var spray = new Color(0.82f, 0.88f, 0.94f);
+        for (int k = 0; k < 40; k++)      // the tail's strike: thrown back and up, wide
+        {
+            float fan = rng.RandfRange(-1f, 1f);
+            fx.Burst(at + back * 1.5f + Vector3.Up * 0.2f, back * rng.RandfRange(1.5f, 4.5f) + side * fan * 3.5f + Vector3.Up * rng.RandfRange(2.5f, 6.5f), spray, 0.85f, 0.35f, 0.18f, 1.0f, 12f, 0.3f, false);
+        }
+        for (int k = 0; k < 28; k++)      // the column the body lifts out of the channel
+            fx.Burst(at + Vector3.Up * 0.2f, new Vector3(rng.RandfRange(-1.2f, 1.2f), rng.RandfRange(4f, 8f), rng.RandfRange(-1.2f, 1.2f)) + forward * 1.5f, spray, 0.9f, 0.4f, 0.2f, 1.1f, 12f, 0.3f, false);
+        for (int k = 0; k < 26; k++)      // the pale ring spreading flat on the surface
+        {
+            float a = k * MathF.Tau / 26f;
+            fx.Burst(at + back * 1.2f + Vector3.Up * 0.08f, new Vector3(MathF.Cos(a), 0, MathF.Sin(a)) * rng.RandfRange(2.2f, 3.2f), new Color(0.92f, 0.95f, 0.97f), 0.5f, 0.45f, 0.8f, 0.9f, 0f, 1.2f, false);
+        }
+    }
+
+    /// <summary>The dive back in: a spray of drops.</summary>
+    internal static void SplashFx(TyreEffects fx, RandomNumberGenerator rng, Vector3 at)
+    {
+        if (fx == null) return;
         for (int k = 0; k < 24; k++)
-            _fx.Burst(at + Vector3.Up * 0.3f, new Vector3(_rng.RandfRange(-2.5f, 2.5f), _rng.RandfRange(2f, 5f), _rng.RandfRange(-2.5f, 2.5f)),
+            fx.Burst(at + Vector3.Up * 0.3f, new Vector3(rng.RandfRange(-2.5f, 2.5f), rng.RandfRange(2f, 5f), rng.RandfRange(-2.5f, 2.5f)),
                 new Color(0.75f, 0.82f, 0.9f), 0.8f, 0.3f, 0.2f, 0.9f, 12f, 0.3f, false);
     }
 

@@ -17,7 +17,7 @@ namespace CCCPRacing.Export;
 
 public enum ExportPhase { Preparing, Starting, Rendering, Encoding, Finishing, Done, Cancelled, Failed }
 
-/// <summary>A camera key of the exported span: this camera mode from time T (lap clock seconds) on. Modes are TopDown, Bonnet, Cinematic, Auto, or Free with a required immutable pose.</summary>
+/// <summary>A camera key of the exported span: this camera mode from time T (lap clock seconds) on. Modes are TopDown, Classic, Bonnet, CinematicClose, Cinematic, CinematicFar, RoadAligned, Auto, or Free with a required immutable pose.</summary>
 public sealed record ExportCameraKey(float T, string Mode, LapFreeCamera Free = null);
 
 /// <summary>What the player asked for. The span is [InClock, OutClock): the first image is exactly InClock, the last is OutClock minus one frame.</summary>

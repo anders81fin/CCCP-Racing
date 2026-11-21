@@ -3,6 +3,21 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.914
+
+- CAMERAS: the camera key now goes DIRECTED, CLASSIC, BONNET, FOLLOW-BEHIND (CLOSE), FOLLOW-BEHIND, FOLLOW-BEHIND (FAR), ROAD-ALIGNED. The old CINEMATIC camera is now FOLLOW-BEHIND, and the same secret now opens all three distances
+- FOLLOW-BEHIND: in a slide the camera lets go of the nose, so the car turns against the road and does not look glued to the screen, the eye follows the ground and not the car, so jumps and bumps show, and mud no longer fills the lens
+- ROAD-ALIGNED: a new camera high above and behind the car, the top of the screen being the way the road runs. Always available
+- REPLAY: all the cameras are in the replay viewer, and AUTO is now called TV BROADCAST
+- REPLAY: the free camera always says K - USE THIS SHOT or SHOT ADDED AT the time, and a lap that is not kept says KEEP FIRST TO USE THIS SHOT
+- MAKE CLIP: M (a pad: START) in the replay viewer cuts 8 seconds before and 4 seconds after the moment on the screen, loops it in TV BROADCAST and ENTER exports it as an MP4. V turns the clip into the lap's real IN and OUT in the editor. It works on the lap F3 opens, kept or not
+- MP4 EXPORT: the card offers the IN/OUT cut first when there is one, and says 60 FPS - NORMAL SPEED, as the viewer's slow motion is not in the video
+- CONCRETE MIXERS and SNOWPLOUGHS: all six wheels turn with the distance driven, standing still and reversing included
+- ATOMGRAD-4: the dosimetrist turns to the car, sweeps his probe over the wing, glances at the meter twice and goes back to rest. The horses have withers, a chest and a rump you can read from the side, and their hooves stay on the ground. Two apartment blocks have a landmark of their own, a stair tower and an entrance canopy. The giant catfish beats the water with its tail, bends at the top of the jump and throws a bigger splash
+- KOLKHOZ: the water mill wheel turns, with a little spray where the buckets empty
+- SIBERIA: the prisoners bend their knees and lift their feet, more so when they jog back to the column
+- REPLAY: the wheels of the mixers and ploughs, the dosimetrist, the catfish and its splashes, the hose of the wash and the prisoners' knees are now in the recorded replay. Older recordings of those still play, the new parts running live
+
 ## 0.913
 
 - SOCIALIST RALLY: a lap under the bronze norm time jumps a new rally straight to the bronze (4 norms), and once the bronze is earned a lap under the silver norm time jumps straight to the silver (7). One lap gives at most one medal, a jump uses one lap and one norm window, a lap exactly on a limit does not jump, and a void lap or an earlier rally medal never skips norms. The norm table shows no times for the norms a jump skipped

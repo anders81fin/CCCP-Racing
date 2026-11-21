@@ -91,9 +91,55 @@ public static partial class Atomgrad
             n.AddChild(P(Props.Box(L * 0.96f, 0.15f, 0.9f), ConcreteDark, 0, 3f + k * 3f, D / 2f + 0.45f));
         Windows(n, L, D / 2f + 0.05f, floors, 3f, 1.8f, 16, floors * 31 + (int)L);
         Windows(n, L, -D / 2f - 0.05f, floors, 3f, 1.8f, 16, floors * 37 + 3);
-        if (parts.Length > 1)
+        if (parts.Length > 1 && parts[1].Length > 0)
             n.AddChild(Buildings.TextPanel(parts[1], L * 0.8f, 2.2f, new Vector3(0, H + 1.6f, D / 2f - 0.5f), Red, Gold));
+        string feature = parts.Length > 2 ? parts[2].Trim().ToLowerInvariant() : "";
+        if (feature == "stair") StairEnd(n, floors, L, D, H);
+        else if (feature == "canopy") EntranceCanopy(n, D);
         return n;
+    }
+
+    /// <summary>Footprint of a block's added feature in the block's frame (x along the block, z across it), for the colliders (TrackBuilder): the stair tower on the +X end and the canopy posts on the +Z side.</summary>
+    internal static System.Collections.Generic.IEnumerable<(float x, float z, float r)> ApartmentFeatureCircles(string text)
+    {
+        string[] parts = (text ?? "9").Split(';');
+        string feature = parts.Length > 2 ? parts[2].Trim().ToLowerInvariant() : "";
+        if (feature == "stair") foreach (float z in new[] { -2.1f, 0f, 2.1f }) yield return (26.3f, z, 1.5f);
+        else if (feature == "canopy") foreach (float s in new[] { -1f, 1f }) yield return (CanopyX + s * 3.6f, 12f / 2f + 3.0f, 0.3f);
+    }
+
+    const float CanopyX = -8f;
+
+    /// <summary>A stair tower on the +X gable end: a lighter tower rising above the roof, a staggered column of landing windows (a flight every half floor), a dark door at the foot and a red stripe up each corner,
+    /// so the block is known from far away by its end (seen head-on when coming along the street).</summary>
+    static void StairEnd(Node3D n, int floors, float L, float D, float H)
+    {
+        float w = 2.8f, depth = 6.4f, top = H + 1.6f, face = L / 2f + w;
+        n.AddChild(P(Props.Box(w, top, depth), Concrete, L / 2f + w / 2f, top / 2f, 0));
+        n.AddChild(P(Props.Box(w + 0.3f, 2.2f, depth + 0.3f), ConcreteDark, L / 2f + w / 2f, top + 1.1f, 0));                 // the stair head on the roof
+        for (int k = 0; k < floors; k++)
+        {
+            float z = (k % 2 == 0 ? -1f : 1f) * 1.2f;
+            n.AddChild(P(Props.Box(0.08f, 1.5f, 1.1f), Black, face + 0.02f, 1.9f + k * 3f, z));                              // a landing window on each half flight, alternating sides
+        }
+        n.AddChild(P(Props.Box(0.1f, 2.3f, 1.7f), Black, face + 0.03f, 1.15f, 0));                                            // the door
+        foreach (float s in new[] { -1f, 1f })
+            n.AddChild(P(Props.Box(0.14f, top, 0.45f), Red, face + 0.05f, top / 2f, s * (depth / 2f - 0.25f)));              // a red stripe up each corner
+    }
+
+    /// <summary>An entrance canopy on the +Z side: a slab on two posts over the door, a red fascia with its word, a lamp and two steps, so the block is known from the street by its doorway.</summary>
+    static void EntranceCanopy(Node3D n, float D)
+    {
+        float x0 = CanopyX, front = D / 2f + 3.0f;
+        n.AddChild(P(Props.Box(8f, 0.3f, 3.2f), ConcreteDark, x0, 2.85f, D / 2f + 1.6f));                                    // the slab, under the first balcony
+        n.AddChild(P(Props.Box(8f, 0.5f, 0.12f), Red, x0, 2.6f, front));                                                       // the fascia
+        n.AddChild(Buildings.TextPanel("ВХОД", 3.4f, 0.4f, new Vector3(x0, 2.6f, front + 0.08f), Gold, Red));
+        foreach (float s in new[] { -1f, 1f })
+            n.AddChild(P(Props.Box(0.25f, 2.7f, 0.25f), ConcreteDark, x0 + s * 3.6f, 1.35f, front - 0.1f));                    // the posts
+        n.AddChild(P(Props.Box(2.2f, 2.5f, 0.12f), Black, x0, 1.25f, D / 2f + 0.04f));                                       // the door
+        n.AddChild(P(Props.Box(0.3f, 0.2f, 0.3f), Yellow, x0 + 1.5f, 2.3f, D / 2f + 0.2f));                                  // the lamp by it
+        n.AddChild(P(Props.Box(5f, 0.15f, 1.0f), Concrete, x0, 0.08f, D / 2f + 1.4f));                                       // two steps
+        n.AddChild(P(Props.Box(4f, 0.3f, 0.7f), Concrete, x0, 0.15f, D / 2f + 1.2f));
     }
 
     /// <summary>The ferris wheel the town never opened: a yellow ring of gondolas on an A-frame, the wheel in the XY plane.</summary>
@@ -200,15 +246,22 @@ public static partial class Atomgrad
         n.AddChild(P(Props.Box(0.54f, 0.5f, 0.34f), vest, 0, 1.22f, 0));                                    // the vest
         n.AddChild(P(Props.Box(0.56f, 0.06f, 0.36f), vest, 0, 1.5f, 0));                                    // orange across the shoulders, for the camera above
         foreach (float y in new[] { 1.1f, 1.3f }) n.AddChild(P(Props.Box(0.56f, 0.06f, 0.36f), stripe, 0, y, 0));
-        n.AddChild(P(Props.Ball(0.17f), suit, 0, 1.68f, 0));                                                // the hood
-        n.AddChild(P(Props.Box(0.36f, 0.07f, 0.36f), vest, 0, 1.83f, 0));                                   // an orange cap on it
-        n.AddChild(P(Props.Box(0.22f, 0.16f, 0.12f), new Color(0.3f, 0.32f, 0.3f), 0, 1.64f, 0.14f));       // respirator
-        n.AddChild(P(Props.Cyl(0.06f, 0.1f, 8), Black, 0, 1.6f, 0.24f, 90, 0, 0));                          // its filter
-        n.AddChild(P(Props.Box(0.12f, 0.12f, 0.55f), suit, 0.3f, 1.3f, 0.2f));                              // the arm held out
-        n.AddChild(P(Props.Box(0.14f, 0.14f, 0.14f), Black, 0.3f, 1.3f, 0.5f));                             // the glove
-        n.AddChild(P(Props.Cyl(0.03f, 0.5f, 6), Steel, 0.3f, 1.3f, 0.8f, 90, 0, 0));                        // the probe
-        n.AddChild(P(Props.Box(0.2f, 0.12f, 0.08f), Yellow, -0.3f, 1.1f, 0.1f));                            // the meter on its strap
-        n.AddChild(P(Props.Box(0.12f, 0.5f, 0.12f), suit, -0.31f, 1.15f, 0));                               // the other arm, down
+        // The head, the probe arm and the meter arm hang on pivots (named Head, ProbeArm, MeterArm) so the check can move them (ZoneDosimetrist.Inspect); at rest the picture is the same as before.
+        var head = new Node3D { Name = "Head", Position = new Vector3(0, 1.6f, 0) };
+        n.AddChild(head);
+        head.AddChild(P(Props.Ball(0.17f), suit, 0, 0.08f, 0));                                              // the hood
+        head.AddChild(P(Props.Box(0.36f, 0.07f, 0.36f), vest, 0, 0.23f, 0));                                 // an orange cap on it
+        head.AddChild(P(Props.Box(0.22f, 0.16f, 0.12f), new Color(0.3f, 0.32f, 0.3f), 0, 0.04f, 0.14f));     // respirator
+        head.AddChild(P(Props.Cyl(0.06f, 0.1f, 8), Black, 0, 0f, 0.24f, 90, 0, 0));                          // its filter
+        var probeArm = new Node3D { Name = "ProbeArm", Position = new Vector3(0.3f, 1.3f, 0) };              // (the shoulder: the arm is held out in front, the probe at its end)
+        n.AddChild(probeArm);
+        probeArm.AddChild(P(Props.Box(0.12f, 0.12f, 0.55f), suit, 0, 0, 0.2f));                              // the arm held out
+        probeArm.AddChild(P(Props.Box(0.14f, 0.14f, 0.14f), Black, 0, 0, 0.5f));                             // the glove
+        probeArm.AddChild(P(Props.Cyl(0.03f, 0.5f, 6), Steel, 0, 0, 0.8f, 90, 0, 0));                        // the probe
+        var meterArm = new Node3D { Name = "MeterArm", Position = new Vector3(-0.31f, 1.4f, 0) };            // (the shoulder: the other arm hangs down with the meter on its strap)
+        n.AddChild(meterArm);
+        meterArm.AddChild(P(Props.Box(0.12f, 0.5f, 0.12f), suit, 0, -0.25f, 0));                             // the other arm, down
+        n.AddChild(P(Props.Box(0.2f, 0.12f, 0.08f), Yellow, -0.3f, 1.1f, 0.1f));                            // the meter on its strap (on his chest: it does not move)
         return n;
     }
 

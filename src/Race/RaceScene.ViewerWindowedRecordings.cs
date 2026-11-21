@@ -149,7 +149,7 @@ public partial class RaceScene
         foreach (var x in VrUntil(() => ReplayViewer?.State == ReplayViewerState.Playing, 60 * 120, "the lap opens and plays")) yield return x;
         for (int i = 0; i < 60; i++) yield return null;
         VwCheck(_state == State.Title && ReplayViewer != null, "the viewer runs over the running title (no drive)");
-        VwCheck(sfxBefore && !Audio.AudioMix.SfxMuted, $"the title mutes the sound-effect bus; the viewer opened from it has the bus OPEN (was muted {sfxBefore}, now muted {Audio.AudioMix.SfxMuted})");
+        VwCheck(!Audio.AudioMix.SfxMuted, $"the viewer opened from the title has the sound-effect bus OPEN (the title itself plays the background lap's sounds at -6 dB, or mutes the bus without one) (was muted {sfxBefore}, now muted {Audio.AudioMix.SfxMuted})");
         foreach (var x in VrShot("rec-5-viewer")) yield return x;
         foreach (var x in VrTap(Key.Escape)) yield return x;
         foreach (var x in VrUntil(() => ReplayViewer == null, 60 * 30, "the viewer closed")) yield return x;

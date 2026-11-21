@@ -319,6 +319,7 @@ public partial class RaceScene
         if (_tanksAll != null && _btrAll != null) { _tanksAll.Movers = _btrAll.HullCircles; _btrAll.Tanks = _tanksAll.HullCircles; }      // (tanks and BTRs steer clear of each other; neither drives through the other)
         int dynamicObstaclesEnd = _track.Obstacles.Count;
         InitSpeedTrap(def); // Build before the world-tape index; its own replay hook parks its two knockable slots.
+        if (_track.Props.Exists(p => p.Type == "checkpoint")) { _dosimetrist = ZoneDosimetrist.Build(_track); AddChild(_dosimetrist); }      // (after every listed actor's obstacle range, like the speed trap: no listed slot moves; a tape actor with the same kind of parking hook)
         if (_booting) await LoadingFrame();      // LOADSLICES
         KeepWorld((Actors.Btr,btrObs,dynamicObstaclesEnd),(Actors.Zone, zoneObs, detailsObs), (Actors.Details, detailsObs, btrObs), (Actors.Ploughs, ploughObs, columnObs), (Actors.Column, columnObs, zoneObs),
             (Actors.Tractor, actorObs, slurryObs), (Actors.Slurry, slurryObs, babushkaObs), (Actors.Babushkas, babushkaObs, drunkObs), (Actors.Drunks, drunkObs, busObs),

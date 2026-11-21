@@ -4,22 +4,37 @@ using Godot;
 namespace CCCPRacing.Camera;
 
 /// <summary>
-/// The CINEMATIC gameplay view: a close chase camera behind the car, low and wide, so the car's place among the others and the line it takes can be read, a slide's angle above all.
+/// The FOLLOW-BEHIND gameplay view: a close chase camera behind the car, low and wide, so the car's place among the others and the line it takes can be read, a slide's angle above all.
 /// The camera is not nailed to the car. Its yaw follows the nose, with a tenth of the way to the travel direction, through an exponential lag (a slide turns the camera round hard like a rubber band, a little late, and a hint of the slide angle stays in the picture); its position hangs on a
 /// critically damped spring, so a corner or a launch leaves it a moment behind; the look point trails a little; a lateral acceleration rolls the picture, an acceleration or braking pitches it
 /// and the speed, a slide and the ground add a fine shake. Collision kicks and the plain shake are ChaseCamera's (Pose).
 /// </summary>
 internal sealed class GameplayRearCamera
 {
+    /// <summary>How far behind the car the camera hangs: CLOSE (the car fills the picture), MEDIUM (the original) and FAR (the road ahead and the others in view).</summary>
+    public enum Rig { Close, Medium, Far }
+    /// <summary>The rig in use (RaceScene sets it from the chosen view). Distance and height at standstill and at full speed, the lens offset in degrees and the spray-thinning scale (a close lens thins the spray over a shorter reach).</summary>
+    public Rig Setup { get; set; } = Rig.Medium;
+    public static (float distNear, float distFast, float heightNear, float heightFast, float fovOffset, float lensScale) Params(Rig rig) => rig switch
+    {
+        Rig.Close => (4.0f, 5.5f, 1.6f, 2.1f, 4f, 0.55f),
+        Rig.Far => (12f, 16f, 4.5f, 6f, -8f, 1f),
+        _ => (6.5f, 9f, 2.3f, 3.1f, 0f, 1f),
+    };
+
     /// <summary>The yaw's lag (1/s: 2.4 is a time constant of 0.4 s), the spring's natural frequency (rad/s; the delay in a corner is about 1/ω) and the look point's rate.</summary>
-    const float YawRate = 2.7f, OmegaH = 7f, OmegaV = 11f, LookRate = 6f;
+    const float GroundRate = 6f, YawRate = 2.7f, SlideYawRate = 1.2f, SlideOmegaLat = 4.5f, OmegaH = 7f, OmegaV = 5.5f, LookRate = 6f;
     bool _ready;
     /// <summary>Strength of the pitch, roll, sway and shake (1 = the original; halved on the owner's request 2026-11-13).</summary>
     const float Feel = 0.5f;
+    float _groundRef;      // (the ground under the car, smoothed: the eye hangs at its height above THAT, not above the car, so a jump or a bump shows)
     float _yaw, _roll, _pitch, _aLat, _aLong, _clock;
     Vector3 _rel, _relVel, _look, _lastCar, _lastVel;      // (the eye relative to the car, and its velocity relative to the car's)
 
-    public void Reset() => _ready = false;
+    /// <summary>How far the car is sliding (0..1, smoothed); the lens widens with it (RaceScene).</summary>
+    public float Slide { get; private set; }
+
+    public void Reset() { _ready = false; Slide = 0f; }
 
     /// <param name="car">car position</param><param name="velocity">car velocity</param><param name="heading">the way the nose points</param>
     /// <param name="ground">the ground height at x, z</param><param name="rumble">the surface's rumble in metres (ChaseCamera: 0 on roads)</param>
@@ -34,16 +49,22 @@ internal sealed class GameplayRearCamera
         float headYaw = MathF.Atan2(nose.X, nose.Z);
         bool snap = !_ready || car.DistanceTo(_lastCar) > 35f;
 
+        // The slide (0..1: the angle between the nose and the travel, full at 0.5 rad), smoothed. In a slide the camera lets go of the nose: it turns slower and favours the travel, and its eye lets the car drift across the picture,
+        // so the car visibly turns against the road and the world instead of staying pinned in the frame (the 'stuck on' look).
+        float slideNow = speed > 5f ? Math.Clamp(MathF.Acos(Math.Clamp(motion.Normalized().Dot(new Vector3(heading.X, 0, heading.Z).LengthSquared() < 0.01f ? Vector3.Forward : new Vector3(heading.X, 0, heading.Z).Normalized()), -1f, 1f)) / 0.5f, 0f, 1f) : 0f;
+        Slide = snap ? slideNow : Mathf.Lerp(Slide, slideNow, 1f - MathF.Exp(-4f * dt));
+        float slideK = Slide * Slide * (3f - 2f * Slide);
+
         // The yaw: the nose, with a tenth of the way to the travel direction at speed. In a slide the camera swings round with the car like a rubber band (a little late: YawRate), yet a
         // hint of the slide angle stays in the picture. Reversing, or crawling, it is the nose.
         float yawTarget = headYaw;
         bool reversing = speed > 1.5f && motion.Normalized().Dot(nose) < -0.2f;
         if (speed > 3f && !reversing)
-            yawTarget = Mathf.LerpAngle(headYaw, MathF.Atan2(motion.X, motion.Z), 0.12f * Math.Clamp((speed - 3f) / 9f, 0f, 1f));
+            yawTarget = Mathf.LerpAngle(headYaw, MathF.Atan2(motion.X, motion.Z), (0.12f + 0.2f * slideK) * Math.Clamp((speed - 3f) / 9f, 0f, 1f));
         if (snap) _yaw = yawTarget;
         else
         {
-            float step = Mathf.AngleDifference(_yaw, yawTarget) * (1f - MathF.Exp(-YawRate * dt));
+            float step = Mathf.AngleDifference(_yaw, yawTarget) * (1f - MathF.Exp(-Mathf.Lerp(YawRate, SlideYawRate, slideK) * dt));
             _yaw += Math.Clamp(step, -4.5f * dt, 4.5f * dt);      // (never a sudden swing)
         }
         Vector3 dir = new(MathF.Sin(_yaw), 0, MathF.Cos(_yaw));
@@ -59,6 +80,7 @@ internal sealed class GameplayRearCamera
             _aLat = Mathf.Lerp(_aLat, Math.Clamp(-a.Dot(noseRight), -25f, 25f), k);      // + : the car is pulled to its left
         }
         else _aLong = _aLat = 0;
+        Vector3 prevVel = _lastVel;      // (the spring below needs the previous frame's velocity: _lastVel is overwritten here)
         _lastVel = velocity;
 
         float fast = Math.Clamp(speed / 40f, 0f, 1f);
@@ -66,21 +88,31 @@ internal sealed class GameplayRearCamera
         float sp = Math.Clamp(speed / 45f, 0f, 1f);
         sp = sp * sp * (3f - 2f * sp);
         float lively = Mathf.Lerp(0.12f, 1f, sp);      // (the roll and the pitch keep a trace at a standstill, so a launch still shows)
-        float distance = Mathf.Lerp(6.5f, 9f, fast), height = Mathf.Lerp(2.3f, 3.1f, fast);
-        Vector3 ideal = -dir * distance + Vector3.Up * height;      // relative to the car
+        var rig = Params(Setup);
+        float distance = Mathf.Lerp(rig.distNear, rig.distFast, fast), height = Mathf.Lerp(rig.heightNear, rig.heightFast, fast);
+        // The height reference is the smoothed ground under the car, not the car's own height: over a crest or a jump the car rises or leaves the ground in the picture and the eye follows late and soft.
+        float groundNow = ground != null ? ground(car.X, car.Z) : car.Y;
+        _groundRef = snap ? groundNow : Mathf.Lerp(_groundRef, groundNow, 1f - MathF.Exp(-GroundRate * dt));
+        Vector3 ideal = -dir * distance + Vector3.Up * (_groundRef + height - car.Y);      // relative to the car
         if (snap) { _rel = ideal; _relVel = Vector3.Zero; _look = car + Vector3.Up; _roll = _pitch = 0; _clock = 0; }
         else
         {
             // A critically damped spring on the eye, in the car's frame: a steady speed costs it nothing, but the car's acceleration and the turning of the ideal point leave the eye behind.
             // (The car's acceleration pushes the eye the other way, as it would a camera on an arm.) Stepped finely so a slow frame cannot throw it.
-            Vector3 aCar = (new Vector3(velocity.X, 0, velocity.Z) - new Vector3(_lastVel.X, 0, _lastVel.Z)) / Math.Max(dt, 1e-4f);
+            Vector3 aCar = (new Vector3(velocity.X, 0, velocity.Z) - new Vector3(prevVel.X, 0, prevVel.Z)) / Math.Max(dt, 1e-4f);
             aCar = aCar.LimitLength(30f);
+            float aY = Math.Clamp((velocity.Y - prevVel.Y) / Math.Max(dt, 1e-4f), -30f, 30f);      // (the car's own bounce pushes the eye the other way too)
             int steps = Math.Max(1, (int)MathF.Ceiling(dt / (1f / 120f)));
             float h = dt / steps;
             for (int i = 0; i < steps; i++)
             {
                 Vector3 off = _rel - ideal;
-                Vector3 acc = new Vector3(-OmegaH * OmegaH * off.X - 2f * OmegaH * _relVel.X - aCar.X, -OmegaV * OmegaV * off.Y - 2f * OmegaV * _relVel.Y, -OmegaH * OmegaH * off.Z - 2f * OmegaH * _relVel.Z - aCar.Z);
+                // Sideways (across the camera's heading) the spring softens in a slide, so the car slides across the picture; along the heading it keeps its stiffness.
+                float latOff = off.Dot(right), lonOff = off.Dot(dir), latVel = _relVel.Dot(right), lonVel = _relVel.Dot(dir);
+                float wl = Mathf.Lerp(OmegaH, SlideOmegaLat, slideK);
+                float aLatS = -wl * wl * latOff - 2f * wl * latVel - aCar.Dot(right);
+                float aLonS = -OmegaH * OmegaH * lonOff - 2f * OmegaH * lonVel - aCar.Dot(dir);
+                Vector3 acc = right * aLatS + dir * aLonS + Vector3.Up * (-OmegaV * OmegaV * off.Y - 2f * OmegaV * _relVel.Y - aY);
                 _relVel += acc * h;
                 _rel += _relVel * h;
             }

@@ -160,9 +160,9 @@
     { "type": "pipebridge", "x": 264, "z": 96,  "rot": 0,  "text": "24" },
     { "type": "billboard",  "x": 150, "z": 70,  "rot": 0,  "text": "THE REACTOR IS FINE. THE PLAN IS FINE." },
     // Atomgrad-4: prefab blocks round the streets (floors; a slogan on the roof).
-    { "type": "apartments", "x": 76,  "z": 110, "rot": 0,  "text": "5;АТОМ - РАБОЧИЙ, НЕ СОЛДАТ!" },
+    { "type": "apartments", "x": 76,  "z": 110, "rot": 0,  "text": "5;АТОМ - РАБОЧИЙ, НЕ СОЛДАТ!;canopy" },
     { "type": "apartments", "x": 24,  "z": 100, "rot": 90, "text": "9" },
-    { "type": "apartments", "x": 130, "z": 155, "rot": 90, "text": "9;СЛАВА СОВЕТСКИМ ЭНЕРГЕТИКАМ" },
+    { "type": "apartments", "x": 130, "z": 155, "rot": 90, "text": "9;СЛАВА СОВЕТСКИМ ЭНЕРГЕТИКАМ;stair" },
     { "type": "apartments", "x": 85,  "z": 198, "rot": 0,  "text": "5" },
     { "type": "apartments", "x": 25,  "z": 205, "rot": 90, "text": "9" },
     // The square inside the town's U: the ferris wheel, the palace of culture, the bumper cars.

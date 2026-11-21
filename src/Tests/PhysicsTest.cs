@@ -236,6 +236,20 @@ public partial class PhysicsTest : Node
         { ReplayCameraTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--atomgrad-terrain-tests"))
         { AtomgradTerrainTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--atomgrad-landmark-tests"))
+        { AtomgradLandmarkTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--export-card-tests"))
+        { ExportCardDefaultsTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--prisoner-knee-tests"))
+        { PrisonerKneeTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--catfish-tests"))
+        { CatfishTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--water-mill-tests"))
+        { WaterMillTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--horse-feet"))
+        { HorseFeetMeasure(); GetTree().Quit(0); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--dosimetrist-tests"))
+        { ZoneDosimetristTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--snowplough-turn-tests"))
         { SnowPloughTurnTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--siberia-terrain-tests"))
@@ -639,6 +653,12 @@ public partial class PhysicsTest : Node
         PartyDachaTest();
         BuildingVisibilityTest();
         GameplayCameraTest();
+        ZoneDosimetristTest();
+        WaterMillTest();
+        CatfishTest();
+        PrisonerKneeTest();
+        ExportCardDefaultsTest();
+        AtomgradLandmarkTest();
         PlayerFilesTest();
         CameraDiscoveriesTest();
         BonusMigrationTest();

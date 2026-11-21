@@ -292,7 +292,7 @@ public partial class RaceScene : Node3D
 
         if (!ViewerMode && LanPlaybackSource==null) { bool sliced=_booting;_booting=true;await InitLan();_booting=sliced; }     // RaceScene.Lan.cs; --lan-host / --lan-join go straight to the lobby
         if (_gaiChaseTest) _kozlik?.GuardAtTrap(); // Command-line flags are parsed after world construction.
-        if (_track.Props.Exists(p => p.Type == "checkpoint")) { _dosimetrist = ZoneDosimetrist.Build(_track); AddChild(_dosimetrist); }
+        // (the dosimetrist is built with the world, before the world-tape index: RaceScene.WorldBuild.cs)
         // People and the speed sign fall over when the car hits them (Knockdown), not a wall.
         foreach (var k in _trap?.Knocks() ?? Array.Empty<(int, Func<Vector3, bool>)>()) _scenery.AddKnock(k.Item1, k.Item2);
         foreach (var k in _dosimetrist?.Knocks() ?? Array.Empty<(int, Func<Vector3, bool>)>()) _scenery.AddKnock(k.Item1, k.Item2);
@@ -1724,7 +1724,7 @@ public partial class RaceScene : Node3D
         }
         CameraBoostProbe();      // (test hook, RaceScene.ViewerCameraBoostTest.cs)
         bool frozen = _state is State.Paused || SchoolFrozen;
-        _fx.Tick(frozen ? 0f : dt, _cam.GlobalTransform.Basis);
+        _fx.Tick(frozen ? 0f : dt, _cam.GlobalTransform.Basis, LensThin);
         LensFx(frozen ? 0f : dt);
 
         var raceGhost = RaceGhost;

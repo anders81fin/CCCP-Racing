@@ -32,7 +32,7 @@ public partial class PhysicsTest
         string log = dir + ".log";
         var psi = new ProcessStartInfo("/bin/sh") { UseShellExecute = false };
         foreach (var s in new[] { "-c", "exec \"$0\" \"$@\" > \"$TAPE_OUT\" 2>&1", OS.GetExecutablePath(), "--headless", "--fixed-fps", "60", "--path", TapeProjectDir, "--" }) psi.ArgumentList.Add(s);
-        foreach (var a in args.Concat(new[] { "--no-intro", "--babushka-seed=" + seed, "--rng-seed=" + seed, "--data-dir=" + dir })) psi.ArgumentList.Add(a);
+        foreach (var a in args.Concat(new[] { "--no-intro", "--no-bundled-title", "--babushka-seed=" + seed, "--rng-seed=" + seed, "--data-dir=" + dir })) psi.ArgumentList.Add(a);
         psi.Environment["TAPE_OUT"] = log;
         psi.Environment["XDG_DATA_HOME"] = dir + ".xdg";
         if (tapeOff) psi.Environment["CCCP_TAPE"] = "off"; else psi.Environment.Remove("CCCP_TAPE");
@@ -356,7 +356,7 @@ public partial class PhysicsTest
                 // the tractor (whose Reset restores its build pose) is not.
                 var off = c.Find("covered parts off rest");
                 var by = TapeKeyList(off, "by actor");
-                TapeCheck(off != null && !by.Contains("Tractor:DrunkTractor") && by.All(k => k == "Babushkas:Babushkas"), $"scene 6 (a race): after the race started only the babushkas (their Reset draws new places) stand off their build-time rest ({TapeBracket(off, "by actor")})");
+                TapeCheck(off != null && !by.Contains("Tractor:DrunkTractor") && by.All(k => k is "Babushkas:Babushkas" or "Depot:FuelDepot"), $"scene 6 (a race): after the race started only the babushkas (their Reset draws new places) stand off their build-time rest (the fuel depot too: it leaves the world when the rally has no fuel to sell) ({TapeBracket(off, "by actor")})");
             }
             else TapeCheck(c.Has("trip: preview opened") && c.Has("released: covered parts back at rest") && l1 > 100, "scene 6 (a track preview): the preview (no PlaceAtStart) ended the replay: parts released within a few ticks, the tractor ticks live");
             var seeks = c.All("tape: seek #").Select(l => Regex.Match(l, @"poses ([0-9a-f]+)")).ToList();

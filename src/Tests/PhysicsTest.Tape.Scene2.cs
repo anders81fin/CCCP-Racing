@@ -64,8 +64,9 @@ public partial class PhysicsTest
             bool all = actors.Length > 0 && actors.All(covers.Contains) && covers.All(actors.Contains);
             TapeCheck(r.Exit == 0 && !r.Crashed && all, $"scene 9 ({track}): a fresh process with another seed covers exactly the {actors.Length} recorded actors (covers {covers.Length}, missing [{string.Join(", ", actors.Except(covers))}])");
             var s = TapeSummaryLine(r, "replay done");
-            int skippedTicks = s == null ? 0 : actors.Count(a => TapeCountOf(s, "skipped", a) > 100), liveTicks = s == null ? 0 : actors.Count(a => TapeCountOf(s, "live", a) > 0);
-            TapeCheck(s != null && skippedTicks == actors.Length && liveTicks == 0, $"scene 9 ({track}): the live tick of all {actors.Length} covered actors is skipped in the replay (skipped {skippedTicks}, still ticking {liveTicks})");
+            int ticking = actors.Count(a => a != "Depot:FuelDepot");      // (the fuel depot has no step of its own and leaves the world without fuel)
+            int skippedTicks = s == null ? 0 : actors.Count(a => a != "Depot:FuelDepot" && TapeCountOf(s, "skipped", a) > 100), liveTicks = s == null ? 0 : actors.Count(a => TapeCountOf(s, "live", a) > 0);
+            TapeCheck(s != null && skippedTicks == ticking && liveTicks == 0, $"scene 9 ({track}): the live tick of all {actors.Length} covered actors is skipped in the replay (skipped {skippedTicks}, still ticking {liveTicks})");
         }
         finally { TapeSceneRm(dir); }
     }

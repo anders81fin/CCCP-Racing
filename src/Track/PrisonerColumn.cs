@@ -25,8 +25,9 @@ public partial class PrisonerColumn : Node3D
 
     class Walker
     {
-        public Node3D Root, Body, Head, LegL, LegR, ArmL, ArmR;
-        public float Back, Side, Phase;      // metres behind the head of the column; how far it has stepped aside (0..1)
+        public Node3D Root, Body, Head, LegL, LegR, KneeL, KneeR, ArmL, ArmR;
+        public float Back, Side, Phase, Gait;      // Gait: 0 the march, 1 the jog (eased)
+             // metres behind the head of the column; how far it has stepped aside (0..1)
         public bool Guard, Gunner;
         public int Obs;
         public Knockdown Down = new();
@@ -55,10 +56,10 @@ public partial class PrisonerColumn : Node3D
             // The world tape: the figure (it moves, the PrisonerColumn node does not), head, arms and legs.
             string n = $"{k + 1}/";
             Tape.Part(w.Root, n + "figure"); Tape.Part(w.Body, n + "body"); Tape.Part(w.Head, n + "head");
-            Tape.Part(w.ArmL, n + "armL"); Tape.Part(w.ArmR, n + "armR"); Tape.Part(w.LegL, n + "legL"); Tape.Part(w.LegR, n + "legR");
+            Tape.Part(w.ArmL, n + "armL"); Tape.Part(w.ArmR, n + "armR"); Tape.Part(w.LegL, n + "legL"); Tape.Part(w.LegR, n + "legR"); Tape.Part(w.KneeL, n + "kneeL"); Tape.Part(w.KneeR, n + "kneeR");
             _walkers.Add(w);
         }
-        Tape.Version(this, 1); Tape.Part(this, "root");
+        Tape.Version(this, 2); Tape.Part(this, "root");      // 2: the legs have knees (kneeL, kneeR)
         Reset();
     }
 
@@ -129,7 +130,9 @@ public partial class PrisonerColumn : Node3D
                 else { pos = w.Pos + to.Normalized() * step; jog = true; }
             }
             w.Pos = pos;
-            w.Phase += dt * (w.Down.Down ? 0f : jog || (w.Side > 0.02f && w.Side < 0.98f) ? 11f : 6.5f);
+            bool quick = jog || (w.Side > 0.02f && w.Side < 0.98f);      // (a jog back to the column, or the hurried step aside and back)
+            w.Gait = Mathf.MoveToward(w.Gait, quick && !w.Down.Down ? 1f : 0f, 4f * dt);
+            w.Phase += dt * (w.Down.Down ? 0f : quick ? 11f : 6.5f);
             Pose(w, pos, dir, right);
             if (!w.Down.Down) _t.Obstacles[w.Obs] = new Obstacle(pos, Radius, dir * Walk);      // (a man knocked over has his obstacle out of the way)
         }
@@ -151,9 +154,14 @@ public partial class PrisonerColumn : Node3D
         Vector2 face = w.Side > 0.05f && w.Side < 0.95f ? (dir + right * 0.8f).Normalized() : dir;
         w.Root.GlobalTransform = new Transform3D(w.Down.Tilt * new Basis(Vector3.Up, TrackData.YawFor(face)).Scaled(Vector3.One * SizeScale), new Vector3(pos.X, y, pos.Y));
         float sw = MathF.Sin(w.Phase);
-        w.LegL.Rotation = new Vector3(sw * 0.5f, 0, 0);
-        w.LegR.Rotation = new Vector3(-sw * 0.5f, 0, 0);
-        w.Body.Position = new Vector3(0, MathF.Abs(sw) * 0.03f, 0);
+        // The legs: the hip swings, and the knee folds on the forward swing (a leg that swings forward lifts its foot: cos of the phase is the swing's direction), more in the jog back to the column
+        // (a longer step, the knee up higher). A man lying down keeps his legs straight.
+        float cw = MathF.Cos(w.Phase), gait = w.Gait, amp = Mathf.Lerp(0.5f, 0.7f, gait), fold = Mathf.Lerp(0.55f, 1.0f, gait), up = w.Down.Down ? 0f : 1f;
+        w.LegL.Rotation = new Vector3(sw * amp, 0, 0);
+        w.LegR.Rotation = new Vector3(-sw * amp, 0, 0);
+        w.KneeL.Rotation = new Vector3(-fold * MathF.Max(0f, cw) * up, 0, 0);
+        w.KneeR.Rotation = new Vector3(-fold * MathF.Max(0f, -cw) * up, 0, 0);
+        w.Body.Position = new Vector3(0, MathF.Abs(sw) * Mathf.Lerp(0.03f, 0.055f, gait), 0);
         if (w.Guard)
         {
             w.Body.Rotation = new Vector3(0, 0, sw * 0.03f);
@@ -186,8 +194,12 @@ public partial class PrisonerColumn : Node3D
         body.AddChild(w.LegR);
         foreach (var leg in new[] { w.LegL, w.LegR })
         {
-            leg.AddChild(Props.Part(Props.Box(0.16f, 0.75f, 0.19f), legs, new Vector3(0, -0.37f, 0)));
-            leg.AddChild(Props.Part(Props.Box(0.18f, 0.2f, 0.26f), Felt, new Vector3(0, -0.66f, -0.03f)));     // felt boots
+            leg.AddChild(Props.Part(Props.Box(0.16f, 0.4f, 0.19f), legs, new Vector3(0, -0.2f, 0)));           // the thigh
+            var knee = new Node3D { Position = new Vector3(0, -0.4f, 0) };                                       // the knee: it folds on the forward swing (Pose)
+            leg.AddChild(knee);
+            knee.AddChild(Props.Part(Props.Box(0.15f, 0.36f, 0.18f), legs, new Vector3(0, -0.18f, 0)));         // the shin
+            knee.AddChild(Props.Part(Props.Box(0.18f, 0.2f, 0.26f), Felt, new Vector3(0, -0.26f, -0.03f)));     // felt boots
+            if (leg == w.LegL) w.KneeL = knee; else w.KneeR = knee;
         }
         if (w.Guard)
             body.AddChild(Props.Part(Props.Box(0.56f, 0.95f, 0.36f), coat, new Vector3(0, 0.95f, 0)));          // greatcoat to the knee

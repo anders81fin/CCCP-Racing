@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
+using CCCPRacing.Camera;
 using CCCPRacing.Race;
+using CCCPRacing.Replay;
 using CCCPRacing.Track;
 using Godot;
 
@@ -16,7 +18,7 @@ public partial class PhysicsTest
         string one = PlayerFiles.Dir(root, 1), two = PlayerFiles.Dir(root, 2);
         var settings = new ConfigFile(); settings.SetValue("driver", "name", "TEST DRIVER"); settings.Save(one + "settings.cfg");
         var discoveries = new CameraDiscoveries(one);
-        Check(discoveries.Next("ilyich", GameplayView.TopDown) == GameplayView.Classic && discoveries.Next("ilyich", GameplayView.Classic) == GameplayView.TopDown
+        Check(discoveries.Next("ilyich", GameplayView.TopDown) == GameplayView.Classic && discoveries.Next("ilyich", GameplayView.Classic) == GameplayView.RoadAligned && discoveries.Next("ilyich", GameplayView.RoadAligned) == GameplayView.TopDown
             && discoveries.Has("ilyich", GameplayView.TopDown) && discoveries.Has("ilyich", GameplayView.Classic) && !discoveries.HasAlternative("ilyich"),
             "camera discoveries: new files have directed and classic without finding anything, and no found camera");
         settings.SetValue("tutorial", "rally_seen", true); settings.Save(one + "settings.cfg");
@@ -27,11 +29,22 @@ public partial class PhysicsTest
         Check(reloaded.Has("ilyich", GameplayView.Bonnet) && !reloaded.Has("siberia", GameplayView.Bonnet)
             && settings.GetValue("driver", "name").AsString() == "TEST DRIVER" && settings.GetValue("tutorial", "rally_seen").AsBool(),
             "camera discoveries: survive reload, stay on their track and preserve other profile settings");
-        Check(reloaded.Next("ilyich", GameplayView.Classic) == GameplayView.Bonnet && reloaded.Next("ilyich", GameplayView.Bonnet) == GameplayView.TopDown,
+        Check(reloaded.Next("ilyich", GameplayView.Classic) == GameplayView.Bonnet && reloaded.Next("ilyich", GameplayView.Bonnet) == GameplayView.RoadAligned && reloaded.Next("ilyich", GameplayView.RoadAligned) == GameplayView.TopDown,
             "camera discoveries: camera switching skips a locked cinematic view");
         reloaded.Discover("ilyich", GameplayView.Cinematic);
-        Check(reloaded.Next("ilyich", GameplayView.Classic) == GameplayView.Cinematic && reloaded.Next("ilyich", GameplayView.Cinematic) == GameplayView.Bonnet,
-            "camera discoveries: both found views participate in the cycle");
+        Check(reloaded.Next("ilyich", GameplayView.Classic) == GameplayView.Bonnet && reloaded.Next("ilyich", GameplayView.Bonnet) == GameplayView.CinematicClose && reloaded.Next("ilyich", GameplayView.CinematicClose) == GameplayView.Cinematic
+            && reloaded.Next("ilyich", GameplayView.Cinematic) == GameplayView.CinematicFar && reloaded.Next("ilyich", GameplayView.CinematicFar) == GameplayView.RoadAligned && reloaded.Next("ilyich", GameplayView.RoadAligned) == GameplayView.TopDown
+            && reloaded.Has("ilyich", GameplayView.CinematicClose) && reloaded.Has("ilyich", GameplayView.CinematicFar) && !reloaded.Has("siberia", GameplayView.CinematicFar),
+            "camera discoveries: the cycle is directed, classic, bonnet, follow-behind close, medium, far and the road-aligned view last");
+        // The replay viewer has every gameplay camera: each viewer mode maps to its own gameplay view, and the saved edits and the export accept the names of all of them.
+        var viewerModes = System.Enum.GetValues<RaceScene.ViewerCameraMode>().Where(m => m != RaceScene.ViewerCameraMode.Auto).ToArray();
+        var views = viewerModes.Select(RaceScene.GameplayViewOf).Distinct().ToArray();
+        string[] names = { LapEdits.TopDown, LapEdits.Classic, LapEdits.Bonnet, LapEdits.CinematicClose, LapEdits.Cinematic, LapEdits.CinematicFar, LapEdits.RoadAligned, LapEdits.Auto };
+        Check(viewerModes.Length == 7 && views.Length == 7 && names.All(n => System.Array.IndexOf(LapEdits.PresetCameraModes, n) >= 0 && System.Array.IndexOf(LapEdits.CameraModes, n) >= 0),
+            "replay viewer cameras: all seven gameplay cameras (and the TV broadcast) are viewer modes, each shows its own view, and the saved edits and the export accept their names");
+        var rigs = (Close: GameplayRearCamera.Params(GameplayRearCamera.Rig.Close), Mid: GameplayRearCamera.Params(GameplayRearCamera.Rig.Medium), Far: GameplayRearCamera.Params(GameplayRearCamera.Rig.Far));
+        Check(rigs.Close.distNear < rigs.Mid.distNear && rigs.Mid.distFast < rigs.Far.distNear && rigs.Close.heightFast < rigs.Mid.heightNear + 0.1f && rigs.Mid.heightFast < rigs.Far.heightNear,
+            "follow-behind rigs: close, medium and far hang at clearly different distances and heights");
         PlayerFiles.Activate(root, 2);
         var other = new CameraDiscoveries(two); other.Discover("siberia", GameplayView.Cinematic);
         Check(!other.Has("ilyich", GameplayView.Bonnet) && PlayerFiles.Read(root, 1).Cameras == 2 && PlayerFiles.Read(root, 2).Cameras == 1,

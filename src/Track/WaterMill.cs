@@ -7,7 +7,7 @@ namespace CCCPRacing.Track;
 /// <summary>
 /// The old water mill below the ford ("watermill" prop): a rubble-stone ground floor with quoins and a plank-sided upper storey under a shingled gable roof with a hoist beam, loading hatch,
 /// stone chimney and shuttered windows; an overshot wheel (rims, spokes, buckets, axle on stone piers) in the river on one long side, fed by a plank flume on trestles from the north;
-/// millstones, sacks, a handcart, a barrel and a woodpile in the yard. The wheel is a still model (it does not turn). Local frame: the body centred at the origin, ridge along Z, the wheel at
+/// millstones, sacks, a handcart, a barrel and a woodpile in the yard. The wheel turns slowly (MillWheel) with a restrained spray falling at its discharge. Local frame: the body centred at the origin, ridge along Z, the wheel at
 /// (-7.1, 0.9, 0) on the river side (-X), the flume running off to -Z.
 /// </summary>
 public static class WaterMill
@@ -19,6 +19,7 @@ public static class WaterMill
     const float Hx = 3.5f, Hz = 4.8f, StoneH = 3.0f, WoodH = 2.5f, EaveY = StoneH + WoodH, Rise = 2.4f;
     internal static readonly Vector3 WheelCentre = new(-7.1f, 0.5f, 0f);
     internal const float WheelR = 2.4f;
+    internal const float WheelRadius = WheelR;
 
     public static IEnumerable<(float x, float z, float r)> Circles()
     {
@@ -148,26 +149,31 @@ public static class WaterMill
         n.AddChild(Props.Part(Props.Cyl(0.3f, 0.5f, 8, 0.24f), Iron, new Vector3(cx, ch + 0.5f, cz)));
 
         // ---- the wheel (overshot): hub, axle, rims, spokes, buckets, piers, bearings
+        // The rims, spokes and buckets are one turning part (MillWheel, merged into one mesh); the axle and hub are bodies of revolution and stay with the stone piers. The wheel turns slowly: the mill works
+        // (it has the lantern, the flour on the step, the sacks and the millstones, the brake lever and the wet splash boards), and a still wheel read as a model. The spray at the buckets' discharge falls under it.
         Vector3 w = WheelCentre;
         n.AddChild(Props.Part(Props.Cyl(0.17f, 3.6f, 8), PlankDark, w, new Vector3(90, 0, 0)));
         n.AddChild(Props.Part(Props.Cyl(0.34f, 1.2f, 10), Plank, w, new Vector3(90, 0, 0)));
+        var wheel = new MillWheel { Name = "MillWheel", Position = w };
         foreach (float z in new[] { -0.75f, 0.75f })
         {
-            BuildKit.RimRing(n, w + new Vector3(0, 0, z), WheelR, 20, 0.14f, 0.26f, Plank);
-            BuildKit.RimRing(n, w + new Vector3(0, 0, z), WheelR - 0.45f, 20, 0.1f, 0.09f, PlankDark);
+            BuildKit.RimRing(wheel, new Vector3(0, 0, z), WheelR, 20, 0.14f, 0.26f, Plank);
+            BuildKit.RimRing(wheel, new Vector3(0, 0, z), WheelR - 0.45f, 20, 0.1f, 0.09f, PlankDark);
             for (int k = 0; k < 8; k++)
             {
                 float a = k * MathF.Tau / 8f + (z > 0 ? 0.1f : 0f);
-                n.AddChild(B(new Vector3(WheelR - 0.3f, 0.15f, 0.1f), Plank, w + new Vector3(MathF.Cos(a), MathF.Sin(a), 0) * (WheelR - 0.3f) * 0.5f + new Vector3(0, 0, z * 0.95f), new Vector3(0, 0, Mathf.RadToDeg(a))));
+                wheel.AddChild(B(new Vector3(WheelR - 0.3f, 0.15f, 0.1f), Plank, new Vector3(MathF.Cos(a), MathF.Sin(a), 0) * (WheelR - 0.3f) * 0.5f + new Vector3(0, 0, z * 0.95f), new Vector3(0, 0, Mathf.RadToDeg(a))));
             }
         }
         for (int k = 0; k < 20; k++)
         {
             float a = (k + 0.5f) * MathF.Tau / 20f;
             Vector3 radial = new(MathF.Cos(a), MathF.Sin(a), 0);
-            n.AddChild(B(new Vector3(0.5f, 0.06f, 1.5f), (k % 3 == 0) ? Wet : Plank, w + radial * (WheelR - 0.2f), new Vector3(0, 0, Mathf.RadToDeg(a) + 34f)));   // the bucket boards, raked
-            n.AddChild(B(new Vector3(0.06f, 0.4f, 1.5f), PlankDark, w + radial * (WheelR - 0.55f), new Vector3(0, 0, Mathf.RadToDeg(a))));
+            wheel.AddChild(B(new Vector3(0.5f, 0.06f, 1.5f), (k % 3 == 0) ? Wet : Plank, radial * (WheelR - 0.2f), new Vector3(0, 0, Mathf.RadToDeg(a) + 34f)));   // the bucket boards, raked
+            wheel.AddChild(B(new Vector3(0.06f, 0.4f, 1.5f), PlankDark, radial * (WheelR - 0.55f), new Vector3(0, 0, Mathf.RadToDeg(a))));
         }
+        DrunkTractor.BatchStatic(wheel, null);
+        n.AddChild(wheel);
         foreach (float z in new[] { -1.35f, 1.35f })
         {
             BuildKit.Masonry(n, new Vector3(-7.9f, -2.3f, z), true, 1.1f, 2.5f, 0.8f, 0.34f, 0.35f, 0.6f, Stone, 51 + (int)z, 0.13f);
@@ -295,7 +301,61 @@ public static class WaterMill
         n.AddChild(B(new Vector3(0.1f, 1.6f, 0.1f), PlankDark, new Vector3(-7.95f, 0.9f, 1.7f), new Vector3(0, 0, -22)));
         n.AddChild(Props.Part(Props.Cyl(0.15f, 0.2f, 8), Iron, new Vector3(-7.9f, 0.45f, 1.35f)));
         for (int k = 0; k < 7; k++) n.AddChild(B(new Vector3(rs.RandfRange(0.4f, 0.8f), 0.02f, rs.RandfRange(0.15f, 0.3f)), new Color(0.88f, 0.92f, 0.92f), new Vector3(WheelCentre.X + rs.RandfRange(-1.4f, 1.0f), -1.2f + rs.RandfRange(-0.1f, 0.15f), rs.RandfRange(-0.8f, 0.8f))));
-        DrunkTractor.BatchStatic(n, null);
+        DrunkTractor.BatchStatic(n, null, new[] { new DrunkTractor.TractorWheel(wheel, WheelR) });      // (the turning wheel is not merged into the mill)
+        n.AddChild(MillWheel.Spray(w));      // (after the merge: it is not a mesh)
         return n;
+    }
+}
+
+/// <summary>
+/// The mill's turning wheel: a slow, steady turn (one revolution in about 18 s; the top moves away from the building, so the buckets on the river side go down). A decorative ambient part like the
+/// beacons: it turns by its own time in the live game, in a replay and on a LAN replica alike (it is not a tape actor, nothing in it is gameplay), and the spray under it is a few pale streaks falling from the discharge side into the river.
+/// </summary>
+public partial class MillWheel : Node3D
+{
+    /// <summary>Radians a second.</summary>
+    public const float Rate = 0.35f;
+    float _angle;
+
+    public override void _Process(double delta)
+    {
+        _angle = (_angle + Rate * (float)delta) % Mathf.Tau;
+        Rotation = new Vector3(0, 0, _angle);
+    }
+
+    /// <summary>The spray at the buckets' discharge (the river side, low on the wheel): pale, thin streaks that fall and fade, restrained.</summary>
+    internal static Node3D Spray(Vector3 wheelCentre) => new MillSpray { Name = "MillSpray", Position = wheelCentre };
+}
+
+/// <summary>A handful of streaks falling from where the buckets empty to the river, on the descending side of the wheel.</summary>
+public partial class MillSpray : Node3D
+{
+    const int Streaks = 9;
+    const float Fall = 1.45f, Life = 0.9f;
+    readonly MeshInstance3D[] _streak = new MeshInstance3D[Streaks];
+    readonly StandardMaterial3D[] _mat = new StandardMaterial3D[Streaks];
+    float _clock;
+
+    public override void _Ready()
+    {
+        for (int i = 0; i < Streaks; i++)
+        {
+            _mat[i] = new StandardMaterial3D { ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, Transparency = BaseMaterial3D.TransparencyEnum.Alpha, AlbedoColor = new Color(0.86f, 0.93f, 0.96f, 0.5f) };
+            _streak[i] = new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.05f, 0.34f, 0.05f) }, MaterialOverride = _mat[i], CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+            AddChild(_streak[i]);
+        }
+    }
+
+    public override void _Process(double delta)
+    {
+        _clock += (float)delta;
+        for (int i = 0; i < Streaks; i++)
+        {
+            float t = (_clock / Life + i / (float)Streaks * 1.7f) % 1f;      // each streak: its own phase, falling again and again
+            float x = -(WaterMill.WheelRadius + 0.05f) + 0.18f * MathF.Sin(i * 2.3f) - 0.25f * t;      // (a little outwards as it falls)
+            float z = -0.7f + 1.4f * ((i * 0.618f) % 1f);                                                // (spread across the wheel's width)
+            _streak[i].Position = new Vector3(x, -0.35f - Fall * t * t, z);
+            _mat[i].AlbedoColor = new Color(0.86f, 0.93f, 0.96f, 0.45f * MathF.Sin(MathF.PI * t));
+        }
     }
 }

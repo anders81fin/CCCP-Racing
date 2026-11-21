@@ -141,6 +141,8 @@ src/Camera/GameplayCinematicCamera.cs
 src/Camera/GameplayCinematicCamera.cs.uid
 src/Camera/GameplayRearCamera.cs
 src/Camera/GameplayRearCamera.cs.uid
+src/Camera/GameplayRoadCamera.cs
+src/Camera/GameplayRoadCamera.cs.uid
 src/Camera/ReplayCameraDirector.cs
 src/Camera/ReplayCameraDirector.cs.uid
 src/Camera/ReplayCameraMotion.cs
@@ -506,6 +508,7 @@ src/Race/RaceScene.ViewerWindowedAudio.cs
 src/Race/RaceScene.ViewerWindowedAudio.cs.uid
 src/Race/RaceScene.ViewerWindowedCameraMotion.cs
 src/Race/RaceScene.ViewerWindowedCameraMotion.cs.uid
+src/Race/RaceScene.ViewerWindowedClip.cs
 src/Race/RaceScene.ViewerWindowedDelete.cs
 src/Race/RaceScene.ViewerWindowedDelete.cs.uid
 src/Race/RaceScene.ViewerWindowedDiag.cs
@@ -654,6 +657,7 @@ src/Tests/LanSession.Fixture.cs
 src/Tests/LanSession.Fixture.cs.uid
 src/Tests/LanUiReview.cs
 src/Tests/LanUiReview.cs.uid
+src/Tests/PhysicsTest.AtomgradLandmarks.cs
 src/Tests/PhysicsTest.AtomgradRailYard.cs
 src/Tests/PhysicsTest.AtomgradRailYard.cs.uid
 src/Tests/PhysicsTest.AtomgradServices.cs
@@ -832,6 +836,7 @@ src/Tests/PhysicsTest.Power.cs
 src/Tests/PhysicsTest.Power.cs.uid
 src/Tests/PhysicsTest.PowerCorner.cs
 src/Tests/PhysicsTest.PowerCorner.cs.uid
+src/Tests/PhysicsTest.PrisonerKnees.cs
 src/Tests/PhysicsTest.Probe.cs
 src/Tests/PhysicsTest.Probe.cs.uid
 src/Tests/PhysicsTest.RallyResume.cs
@@ -946,14 +951,17 @@ src/Tests/PhysicsTest.Visibility.cs
 src/Tests/PhysicsTest.Visibility.cs.uid
 src/Tests/PhysicsTest.WaterEntry.cs
 src/Tests/PhysicsTest.WaterEntry.cs.uid
+src/Tests/PhysicsTest.WaterMill.cs
 src/Tests/PhysicsTest.WhineBalance.cs
 src/Tests/PhysicsTest.WhineBalance.cs.uid
 src/Tests/PhysicsTest.WindowsExport.cs
 src/Tests/PhysicsTest.WindowsExport.cs.uid
 src/Tests/PhysicsTest.Workers.cs
 src/Tests/PhysicsTest.Workers.cs.uid
+src/Tests/PhysicsTest.ZoneDosimetrist.cs
 src/Tests/PhysicsTest.cs
 src/Tests/PhysicsTest.cs.uid
+src/Tests/PrisonerColumn.TestAccess.cs
 src/Tests/RaceRestartTest.cs
 src/Tests/RaceRestartTest.cs.uid
 src/Tests/RaceStartTest.cs

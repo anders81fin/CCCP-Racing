@@ -29,6 +29,7 @@ public partial class ReplayOverlay : Control
     static readonly Color Gold = new(1f, 0.8f, 0.2f);
     static readonly Color Paper = new(0.93f, 0.9f, 0.8f);
     static readonly Color Grey = new(0.6f, 0.6f, 0.58f);
+    static readonly Color Green = new(0.45f, 0.85f, 0.4f);
 
     ReplayOverlayView _view = new();
 
@@ -95,8 +96,8 @@ public partial class ReplayOverlay : Control
 
     /// <summary>The hint groups, each a key and its action, in order; Step is the one that only matters when paused.</summary>
     internal static (string Text, bool PausedOnly)[] HintGroups(bool pad, bool editable = false) => (pad
-        ? new[] { ("A PLAY/PAUSE", false), ("D-PAD SEEK/SPEED", false), ("LB/RB STEP", true), ("Y CAMERA", false), ("X HIDE", false), ("BACK EDIT/EXPORT", false), ("B BACK", false) }
-        : new[] { ("SPACE PLAY/PAUSE", false), ("< > SEEK", false), ("UP/DOWN SPEED", false), (", . STEP", true), ("C CAMERA", false), ("WASD/MOUSE FREE CAMERA", false), ("H HIDE", false), ("V EDIT/EXPORT", false), ("ESC BACK", false) }).ToArray();      // (EDIT/EXPORT shows for every lap: a lap that is not kept offers EXPORT and the way to keep it)
+        ? new[] { ("A PLAY/PAUSE", false), ("D-PAD SEEK/SPEED", false), ("LB/RB STEP", true), ("Y CAMERA", false), ("X HIDE", false), ("BACK EDIT/EXPORT", false), ("START MAKE CLIP", false), ("B BACK", false) }
+        : new[] { ("SPACE PLAY/PAUSE", false), ("< > SEEK", false), ("UP/DOWN SPEED", false), (", . STEP", true), ("C CAMERA", false), ("WASD/MOUSE FREE CAMERA", false), ("H HIDE", false), ("V EDIT/EXPORT", false), ("M MAKE CLIP", false), ("ESC BACK", false) }).ToArray();      // (EDIT/EXPORT shows for every lap: a lap that is not kept offers EXPORT and the way to keep it)
 
     internal static LayoutResult Layout(ReplayOverlayView v, Vector2 size)
     {
@@ -162,13 +163,23 @@ public partial class ReplayOverlay : Control
             l.Texts.Add(new Label(t, tr.Position.X + 5, tr.Position.Y + 3, Gold, 1, tr));
         }
 
+        if (!string.IsNullOrEmpty(v.ClipText) && !v.FreeCamera)
+        {
+            var clipLines = new[] { v.ClipText, v.ClipHint ?? "" };
+            float cw = Mathf.Min(clipLines.Max(t => PixelFont.Measure(t)) + 12, W - 2 * M);
+            var cr = new Rect2(M, M + 17, cw, 28);
+            Panel(l, cr, .85f);
+            for (int i = 0; i < 2; i++) l.Texts.Add(new Label(Fit(clipLines[i], cr.Size.X - 12), cr.Position.X + 6, cr.Position.Y + 5 + 10 * i, i == 0 ? Gold : Paper, 1, cr));
+        }
+
         if (v.FreeCamera)
         {
-            var text = new[] { "FREE CAMERA", (v.PadMode ? "Y" : "F") + " FOLLOW CAR " + (v.FreeFollow ? "ON" : "OFF"), (v.PadMode ? "R3" : "G") + " LOOK AT CAR " + (v.FreeLook ? "ON" : "OFF") };
-            float fw = text.Max(t => PixelFont.Measure(t)) + 12;
-            var fr = new Rect2(M, M + 17, Mathf.Min(fw, W - 2 * M), 38);
+            var text = new[] { "FREE CAMERA", (v.PadMode ? "Y" : "F") + " FOLLOW CAR " + (v.FreeFollow ? "ON" : "OFF"), (v.PadMode ? "R3" : "G") + " LOOK AT CAR " + (v.FreeLook ? "ON" : "OFF"), v.FreeShot ?? "" };
+            int freeLines = string.IsNullOrEmpty(v.FreeShot) ? 3 : 4;
+            float fw = text.Take(freeLines).Max(t => PixelFont.Measure(t)) + 12;
+            var fr = new Rect2(M, M + 17, Mathf.Min(fw, W - 2 * M), 8 + 10 * freeLines);
             Panel(l, fr, .85f);
-            for (int i = 0; i < text.Length; i++) l.Texts.Add(new Label(Fit(text[i], fr.Size.X - 12), fr.Position.X + 6, fr.Position.Y + 5 + 10 * i, i == 0 ? Gold : Paper, 1, fr));
+            for (int i = 0; i < freeLines; i++) l.Texts.Add(new Label(Fit(text[i], fr.Size.X - 12), fr.Position.X + 6, fr.Position.Y + 5 + 10 * i, i == 0 ? Gold : i == 3 ? (v.FreeShotAdded ? Green : Gold) : Paper, 1, fr));
         }
 
         if (v.FreeCamera)

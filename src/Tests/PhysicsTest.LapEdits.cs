@@ -61,7 +61,7 @@ public partial class PhysicsTest
                 var k = LapEdits.TryParse(c.ToJson(), out var back, out var why);
                 Check(k == LapEditsLoadKind.Ok && back.ToJson() == c.ToJson() && back.Validate(10f) == null && back.In == 2.5f && back.Out == 7.5f && back.CameraKeys.Count == 2 && back.CameraKeys[1].Mode == "Auto" && !back.Playback.Overlay && back.Playback.Loop && back.Playback.Speed == 0.5f && back.Pinned,
                     $"lap edits 1: JSON round trip keeps every field ({why})");
-                Check(d.Validate(10f) == null && d.TrimEnabled && d.In == null && d.Out == null && d.CameraKeys.Count == 0 && d.Playback.Speed == 1f && d.Playback.Camera == "TopDown" && d.Playback.Overlay && !d.Pinned && d.TapeSha256 == "absent", "lap edits 1: the default sidecar is valid and neutral");
+                Check(d.Validate(10f) == null && d.TrimEnabled && d.In == null && d.Out == null && d.CameraKeys.Count == 0 && d.Playback.Speed == 1f && d.Playback.Camera == "Auto" && d.Playback.Overlay && !d.Pinned && d.TapeSha256 == "absent", "lap edits 1: the default sidecar is valid and neutral");
                 string minimal = "{\"GhostSha256\":\"" + H64 + "\",\"TapeSha256\":\"absent\",\"LapSeconds\":10,\"Surprise\":{\"x\":1}}";
                 var km = LapEdits.TryParse(minimal, out var m1, out _);
                 Check(km == LapEditsLoadKind.Ok && m1.Validate(10f) == null && m1.Version == 1 && m1.TrimEnabled && m1.CameraKeys.Count == 0 && m1.Playback.Speed == 1f && m1.In == null, "lap edits 1: missing optional fields take defaults, unknown members are ignored");

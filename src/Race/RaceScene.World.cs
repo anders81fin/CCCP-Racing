@@ -140,6 +140,7 @@ public partial class RaceScene
         Add(_trap, () => new() { Who = Actors.None, Node = _trap, Reset = _trap.Reset, AfterCar = true,
             TapeDrive = _trap.SetTapeDriven, Focus = () => _trap.InspectorNode.GlobalPosition,
             Tick = (dt, _) => _trap.Tick(dt, _car.Pos) });
+        Add(_dosimetrist, () => new() { Who = Actors.None, Node = _dosimetrist, Reset = _dosimetrist.Reset, TapeDrive = _dosimetrist.SetTapeDriven });      // (he moves himself in _Process, from the check's time: no step here)
         // Only there for the rally's norms and fuel: no step of their own (the KGB officers move the liaison).
         _actors.Add(new() { Who = Actors.Liaison, Node = _kgb.Liaison });
         _actors.Add(new() { Who = Actors.Depot, Node = _depot, TapeDrive = _depot.SetTapeDriven });

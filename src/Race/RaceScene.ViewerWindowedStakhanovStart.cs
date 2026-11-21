@@ -19,7 +19,7 @@ public partial class RaceScene
     string VwRallyFuelOnFile()
     {
         var cfg = new ConfigFile();
-        return cfg.Load(_records.Dir + "settings.cfg") != Error.Ok ? "<no settings.cfg>" : cfg.HasSectionKey("rally", "fuel") ? (string)cfg.GetValue("rally", "fuel") : "<no rally fuel>";
+        return cfg.Load(_records.Dir + "settings.cfg") != Error.Ok ? "<no rally fuel>" : cfg.HasSectionKey("rally", "fuel") ? (string)cfg.GetValue("rally", "fuel") : "<no rally fuel>";
     }
 
     /// <summary>The engine the car really has now: the fuel, its power value, the drive split, the turbo and the redline.</summary>
@@ -82,35 +82,42 @@ public partial class RaceScene
         foreach (var x in VwToStakhanov(false)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
-        VwCheck(_card == TitleCard.Track, "the track card comes first");
-        foreach (var x in VtbTrackCardBoards(true)) yield return x;      // L LEADERBOARDS on the card (RaceScene.ViewerWindowedTrackBoards.cs), back on KOLKHOZ
-        foreach (var x in VrTap(Key.Enter)) yield return x;
-        for (int i = 0; i < 6; i++) yield return null;
-        // 1. a fresh profile: only DIESEL is open (PETROL needs a silver on the bonus track on DIESEL), the card opens on it
-        VwCheck(VwFuelCardUp(false), $"after the track comes CHOOSE FUEL with the four fuels and the keyboard's hint, no tour ({_card}, '{_hud.CardTitle}', '{_hud.CardNote}', tour {_hud.CardTour})");
+        // 1. a fresh profile: CHOOSE FUEL comes first (since 2026-11-19 like the rally); only DIESEL is open (PETROL needs a silver on the bonus track on DIESEL), the card opens on it
+        VwCheck(VwFuelCardUp(false), $"CHOOSE FUEL comes first with the four fuels and the keyboard's hint, no tour ({_card}, '{_hud.CardTitle}', '{_hud.CardNote}', tour {_hud.CardTour})");
         VwCheck(_cardSel == (int)FuelGrade.Diesel && FuelLocked(FuelGrade.Petrol) && _hud.CardSub == FuelGrades.CardLine((int)FuelGrade.Diesel),
             $"a fresh profile: the card opens on the open DIESEL with its line ('{_hud.CardSub}')");
         foreach (var x in VrShot("stakhanov-1-choose-fuel-keys")) yield return x;
         foreach (var x in VrTap(Key.Right)) yield return x;
         for (int i = 0; i < 4; i++) yield return null;
-        VwCheck(_cardSel == (int)FuelGrade.Petrol && _hud.CardSub.StartsWith("LOCKED: A SILVER ON") && _hud.CardSub.EndsWith("ON DIESEL OPENS IT"), $"PETROL is locked and says what opens it ('{_hud.CardSub}')");
+        VwCheck(_cardSel == (int)FuelGrade.Petrol && _hud.CardSub.StartsWith("LOCKED: SILVER ON") && _hud.CardSub.EndsWith("ON DIESEL OPENS IT"), $"PETROL is locked and says what opens it ('{_hud.CardSub}')");
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 20; i++) yield return null;
         VwCheck(_card == TitleCard.LapsFuel && _cardSel == (int)FuelGrade.Petrol && VwNothingStarted(), $"Enter on the locked PETROL does nothing: the card stays, no loading, no run ({_card}, {_state}, loading {TrackLoadingScreen.Active != null})");
         foreach (var x in VrShot("stakhanov-2-locked-petrol")) yield return x;
         foreach (var x in VrTap(Key.Escape)) yield return x;
         for (int i = 0; i < 8; i++) yield return null;
-        VwCheck(_card == TitleCard.None && _menuParent == MenuItem.Single && _menu == MenuItem.Training && VwNothingStarted(), $"Esc on CHOOSE FUEL goes back to the menu on STAKHANOV LAPS, nothing started ({_card}, {_menuParent}/{_menu})");
+        VwCheck(_card == TitleCard.None && _menuParent == MenuItem.Single && _menu == MenuItem.Training && VwNothingStarted(), $"Esc on CHOOSE FUEL goes back to the menu on STAKHANOV LAPS, nothing started ({_card})");
         VwCheck(_rallyFuel == rallyBefore && VwRallyFuelOnFile() == rallyFileBefore, $"the rally's fuel is untouched ({_rallyFuel}, on file {VwRallyFuelOnFile()})");
-        // 2. medals open PETROL and JET FUEL (on this temporary profile only; SPUTNIK stays locked); the pad's way: its hint, a pick and B on TIME OF DAY drops it
-        _campaign.Award(TrainingTrack, NormPlan.Medal.Silver, FuelGrade.Diesel); _campaign.Award(TrainingTrack, NormPlan.Medal.Silver, FuelGrade.Petrol);
-        VwCheck(!FuelLocked(FuelGrade.Petrol) && !FuelLocked(FuelGrade.Rocket) && FuelLocked(FuelGrade.Sputnik), "test medals: PETROL and JET FUEL open, SPUTNIK locked");
+        // the open DIESEL leads on to CHOOSE TRACK: the leaderboards of the highlighted tracks, read only; Esc is one step back to the fuel
+        foreach (var x in VrTap(Key.Enter)) yield return x;
+        for (int i = 0; i < 6; i++) yield return null;
+        foreach (var x in VrTap(Key.Enter)) yield return x;      // DIESEL
+        for (int i = 0; i < 6; i++) yield return null;
+        VwCheck(_card == TitleCard.Track, $"after the fuel comes the track card ({_card})");
+        foreach (var x in VtbTrackCardBoards(true)) yield return x;      // L LEADERBOARDS on the card (RaceScene.ViewerWindowedTrackBoards.cs), back on KOLKHOZ
+        foreach (var x in VrTap(Key.Escape)) yield return x;
+        for (int i = 0; i < 8; i++) yield return null;
+        VwCheck(_card == TitleCard.LapsFuel && _cardSel == (int)FuelGrade.Diesel && VwNothingStarted(), $"Esc on CHOOSE TRACK is one step back to CHOOSE FUEL on the pick ({_card}, sel {_cardSel})");
+        foreach (var x in VrTap(Key.Escape)) yield return x;
+        for (int i = 0; i < 8; i++) yield return null;
+        VwCheck(_card == TitleCard.None && _menu == MenuItem.Training && VwNothingStarted(), "Esc again: the menu, nothing started or saved");
+        // 2. medals open PETROL and JET FUEL (on this temporary profile only; SPUTNIK stays locked); the pad's way: its hint; B steps back card by card and the pick is dropped at the menu
+        foreach (var t in FuelTracks(FuelGrade.Petrol)) _campaign.Award(t, NormPlan.Medal.Silver, FuelGrade.Diesel);      // (silver on the three first tracks in the rally on DIESEL opens PETROL; the same on PETROL opens JET FUEL on every track)
+        foreach (var t in FuelTracks(FuelGrade.Rocket)) _campaign.Award(t, NormPlan.Medal.Silver, FuelGrade.Petrol);
+        VwCheck(!FuelLocked(FuelGrade.Petrol) && !FuelLocked(FuelGrade.Rocket) && FuelLocked(FuelGrade.Sputnik), $"test medals: PETROL and JET FUEL open, SPUTNIK locked (petrol locked {FuelLocked(FuelGrade.Petrol)}, jet locked {FuelLocked(FuelGrade.Rocket)}, sputnik locked {FuelLocked(FuelGrade.Sputnik)})");
         rallyFileBefore = VwRallyFuelOnFile();
         _padMode = true;
         foreach (var x in VwToStakhanov(true)) yield return x;
-        foreach (var x in VrPad(JoyButton.A)) yield return x;
-        for (int i = 0; i < 6; i++) yield return null;
-        VwCheck(_card == TitleCard.Track, "pad: the track card");
         foreach (var x in VrPad(JoyButton.A)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
         VwCheck(VwFuelCardUp(true) && _cardSel == (int)FuelGrade.Petrol, $"pad: CHOOSE FUEL with the pad's hint, on PETROL (the default 100 %) ({_card}, sel {_cardSel}, '{_hud.CardNote}')");
@@ -120,23 +127,34 @@ public partial class RaceScene
         foreach (var x in VrShot("stakhanov-3-choose-fuel-pad")) yield return x;
         foreach (var x in VrPad(JoyButton.A)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
-        VwCheck(_card == TitleCard.LapsTime && _hud.CardTitle == "TIME OF DAY" && VwNothingStarted(), $"pad: A on JET FUEL opens TIME OF DAY, nothing started yet ({_card})");
+        VwCheck(_card == TitleCard.Track && VwNothingStarted(), $"pad: A on JET FUEL opens the track card, nothing started yet ({_card})");
+        foreach (var x in VrPad(JoyButton.A)) yield return x;
+        for (int i = 0; i < 6; i++) yield return null;
+        VwCheck(_card == TitleCard.LapsTime && _hud.CardTitle == "TIME OF DAY" && VwNothingStarted(), $"pad: A on the track opens TIME OF DAY ({_card})");
+        foreach (var x in VrPad(JoyButton.B)) yield return x;
+        for (int i = 0; i < 6; i++) yield return null;
+        VwCheck(_card == TitleCard.Track, $"pad: B on TIME OF DAY goes back to the track card ({_card})");
+        foreach (var x in VrPad(JoyButton.B)) yield return x;
+        for (int i = 0; i < 6; i++) yield return null;
+        VwCheck(_card == TitleCard.LapsFuel && _cardSel == (int)FuelGrade.Rocket, $"pad: B on the track card goes back to CHOOSE FUEL on the pick ({_card}, sel {_cardSel})");
         foreach (var x in VrPad(JoyButton.B)) yield return x;
         for (int i = 0; i < 8; i++) yield return null;
         VwCheck(_card == TitleCard.None && _menuParent == MenuItem.Single && _menu == MenuItem.Training && VwNothingStarted() && _lapsFuelLast == null,
-            $"pad: B on TIME OF DAY goes back to the menu, nothing started, the pick dropped ({_card}, last {_lapsFuelLast})");
+            $"pad: B on CHOOSE FUEL goes back to the menu, nothing started, the pick dropped ({_card}, last {_lapsFuelLast})");
         _padMode = false;
-        // 3. the keyboard's run: JET FUEL, SUNSET
-        foreach (var x in VrTap(Key.Enter)) yield return x;
-        for (int i = 0; i < 6; i++) yield return null;
+        // 3. the keyboard's run: JET FUEL, the track, SUNSET
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
         VwCheck(VwFuelCardUp(false) && _cardSel == (int)FuelGrade.Petrol, $"the card opens on PETROL again: a cancelled pick is not kept (sel {_cardSel})");
         foreach (var x in VrTap(Key.Right)) yield return x;
         for (int i = 0; i < 4; i++) yield return null;
-        foreach (var x in VrTap(Key.Enter)) yield return x;
+        foreach (var x in VrTap(Key.Enter)) yield return x;      // JET FUEL
         for (int i = 0; i < 6; i++) yield return null;
-        VwCheck(_card == TitleCard.LapsTime && _hud.CardTitle == "TIME OF DAY", $"after the fuel comes TIME OF DAY ({_card})");
+        VwCheck(_card == TitleCard.Track, $"after the fuel comes the track card ({_card})");
+        for (int i = 0; i < 6 && _cardSel != 0; i++) foreach (var x in VrTap(Key.Left)) yield return x;
+        foreach (var x in VrTap(Key.Enter)) yield return x;      // KOLKHOZ
+        for (int i = 0; i < 6; i++) yield return null;
+        VwCheck(_card == TitleCard.LapsTime && _hud.CardTitle == "TIME OF DAY", $"after the track comes TIME OF DAY ({_card})");
         foreach (var x in VrShot("stakhanov-4-time-of-day")) yield return x;
         foreach (var x in VrTap(Key.Right)) yield return x;      // SUNSET
         for (int i = 0; i < 4; i++) yield return null;
@@ -150,7 +168,7 @@ public partial class RaceScene
         for (int i = 0; i < 30; i++) yield return null;
         VwCheck(VwEngineIs(FuelGrade.Rocket) && _lapsFuelStart == null, $"the run drives the chosen JET FUEL ({VwEngineNow()})");
         VwCheck(_lapPeak == 200 && _lapFuels.Count > 0 && _lapFuels[0] == (0f, (int)FuelGrade.Rocket), $"the lap's peak and its fuel timeline start on JET FUEL (peak {_lapPeak}, first {(_lapFuels.Count > 0 ? _lapFuels[0].ToString() : "none")})");
-        VwCheck(_rallyFuel == rallyBefore && VwRallyFuelOnFile() == rallyFileBefore, $"the rally's fuel is still untouched ({_rallyFuel}, on file {VwRallyFuelOnFile()})");
+        VwCheck(VwRallyFuelOnFile() == rallyFileBefore, $"the rally's fuel file is still untouched (on file {VwRallyFuelOnFile()}; the in-memory default follows the medals: {_rallyFuel})");
         int first = DayNight.FirstLap(DayNight.Phase.Sunset);
         VwCheck(_dayNight.LapOffset == first - 1 && DayNight.PhaseForLap(_runLaps + _dayNight.LapOffset + 1) == DayNight.Phase.Sunset, $"it starts in SUNSET (offset {_dayNight.LapOffset}, lap-driven phase {DayNight.PhaseForLap(_runLaps + _dayNight.LapOffset + 1)})");
         float clock0 = _dayNight.Clock;
@@ -194,15 +212,15 @@ public partial class RaceScene
         foreach (var x in VwToStakhanov(false)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
-        int ti = Array.FindIndex(Tracks, t => t.id == target);
-        for (int i = 0; i < 6 && _cardSel != ti; i++) foreach (var x in VrTap(Key.Right)) yield return x;
-        VwCheck(_card == TitleCard.Track && _cardSel == ti && !Locked(ti), $"the track card on {target} (open)");
-        foreach (var x in VrTap(Key.Enter)) yield return x;
-        for (int i = 0; i < 6; i++) yield return null;
-        VwCheck(VwFuelCardUp(false) && _cardSel == (int)FuelGrade.Diesel, $"CHOOSE FUEL opens on --power=50's DIESEL (sel {_cardSel})");
+        VwCheck(VwFuelCardUp(false) && _cardSel == (int)FuelGrade.Diesel, $"CHOOSE FUEL comes first and opens on --power=50's DIESEL (sel {_cardSel})");
         for (int i = 0; i < 4 && _cardSel != (int)FuelGrade.Sputnik; i++) foreach (var x in VrTap(Key.Right)) yield return x;
         VwCheck(_cardSel == (int)FuelGrade.Sputnik && _hud.CardSub == "TOP SECRET: AWD PROTOTYPE", $"SPUTNIK highlighted with its line ('{_hud.CardSub}')");
         foreach (var x in VrShot("stakhanov-reload-1-choose-sputnik")) yield return x;
+        foreach (var x in VrTap(Key.Enter)) yield return x;
+        for (int i = 0; i < 6; i++) yield return null;
+        int ti = Array.FindIndex(Tracks, t => t.id == target);
+        for (int i = 0; i < 6 && _cardSel != ti; i++) foreach (var x in VrTap(Key.Right)) yield return x;
+        VwCheck(_card == TitleCard.Track && _cardSel == ti && !Locked(ti), $"the track card on {target} (open)");
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
         VwCheck(_card == TitleCard.LapsTime, $"TIME OF DAY after the fuel ({_card})");

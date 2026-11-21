@@ -69,6 +69,7 @@ public partial class RaceScene
     {
         var mode = laps ? MenuItem.Training : MenuItem.Race;
         string tag = laps ? "stakhanov" : "rally";
+        int SIB = Array.FindIndex(Tracks, t => t.id == "siberia");      // (the order is KOLKHOZ, ATOMGRAD-4, SIBERIA, POLIGON 17 since 2026-11-11)
         if (!VtbFixtures()) yield break;
         _padMode = false;
         for (int i = 0; i < 4; i++) yield return null;
@@ -79,11 +80,11 @@ public partial class RaceScene
         var fuelBefore = _rallyFuel;
 
         // 1. SIBERIA (not the built track; locked on a fresh profile): only its own mode's boards
-        foreach (var x in VtbTo(1, false)) yield return x;
-        bool locked = _hud.CardLocked != null && _hud.CardLocked[1];
+        foreach (var x in VtbTo(SIB, false)) yield return x;
+        bool locked = _hud.CardLocked != null && _hud.CardLocked[SIB];
         foreach (var x in VrTap(Key.L)) yield return x;
         for (int i = 0; i < 4; i++) yield return null;
-        VwCheck(VtbOpen(1, laps) && _menu == mode && _trackFor == mode, $"{tag}: L opens SIBERIA's {(laps ? "STAKHANOV LAPS" : "SOCIALIST RALLY")} boards in place, the card behind it unchanged (locked {locked}, '{_hud.BoardTrack}', stakhanov {_hud.BoardStakhanov})");
+        VwCheck(VtbOpen(SIB, laps) && _menu == mode && _trackFor == mode, $"{tag}: L opens SIBERIA's {(laps ? "STAKHANOV LAPS" : "SOCIALIST RALLY")} boards in place, the card behind it unchanged (locked {locked}, '{_hud.BoardTrack}', stakhanov {_hud.BoardStakhanov})");
         if (laps)
         {
             VwCheck(_hud.BoardFuel == "DIESEL" && VtbShown() == "DIESEL - TOP 10:SLD1,SLD2" && VtbNames(_hud.Board) == VtbNames(_hud.BoardFuels[0].Entries),
@@ -95,7 +96,7 @@ public partial class RaceScene
                 foreach (var x in VrTap(Key.Right)) yield return x;
                 for (int i = 0; i < 2; i++) yield return null;
                 seen.Add(VtbShown());
-                VwCheck(_hud.BoardFuel == want.Item1 && VtbShown() == $"{want.Item1} - TOP 10:{want.Item2}" && VtbOpen(1, true),
+                VwCheck(_hud.BoardFuel == want.Item1 && VtbShown() == $"{want.Item1} - TOP 10:{want.Item2}" && VtbOpen(SIB, true),
                     $"stakhanov: Right browses to {want.Item1} on SIBERIA ({VtbShown()})");
                 if (want.Item1 == "JET FUEL") foreach (var x in VrShot("trackcard-stakhanov-siberia-jet-empty")) yield return x;
             }
@@ -118,15 +119,15 @@ public partial class RaceScene
         var size = GetViewport().GetVisibleRect().Size;
         foreach (var x in VrClick(new Vector2(size.X / 2, size.Y / 2))) yield return x;
         for (int i = 0; i < 10; i++) yield return null;
-        VwCheck(VtbOpen(1, laps) && VtbShown() == shown && _hud.BoardFuel == fuel && _replayViewer == null && _boardReplayOpen == null && !_tourOpen && _power == power && VwDiff(files, VrFiles()) == "",
+        VwCheck(VtbOpen(SIB, laps) && VtbShown() == shown && _hud.BoardFuel == fuel && _replayViewer == null && _boardReplayOpen == null && !_tourOpen && _power == power && VwDiff(files, VrFiles()) == "",
             $"{tag}: W/S, PageUp/Down, Up/Down, T, L, number keys, R/C/M/Tab/Space{(laps ? "" : ", Left/Right")} and a mouse click change nothing: same track, mode and fuel, no replay or tour, no file written");
         // 3. Esc: back to the same card
         foreach (var x in VrTap(Key.Escape)) yield return x;
         for (int i = 0; i < 10; i++) yield return null;
-        VwCheck(VtbBack(1, mode, files, power, rallyFile) && (_hud.CardLocked?[1] ?? false) == locked, $"{tag}: Esc returns to CHOOSE TRACK on SIBERIA, {mode}, nothing chosen, started or saved ({_card}, sel {_cardSel}, {_trackFor}, files {VwDiff(files, VrFiles())})");
+        VwCheck(VtbBack(SIB, mode, files, power, rallyFile) && (_hud.CardLocked?[SIB] ?? false) == locked, $"{tag}: Esc returns to CHOOSE TRACK on SIBERIA, {mode}, nothing chosen, started or saved ({_card}, sel {_cardSel}, {_trackFor}, files {VwDiff(files, VrFiles())})");
 
         // 4. the other mode's rows only: an empty board stays empty (no fallback to the mode that has rows)
-        int other = laps ? 2 : 3;      // ATOMGRAD-4 has rally rows only, POLIGON 17 laps rows only
+        int other = laps ? 1 : 3;      // ATOMGRAD-4 has rally rows only, POLIGON 17 laps rows only
         foreach (var x in VtbTo(other, false)) yield return x;
         foreach (var x in VrTap(Key.L)) yield return x;
         for (int i = 0; i < 4; i++) yield return null;

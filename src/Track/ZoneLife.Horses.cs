@@ -80,6 +80,13 @@ public partial class ZoneLife
             head.AddChild(Props.Part(Props.Box(0.22f, 0.22f, 0.18f), muzzle, new Vector3(0, 0.45f, -0.75f)));                     // the pale muzzle
             head.AddChild(Props.Part(Props.Box(0.08f, 0.22f, 0.7f), dark, new Vector3(0, 0.5f, 0.05f), new Vector3(-35, 0, 0)));     // the upright mane
             h.Head = head;
+            // The side silhouette (added last, so the registered parts keep their places in the hierarchy and old tapes still fit): a raised wither over the shoulders, a deep chest in front of the barrel,
+            // and a rounded, sloping croup with a muscled thigh on each side, so the shoulder, the chest and the hindquarters read from a distance as a horse and not a box on legs.
+            n.AddChild(Props.Part(Props.Box(0.34f, 0.22f, 0.46f), dun, new Vector3(0, 1.53f, -0.36f)));                              // the wither
+            n.AddChild(Props.Part(Props.Box(0.46f, 0.62f, 0.34f), dun, new Vector3(0, 1.04f, -0.8f)));                              // the chest
+            n.AddChild(Props.Part(Props.Box(0.52f, 0.5f, 0.56f), dun, new Vector3(0, 1.3f, 0.6f), new Vector3(10, 0, 0)));           // the croup, sloping down to the tail
+            foreach (float sx in new[] { -0.2f, 0.2f })
+                n.AddChild(Props.Part(Props.Box(0.12f, 0.52f, 0.42f), dun * 0.9f, new Vector3(sx, 1.0f, 0.62f)));                    // the thigh
             _t.Obstacles.Add(new Obstacle(home, 0.8f));
             _horses.Add(h);
         }
@@ -303,23 +310,60 @@ public partial class ZoneLife
         }
     }
 
+    /// <summary>Upper leg 0.46, lower leg and hoof to the sole 0.44: the whole straight leg 0.90 from the hip.</summary>
+    const float MaxHalfStep = 0.34f;
+    const float UpperLeg = 0.46f, LowerLeg = 0.44f, LegLength = UpperLeg + LowerLeg;
+
+    /// <summary>The ground a stride covers per cycle (m): a pony's short stride, longer the faster it goes.</summary>
+    static float Stride(float v) => 1.1f + 0.22f * v;
+
+    /// <summary>A planar two-bone solution for the sole at (fwd, down) from the hip: the hip's angle (+ forward) and how far the knee folds back (never negative); a leg that cannot reach is straight.</summary>
+    internal static void LegIk(float fwd, float down, out float hip, out float knee)
+    {
+        float d = MathF.Sqrt(fwd * fwd + down * down);
+        float alpha = MathF.Atan2(fwd, down);
+        if (d >= LegLength - 1e-4f) { hip = alpha; knee = 0f; return; }
+        float cosKnee = Math.Clamp((UpperLeg * UpperLeg + LowerLeg * LowerLeg - d * d) / (2f * UpperLeg * LowerLeg), -1f, 1f);
+        float cosHip = Math.Clamp((UpperLeg * UpperLeg + d * d - LowerLeg * LowerLeg) / (2f * UpperLeg * d), -1f, 1f);
+        hip = alpha + MathF.Acos(cosHip);
+        knee = MathF.PI - MathF.Acos(cosKnee);
+    }
+
     /// <summary>The gait and the body pose from the horse's speed, its cycle and the ground under it.</summary>
     void Pose(Horse h, float dt)
     {
         h.Gait = dt <= 0f ? h.Speed : Mathf.MoveToward(h.Gait, h.Speed, 14f * dt);
         float v = h.Gait;
-        if (v > 0f) h.Cycle += v * dt / (1.6f + 0.35f * v);      // cycles: a longer stride the faster it goes
+        float stride = Stride(v);
+        if (v > 0f) h.Cycle += v * dt / stride;      // cycles: a longer stride the faster it goes
         // Walk/trot blend and the legs' amplitude have their own, slower response: a stop or a change of gait moves the legs smoothly instead of re-timing them in a few ticks.
         float gtTarget = Mathf.SmoothStep(1.5f, 4f, v), moveTarget = v > 0.15f ? 1f : 0f;
         h.Blend = dt <= 0f ? gtTarget : Mathf.MoveToward(h.Blend, gtTarget, dt * 2.5f);
         h.Move = dt <= 0f ? moveTarget : Mathf.MoveToward(h.Move, moveTarget, dt * 5f);
         float gt = h.Blend, move = h.Move;
-        float amp = Mathf.Lerp(0.3f, 0.62f, gt) * move, flex = Mathf.Lerp(0.5f, 1.1f, gt) * move;
+        // The legs by foot placement, not by swinging angles: each hoof is put on the ground plane under the body and carried back at exactly the body's speed through its stance (no sliding, no floating
+        // at the ends of the swing), then lifted and brought forward. The stance travel is half a stride, so the body is lowered a little while moving (the legs are nearly straight: a long step
+        // needs a bent leg) and a two-bone solution gives the hip and the knee (the knee only folds back, as before; standing, the legs are straight and the angles zero).
+        float dm = MathF.Min(stride / 5.2f, MaxHalfStep) * move;      // half the stance travel in the horse's own units (the horse is scaled 1.3); a flat-out run covers less than the body does (a little slide) rather than crouching more
+        float lift = (0.05f + 0.06f * gt) * move;
+        // The sole's farthest reach from the hip stays 4 % short of the straight leg (a leg right at its full length turns its hip angle violently for a hair's breadth of reach): the body's drop follows from that.
+        float reach = LegLength * (1f - 0.04f * MathF.Min(1f, dm / 0.08f));
+        float crouch = LegLength - MathF.Sqrt(MathF.Max(0f, reach * reach - dm * dm));
+        float dStance = LegLength - crouch;
         for (int i = 0; i < 4; i++)
         {
-            float ph = MathF.Tau * (h.Cycle + Mathf.Lerp(WalkPhase[i], TrotPhase[i], gt));
-            h.Hip[i].Rotation = new Vector3(amp * MathF.Sin(ph), 0, 0);
-            h.Shin[i].Rotation = new Vector3(-flex * MathF.Max(0f, MathF.Cos(ph)), 0, 0);
+            float u = h.Cycle + Mathf.Lerp(WalkPhase[i], TrotPhase[i], gt); u -= MathF.Floor(u);
+            float fwd, up = 0f;
+            if (u >= 0.25f && u < 0.75f) fwd = dm * (1f - 4f * (u - 0.25f));      // stance: backwards, evenly
+            else
+            {
+                float sw = ((u < 0.25f ? u + 1f : u) - 0.75f) * 2f;      // swing 0..1
+                fwd = -dm + 2f * dm * sw;      // (the same shape as the stance, so the legs of a pair move exactly half a cycle apart)
+                up = lift * MathF.Sin(MathF.PI * sw);
+            }
+            LegIk(fwd, dStance - up, out float hipAngle, out float knee);
+            h.Hip[i].Rotation = new Vector3(hipAngle, 0, 0);
+            h.Shin[i].Rotation = new Vector3(-knee, 0, 0);
         }
         bool grazing = h.Speed < 1f && h.Run <= 0f;
         float headX = grazing ? -0.9f + MathF.Sin(h.Phase * 1.3f) * 0.1f : 0.15f + 0.08f * move * MathF.Sin(MathF.Tau * h.Cycle * 2f);
@@ -333,8 +377,7 @@ public partial class ZoneLife
         float pitch = Math.Clamp(MathF.Atan2(hF - hB, 1.8f), -0.45f, 0.45f), roll = Math.Clamp(MathF.Atan2(hR - hL, 0.8f), -0.45f, 0.45f);
         float k = dt <= 0f ? 1f : 1f - MathF.Exp(-dt * 8f);
         h.Pitch = Mathf.Lerp(h.Pitch, pitch, k); h.Roll = Mathf.Lerp(h.Roll, roll, k);
-        float bounce = move * (0.03f + 0.05f * gt) * MathF.Abs(MathF.Sin(MathF.Tau * h.Cycle));
-        h.Node.GlobalPosition = new Vector3(h.Pos.X, (hF + hB) * 0.5f + bounce, h.Pos.Y);
+        h.Node.GlobalPosition = new Vector3(h.Pos.X, (hF + hB) * 0.5f - crouch * 1.3f, h.Pos.Y);
         h.Node.Quaternion = new Quaternion(Vector3.Up, MathF.Atan2(-f.X, -f.Y)) * new Quaternion(Vector3.Right, h.Pitch) * new Quaternion(Vector3.Back, h.Roll);
     }
 }

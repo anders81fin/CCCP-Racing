@@ -57,10 +57,10 @@ public sealed record LapEditsPlayback
 public sealed record LapEdits
 {
     public const int CurrentVersion = 3;
-    public const string TopDown = "TopDown", Bonnet = "Bonnet", Cinematic = "Cinematic", Auto = "Auto", Free = "Free", Classic = "Classic";
+    public const string TopDown = "TopDown", Bonnet = "Bonnet", Cinematic = "Cinematic", Auto = "Auto", Free = "Free", Classic = "Classic", CinematicClose = "CinematicClose", CinematicFar = "CinematicFar", RoadAligned = "RoadAligned";      // (Cinematic is the medium follow-behind view; the last three were added later)
     public const string Absent = "absent";
-    public static readonly string[] CameraModes = { TopDown, Bonnet, Cinematic, Auto, Free, Classic };
-    public static readonly string[] PresetCameraModes = { TopDown, Bonnet, Cinematic, Auto, Classic };
+    public static readonly string[] CameraModes = { TopDown, Bonnet, Cinematic, Auto, Free, Classic, CinematicClose, CinematicFar, RoadAligned };
+    public static readonly string[] PresetCameraModes = { TopDown, Bonnet, Cinematic, Auto, Classic, CinematicClose, CinematicFar, RoadAligned };
     /// <summary>The viewer's speed set (RaceScene.ReplayViewerUi Speeds).</summary>
     public static readonly float[] Speeds = { 0.25f, 0.5f, 1f, 2f };
     public const int MaxCameraKeys = 256;

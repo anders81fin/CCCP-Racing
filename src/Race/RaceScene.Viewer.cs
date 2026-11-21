@@ -40,8 +40,15 @@ public partial class RaceScene
     /// <summary>Set before the scene enters the tree.</summary>
     public ViewerLapSource ViewerSource { get; set; }
 
-    /// <summary>The viewer's camera: the player's own gameplay views (top-down, the directed one, is the default; classic is always there; bonnet and cinematic only where the player has found them) or the title replay's automatic director.</summary>
-    public enum ViewerCameraMode { TopDown, Bonnet, Cinematic, Auto, Classic }
+    /// <summary>The viewer's camera: the player's own gameplay views (top-down, the directed one, is the default; classic and the road-aligned one are always there; bonnet and the three follow-behind ones only where the player has found them) or the title replay's automatic director.</summary>
+    public enum ViewerCameraMode { TopDown, Bonnet, Cinematic, Auto, Classic, CinematicClose, CinematicFar, RoadAligned }
+
+    /// <summary>The gameplay view a viewer camera mode shows (Auto, the TV broadcast, has none: it falls back to the directed overhead one).</summary>
+    internal static GameplayView GameplayViewOf(ViewerCameraMode m) => m switch
+    {
+        ViewerCameraMode.Bonnet => GameplayView.Bonnet, ViewerCameraMode.Cinematic => GameplayView.Cinematic, ViewerCameraMode.CinematicClose => GameplayView.CinematicClose, ViewerCameraMode.CinematicFar => GameplayView.CinematicFar,
+        ViewerCameraMode.RoadAligned => GameplayView.RoadAligned, ViewerCameraMode.Classic => GameplayView.Classic, _ => GameplayView.TopDown
+    };
     ViewerCameraMode _viewerCamera = ViewerCameraMode.Auto;      // (a replay always opens in the automatic broadcast)
     bool _viewerCamDirty = true;
     public ViewerCameraMode ViewerCamera
@@ -52,7 +59,7 @@ public partial class RaceScene
             if (_viewerCamera == value && _viewerSavedFree == null) return;
             if (!_viewerFreeControl && _viewerSavedFree != null) ClearFreeCamera();
             _viewerCamera = value;
-            _gameplayView = value switch { ViewerCameraMode.Bonnet => GameplayView.Bonnet, ViewerCameraMode.Cinematic => GameplayView.Cinematic, ViewerCameraMode.Classic => GameplayView.Classic, _ => GameplayView.TopDown };
+            _gameplayView = GameplayViewOf(value);
             if (ViewerFreeCameraActive) return;
             if (ViewerReady) { _replayCamera.Reset(); _gameplayCamera.Reset(); _cam.Snap(_car.Pos); ViewerLeaveDirector(); _viewerCamDirty = true; }      // (the new camera shows at once, also while paused)
         }
@@ -315,7 +322,7 @@ public partial class RaceScene
             if (ViewerCamera == ViewerCameraMode.Auto) { ViewerLeaveGameplayCamera(); PrepareReplayCamera(); if (!ReplayCamera(1f / 60f)) { CameraFeel(1f / 60f); _cam.FollowDrive(_car.Pos, _car.Vel, 1f / 60f); } }
             else ViewerGameplayCameraFrame(1f / 60f);
         }
-        _fx.Tick(vdt, _cam.GlobalTransform.Basis);
+        _fx.Tick(vdt, _cam.GlobalTransform.Basis, LensThin);
         DayNightFrame(vdt);
         UpdateSound(vdt);
         if (ViewerPaused) ViewerFreezeNodes(true);      // last: nothing in the frame may start a sound again

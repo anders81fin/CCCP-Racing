@@ -3,7 +3,7 @@
 Rally-Sport-inspired time trial on a Soviet kolkhoz. Power: ACCORDING TO PLAN. Suspension: NYET.
 
 Source code: [anders81fin/CCCP-Racing](https://github.com/anders81fin/CCCP-Racing).
-Source for version **0.913**: [v0.913](https://github.com/anders81fin/CCCP-Racing/tree/v0.913).
+Source for version **0.914**: [v0.914](https://github.com/anders81fin/CCCP-Racing/tree/v0.914).
 GitHub account: [anders81fin](https://github.com/anders81fin).
 
 Source code is offered under **GPL-3.0-or-later** and game models, images, track
@@ -80,7 +80,7 @@ TAB (X on a pad) turns off only the jokes.
 
 PARTY MEETING (Esc, Start): CONTINUE first and the default; then this run's laps to watch (none: no row; one lap: WATCH LAST LAP; two or more: WATCH LAST LAP and BROWSE LAPS), then
 LEADERBOARDS (Stakhanov laps) or NORMS AND MEDALS (the rally), DRIVING SCHOOL, SETTINGS, and last RESTART RACE and EXIT RACE. A few seconds after every real lap of a single-player rally or Stakhanov drive a hint
-("F3  WATCH LAP 3", a pad: "START > WATCH LAST LAP") fades in at the bottom; F3 opens that lap in the replay viewer (the AUTO camera) while driving, at a stop card and at the end of a rally, and WATCH LAST LAP does the same from the
+("F3  WATCH LAP 3", a pad: "START > WATCH LAST LAP") fades in at the bottom; F3 opens that lap in the replay viewer (the TV BROADCAST camera) while driving, at a stop card and at the end of a rally, and WATCH LAST LAP does the same from the
 Party Meeting. It is always the lap just driven, never an older one: if its recording is still being prepared or could not be saved, WATCH LAST LAP says so and nothing else opens. The race stands still while you watch and comes back exactly as it was
 (car, clock, norm, attempts), to the driving, the card or the Party Meeting's row you left.
 

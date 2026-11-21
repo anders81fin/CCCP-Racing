@@ -174,6 +174,7 @@ public partial class RaceScene
             "rally-start-resume" => live.VwRallyStart(true),
             "norm-card" => live.VwNormCard(),
             "watch-lap" => live.VwWatchLap(),
+            "make-clip" => live.VwMakeClip(),
             "stakhanov-exit" => live.VwStakhanovExit(),
             "title-settings" => live.VwTitleSettings(),
             "loading-still" => live.VwLoadingStill(),

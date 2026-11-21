@@ -13,7 +13,7 @@ namespace CCCPRacing.Race;
 /// </summary>
 public sealed class TapeEmitters
 {
-    public enum Kind { Tank, Btr, Plough, Soot }
+    public enum Kind { Tank, Btr, Plough, Soot, Wash }
     sealed class E { public Node3D Node; public Kind K; public Vector3 Prev; public bool Has; public float Dust, SprayL, SprayR, Soot; public Vector3 Pipe; public float Power, SpeedRef = 8f, FixedThrottle = -1f, MinSpeed; }
     readonly TyreEffects _fx;
     readonly TrackData _t;
@@ -70,6 +70,7 @@ public sealed class TapeEmitters
                 if (speed > .5f && (e.Dust -= dt) <= 0) { e.Dust = .35f; BtrPatrols.DustFx(_fx, pos + xf.Basis.Z * 3 + Vector3.Up * .3f); Note("btr-dust"); }
                 break;
             case Kind.Soot: break;
+            case Kind.Wash: ZoneDosimetrist.WashSprayFx(_fx, _rng, pos, dt); Note("wash-spray"); break;      // (visible only while the car is washed: the flag stands at it)
             case Kind.Plough:
                 if (speed > 1f)
                 {

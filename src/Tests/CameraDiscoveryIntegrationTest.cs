@@ -20,6 +20,8 @@ public partial class CameraDiscoveryIntegrationTest : Node
         foreach (var child in node.GetChildren()) { var found = Find(child); if (found != null) return found; }
         return null;
     }
+    /// <summary>DIRECTED and CLASSIC are always there; only the bonnet and the follow-behind views are found on the track.</summary>
+    static bool Locked(GameplayView v) => v is GameplayView.Bonnet or GameplayView.Cinematic;
     public override void _Ready() => GetTree().Root.CallDeferred(Node.MethodName.AddChild,
         GD.Load<PackedScene>("res://scenes/Main.tscn").Instantiate());
     public override void _Process(double delta)
@@ -35,7 +37,7 @@ public partial class CameraDiscoveryIntegrationTest : Node
             CameraDiscoveries Book() => (CameraDiscoveries)Read(race, "_cameraDiscoveries");
             if (Book().HasAlternative(track.Id)) throw new Exception("test requires a fresh personnel file");
             Call(race, "CycleGameplayCamera");
-            if ((GameplayView)Read(race, "_gameplayView") != GameplayView.TopDown) throw new Exception("locked camera selected");
+            if (Locked((GameplayView)Read(race, "_gameplayView"))) throw new Exception("locked camera selected");
             Racing();
             if (track.Id == "ilyich")
             {
@@ -44,7 +46,7 @@ public partial class CameraDiscoveryIntegrationTest : Node
                 car.Reset(duck.WorldPosition + Vector3.Up * 0.6f, 0);
                 Call(race, "CameraDiscoveryTick", car.Pos);
                 if (!Book().Has(track.Id, GameplayView.Bonnet)) throw new Exception("duck did not unlock bonnet");
-                Call(race, "CycleGameplayCamera");
+                for (int i = 0; i < 8 && (GameplayView)Read(race, "_gameplayView") != GameplayView.Bonnet; i++) Call(race, "CycleGameplayCamera");      // (the always-open views come first in the cycle)
                 if ((GameplayView)Read(race, "_gameplayView") != GameplayView.Bonnet) throw new Exception("duck reward is not selectable");
                 Call(race, "GameplayCamera", 1f / 60f);
                 if (MathF.Abs(((Camera3D)Read(race, "_cam")).Near - 0.06f) > 0.001f) throw new Exception("bonnet pose not active");
@@ -63,12 +65,12 @@ public partial class CameraDiscoveryIntegrationTest : Node
             var models = (Node3D)Read(race, "_cameraSecretModels");
             foreach (Node3D model in models.GetChildren()) if (model.Visible) throw new Exception("collected camera remains visible");
             Call(race, "UseFile", 2, true);
-            if (Book().HasAlternative(track.Id) || (GameplayView)Read(race, "_gameplayView") != GameplayView.TopDown) throw new Exception("camera leaked into another personnel file");
+            if (Book().HasAlternative(track.Id) || Locked((GameplayView)Read(race, "_gameplayView"))) throw new Exception("camera leaked into another personnel file");
             Call(race, "UseFile", 1, true);
             if (!Book().Has(track.Id, GameplayView.Bonnet) || !Book().Has(track.Id, GameplayView.Cinematic)) throw new Exception("file reload lost discoveries");
             string id = track.Id; track.Id = id == "ilyich" ? "siberia" : "ilyich";
             Call(race, "CycleGameplayCamera");
-            if ((GameplayView)Read(race, "_gameplayView") != GameplayView.TopDown) throw new Exception("camera leaked into another track");
+            if (Locked((GameplayView)Read(race, "_gameplayView"))) throw new Exception("camera leaked into another track");
             track.Id = id;
             GD.Print($"DISCOVERY INTEGRATION PASS {id}: real secrets, selection, restart, file reload and track isolation");
             GetTree().Quit();

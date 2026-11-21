@@ -48,7 +48,7 @@ public sealed class ExportUiController
         if (_state != State.Closed) return;
         _ctx = _context();
         if (_ctx?.Source == null) return;
-        if (_ctx.Cut == null) _whole = true;
+        _whole = _ctx.Cut == null;      // (an active IN/OUT cut is what the card offers first; the player can still switch to the whole lap, and that choice is not carried to the next opening)
         _sel = 0; _state = State.Settings;
     }
 
@@ -92,6 +92,7 @@ public sealed class ExportUiController
                     if (p.OutputPath != null) l.Add(Short(p.OutputPath, 52));
                     if (p.LogPath != null) l.Add("LOG " + Short(p.LogPath, 48));
                     l.Add("ENTER OK"); return l;
+                case State.Settings: return new[] { "60 FPS · NORMAL SPEED", "VIEWER SLOW MOTION IS NOT IN THE VIDEO" };      // (the viewer's slow motion helps to pick a frame; the MP4 is made at 60 fps, real time)
                 default: return Array.Empty<string>();
             }
         }

@@ -38,7 +38,7 @@ public partial class RaceScene
                     using var image=GetViewport().GetTexture().GetImage();
                     if(image.SavePng(path)!=Error.Ok) throw new Exception("LAN export UI screenshot failed");
                 }
-                if(run!=null) LanPlaybackInput(new InputEventKey {Keycode=Key.Enter,Pressed=true}); // select THE CUT, two recorded seconds
+                // (THE CUT, two recorded seconds, is what the card offers first when a cut is on: no key needed to select it)
                 for(int i=0;i<5;i++) LanPlaybackInput(new InputEventKey {Keycode=Key.Down,Pressed=true});
                 LanPlaybackInput(new InputEventKey {Keycode=Key.Enter,Pressed=true});
                 _lanExportUiProbeJob=_lanExportUi.Job;

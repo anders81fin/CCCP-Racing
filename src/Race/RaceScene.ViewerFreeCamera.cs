@@ -57,7 +57,7 @@ public partial class RaceScene
         ClearFreeCamera();
         var mode = back ?? ViewerCameraMode.TopDown;
         _viewerCamera = mode;
-        _gameplayView = mode switch { ViewerCameraMode.Bonnet => GameplayView.Bonnet, ViewerCameraMode.Cinematic => GameplayView.Cinematic, ViewerCameraMode.Classic => GameplayView.Classic, _ => GameplayView.TopDown };
+        _gameplayView = GameplayViewOf(mode);
         _replayCamera.Reset(); _gameplayCamera.Reset();
         _cam.Snap(_car.Pos); _viewerCamDirty = true;
         if (mode != ViewerCameraMode.Auto) ViewerGameplayCameraFrame(1f / 60f);      // (Auto's director takes its first step in the next ViewerFrame, paused or not)

@@ -32,6 +32,10 @@ public partial class RaceScene
         readonly Dictionary<float, LapFreeCamera> _wFreeKeys = new();
         float _wSpeed = 1f; ViewerCameraMode _wCamera = ViewerCameraMode.Auto;
         bool _editOpen; int _editSel;
+        // MAKE CLIP (M / START): a temporary cut round the moment on the screen, 8 s before and 4 s after, shown in the TV broadcast and looped; it is not an edit (nothing is saved or marked unsaved, a lap that is not kept can make one),
+        // it goes to the export card as THE CUT, and V turns it into the lap's real IN and OUT in the editor (a lap that is not kept answers KEEP FIRST).
+        (float In, float Out)? _clip; ViewerCameraMode _clipCameraBefore; bool _clipLoopBefore;
+        const float ClipBefore = 8f, ClipAfter = 4f;
         enum EditPrompt { None, KeepFirst, Unsaved, Reset }
         EditPrompt _prompt;
 
@@ -79,8 +83,8 @@ public partial class RaceScene
         public bool EditOpen => _editOpen;
         public string[] EditRowTexts => EditRows();
 
-        static string Mode(ViewerCameraMode m) => m switch { ViewerCameraMode.Bonnet => LapEdits.Bonnet, ViewerCameraMode.Cinematic => LapEdits.Cinematic, ViewerCameraMode.Auto => LapEdits.Auto, ViewerCameraMode.Classic => LapEdits.Classic, _ => LapEdits.TopDown };
-        static ViewerCameraMode ModeOf(string s) => s switch { LapEdits.Bonnet => ViewerCameraMode.Bonnet, LapEdits.Cinematic => ViewerCameraMode.Cinematic, LapEdits.Auto => ViewerCameraMode.Auto, LapEdits.Classic => ViewerCameraMode.Classic, _ => ViewerCameraMode.TopDown };
+        static string Mode(ViewerCameraMode m) => m switch { ViewerCameraMode.Bonnet => LapEdits.Bonnet, ViewerCameraMode.Cinematic => LapEdits.Cinematic, ViewerCameraMode.CinematicClose => LapEdits.CinematicClose, ViewerCameraMode.CinematicFar => LapEdits.CinematicFar, ViewerCameraMode.RoadAligned => LapEdits.RoadAligned, ViewerCameraMode.Auto => LapEdits.Auto, ViewerCameraMode.Classic => LapEdits.Classic, _ => LapEdits.TopDown };
+        static ViewerCameraMode ModeOf(string s) => s switch { LapEdits.Bonnet => ViewerCameraMode.Bonnet, LapEdits.Cinematic => ViewerCameraMode.Cinematic, LapEdits.CinematicClose => ViewerCameraMode.CinematicClose, LapEdits.CinematicFar => ViewerCameraMode.CinematicFar, LapEdits.RoadAligned => ViewerCameraMode.RoadAligned, LapEdits.Auto => ViewerCameraMode.Auto, LapEdits.Classic => ViewerCameraMode.Classic, _ => ViewerCameraMode.TopDown };
 
         // ---------------------------------------------------------------- load
 
@@ -132,8 +136,12 @@ public partial class RaceScene
         {
             if (_scene == null || !IsInstanceValid(_scene) || !_scene.ViewerReady) return;
             var plan = new ViewerEditPlan { TrimEnabled = _wTrim, In = _wIn, Out = _wOut, DefaultCamera = _wCamera };
-            foreach (var k in _wKeys.OrderBy(k => k.T)) plan.Keys.Add(k);
-            foreach (var k in _wFreeKeys) plan.FreeKeys[k.Key] = k.Value;
+            if (_clip is { } clip) plan = new ViewerEditPlan { TrimEnabled = true, In = clip.In, Out = clip.Out, DefaultCamera = ViewerCameraMode.Auto };      // (the clip stands in for the working edits while it is up)
+            else
+            {
+                foreach (var k in _wKeys.OrderBy(k => k.T)) plan.Keys.Add(k);
+                foreach (var k in _wFreeKeys) plan.FreeKeys[k.Key] = k.Value;
+            }
             _scene.ViewerEdits = plan;
             if (plan.Keys.Count == 0 && _scene._viewerSavedFree != null && !_scene.ViewerFreeCameraControlled) _scene.ViewerEndFreeCamera();
             if (!_editsApplied)
@@ -175,6 +183,8 @@ public partial class RaceScene
             (float, float)? cut = null;
             if (_wTrim && (_wIn != null || _wOut != null)) { float a = _wIn ?? 0f, b = _wOut ?? dur; if (a >= 0 && b > a && b <= dur + 1e-3f) cut = (a, MathF.Min(b, dur)); }
             string cam = Mode(_wKeys.Count == 0 ? _scene.ViewerCamera : _wCamera);
+            bool clip = _clip != null;
+            if (clip) { cut = _clip; cam = Mode(ViewerCameraMode.Auto); }      // (the clip: its span, in the TV broadcast, with none of the lap's camera keys)
             return new ExportContext
             {
                 Source = new SpExportSource(_lap, _title, dur), Cut = cut, DefaultCamera = cam, Name = string.IsNullOrWhiteSpace(_title) ? "replay" : _title,
@@ -376,7 +386,8 @@ public partial class RaceScene
             {
                 _view.PadMode = false;
                 var c = key.PhysicalKeycode;
-                if (c == Key.V) { OpenEdit(); return true; }
+                if (c == Key.V) { if (_clip != null && !_editOpen) ClipToEdit(); else OpenEdit(); return true; }
+                if (c == Key.M && !_editOpen) { if (_clip == null) MakeClip(); else ClearClip(); return true; }
                 if (_editOpen)
                 {
                     if (c is Key.Up) { _editSel = (_editSel + rows - 1) % rows; return true; }
@@ -384,6 +395,7 @@ public partial class RaceScene
                     if (c is Key.Enter or Key.KpEnter) { EditDo(_editSel); return true; }
                     if (c is Key.Escape or Key.Backspace) { _editOpen = false; return true; }
                 }
+                if (_clip != null && !_editOpen && c is Key.Enter or Key.KpEnter) { OpenExport(); return true; }      // (ENTER EXPORT CLIP; SPACE still plays and pauses)
                 if (c == Key.Tab) { StepCameraKey(key.ShiftPressed ? -1 : 1); return true; }
                 if (c == Key.Delete) { RemoveCameraKeyHere(); return true; }
                 int direct = c switch { Key.I => 0, Key.O => 1, Key.T => 3, Key.K => 4, Key.L => 6, Key.P => 7, Key.S when key.CtrlPressed => 8, _ => -1 };      // (plain S flies the free camera)
@@ -392,7 +404,8 @@ public partial class RaceScene
             else if (e is InputEventJoypadButton { Pressed: true } jb)
             {
                 _view.PadMode = true;
-                if (jb.ButtonIndex == JoyButton.Back) { OpenEdit(); return true; }
+                if (jb.ButtonIndex == JoyButton.Back) { if (_clip != null && !_editOpen) ClipToEdit(); else OpenEdit(); return true; }
+                if (jb.ButtonIndex == JoyButton.Start && !_editOpen) { if (_clip == null) MakeClip(); else OpenExport(); return true; }
                 if (_editOpen)
                 {
                     switch (jb.ButtonIndex)
@@ -420,12 +433,63 @@ public partial class RaceScene
         {
             if (_saveTask != null || KeepBusy || _viewerKeepOpen) { SetNotice("SAVING - WAIT", 1.5f); return true; }
             if (_editOpen) { _editOpen = false; return true; }
+            if (_clip != null) { ClearClip(); SetNotice("CLIP CLEARED", 1.5f); return true; }      // (ESC / B drop the clip first, the next one leaves)
             if (Dirty) { _prompt = EditPrompt.Unsaved; return true; }
             return false;
         }
 
+        // ---------------------------------------------------------------- MAKE CLIP
+
+        /// <summary>For the windowed scenario: the clip's span, and the export card's state.</summary>
+        internal (float In, float Out)? ClipSpan => _clip;
+        internal bool ExportCardOpen => _export != null && _export.IsOpen;
+        internal IReadOnlyList<string> ExportCardRows => _export?.Rows ?? Array.Empty<string>();
+        internal IReadOnlyList<string> ExportCardLines => _export?.Lines ?? Array.Empty<string>();
+        internal bool KeepFirstAsked => _prompt == EditPrompt.KeepFirst;
+
+        static string ClipTime(float t) => $"{(int)(t / 60f)}:{t % 60f:00.00}";
+
+        /// <summary>The moment on the screen as a clip: the span round the current clock, in the TV broadcast, looping from its start.</summary>
+        void MakeClip()
+        {
+            if (!UiReady || _editOpen || _prompt != EditPrompt.None || FreeCameraActive) return;
+            float dur = _scene.ViewerDuration, clock = _scene.ViewerClock;
+            float a = Math.Max(0f, clock - ClipBefore), b = Math.Min(dur, clock + ClipAfter);
+            if (b - a < 1f) { SetNotice("TOO LITTLE LAP HERE FOR A CLIP", 3f); return; }
+            _clipCameraBefore = _scene.ViewerCamera; _clipLoopBefore = _scene.ViewerLoop;
+            _clip = (a, b);
+            _scene.ViewerCamera = ViewerCameraMode.Auto;
+            PushPlan(seekToStart: false);
+            _scene.ViewerLoop = true;
+            _scene.ViewerSeek(a); _scene.ViewerSetPaused(false);
+            SetNotice($"CLIP {ClipTime(a)} - {ClipTime(b)}", 4f);
+        }
+
+        /// <summary>The clip goes (ESC / M / B, the free camera, becoming an edit): the lap's own plan, loop and camera are back.</summary>
+        void ClearClip()
+        {
+            if (_clip == null) return;
+            _clip = null;
+            if (_scene != null && IsInstanceValid(_scene) && _scene.ViewerReady) { _scene.ViewerLoop = _clipLoopBefore; _scene.ViewerCamera = _clipCameraBefore; }
+            PushPlan(seekToStart: false);
+        }
+
+        /// <summary>V on a clip: its span becomes the lap's IN and OUT and the editor opens (a lap that is not kept asks to be kept first, and the clip waits).</summary>
+        void ClipToEdit()
+        {
+            if (_clip is not { } c) return;
+            if (!_editable) { _prompt = EditPrompt.KeepFirst; return; }
+            _wIn = c.In; _wOut = c.Out; _wTrim = true;
+            ClearClip();
+            Touch();
+            OpenEdit();
+        }
+
         void FillEditView(ReplayOverlayView v)
         {
+            if (_clip != null && FreeCameraActive) ClearClip();      // (the free camera is the hand-made shot: it takes the clip's place)
+            v.ClipText = _clip is { } cl ? $"CLIP {ClipTime(cl.In)} - {ClipTime(cl.Out)}  {cl.Out - cl.In:0.#} S" : "";
+            v.ClipHint = _clip == null ? "" : v.PadMode ? "START EXPORT CLIP  BACK " + (_editable ? "EDIT" : "EDIT (KEEP FIRST)") + "  B CLEAR" : "ENTER EXPORT CLIP  V " + (_editable ? "EDIT" : "EDIT (KEEP FIRST)") + "  M/ESC CLEAR";
             v.Editable = true;      // (the EDIT hint shows for every lap: an unkept one answers KEEP FIRST)
             v.Dirty = Dirty; v.Pinned = _wPinned; v.TrimOn = _wTrim;
             v.WindowIn = _wIn ?? -1f; v.WindowOut = _wOut ?? -1f;

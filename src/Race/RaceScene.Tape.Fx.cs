@@ -70,6 +70,7 @@ public partial class RaceScene
             else if (a.Node == _drunksAll) _drunksAll.TapeFx = new TapeFxHost(this, key);
             else if (a.Node == _slurryAll) _slurryAll.TapeFx = new TapeFxHost(this, key);
             else if (a.Node == _trap) _trap.TapeFx = new TapeFxHost(this, key);
+            else if (a.Node == _zoneAll) _zoneAll.TapeFx = new TapeFxHost(this, key);      // (the catfish's splashes)
         }
         if (_busAll != null) _busAll.TapeReset += () => _tapeFxLive.RemoveAll(x => x.E.Kind == TapeFxKind.BusFire);
         _wood.TapeBroken += (id, hit, velocity, state) => TapeFxEvent(new TapeEvent(0, TapeEventType.Effect,
