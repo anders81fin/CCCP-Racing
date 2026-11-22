@@ -28,6 +28,8 @@ public partial class RaceScene
     GulagTruck _truck;
     bool _failed, _gulag, _truckCalled;
     string _failReason;
+    bool _deathEnd;      // the run ended by the car being destroyed (a hit, a fire): no truck, a couple of seconds of burning, then the GULAG screen
+    const float DeathBurnTime = 2.6f;
     float _failClock, _truckDelay, _runClock;
     // Tests: --health=N (percent at the start of a run), --destroy-at=T[,T...], --gulag-at=T (process clock).
     float _startHealth = 1f, _gulagAt = -1;
@@ -139,6 +141,7 @@ public partial class RaceScene
     {
         if (_state != State.Racing || _failed || StakhanovRules) return;
         _hud.Show("MISSION FAILED", reason, 3f, Hud.Red, Prio.Critical);
+        _deathEnd = false;
         EnterFailed(reason, 1.2f);
     }
 
@@ -170,6 +173,7 @@ public partial class RaceScene
         _pops = 0;
         _timer.Void();
         _kgb.LogWreck();
+        _deathEnd = reason == ReasonDestroyed;
         _hud.Alert("GAME OVER, TOVARISH!", reason == ReasonDestroyed ? "THE STATE WILL NOT SEND ANOTHER PYATYORKA" : "THE PEOPLES ENGINE, RUINED. THE TRUCK IS COMING", 4f, Hud.Red);
         EnterFailed(reason, WreckTruckDelay);
     }
@@ -268,6 +272,8 @@ public partial class RaceScene
         _car.SetControls(false, false, 0f, false);
         _car.Brake = 0.7f;
         _failClock += dt;
+        // A destroyed car burns and needs no truck: after a couple of seconds of fire the GULAG screen says that death does not cancel the sentence
+        if (_deathEnd) { if (_failClock >= DeathBurnTime && !_gulag) EnterGulag(); return; }
         if (OS.HasEnvironment("ENGINEDBG") && (int)(_failClock * 2) != (int)((_failClock - dt) * 2))
             GD.Print($"failed t={_failClock:F1} v={_car.Speed:F1} thr={_car.Throttle:F2} brake={_car.Brake:F2} gear={_car.Gear} state={_state} pos=({_car.Pos.X:F0},{_car.Pos.Z:F0})");
         if (!_truckCalled && _failClock >= _truckDelay)
@@ -409,6 +415,7 @@ public partial class RaceScene
         _hud.Mode = HudMode.Gulag;
         _hud.GulagReason = _failReason;
         _hud.GulagAfter = BronzeStakhanovNote() ?? "";
+        _hud.GulagDeath = _deathEnd;      // the screen's third line: the body is taken to the gulag all the same
         _hud.GulagLaps = _timer.LapsDone;
         _hud.GulagRunTime = _runClock;
         _hud.GulagLastLap = _timer.LapsDone > 0 && !_timer.LastLapVoid ? _timer.LastLap : -1;
@@ -424,6 +431,7 @@ public partial class RaceScene
         if (!_gulag) return false;
         if (Engine.GetProcessFrames() <= _overlayFrame) return true;
         if (e is InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.F3 }) { WatchLastLap(WatchFrom.Card); return true; }      // WATCH LAP before leaving
+        if (e is InputEventJoypadButton { Pressed: true, ButtonIndex: JoyButton.Start } && (_hud.EndWatchHint != null)) { WatchLastLap(WatchFrom.Card); return true; }      // the pad's START, as F3 (any other button leaves)
         bool press = e is InputEventKey { Pressed: true, Echo: false } or InputEventMouseButton { Pressed: true }
             or InputEventJoypadButton { Pressed: true };
         if (!press) return true;

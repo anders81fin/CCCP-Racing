@@ -254,7 +254,7 @@ public sealed class LanBoardStore : ILanBoardStore
             {
                 Id = id, TrackId = m.TrackId, Set = m.Set, Mode = m.Mode, LapSeconds = m.LapSeconds, LapNumber = m.LapNumber, Kind = m.Kind, Ranked = m.Ranked, RecordedUtc = m.RecordedUtc,
                 DayClock = m.DayClock, HasTape = src.HasTape, GhostFingerprint = m.GhostFingerprint, Profile = "", TrackSignature = m.TrackSignature, Layout = m.Layout,
-                Name = "", Retained = false, TotalBytes = src.GhostBytes.Length + src.TapeBytes.Length, Fuels = m.Fuels,
+                Name = "", Retained = false, TotalBytes = src.GhostBytes.Length + src.TapeBytes.Length, Fuels = m.Fuels, Livery = m.Livery,
             };
             return LanBoardPayload.Pack(id, Encoding.UTF8.GetBytes(meta.ToJson()), src.GhostBytes.Span, src.HasTape ? src.TapeBytes.Span : ReadOnlySpan<byte>.Empty);
         });

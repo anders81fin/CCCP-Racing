@@ -196,6 +196,7 @@ public partial class RaceScene
         if (lap.HasTape && !prep.HasTape) GD.Print($"Replay viewer: playing without the world tape ({prep.TapeError}): {prep.Message}");
         int set = lap.Meta.Set;
         _viewerFuels = ParseLapFuels(lap.Meta.Fuels);
+        _viewerLivery = ParseLivery(lap.Meta.Livery);      // (the car of that lap's own driver, as it was then)
         var ghost = prep.Ghost;
         _ghosts[set] = ghost;
         _tapes[set] = new TapeSlot { Ghost = ghost, Tape = prep.Tape?.Tape, Body = prep.Tape?.Body };

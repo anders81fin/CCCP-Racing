@@ -157,6 +157,7 @@ public static class StallWatch
             }
             sb.Append("; ");
         }
+        if (_spinnerTid != 0) { string ap = AudioProbe.Run(_spinnerTid, Path.GetDirectoryName(_path) ?? "."); if (ap.Length > 0) sb.Append("; AUDIOPROBE ").Append(ap); }
         return sb.ToString().TrimEnd(' ', ';');
     }
 
@@ -193,6 +194,16 @@ public static class StallWatch
         }
         catch (Exception ex) { return "(OS view failed: " + ex.GetType().Name + ")"; }
     }
+
+    /// <summary>A line into stall.log from anywhere (AudioDiag).</summary>
+    public static void Note(string text)
+    {
+        if (Interlocked.Increment(ref _notes) > 3000) return;      // (its own budget: the stall lines keep theirs)
+        string line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {text}";
+        try { GD.Print("StallWatch: " + line); } catch { }
+        try { File.AppendAllText(_path, line + "\n"); } catch { }
+    }
+    static int _notes;
 
     static void Write(string text)
     {

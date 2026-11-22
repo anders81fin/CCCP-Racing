@@ -304,6 +304,7 @@ public partial class RaceScene
         if (!_planScreen) return false;
         if (Engine.GetProcessFrames() <= _overlayFrame) return true;
         if (e is InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.F3 }) { WatchLastLap(WatchFrom.Card); return true; }      // WATCH LAP before leaving
+        if (e is InputEventJoypadButton { Pressed: true, ButtonIndex: JoyButton.Start } && (_hud.EndWatchHint != null)) { WatchLastLap(WatchFrom.Card); return true; }      // the pad's START, as F3 (any other button leaves)
         bool press = e is InputEventKey { Pressed: true, Echo: false } or InputEventMouseButton { Pressed: true }
             or InputEventJoypadButton { Pressed: true };
         if (!press) return true;

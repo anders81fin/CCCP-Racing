@@ -171,6 +171,9 @@ public partial class Hud : Control
         if (LoadingTrack) { DrawLoadingTrack(); return; }
         // The launch replay gets an uninterrupted video-only lead-in after the cover closes.
         if (StartupVideoOnly) return;
+        if (GalleryOn) { DrawGallery(); return; }      // HudSputnikGallery.cs: a driver's Sputnik gallery over the archive
+        if (SpOn) { DrawSputnik(); return; }      // HudSputnik.cs: the test pilots' ceremonies
+        if (FuelCeremonyOn) { DrawFuelCeremony(); return; }      // HudFuelCeremony.cs: the new fuel's car on show
         if (TrackPreview) { DrawTrackPreview(); return; }
         if (Mode == HudMode.Watch)
         {

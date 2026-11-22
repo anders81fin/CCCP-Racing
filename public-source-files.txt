@@ -171,6 +171,7 @@ src/Car/CarSim.Network.cs
 src/Car/CarSim.Network.cs.uid
 src/Car/CarSim.cs
 src/Car/CarSim.cs.uid
+src/Car/CarVisual.Livery.cs
 src/Car/CarVisual.cs
 src/Car/CarVisual.cs.uid
 src/Car/CollisionResponse.cs
@@ -247,6 +248,8 @@ src/Net/RemoteCar.cs
 src/Net/RemoteCar.cs.uid
 src/Net/Snapshot.cs
 src/Net/Snapshot.cs.uid
+src/Race/AudioDiag.cs
+src/Race/AudioDiag.cs.uid
 src/Race/BonusTrackMigration.cs
 src/Race/BonusTrackMigration.cs.uid
 src/Race/CameraDiscoveries.cs
@@ -328,6 +331,8 @@ src/Race/RaceScene.Files.cs
 src/Race/RaceScene.Files.cs.uid
 src/Race/RaceScene.Fuel.cs
 src/Race/RaceScene.Fuel.cs.uid
+src/Race/RaceScene.FuelCeremony.cs
+src/Race/RaceScene.FuelCeremony.cs.uid
 src/Race/RaceScene.GameplayCamera.cs
 src/Race/RaceScene.GameplayCamera.cs.uid
 src/Race/RaceScene.KolkhozSchool.cs
@@ -378,6 +383,7 @@ src/Race/RaceScene.LeaderboardReplay.cs
 src/Race/RaceScene.LeaderboardReplay.cs.uid
 src/Race/RaceScene.LensFx.cs
 src/Race/RaceScene.LensFx.cs.uid
+src/Race/RaceScene.Livery.cs
 src/Race/RaceScene.LoadProgress.cs
 src/Race/RaceScene.LoadProgress.cs.uid
 src/Race/RaceScene.LoadSlices.cs
@@ -444,6 +450,8 @@ src/Race/RaceScene.SoundMixer.cs
 src/Race/RaceScene.SoundMixer.cs.uid
 src/Race/RaceScene.SpeedTrap.cs
 src/Race/RaceScene.SpeedTrap.cs.uid
+src/Race/RaceScene.SputnikCeremony.cs
+src/Race/RaceScene.SputnikGallery.cs
 src/Race/RaceScene.StakhanovBoard.cs
 src/Race/RaceScene.StakhanovBoard.cs.uid
 src/Race/RaceScene.StakhanovSession.cs
@@ -509,6 +517,7 @@ src/Race/RaceScene.ViewerWindowedAudio.cs.uid
 src/Race/RaceScene.ViewerWindowedCameraMotion.cs
 src/Race/RaceScene.ViewerWindowedCameraMotion.cs.uid
 src/Race/RaceScene.ViewerWindowedClip.cs
+src/Race/RaceScene.ViewerWindowedClip.cs.uid
 src/Race/RaceScene.ViewerWindowedDelete.cs
 src/Race/RaceScene.ViewerWindowedDelete.cs.uid
 src/Race/RaceScene.ViewerWindowedDiag.cs
@@ -548,13 +557,16 @@ src/Race/RaceScene.ViewerWindowedRecordings.cs.uid
 src/Race/RaceScene.ViewerWindowedReplayUi.cs
 src/Race/RaceScene.ViewerWindowedReplayUi.cs.uid
 src/Race/RaceScene.ViewerWindowedReward.cs
+src/Race/RaceScene.ViewerWindowedReward.cs.uid
 src/Race/RaceScene.ViewerWindowedScreenshot.cs
 src/Race/RaceScene.ViewerWindowedScreenshot.cs.uid
 src/Race/RaceScene.ViewerWindowedSessionBest.cs
 src/Race/RaceScene.ViewerWindowedSessionBest.cs.uid
 src/Race/RaceScene.ViewerWindowedSituations.cs
+src/Race/RaceScene.ViewerWindowedSituations.cs.uid
 src/Race/RaceScene.ViewerWindowedStakhanovBoard.cs
 src/Race/RaceScene.ViewerWindowedStakhanovBoard.cs.uid
+src/Race/RaceScene.ViewerWindowedStakhanovExit.cs.uid
 src/Race/RaceScene.ViewerWindowedStakhanovStart.cs
 src/Race/RaceScene.ViewerWindowedStakhanovStart.cs.uid
 src/Race/RaceScene.ViewerWindowedTest.cs
@@ -578,6 +590,7 @@ src/Race/RallySky.cs.uid
 src/Race/RecordStore.cs
 src/Race/RecordStore.cs.uid
 src/Race/RoadWarnings.cs
+src/Race/RoadWarnings.cs.uid
 src/Race/Rumble.cs
 src/Race/Rumble.cs.uid
 src/Race/SchoolMarks.cs
@@ -588,6 +601,7 @@ src/Race/SchoolScript.cs
 src/Race/SchoolScript.cs.uid
 src/Race/SpeedRecords.cs
 src/Race/SpeedRecords.cs.uid
+src/Race/SputnikProgram.cs
 src/Race/Tape.cs
 src/Race/Tape.cs.uid
 src/Race/TapeEmitters.cs
@@ -653,6 +667,7 @@ src/Tests/CameraDiscoveryIntegrationTest.cs.uid
 src/Tests/CareerCardsTest.cs
 src/Tests/CareerCardsTest.cs.uid
 src/Tests/DrunkTractor.TestAccess.cs
+src/Tests/DrunkTractor.TestAccess.cs.uid
 src/Tests/IdleAudioSceneTest.cs
 src/Tests/IdleAudioSceneTest.cs.uid
 src/Tests/LanSession.BoardFixture.cs
@@ -662,7 +677,9 @@ src/Tests/LanSession.Fixture.cs.uid
 src/Tests/LanUiReview.cs
 src/Tests/LanUiReview.cs.uid
 src/Tests/LapTimer.TestAccess.cs
+src/Tests/LapTimer.TestAccess.cs.uid
 src/Tests/PhysicsTest.AtomgradLandmarks.cs
+src/Tests/PhysicsTest.AtomgradLandmarks.cs.uid
 src/Tests/PhysicsTest.AtomgradRailYard.cs
 src/Tests/PhysicsTest.AtomgradRailYard.cs.uid
 src/Tests/PhysicsTest.AtomgradServices.cs
@@ -842,6 +859,7 @@ src/Tests/PhysicsTest.Power.cs.uid
 src/Tests/PhysicsTest.PowerCorner.cs
 src/Tests/PhysicsTest.PowerCorner.cs.uid
 src/Tests/PhysicsTest.PrisonerKnees.cs
+src/Tests/PhysicsTest.PrisonerKnees.cs.uid
 src/Tests/PhysicsTest.Probe.cs
 src/Tests/PhysicsTest.Probe.cs.uid
 src/Tests/PhysicsTest.RallyResume.cs
@@ -867,6 +885,7 @@ src/Tests/PhysicsTest.RiverReview.cs.uid
 src/Tests/PhysicsTest.RoadReview.cs
 src/Tests/PhysicsTest.RoadReview.cs.uid
 src/Tests/PhysicsTest.RoadWarnings.cs
+src/Tests/PhysicsTest.RoadWarnings.cs.uid
 src/Tests/PhysicsTest.School.cs
 src/Tests/PhysicsTest.School.cs.uid
 src/Tests/PhysicsTest.SiberiaDetails.cs
@@ -885,6 +904,7 @@ src/Tests/PhysicsTest.SoundGrades.cs
 src/Tests/PhysicsTest.SoundGrades.cs.uid
 src/Tests/PhysicsTest.Spin.cs
 src/Tests/PhysicsTest.Spin.cs.uid
+src/Tests/PhysicsTest.SputnikProgram.cs
 src/Tests/PhysicsTest.StakhanovFuelBoards.cs
 src/Tests/PhysicsTest.StakhanovFuelBoards.cs.uid
 src/Tests/PhysicsTest.StartHillAssist.cs
@@ -958,6 +978,7 @@ src/Tests/PhysicsTest.Visibility.cs.uid
 src/Tests/PhysicsTest.WaterEntry.cs
 src/Tests/PhysicsTest.WaterEntry.cs.uid
 src/Tests/PhysicsTest.WaterMill.cs
+src/Tests/PhysicsTest.WaterMill.cs.uid
 src/Tests/PhysicsTest.WhineBalance.cs
 src/Tests/PhysicsTest.WhineBalance.cs.uid
 src/Tests/PhysicsTest.WindowsExport.cs
@@ -965,9 +986,11 @@ src/Tests/PhysicsTest.WindowsExport.cs.uid
 src/Tests/PhysicsTest.Workers.cs
 src/Tests/PhysicsTest.Workers.cs.uid
 src/Tests/PhysicsTest.ZoneDosimetrist.cs
+src/Tests/PhysicsTest.ZoneDosimetrist.cs.uid
 src/Tests/PhysicsTest.cs
 src/Tests/PhysicsTest.cs.uid
 src/Tests/PrisonerColumn.TestAccess.cs
+src/Tests/PrisonerColumn.TestAccess.cs.uid
 src/Tests/RaceRestartTest.cs
 src/Tests/RaceRestartTest.cs.uid
 src/Tests/RaceStartTest.cs
@@ -979,6 +1002,7 @@ src/Tests/ReplayCameraIntegrationTest.cs.uid
 src/Tests/ResourceCriterion.cs
 src/Tests/ResourceCriterion.cs.uid
 src/Tests/SlurryTractor.TestAccess.cs
+src/Tests/SlurryTractor.TestAccess.cs.uid
 src/Tests/TrackDump.cs
 src/Tests/TrackDump.cs.uid
 src/Tools/MapExport.cs
@@ -1287,6 +1311,8 @@ src/UI/HudFiles.cs
 src/UI/HudFiles.cs.uid
 src/UI/HudFuel.cs
 src/UI/HudFuel.cs.uid
+src/UI/HudFuelCeremony.cs
+src/UI/HudFuelCeremony.cs.uid
 src/UI/HudGaugeWarning.cs
 src/UI/HudGaugeWarning.cs.uid
 src/UI/HudGoldReward.cs
@@ -1349,6 +1375,8 @@ src/UI/HudSettings.cs
 src/UI/HudSettings.cs.uid
 src/UI/HudSoundBalance.cs
 src/UI/HudSoundBalance.cs.uid
+src/UI/HudSputnik.cs
+src/UI/HudSputnikGallery.cs
 src/UI/HudStakhanovBoard.cs
 src/UI/HudStakhanovBoard.cs.uid
 src/UI/HudStartup.cs
@@ -1401,6 +1429,7 @@ tools/audio/military_review.gd
 tools/audio/military_review.gd.uid
 tools/blender/build_damage_rest_map.py
 tools/blender/build_pyatyorka.py
+tools/diag/audioprobe.c
 tools/lab/gen_car_docs.py
 tools/map/annotate_map.py
 tools/map/export_map.sh

@@ -95,7 +95,7 @@ public partial class RaceScene
         bool offer = _lastLapId != null && ReplayRowShown && _sessionLapArchives.ContainsKey(_lastLapId);
         _hud.WatchHint = offer && _state == State.Racing && _watchHintClock < WatchHintSeconds && !PlanHasCar && !FateHasCar ? WatchHintText : null;
         _hud.WatchHintAlpha = Math.Clamp((WatchHintSeconds - _watchHintClock) / 2f, 0f, 1f);
-        string end = offer && !_padMode ? $"F3  WATCH LAP {_lastLapNumber}" : null;
+        string end = offer ? (_padMode ? "START  WATCH LAST LAP AS REPLAY" : "F3  WATCH LAST LAP AS REPLAY") : null;      // (the end screens: the plan fulfilled, the gulag; the pad has START as on the stop card)
         // The stop card offers the lap only when the card is about that lap (LAP NOT COUNTED): a radar trap, fuel or engine card comes in the middle of another lap, and "the last lap" would be an older one.
         _hud.StopCardWatch = _stopCard is { Kind: "norm_missed" } && offer ? (_padMode ? "START  WATCH LAST LAP AS REPLAY" : "F3  WATCH LAST LAP AS REPLAY") : null;
         _hud.EndWatchHint = _planScreen || _gulag ? end : null;

@@ -42,6 +42,7 @@ public partial class RaceScene
         var cap = LapCapture.FromGhostCopy(copy, _tapeOn ? _tapeRec : null, _track.Id, RecordSet, _run == RunMode.Rally ? "rally" : "stakhanov", kind, ranked,
             copy.HasDayClock ? copy.DayClockAt(0) : -1, _file.ToString(), _records.Signature);
         cap.Fuels = LapFuelsText();
+        cap.Livery = LiveryText();      // RaceScene.Livery.cs: the chief test pilot's name and stars, when this lap wore them
         cap.LapNumber = System.Math.Max(1, _timer.LapsDone);
         bool board = ranked && !_autodrive && _board.Qualifies(time, _lapPeak);
         var archive = board ? LeaderboardLapArchive : LapArchiveBox;

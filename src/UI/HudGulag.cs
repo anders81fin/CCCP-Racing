@@ -10,6 +10,8 @@ public partial class Hud
     public float EngineHealth = -1f;
     /// <summary>GULAG screen: why, and how far the driver got.</summary>
     public string GulagReason = "";
+    /// <summary>The car was destroyed: the screen says death does not cancel the sentence (no truck came).</summary>
+    public bool GulagDeath;
     /// <summary>A bronze rally medal can unlock the next track for STAKHANOV LAPS.</summary>
     public string GulagAfter = "";
     public int GulagLaps;
@@ -84,9 +86,14 @@ public partial class Hud
         int rs = PixelFont.Measure(reason, 2) < s.X - 40 ? 2 : 1;
         PixelFont.DrawCentered(this, reason, cx, y2, Paper, rs, new Color(0.3f, 0, 0));
         y2 += 7 * rs + 8;
-        string after = string.IsNullOrEmpty(GulagAfter) ? "10 YEARS IN KOLYMA" : GulagAfter;
+        string after = GulagDeath ? "DEATH DOES NOT CANCEL THE SENTENCE" : string.IsNullOrEmpty(GulagAfter) ? "10 YEARS IN KOLYMA" : GulagAfter;
         int afterScale = PixelFont.Measure(after, 2) < s.X - 24 ? 2 : 1;
         PixelFont.DrawCentered(this, after, cx, y2, Gold, afterScale, new Color(0.3f, 0, 0));
+        if (GulagDeath)
+        {
+            y2 += 7 * afterScale + 8;
+            PixelFont.DrawCentered(this, "THE BODY GOES TO THE GULAG ALL THE SAME", cx, y2, Paper, 1);
+        }
 
         // The case file.
         float py = y2 + 24;

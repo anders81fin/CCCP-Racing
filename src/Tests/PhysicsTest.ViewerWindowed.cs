@@ -265,9 +265,17 @@ public partial class PhysicsTest
             }
             if (On("situations"))
             {
-                foreach (var (name, track) in new[] { ("sit-tractor", "ilyich"), ("sit-stuck", "ilyich"), ("sit-shortcut", "ilyich"), ("sit-slurry", "ilyich"), ("sit-snow", "siberia"), ("sit-kitchen", "bonus") })
+                foreach (var (name, track) in new[] { ("sit-tractor", "ilyich"), ("sit-stuck", "ilyich"), ("sit-shortcut", "ilyich"), ("sit-slurry", "ilyich"), ("sit-snow", "siberia"), ("sit-kitchen", "bonus"), ("sit-end", "ilyich"), ("sit-death", "ilyich"), ("sit-fuel", "ilyich"), ("sit-sputnik", "ilyich"), ("sit-sputnik-order", "ilyich") })
                 {
-                    var (c, _) = VwChild(name, false, new[] { "--viewer-windowed=" + name, "--start", "--autodrive", "--track=" + track, "--no-intro", "--ap-speed=0.8" }.Concat(fxArgs).ToArray(), 400);
+                    var (c, _) = VwChild(name, false, (name is "sit-fuel" or "sit-sputnik" or "sit-sputnik-order" or "sit-gallery" ? new[] { "--viewer-windowed=" + name, "--track=" + track, "--no-intro" } : new[] { "--viewer-windowed=" + name, "--start", "--autodrive", "--track=" + track, "--no-intro", "--ap-speed=0.8" }).Concat(fxArgs).ToArray(), 400);
+                    VwJudge(name, c);
+                }
+            }
+            if (On("sputnik"))
+            {
+                foreach (var (name, track) in new[] { ("sit-sputnik", "ilyich"), ("sit-sputnik-order", "ilyich"), ("sit-livery", "ilyich"), ("sit-gallery", "ilyich") })
+                {
+                    var (c, _) = VwChild(name, false, (name is "sit-fuel" or "sit-sputnik" or "sit-sputnik-order" or "sit-gallery" ? new[] { "--viewer-windowed=" + name, "--track=" + track, "--no-intro" } : new[] { "--viewer-windowed=" + name, "--start", "--autodrive", "--track=" + track, "--no-intro", "--ap-speed=0.8" }).Concat(fxArgs).ToArray(), 400);
                     VwJudge(name, c);
                 }
             }

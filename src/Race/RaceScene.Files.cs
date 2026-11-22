@@ -57,6 +57,7 @@ public partial class RaceScene
     void CloseFiles()
     {
         _showFiles = _filesErase = _filesAtLaunch = false;
+        _galleryOpen = false; _hud.GalleryOn = false;
         _overlayExitFrame = Engine.GetProcessFrames();
         _hud.Mode = HudMode.Title;
     }
@@ -85,6 +86,7 @@ public partial class RaceScene
     {
         if (!_showFiles) return false;
         if (_hud.StartupArchivePending) return true;
+        if (GalleryInput(e)) return true;      // RaceScene.SputnikGallery.cs: a driver's Sputnik gallery over the files
         if (Engine.GetProcessFrames() <= _overlayFrame || _askName) return true;
         bool Is(Key k1, Key k2, JoyButton b) => e is InputEventKey { Pressed: true, Echo: false } k && (k.Keycode == k1 || k.Keycode == k2)
             || e is InputEventJoypadButton { Pressed: true } j && j.ButtonIndex == b;
@@ -108,6 +110,7 @@ public partial class RaceScene
         }
         if (Is(Key.Up, Key.W, JoyButton.DpadUp)) _filesSel = (_filesSel + PlayerFiles.Count - 1) % PlayerFiles.Count;
         else if (Is(Key.Down, Key.S, JoyButton.DpadDown)) _filesSel = (_filesSel + 1) % PlayerFiles.Count;
+        else if (Is(Key.G, Key.G, JoyButton.X) && sel.Used) { GalleryOpen(_filesSel + 1); return true; }      // the gallery of the selected driver's Sputnik recognitions
         else if (Is(Key.Delete, Key.Delete, JoyButton.Y) && sel.Used) _filesErase = true;
         else if (back && _filesAtLaunch) AskResignation();      // at launch the archive is the top: Esc resigns (RaceScene.Resign.cs)
         else if (back) CloseFiles();

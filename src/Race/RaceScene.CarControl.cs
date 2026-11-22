@@ -15,7 +15,8 @@ public partial class RaceScene
         switch (_state)
         {
             case State.Title:
-                if (CarTourActive) CarTourDrive();      // (a car's tour revs the parked car: RaceScene.CarTour.cs)
+                if (CarOnShow) ShowCarDrive();      // (the new fuel's car on show: RaceScene.FuelCeremony.cs)
+                else if (CarTourActive) CarTourDrive();      // (a car's tour revs the parked car: RaceScene.CarTour.cs)
                 else if (!_droneTour) _ap.Drive(_car, dt);      // (the drone tour drives the car itself)
                 break;
             case State.Countdown:

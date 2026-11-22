@@ -26,8 +26,8 @@ public partial class RaceScene
     public bool CarTourActive => _carTourOpen && _state == State.Title && _card == TitleCard.RallyFuel;
 
     /// <summary>Something presents on the whole screen: a track's tour or a car's.</summary>
-    public bool PresentationActive => TrackPreviewActive || CarTourActive;
-    public bool PresentationFullscreen => TrackPreviewFullscreen || CarTourActive;
+    public bool PresentationActive => TrackPreviewActive || CarTourActive || CarOnShow;
+    public bool PresentationFullscreen => TrackPreviewFullscreen || CarTourActive || CarOnShow;
 
     void OpenCarTour()
     {

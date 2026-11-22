@@ -149,7 +149,7 @@ public sealed partial class LapArchive
                     {
                         Id = id, TrackId = c.TrackId, Set = c.Set, Mode = c.Mode, LapSeconds = c.LapSeconds, LapNumber = Math.Max(0,c.LapNumber), Kind = c.Kind, Ranked = c.Ranked, RecordedUtc = c.RecordedUtc,
                         DayClock = c.DayClock, HasTape = c.Recording != null, GhostFingerprint = c.GhostFingerprint, Profile = c.Profile, TrackSignature = c.TrackSignature,
-                        Layout = c.Layout, TotalBytes = raw, Fuels = c.Fuels ?? "",
+                        Layout = c.Layout, TotalBytes = raw, Fuels = c.Fuels ?? "", Livery = c.Livery ?? "",
                     },
                 };
                 if (c.Recording == null && !deferred) { e.Claim = 1; e.Done.Set(); }

@@ -77,6 +77,8 @@ public sealed record LapMeta
     public long TotalBytes { get; init; }
     /// <summary>Stakhanov laps: the fuel in use through the lap as "seconds:grade" pairs (RaceScene.LapFuels); empty for a rally lap (the set tells) and for laps from before it was kept.</summary>
     public string Fuels { get; init; } = "";
+    /// <summary>The chief test pilot's livery the car wore on this lap, "NAME|STARS" (RaceScene.Livery.cs); empty for every lap before the livery and for every other car. Old metadata has none.</summary>
+    public string Livery { get; init; } = "";
 
     static readonly JsonSerializerOptions Options = new()
     {

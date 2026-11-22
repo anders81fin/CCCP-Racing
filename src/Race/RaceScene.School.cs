@@ -255,6 +255,7 @@ public partial class RaceScene : ISchoolHost
     {
         if (_droneTour) { DroneTourCamera(dt); return true; }
         if (_cinematicTour) { CinematicTourCamera(dt); return true; }
+        if (CarOnShow) { ShowCarCamera(dt); return true; }      // RaceScene.FuelCeremony.cs
         if (CarTourActive) { CarTourCamera(dt); return true; }      // RaceScene.CarTour.cs
         if (!InSchool && !TrackPreviewActive) return false;
         if (_scScenic != null)

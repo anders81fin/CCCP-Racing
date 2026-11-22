@@ -30,6 +30,8 @@ public sealed class LapCapture
     public int Layout { get; init; } = RecordStore.Layout;
     /// <summary>See <see cref="LapMeta.Fuels"/>.</summary>
     public string Fuels { get; set; } = "";
+    /// <summary>See <see cref="LapMeta.Livery"/>.</summary>
+    public string Livery { get; set; } = "";
     public DateTime RecordedUtc { get; init; } = DateTime.UtcNow;
     internal int Used;
 

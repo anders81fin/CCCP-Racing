@@ -3,6 +3,16 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.916
+
+- FUELS: opening a new fuel (PETROL, JET FUEL, SPUTNIK) now has a ceremony of its own, bigger than opening a track or a gold on one track: the new fuels car turns in the middle of the screen, with its name, its numbers and what opened it. It comes once, when you are back in the menu
+- SPUTNIK TEST PILOTS: six permanent honours for the best rally medals on the SPUTNIK fuel, a gold counting as a silver. Silver on the three first tracks: TEST PILOT licence. Silver on all four tracks: ORDER OF SPUTNIK, THIRD CLASS. With two golds SECOND CLASS, with three golds FIRST CLASS. Gold on the three first tracks: SPUTNIK RALLY CHAMPION, whatever Poligon 17 is. Gold on all four: CHIEF TEST PILOT. Medals you already have count. When several honours come at once there is one ceremony and a grant letter
+- CHIEF TEST PILOT: the pit mechanic paints your name and four gold stars on the side of the Sputnik, and the car is yours. The paint shows in your later Sputnik runs and in the replays of those laps, on the right car. Older laps are as they were
+- KGB FILES: PERSONNEL, then G (X on a pad) on a drivers row opens the Sputnik gallery of that driver: licence, order, pennant and the chief test pilots car. Pages you have not earned show what they ask for
+- GULAG: when the car is destroyed by a shell, a missile or fire there is no truck. After a few seconds of burning the GULAG screen says that death does not cancel the sentence
+- REPLAY: the PLAN FULFILLED and GULAG screens offer WATCH LAST LAP AS REPLAY with F3 or START on a pad, and come back to the same screen
+- STEAM DECK: stall.log now also records which audio driver is in use and the life of the generated sounds, to find the freeze when the track is changed. A file named diag-nogen next to the saves keeps those sounds quiet for a test run
+
 ## 0.915
 
 - LOADING: a node that freed itself while a track was loading could end the load with an error and leave the loading card turning for ever. Fixed

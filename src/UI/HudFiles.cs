@@ -27,7 +27,7 @@ public partial class Hud
         if (StartupArchivePending) return;
         const int RowH = 16;
         const int TextGap = 10;
-        float w = 330, h = 40 + TextGap + Files.Length * RowH + 30;
+        float w = 330, h = 40 + TextGap + Files.Length * RowH + 42;
         var r = new Rect2(Mathf.Floor(cx - w / 2), Mathf.Floor((s.Y - h) / 2 + 14), w, h);
         DrawRect(r, new Color(0.05f, 0.03f, 0.03f, 0.88f));
         DrawRect(r, new Color(Red, 0.9f), false, 1f);
@@ -56,6 +56,8 @@ public partial class Hud
             ? P("ERASE FROM HISTORY?  ENTER YES  ESC NO", "ERASE FROM HISTORY?  A YES  B NO")
             : FilesAtLaunch ? P("UP/DOWN CHOOSE  ENTER OPEN  DEL ERASE  ESC QUIT", "D-PAD CHOOSE  A OPEN  Y ERASE  B QUIT")
             : P("UP/DOWN CHOOSE  ENTER OPEN  DEL ERASE  ESC BACK", "D-PAD CHOOSE  A OPEN  Y ERASE  B BACK");
+        if (!FilesErase && FilesSelection >= 0 && FilesSelection < Files.Length && Files[FilesSelection].Used)
+            PixelFont.DrawCentered(this, P("G  SPUTNIK GALLERY OF THIS DRIVER", "X  SPUTNIK GALLERY OF THIS DRIVER"), cx, r.End.Y - 26, Paper);
         if (!FilesErase || (int)(_clock * 2) % 2 == 0)
             PixelFont.DrawCentered(this, foot, cx, r.End.Y - 14, FilesErase ? Red : Grey);
         DrawMenuNote(cx, Mathf.Floor(r.GetCenter().Y - 12));      // FILE OPENED, ... WAS NEVER HERE: over the window's middle

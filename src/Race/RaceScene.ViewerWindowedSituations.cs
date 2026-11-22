@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CCCPRacing.UI;
 using CCCPRacing.Track;
+using CCCPRacing.Replay;
 using Godot;
 
 namespace CCCPRacing.Race;
@@ -180,17 +181,21 @@ public partial class RaceScene
         VwCheck(found, "deep snow was found beside the road on Siberia");
         if (!found) yield break;
         _sitCount.Clear(); _sitLog.Clear(); _sitT = 0; _grassCd = 0;
+        int totalRuns = 0;
         for (int round = 1; round <= 2; round++)
         {
             _car.Reset(new Vector3(spot.X, _track.Sample(spot.X, spot.Y).Height + 0.8f, spot.Y), TrackData.YawFor(fwd));
-            for (float t = 0; t < 26f; t += 1f / 60f)      // (a joke needs 10 quiet seconds: one run off the road of 26 s may have exactly one; the car is kept rolling so that "STUCK?" does not take the screen)
+            int runsInRound = 1; bool wasOff = false;      // (the rolling car may touch the road for an instant: that ends its run off the road and the next may have its joke: the joke is once per RUN, so count the runs)
+            for (float t = 0; t < 26f; t += 1f / 60f)      // (a joke needs 10 quiet seconds; the car is kept rolling so that "STUCK?" does not take the screen)
             {
                 if (_car.Speed < 6f) _car.Vel = new Vector3(fwd.X, 0f, fwd.Y) * 6f;
                 SitSample(1f / 60f); yield return null;
+                if (_car.OffRoadTime > 0f) wasOff = true; else if (wasOff) { runsInRound++; wasOff = false; }
             }
+            totalRuns += runsInRound;
             int jokes = _sitCount.Where(kv => Array.IndexOf(Slogans.Snow, kv.Key) >= 0).Sum(kv => kv.Value);
-            VwLog("sit-snow", ("round", round), ("jokes", jokes), ("log", string.Join(" | ", _sitLog)));
-            VwCheck(jokes == round, $"deep snow, run off the road number {round}: {round} snow joke(s) in all so far, one per run however long the car stays ({string.Join(" | ", _sitLog)})");
+            VwLog("sit-snow", ("round", round), ("jokes", jokes), ("runs", totalRuns), ("log", string.Join(" | ", _sitLog)));
+            VwCheck(jokes >= round && jokes <= totalRuns, $"deep snow, round {round}: {jokes} snow joke(s) in all so far, at least one per round and at most one per run off the road ({totalRuns} run(s) so far) ({string.Join(" | ", _sitLog)})");
             // back on the road for a moment: the next run off it may have its joke
             _car.Reset(_track.CenterPos(ci) + Vector3.Up * 0.7f, TrackData.YawFor(fwd));
             for (int i = 0; i < 120; i++) { SitSample(1f / 60f); yield return null; }
@@ -216,5 +221,346 @@ public partial class RaceScene
         for (int i = 0; i < 20; i++) yield return null;
         VwGrab(GetViewport(), "sit-kitchen");
         VwCheck(_sitCount.Keys.All(k => !k.Contains("SOUP")), "and there is no HUD line about the soup any more");
+    }
+
+    // ------------------------------------------------------------------ the end screens: watch the last lap
+    IEnumerable VwSitEnd()
+    {
+        foreach (var x in SitStart("ilyich")) yield return x;
+        _autodrive = false;
+        LapArchiveCapture(41.20f, LapKind.Record, true, false);
+        for (int i = 0; i < 90; i++) yield return null;      // (the worker prepares the tape)
+        VwCheck(_lastLapId != null && _sessionLapArchives.ContainsKey(_lastLapId), "a lap in the run's archive");
+        foreach (bool gulag in new[] { false, true })
+        {
+            foreach (bool pad in new[] { false, true })
+            {
+                string which = gulag ? "GULAG" : "PLAN FULFILLED";
+                _padMode = pad;
+                if (gulag) { _failReason = "TEST"; _failed = true; _state = State.Failed; EnterGulag(); } else { _state = State.Finished; EnterPlanScreen(); }
+                for (int i = 0; i < 20; i++) yield return null;
+                string want = pad ? "START  WATCH LAST LAP AS REPLAY" : "F3  WATCH LAST LAP AS REPLAY";
+                VwCheck(_hud.EndWatchHint == want, $"{which}, {(pad ? "pad" : "keyboard")}: the end screen offers '{_hud.EndWatchHint}'");
+                if (!pad) foreach (var x in VrShot($"sit-end-{(gulag ? "gulag" : "plan")}")) yield return x;
+                if (pad) foreach (var x in VrPad(JoyButton.Start)) yield return x; else foreach (var x in VrTap(Key.F3)) yield return x;
+                foreach (var x in VrUntil(() => ReplayViewer is { State: ReplayViewerState.Playing }, 60 * 30, $"{which}: the viewer plays the last lap")) yield return x;
+                VwCheck(ReplayViewer != null && (_gulag || _planScreen), $"{which}: the replay of the last lap opens over the end screen");
+                foreach (var x in VrTap(Key.Escape)) yield return x;
+                foreach (var x in VrUntil(() => ReplayViewer == null, 60 * 20, "the viewer closed")) yield return x;
+                for (int i = 0; i < 20; i++) yield return null;
+                VwCheck(gulag ? _gulag : _planScreen, $"{which}: back on the same end screen");
+                // leave it (any other button / key) for the next round
+                if (gulag) _gulag = false; else _planScreen = false;
+                _failed = false; _state = State.Racing; _hud.Mode = HudMode.Race;
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ death: no truck
+    IEnumerable VwSitDeath()
+    {
+        foreach (var x in SitStart("ilyich")) yield return x;
+        _autodrive = false; _grace = 0f;
+        // the plan has nothing left: the next wreck is the end
+        _wrecks = 99;
+        _failed = false; _wreck = false;
+        float t0 = _clock;
+        DestroyCar(_car.Pos + _car.Forward * 1.2f + Vector3.Up * 0.2f, "TANK SHELL");
+        VwLog("sit-death", ("state", _state), ("deathEnd", _deathEnd), ("wreck", _wreck));
+        for (int i = 0; i < 60; i++) yield return null;
+        VwCheck(_state == State.Failed && !_gulag, $"a second after the hit the car burns, the GULAG screen is not up yet (state {_state})");
+        VwGrab(GetViewport(), "sit-death-burning");
+        foreach (var x in VrUntil(() => _gulag, 60 * 8, "the GULAG screen comes after the burning")) yield return x;
+        float took = _clock - t0;
+        VwCheck(_gulag && _hud.GulagDeath && !_truckCalled && took > 2f && took < 4.5f, $"no truck was called ({_truckCalled}); the screen came {took:0.0} s after the hit and says that death does not cancel the sentence");
+        for (int i = 0; i < 30; i++) yield return null;
+        VwGrab(GetViewport(), "sit-death-gulag");
+    }
+
+    // ------------------------------------------------------------------ a new fuel
+    IEnumerable VwSitFuel()
+    {
+        foreach (var x in VwWaitReady()) yield return x;
+        for (int i = 0; i < 600 && !(_state == State.Title && _card == TitleCard.None && !_showLog && !_askName); i++) yield return null;
+        for (int i = 0; i < 60; i++) yield return null;
+        BeginFuelCeremony();      // (a profile that has never been asked: nothing yet, the question is marked as asked)
+        VwCheck(_fuelCeremony == null && _campaign.FuelPresentationStarted, "a profile that has never been asked treats what is open as old news");
+        // silver on the first three tracks on diesel opens PETROL
+        foreach (var id in Tracks.Take(3).Select(t => t.id)) _campaign.Award(id, NormPlan.Medal.Silver, FuelGrade.Diesel);
+        VwCheck(FuelOpenByMedals(FuelGrade.Petrol) && !_campaign.FuelPresented(FuelGrade.Petrol), "PETROL is open by the silvers and has not had its ceremony");
+        BeginFuelCeremony();
+        for (int i = 0; i < 20; i++) yield return null;
+        VwCheck(FuelCeremonyActive && _fuelCeremony == FuelGrade.Petrol && _hud.FuelCeremonyOn, "the ceremony of PETROL is up over the title");
+        foreach (float at in new[] { 1.5f, 3.2f, 6.0f, 9.5f, 12.5f })
+        {
+            for (int i = 0; i < 900 && _hud.FuelCeremonyAge < at; i++) yield return null;
+            VwGrab(GetTree().Root, $"sit-fuel-{at:0.0}"); yield return null;
+        }
+        // a key before it can close does nothing; after, it closes, is marked, and does not come back
+        foreach (var x in VrTap(Key.Enter)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(!_hud.FuelCeremonyOn && _campaign.FuelPresented(FuelGrade.Petrol) && _fuelCeremony == null, "a key closes the ceremony once it is ready, and PETROL is marked as presented");
+        BeginFuelCeremony();
+        VwCheck(_fuelCeremony == null, "it does not come back");
+        // JET FUEL: silver on all four tracks on petrol
+        foreach (var id in Tracks.Select(t => t.id)) _campaign.Award(id, NormPlan.Medal.Silver, FuelGrade.Petrol);
+        BeginFuelCeremony();
+        for (int i = 0; i < 20; i++) yield return null;
+        VwCheck(_fuelCeremony == FuelGrade.Rocket, "the next fuel to open (JET FUEL) has its own ceremony");
+        for (int i = 0; i < 900 && _hud.FuelCeremonyAge < 4.6f; i++) yield return null;
+        VwGrab(GetTree().Root, "sit-fuel-jet");
+    }
+
+    // ------------------------------------------------------------------ the SPUTNIK test pilots' programme
+    IEnumerable SpWaitAge(float age, float max = 60f)
+    {
+        for (int i = 0; i < 60 * max && _hud.SpAge < age; i++) yield return null;
+    }
+
+    IEnumerable SpPress()
+    {
+        foreach (var x in VrTap(Key.Enter)) yield return x;
+        for (int i = 0; i < 8; i++) yield return null;
+    }
+
+    IEnumerable VwSitSputnik()
+    {
+        foreach (var x in VwWaitReady()) yield return x;
+        for (int i = 0; i < 600 && !(_state == State.Title && _card == TitleCard.None && !_showLog && !_askName); i++) yield return null;
+        for (int i = 0; i < 60; i++) yield return null;
+        foreach (var b in _boards) b.LastName = "ANTTI KORSUMAKI";
+        const NormPlan.Medal N = NormPlan.Medal.None, S = NormPlan.Medal.Silver, G = NormPlan.Medal.Gold;
+        void Award(string t, NormPlan.Medal m) => _campaign.Award(t, m, FuelGrade.Sputnik);
+        BeginFuelCeremony(); _fuelCeremony = null; _hud.EndFuelCeremony();      // (no fuel ceremony in the way)
+        BeginSputnikCeremony();
+        VwCheck(_spStage == SpStage.None, "no Sputnik medals: no ceremony");
+        // other fuels' golds on every track do nothing
+        foreach (var t in SputnikStanding.AllTracks) { _campaign.Award(t, G, FuelGrade.Rocket); _campaign.Award(t, G, FuelGrade.Petrol); }
+        BeginSputnikCeremony();
+        VwCheck(_spStage == SpStage.None, "gold on the other fuels: no ceremony");
+
+        // 1: the test pilot's licence
+        foreach (var t in SputnikStanding.MainTracks) Award(t, S);
+        BeginSputnikCeremony();
+        for (int i = 0; i < 20; i++) yield return null;
+        VwCheck(_spStage == SpStage.Card && _spMain == SputnikAward.TestPilot && _spFresh.Length == 1, "silver on the three main tracks: the test pilot's licence, alone");
+        foreach (var x in SpWaitAge(3.5f)) yield return x;
+        VwGrab(GetTree().Root, "sp1-licence");
+        foreach (var x in SpPress()) yield return x;
+        VwCheck(_spStage == SpStage.None && _campaign.SputnikPresented(SputnikAward.TestPilot), "a key closes it and marks it presented");
+        BeginSputnikCeremony();
+        VwCheck(_spStage == SpStage.None, "it is not shown twice");
+
+        // 2: the third class (Poligon's silver)
+        Award("bonus", S);
+        BeginSputnikCeremony();
+        foreach (var x in SpWaitAge(3.6f)) yield return x;
+        VwCheck(_spStage == SpStage.Card && _spMain == SputnikAward.Third, "Poligon's silver: the third class");
+        VwGrab(GetTree().Root, "sp2-third");
+        foreach (var x in SpPress()) yield return x;
+
+        // 3: the second class (two golds)
+        Award("ilyich", G); Award("atomgrad", G);
+        BeginSputnikCeremony();
+        foreach (var x in SpWaitAge(3.6f)) yield return x;
+        VwCheck(_spStage == SpStage.Card && _spMain == SputnikAward.Second, "two golds: the second class");
+        VwGrab(GetTree().Root, "sp3-second");
+        foreach (var x in SpPress()) yield return x;
+
+        // 4: the third gold on the last main track: first class and champion at once, one ceremony, the first class on the card, both in the letter
+        Award("siberia", G);
+        BeginSputnikCeremony();
+        foreach (var x in SpWaitAge(3.6f)) yield return x;
+        VwCheck(_spStage == SpStage.Card && _spMain == SputnikAward.First && _spFresh.Length == 2 && _spFresh.Contains(SputnikAward.Champion), "the third gold: first class on the card, the champion in the letter, one ceremony");
+        VwGrab(GetTree().Root, "sp4-first");
+        foreach (var x in SpPress()) yield return x;
+        VwCheck(_spStage == SpStage.Letter, "a second page: the grant letter");
+        foreach (var x in SpWaitAge(1.6f)) yield return x;
+        VwGrab(GetTree().Root, "sp4-letter");
+        foreach (var x in SpPress()) yield return x;
+        VwCheck(_spStage == SpStage.None && _campaign.SputnikPresented(SputnikAward.Champion) && _campaign.SputnikPresented(SputnikAward.First), "both are marked presented");
+
+        // 5: the finale
+        Award("bonus", G);
+        BeginSputnikCeremony();
+        foreach (var x in SpWaitAge(4.2f)) yield return x;
+        VwCheck(_spStage == SpStage.Card && _spMain == SputnikAward.Chief && _spFresh.Length == 1, "four golds: the chief test pilot");
+        VwGrab(GetTree().Root, "sp5-chief");
+        foreach (var x in SpPress()) yield return x;
+        VwCheck(_spStage == SpStage.Paint, "the paint scene follows");
+        foreach (float at in new[] { 1.0f, 4.0f, 6.5f, 8.8f, 11.0f, 13.5f })
+        {
+            for (int i = 0; i < 60 * 30 && _hud.SpPaintAge < at; i++) yield return null;
+            VwGrab(GetTree().Root, $"sp5-paint-{at:0.0}"); yield return null;
+        }
+        VwCheck(_carVis.HasLivery && _carVis.LiveryStars == 4 && _carVis.LiveryName == "ANTTI KORSUMAKI", $"the livery is on the car being shown ('{_carVis.LiveryName}', {_carVis.LiveryStars} stars)");
+        for (int i = 0; i < 60 * 8 && !(_hud.SpPaintDone && _hud.SpPaintAge > _hud.SpPaintDoneAt + 1.3f); i++) yield return null;
+        foreach (var x in SpPress()) yield return x;
+        for (int i = 0; i < 30; i++) yield return null;
+        VwCheck(_spStage == SpStage.None && _campaign.SputnikPresented(SputnikAward.Chief) && _campaign.SputnikPaintedName == "ANTTI KORSUMAKI", "closed: presented, and the painted name kept");
+        BeginSputnikCeremony();
+        VwCheck(_spStage == SpStage.None, "nothing more to show");
+    }
+
+    IEnumerable VwSitSputnikOrder()
+    {
+        foreach (var x in VwWaitReady()) yield return x;
+        for (int i = 0; i < 600 && !(_state == State.Title && _card == TitleCard.None && !_showLog && !_askName); i++) yield return null;
+        for (int i = 0; i < 60; i++) yield return null;
+        foreach (var b in _boards) b.LastName = "A VERY LONG NAME";
+        const NormPlan.Medal G = NormPlan.Medal.Gold;
+        BeginFuelCeremony(); _fuelCeremony = null; _hud.EndFuelCeremony();
+        // the three main golds before Poligon: the champion's pennant (and the licence), no order
+        foreach (var t in SputnikStanding.MainTracks) _campaign.Award(t, G, FuelGrade.Sputnik);
+        BeginSputnikCeremony();
+        foreach (var x in SpWaitAge(3.6f)) yield return x;
+        VwCheck(_spStage == SpStage.Card && _spMain == SputnikAward.Champion && _spFresh.Length == 2 && !_spFresh.Contains(SputnikAward.Third), "three main golds before Poligon: the champion and the licence, no order");
+        VwGrab(GetTree().Root, "sp6-champion");
+        foreach (var x in SpPress()) yield return x;
+        foreach (var x in SpWaitAge(1.6f)) yield return x;
+        VwGrab(GetTree().Root, "sp6-letter");
+        foreach (var x in SpPress()) yield return x;
+        // then Poligon's third gold: the chief test pilot straight from a champion's profile; the champion is not shown again
+        _campaign.Award("bonus", G, FuelGrade.Sputnik);
+        BeginSputnikCeremony();
+        VwCheck(_spStage == SpStage.Card && _spFresh.Length == 4 && !_spFresh.Contains(SputnikAward.Champion), $"Poligon's gold after the three main golds: third, second, first and the chief at once, the champion not again ({_spFresh.Length} new)");
+        foreach (var x in SpWaitAge(4.2f)) yield return x;
+        foreach (var x in SpPress()) yield return x;
+        VwGrab(GetTree().Root, "sp6-letter-all");
+    }
+
+    // ------------------------------------------------------------------ the chief test pilot's livery in a run and in the laps' replays (ownership)
+    IEnumerable VwSitLivery()
+    {
+        foreach (var x in VwWaitReady()) yield return x;
+        foreach (var x in VrUntil(() => _state == State.Racing && _lapClock > 3f, 60 * 60, "the race is running")) yield return x;
+        VwCheck(_run == RunMode.Rally && _norms.Enabled, "a single-player Socialist Rally");
+        // a profile that never had the paint: no livery on a Sputnik
+        _rallyFuel = FuelGrade.Sputnik; for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(EngineFuel == FuelGrade.Sputnik && !_carVis.HasLivery, "a Sputnik without the paint: a plain car");
+        // painted: the livery on the Sputnik in a run, never on another fuel's car
+        _campaign.PaintSputnikName("KOSTIA");
+        for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(_carVis.HasLivery && _carVis.LiveryName == "KOSTIA" && _carVis.LiveryStars == 4, $"painted: the Sputnik wears it in the run ('{_carVis.LiveryName}', {_carVis.LiveryStars} stars)");
+        foreach (var x in VrShot("livery-run")) yield return x;
+        _rallyFuel = FuelGrade.Petrol; for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(EngineFuel == FuelGrade.Petrol && !_carVis.HasLivery, "the petrol car does not wear it");
+        // laps: one on the Sputnik (painted), one on petrol, one on the Sputnik after the paint is gone (a profile without it)
+        string Meta(string id) => _lapArchiveUsed.List().First(e => e.Id == id).Meta.Livery;
+        _rallyFuel = FuelGrade.Sputnik;
+        LapArchiveCapture(45.0f, LapKind.Normal, true, false); string sputnikLap = _lastLapId;
+        for (int i = 0; i < 90; i++) yield return null;
+        VwCheck(sputnikLap != null && Meta(sputnikLap) == "KOSTIA|4", $"the Sputnik lap's metadata carries the livery ('{(sputnikLap == null ? "-" : Meta(sputnikLap))}')");
+        foreach (var x in VrTap(Key.F3)) yield return x;
+        foreach (var x in VrUntil(() => ReplayViewer is { State: ReplayViewerState.Playing }, 60 * 30, "the viewer plays")) yield return x;
+        for (int i = 0; i < 20; i++) yield return null;
+        VwCheck(ReplayViewer?.LapId == sputnikLap && EngineFuel == FuelGrade.Sputnik && _carVis.HasLivery && _carVis.LiveryName == "KOSTIA", $"the replay of that lap shows the livery on its own car ('{_carVis.LiveryName}')");
+        foreach (var x in VrShot("livery-replay")) yield return x;
+        // the review picture: the ordinary replay of that saved Sputnik lap, the existing free camera placed at the car's right side (ViewerPlaceFreeKey, the camera key's own path), the controls left as they are
+        {
+            var rv = ReplayViewer.Scene;
+            rv.ViewerSetPaused(true); GetWindow().GrabFocus();
+            foreach (var x in VrTap(Key.W, 8)) yield return x;
+            VwCheck(rv.ViewerFreeCameraActive, "the free camera is up in the replay");
+            Vector3 carPos = rv._car.Pos; Basis rot = rv._car.Rot;
+            Vector3 eye = carPos + rot * new Vector3(3.3f, 0.45f, 0f), look = carPos + rot * new Vector3(0.9f, 0.0f, -0.03f), dir = (look - eye).Normalized();
+            rv.ViewerPlaceFreeKey(new CCCPRacing.Replay.LapFreeCamera { X = eye.X, Y = eye.Y, Z = eye.Z, Yaw = Mathf.Atan2(-dir.X, -dir.Z), Pitch = Mathf.Asin(dir.Y), Fov = 32f, Near = 0.15f, Far = 260f });
+            for (int i = 0; i < 20; i++) yield return null;
+            VwCheck(rv._car.Pos.DistanceTo(carPos) < 1e-3f, "the replay stands still while the picture is taken");
+            VwGrab(GetTree().Root, "livery-replay-side");
+            rv.ViewerEndFreeCamera(); rv.ViewerSetPaused(false);
+            for (int i = 0; i < 10; i++) yield return null;
+        }
+        foreach (var x in VrTap(Key.Escape)) yield return x;
+        foreach (var x in VrUntil(() => ReplayViewer == null && _state == State.Racing, 60 * 20, "the viewer closed")) yield return x;
+        _rallyFuel = FuelGrade.Petrol;
+        LapArchiveCapture(47.0f, LapKind.Normal, true, false); string petrolLap = _lastLapId;
+        for (int i = 0; i < 90; i++) yield return null;
+        VwCheck(petrolLap != null && petrolLap != sputnikLap && Meta(petrolLap) == "", $"a petrol lap of the same profile has none ('{(petrolLap == null ? "-" : Meta(petrolLap))}')");
+        foreach (var x in VrTap(Key.F3)) yield return x;
+        foreach (var x in VrUntil(() => ReplayViewer is { State: ReplayViewerState.Playing }, 60 * 30, "the viewer plays")) yield return x;
+        for (int i = 0; i < 20; i++) yield return null;
+        VwCheck(ReplayViewer?.LapId == petrolLap && !_carVis.HasLivery, "its replay is a plain car");
+        foreach (var x in VrTap(Key.Escape)) yield return x;
+        foreach (var x in VrUntil(() => ReplayViewer == null && _state == State.Racing, 60 * 20, "the viewer closed")) yield return x;
+        // the paint is kept: the replay of the first lap is the same later, whoever drives now
+        _campaign.PaintSputnikName(""); _rallyFuel = FuelGrade.Sputnik;
+        LapArchiveCapture(49.0f, LapKind.Normal, true, false); string bareLap = _lastLapId;
+        for (int i = 0; i < 90; i++) yield return null;
+        VwCheck(bareLap != null && Meta(bareLap) == "", "a Sputnik lap of a profile without the paint: no livery in the metadata (older laps are the same)");
+        foreach (var x in VrTap(Key.F3)) yield return x;
+        foreach (var x in VrUntil(() => ReplayViewer is { State: ReplayViewerState.Playing }, 60 * 30, "the viewer plays")) yield return x;
+        for (int i = 0; i < 20; i++) yield return null;
+        VwCheck(ReplayViewer?.LapId == bareLap && EngineFuel == FuelGrade.Sputnik && !_carVis.HasLivery, "its replay is a plain Sputnik");
+        foreach (var x in VrTap(Key.Escape)) yield return x;
+    }
+
+    // ------------------------------------------------------------------ KGB FILES > PERSONNEL > G: the Sputnik gallery
+    IEnumerable VwSitGallery()
+    {
+        foreach (var x in VwWaitReady()) yield return x;
+        for (int i = 0; i < 600 && !(_state == State.Title && _card == TitleCard.None && !_showLog && !_askName); i++) yield return null;
+        for (int i = 0; i < 60; i++) yield return null;
+        foreach (var b in _boards) b.LastName = "ANTTI KORSUMAKI";
+        var cfg = new ConfigFile(); cfg.Load(FileDir + "settings.cfg"); cfg.SetValue("driver", "name", "ANTTI KORSUMAKI"); cfg.Save(FileDir + "settings.cfg");
+        BeginFuelCeremony(); _fuelCeremony = null; _hud.EndFuelCeremony();
+        const NormPlan.Medal S = NormPlan.Medal.Silver, G = NormPlan.Medal.Gold;
+        // 1: silver on all four tracks: the licence and the third class, the pennant and the car locked
+        foreach (var t in SputnikStanding.AllTracks) _campaign.Award(t, S, FuelGrade.Sputnik);
+        EnterFiles();
+        for (int i = 0; i < 20; i++) yield return null;
+        VwCheck(_showFiles && _hud.Files[0].Used && _filesSel == 0, "the personnel files are open on the driver's row");
+        foreach (var x in VrShot("gal0-files")) yield return x;
+        foreach (var x in VrTap(Key.G)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(_galleryOpen && _galleryPage == 0 && _hud.GalleryOn && _hud.GalleryEarned[0] && _hud.GalleryEarned[1] && !_hud.GalleryEarned[2] && !_hud.GalleryEarned[3], "G opens the gallery: licence and order earned, pennant and car not");
+        foreach (var x in VrShot("gal1-licence")) yield return x;
+        foreach (var x in VrTap(Key.Right)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(_galleryPage == 1 && _hud.GalleryOrderClass == SputnikAward.Third, "page 2: the order, the third class");
+        foreach (var x in VrShot("gal2-order-third")) yield return x;
+        foreach (var x in VrTap(Key.Right)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        foreach (var x in VrShot("gal3-pennant-locked")) yield return x;
+        foreach (var x in VrTap(Key.Right)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(_galleryPage == 3 && !GalleryCarActive, "page 4 without the chief test pilot: a locked card, no car");
+        foreach (var x in VrShot("gal4-car-locked")) yield return x;
+        foreach (var x in VrTap(Key.Right)) yield return x;
+        VwCheck(_galleryPage == 0, "the pages wrap round");
+        foreach (var x in VrTap(Key.Left)) yield return x;
+        VwCheck(_galleryPage == 3, "and back");
+        foreach (var x in VrTap(Key.Escape)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(!_galleryOpen && _showFiles, "Esc closes the gallery, the files stay");
+        // 2: four golds and the painted name: the whole gallery, the car on its own page
+        foreach (var t in SputnikStanding.AllTracks) _campaign.Award(t, G, FuelGrade.Sputnik);
+        _campaign.PaintSputnikName("KOSTIA");
+        foreach (var x in VrTap(Key.G)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(_hud.GalleryEarned.All(e => e) && _hud.GalleryOrderClass == SputnikAward.First, "four golds: all four pages earned, the order at the first class");
+        foreach (var x in VrShot("gal5-licence-gold")) yield return x;
+        foreach (var x in VrTap(Key.Right)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        foreach (var x in VrShot("gal6-order-first")) yield return x;
+        foreach (var x in VrTap(Key.Right)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        foreach (var x in VrShot("gal7-pennant")) yield return x;
+        foreach (var x in VrTap(Key.Right)) yield return x;
+        for (int i = 0; i < 90; i++) yield return null;
+        VwCheck(GalleryCarActive && _hud.GalleryOnCar && _carVis.HasLivery && _carVis.LiveryName == "KOSTIA" && _carVis.LiveryStars == 4, $"the car page: the world's car with the painted name ('{_carVis.LiveryName}')");
+        foreach (float age in new[] { 1.5f, 5.0f })
+        {
+            for (int i = 0; i < 60 * 12 && _hud.GalleryAge < age; i++) yield return null;
+            VwGrab(GetTree().Root, $"gal8-car-{age:0.0}"); yield return null;
+        }
+        foreach (var x in VrTap(Key.Right)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(!GalleryCarActive && _galleryPage == 0, "leaving the car page takes the car off the screen");
+        foreach (var x in VrTap(Key.Escape)) yield return x;
+        foreach (var x in VrTap(Key.Escape)) yield return x;
+        for (int i = 0; i < 20; i++) yield return null;
+        VwCheck(!_showFiles && !_galleryOpen && _state == State.Title, "Esc again leaves the files");
+        VwCheck(_campaign.SputnikPaintedName == "KOSTIA", "the gallery wrote nothing");
     }
 }

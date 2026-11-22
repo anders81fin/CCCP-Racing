@@ -83,7 +83,7 @@ public sealed partial class LapArchive
             {
                 Id = local, TrackId = m.TrackId, Set = m.Set, Mode = Bound(m.Mode, 32), LapSeconds = m.LapSeconds, LapNumber = Math.Clamp(m.LapNumber,0,1000000), Kind = m.Kind, Ranked = m.Ranked,
                 RecordedUtc = m.RecordedUtc, DayClock = m.DayClock, HasTape = m.HasTape, GhostFingerprint = fp.Value, Profile = "", TrackSignature = m.TrackSignature,
-                Layout = m.Layout, Name = name, Retained = true, TotalBytes = ghost.Length + (m.HasTape ? tape.Length : 0), Fuels = Bound(m.Fuels, 512),
+                Layout = m.Layout, Name = name, Retained = true, TotalBytes = ghost.Length + (m.HasTape ? tape.Length : 0), Fuels = Bound(m.Fuels, 512), Livery = Bound(m.Livery, 40),
             };
             Directory.CreateDirectory(IncomingDir);
             stage = Path.Combine(IncomingDir, "stage-" + Guid.NewGuid().ToString("N"));

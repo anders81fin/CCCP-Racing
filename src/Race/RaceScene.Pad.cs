@@ -141,7 +141,7 @@ public partial class RaceScene
         if (_lanLeaveAsk) return PadCtx.Ask;
         if (_lanKeep.State == CCCPRacing.Net.LanKeepPrompt.Phase.Name) return PadCtx.Wheel;      // the KEEP question's name (RaceScene.LanKeep.cs)
         if (_lanKeep.OwnsInput) return PadCtx.Ask;
-        if (_gulag || _planScreen || _showKeys || CardShown) return PadCtx.Any;
+        if (_gulag || _planScreen || _showKeys || CardShown || FuelCeremonyActive || SputnikCeremonyActive) return PadCtx.Any;
         if (_keepNameOpen || _askName || _lanPage is LanPage.Name or LanPage.Ip) return PadCtx.Wheel;
         if (_recordingsOpen) return PadCtx.Menu;
         if (_hud.StakhanovBoardOpen) return PadCtx.Menu;

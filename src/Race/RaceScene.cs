@@ -242,7 +242,7 @@ public partial class RaceScene : Node3D
     public override async void _Ready()
     {
         if (!ViewerMode && InstructionTrack == null) StallWatch.ContextProvider = () => $"state {_state}, card {_card}, menu {_menu}/{_menuParent}, hidden {_titleMenuHidden}, settings {_hud?.SettingsOpen}/{_hud?.VisualOpen}/{_hud?.MixerOpen}, booting {_booting}, loading card {TrackLoadingScreen.Active != null}";
-        if (!ViewerMode && InstructionTrack == null) StallWatch.Start(OS.GetUserDataDir());      // (the watchdog thread, once: StallWatch.cs)
+        if (!ViewerMode && InstructionTrack == null) { StallWatch.Start(OS.GetUserDataDir()); AudioDiag.Install(this); }      // (the watchdog thread, once: StallWatch.cs)
         if (!ViewerMode && LanPlaybackSource == null && InstructionTrack == null && CCCPRacing.Race.ExportChild.Active) CCCPRacing.Race.ExportChild.Begin(this);      // the MP4 exporter child (ExportChild.cs)
         try { await BuildWorld(); }
         catch (OperationCanceledException) when (AudioMix.Closing) { }
@@ -425,6 +425,8 @@ public partial class RaceScene : Node3D
         _run = RunMode.Title;     // the title replay runs in the full rally world
         ResetMenu();             // the top row, on the parent of the mode played last
         _titleMenuHidden = false;
+        BeginFuelCeremony();     // RaceScene.FuelCeremony.cs: a fuel the last run opened has its ceremony over the title
+        if (_fuelCeremony == null) BeginSputnikCeremony();      // RaceScene.SputnikCeremony.cs: then the SPUTNIK test pilots' programme
         TitleSoundApply();       // RaceScene.TitleRec.cs: music only, or the recorded background lap's sounds at half volume
         if (_menuSingleTest) OpenMenu(MenuItem.Single);
         _watching = _showBoard = _boardScoped = _showLog = _showFiles = _showLessons = _showKeys = _replaySelected = false;
@@ -566,6 +568,7 @@ public partial class RaceScene : Node3D
         if (DroneCardInput(e)) return;                 // RaceScene.DroneTour.cs: any key starts the tour's flight
         if (CarTourRawInput(e)) return;                // RaceScene.CarTour.cs: any key starts a car's tour from its black card
         if (CheatCodeInput(e)) return;                 // RaceScene.Cheat.cs: the Konami code opens every fuel and track
+        if (SputnikCeremonyInput(e) || FuelCeremonyInput(e)) return;                // RaceScene.FuelCeremony.cs: a newly opened fuel's ceremony takes every key
         if (CardInput(e) || PadRawInput(e) || GulagInput(e) || PlanInput(e) || LanKeepRawInput(e) || LanRawInput(e)) return;      // LanKeep: the KEEP question after a LAN race (RaceScene.LanKeep.cs)
         if (e is InputEventKey labKey && LabKeyInput(labKey)) return;      // RaceScene.Lab.cs
         if (RecordingsRawInput(e)) return;             // RaceScene.Recordings.cs: the RECORDINGS list, KEEP and its name field
@@ -710,7 +713,7 @@ public partial class RaceScene : Node3D
     FuelGrade? _engineFuelApplied;
 
     /// <summary>The fuel whose engine the car has now: the rally's, or (in a replay, the title's demonstration) the one the recorded lap was driven on; petrol otherwise.</summary>
-    FuelGrade EngineFuel => CarTourActive ? _carTourFuel : (_run is RunMode.Training or RunMode.Lan) && !Replaying && !ViewerMode ? Training.GradeOf(_power) ?? FuelGrade.Petrol : Replaying || ViewerMode ? ViewerFuelNow() ?? BundledFuelNow() ?? TitleSet switch { 2 => FuelGrade.Diesel, 3 => FuelGrade.Rocket, 4 => FuelGrade.Sputnik, _ => FuelGrade.Petrol } : _run == RunMode.Rally ? _rallyFuel : FuelGrade.Petrol;
+    FuelGrade EngineFuel => CarTourActive ? _carTourFuel : CarOnShow ? ShowCarFuel : (_run is RunMode.Training or RunMode.Lan) && !Replaying && !ViewerMode ? Training.GradeOf(_power) ?? FuelGrade.Petrol : Replaying || ViewerMode ? ViewerFuelNow() ?? BundledFuelNow() ?? TitleSet switch { 2 => FuelGrade.Diesel, 3 => FuelGrade.Rocket, 4 => FuelGrade.Sputnik, _ => FuelGrade.Petrol } : _run == RunMode.Rally ? _rallyFuel : FuelGrade.Petrol;
 
     /// <summary>The car's engine for the fuel (the diesel's, FuelGrades.ApplyEngine); a lab run's sliders are the owner's, a lab diesel's come from the LAB preset.</summary>
     static readonly Color FuelOlive = new(0.33f, 0.37f, 0.2f), FuelRed = new(0.78f, 0.05f, 0.05f), FuelWhite = new(0.93f, 0.94f, 0.95f);      // diesel: the duty officer's UAZ olive (KozlikPatrol)
@@ -1678,6 +1681,9 @@ public partial class RaceScene : Node3D
         SeeThrough.Off = opaqueTapeScenery || (_droneTour && (_trackId != "bonus" || _droneStartT < 0));
         ArchiveAtLaunch();      // RaceScene.Files.cs: the KGB ARCHIVE before the main menu
         LapsRewardFrame(dt);
+        FuelCeremonyFrame(dt);
+        SputnikCeremonyFrame(dt);
+        GalleryFrame(dt);
         HandleInput();
         if (TrackLoadingScreen.Active != null)
         {
@@ -1791,6 +1797,7 @@ public partial class RaceScene : Node3D
         // press that ended them is swallowed here (Enter/Esc would otherwise start, pause or quit).
         if (_watching || _showBoard || _showLog || _showFiles || _showLessons || _showKeys || CardShown || _gulag || _planScreen || _askName || _resignOut >= 0 || _recordingsOpen || _keepNameOpen || _lanKeep.OwnsInput || _hud.StakhanovBoardOpen) return;      // modal screens own the keys, including the paused Stakhanov board
         if (Engine.GetProcessFrames() <= _overlayExitFrame + 1) return;
+        if (FuelCeremonyActive || SputnikCeremonyActive) return;
         if(LanSession.Current?.LeavePrompt is {ConsumedFrame:>0} leave && Engine.GetProcessFrames()<=leave.ConsumedFrame+1) return;
         if (TitleHideInput()) return;      // RaceScene.TitleMusic.cs: Space hides or shows the main menu, over its rows and cards
         if (LanInput() || TitleCardInput() || SchoolInput()) return;
@@ -2007,6 +2014,7 @@ public partial class RaceScene : Node3D
             if (live) _chime.Lights(_hud.WarningLevels());
         }
         // The fuel's voice: the rally's own, or (in a replay, the title's demonstration) the one the recorded lap was driven on; a nitro only in a live run.
+        ApplyLivery();      // RaceScene.Livery.cs
         if (_engineFuelApplied != EngineFuel) ApplyFuelEngine();      // (a replay, the viewer or the title shows the car of the lap's fuel: its redline on the tachometer too)
         _snd.TurboSpool = _params.TurboSpool;
         _snd.FiveCylinder = EngineFuel == FuelGrade.Sputnik;
