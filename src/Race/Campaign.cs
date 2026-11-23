@@ -57,6 +57,13 @@ public class Campaign
 
     /// <summary>The ceremony of a newly opened fuel (the owner's order of 2026-11-22): shown once per fuel. A profile that has never had the question asked treats the fuels already open as presented (FuelPresentationStarted).</summary>
     public bool FuelPresented(FuelGrade g) => (bool)_cfg.GetValue("fuel_presented", FuelGrades.Ids[(int)g], false);
+    /// <summary>The padlock's opening on the CHOOSE FUEL card (the owner's order, 2026-11-23) is shown once per fuel.</summary>
+    public bool FuelUnlockShown(FuelGrade g) => (bool)_cfg.GetValue("fuel_unlock_shown", FuelGrades.Ids[(int)g], false);
+    public void ShowFuelUnlock(FuelGrade g)
+    {
+        _cfg.SetValue("fuel_unlock_shown", FuelGrades.Ids[(int)g], true);
+        if (_path != null) _cfg.Save(_path);
+    }
     public bool FuelPresentationStarted => _cfg.HasSection("fuel_presented");
     public void PresentFuel(FuelGrade g)
     {

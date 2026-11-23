@@ -331,6 +331,7 @@ public partial class RaceScene
         {
             int laps = _sessionLapOrder.Count;      // (the order of 2026-11-19: CONTINUE first, then this run's replay rows, NORMS, DRIVING SCHOOL, SETTINGS, RESTART RACE, EXIT RACE)
             var want = new System.Collections.Generic.List<PauseRowId> { PauseRowId.Continue };
+            if (ThisLapAvailable) want.Add(PauseRowId.WatchThisLap);
             if (laps >= 1) want.Add(PauseRowId.WatchLastLap);
             if (laps >= 2) want.Add(PauseRowId.BrowseLaps);
             if (_norms.Enabled) want.Add(PauseRowId.Norms);

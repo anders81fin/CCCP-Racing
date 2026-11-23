@@ -3,6 +3,18 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.918
+
+- POLIGON 17: its own look. A low, pale straw-yellow sun from the side shows the joints of the concrete and the forms of the ground, the dusk, the night and the dawn are as before. Now and then a soft gust of dust blows over the open gravel ridge, the way the windsock points, and it stops where the ground turns to mud. The grass is drier, a yellow-green, most of all on the worn left side of the start straight. Sparse hay leans in the wind on the ridge
+- POLIGON 17: no spruces any more and only a few pines at the far edge. Where a tree stood the ground is bare earth with some hay. The start straight, the camp and the ridge are open. The far hills are no longer a wall of spruce
+- SAVED RALLY: the save now keeps the engine, the radiation dose, the fuel, the dents of the car and a revenge that has already begun. You cannot shake a revenge off by saving. Coming back costs one lap of the norm, and no save is offered on the last lap
+- REPLAY: a lap that ends in a death or the GULAG can be watched. In the Party Meeting, WATCH CURRENT LAP shows the lap so far. KEEP works for both
+- NEW FUEL: when you come back from a run that opened a fuel, its car is shown first, and then the fuel menu opens on it with a padlock that bursts open
+- MENUS: leaving a rally takes you back to the track menu with the same fuel. A track that one fuel has opened is open for all fuels, but the bonus track needs a gold on the fuel itself. A medal that opens a track now says so in the middle of the screen
+- MAIN MENU: the background is in its own colours, without the old filter and the dimming. Space hides the menu and its cards and keeps the bottom line with SPACE SHOW MENU
+- TANKS: a tank that backs out of a trap no longer runs into a BTR or another tank
+- SMALL THINGS: the music is two notches louder at the middle of the sound balance. The bus warning comes a little later. The lap card says START > WATCH LAST LAP
+
 ## 0.917
 
 - STEAM DECK: the new fuel and SPUTNIK honours no longer come over the launch cards. A licence for medals already on file could cover the start and take no key. The ceremonies now wait until the main menu is clear

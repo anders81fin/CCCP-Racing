@@ -62,6 +62,7 @@ public partial class TankBattle : Node3D
         public Vector2 RoamGoal;
         public readonly List<(Vector2 pos, float yaw)> Trail = new();      // clear poses it has driven through (roaming), the way out of a trap
         public bool TrailBack;            // backing out along the trail
+        public float TrailWait;           // seconds the backing out has waited for a mover to clear the trail
         public float TrailDone;           // metres backed out so far
         public (Vector2 pos, float yaw) TrailFrom;
         public float GoalClock;           // seconds spent on the current roaming goal
@@ -550,6 +551,20 @@ public partial class TankBattle : Node3D
         if (k.Trail.Count == 0 || k.TrailDone > 12f) { k.TrailBack = false; k.Speed = 0; Relocate(k); return; }
         var (to, yawTo) = k.Trail[^1];
         float step = 2.0f * dt, left = k.Pos.DistanceTo(to);
+        // Backing out must not run into a BTR or another tank that has come onto the trail since (2026-11-23: it did, ten minutes in, by more than a metre): a step that would take the hull deeper into a mover
+        // than it already is waits; a trap that does not clear in six seconds is given up and the tank takes a new goal.
+        {
+            Vector2 candidate = left <= step ? to : k.Pos + (to - k.Pos) / left * step;
+            float whole0 = k.TrailFrom.pos.DistanceTo(to), done0 = left <= step ? 1f : (whole0 > 0.01f ? Mathf.Clamp(1f - left / whole0, 0f, 1f) : 1f);
+            float candidateYaw = left <= step ? yawTo : k.TrailFrom.yaw + Mathf.AngleDifference(k.TrailFrom.yaw, yawTo) * done0;
+            if (MoverPenetration(k, candidate, candidateYaw) > MathF.Max(0.05f, MoverPenetration(k, k.Pos, k.Yaw)) + StepTolerance)
+            {
+                k.Speed = 0; k.Sound.Speed = 0; k.TrailWait += dt;
+                if (k.TrailWait > 6f) { k.TrailBack = false; k.TrailWait = 0f; Relocate(k); }
+                return;
+            }
+            k.TrailWait = 0f;
+        }
         if (left <= step) { k.Pos = to; k.Yaw = yawTo; k.Trail.RemoveAt(k.Trail.Count - 1); k.TrailDone += left; k.TrailFrom = (to, yawTo); }
         else
         {
@@ -797,7 +812,7 @@ public partial class TankBattle : Node3D
             pushNow = HullPenetration(k, k.Pos, k.Yaw);
             pushMov = MoverPenetration(k, k.Pos, k.Yaw);
             float give = 0.05f + 0.45f * Math.Clamp(k.Wedge / 4f, 0f, 1f);      // (the margin's give: 5 cm, up to 50 cm for a tank that has been held for seconds)
-            if (turn != 0f && (HullPenetration(k, k.Pos, k.Yaw + turn * dt) > MathF.Max(give, pushNow) + StepTolerance || MoverPenetration(k, k.Pos, k.Yaw + turn * dt) > MathF.Max(give, pushMov) + StepTolerance)) { turn = 0f; pivotRefused = true; }      // (the margin is round the hull's real size: 5 cm of it may be used, not more, and a hull already deeper may only come out)
+            if (turn != 0f && (HullPenetration(k, k.Pos, k.Yaw + turn * dt) > MathF.Max(give, pushNow) + StepTolerance || MoverPenetration(k, k.Pos, k.Yaw + turn * dt) > MathF.Max(0.05f, pushMov) + StepTolerance      /* (a held tank's give is for the fixed things only: it never creeps into a BTR or another tank, 2026-11-23) */)) { turn = 0f; pivotRefused = true; }      // (the margin is round the hull's real size: 5 cm of it may be used, not more, and a hull already deeper may only come out)
         }
         k.Yaw += turn * dt;
         float rate = MathF.Abs(targetSpeed) > MathF.Abs(k.Speed) && MathF.Sign(targetSpeed) != -MathF.Sign(k.Speed) ? _accel : _brake;
@@ -808,7 +823,7 @@ public partial class TankBattle : Node3D
         {
             // The roaming exercise drives anywhere, road included; only fixed things and the other tanks stop it.
             bool stepRefused = k.Speed != 0 && (HullPenetration(k, next, k.Yaw) > MathF.Max(0.05f + 0.45f * Math.Clamp(k.Wedge / 4f, 0f, 1f), pushNow) + StepTolerance
-                || MoverPenetration(k, next, k.Yaw) > MathF.Max(0.05f + 0.45f * Math.Clamp(k.Wedge / 4f, 0f, 1f), pushMov) + StepTolerance);
+                || MoverPenetration(k, next, k.Yaw) > MathF.Max(0.05f, pushMov) + StepTolerance);
             if (stepRefused) { k.Speed = 0; }
             else k.Pos = next;
             if (stepRefused || pivotRefused) k.Wedge += dt; else if (k.Speed != 0 || turn != 0f) k.Wedge = Math.Max(0f, k.Wedge - 2f * dt);

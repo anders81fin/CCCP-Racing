@@ -273,10 +273,40 @@ public partial class PhysicsTest
             }
             if (On("sputnik"))
             {
-                foreach (var (name, track) in new[] { ("sit-sputnik", "ilyich"), ("sit-sputnik-order", "ilyich"), ("sit-livery", "ilyich"), ("sit-gallery", "ilyich"), ("sit-ceremony-gate", "ilyich") })
+                foreach (var (name, track) in new[] { ("sit-sputnik", "ilyich"), ("sit-sputnik-order", "ilyich"), ("sit-livery", "ilyich"), ("sit-gallery", "ilyich"), ("sit-ceremony-gate", "ilyich"), ("sit-resume", "atomgrad"), ("sit-resume-fuel", "siberia"), ("sit-resume-ilyich", "ilyich"), ("sit-resume-bonus", "bonus") })
                 {
                     var (c, _) = VwChild(name, false, (name is "sit-fuel" or "sit-sputnik" or "sit-sputnik-order" or "sit-gallery" or "sit-ceremony-gate" ? new[] { "--viewer-windowed=" + name, "--track=" + track, "--no-intro" } : new[] { "--viewer-windowed=" + name, "--start", "--autodrive", "--track=" + track, "--no-intro", "--ap-speed=0.8" }).Concat(fxArgs).ToArray(), 400);
                     VwJudge(name, c);
+                }
+            }
+            if (On("resume"))
+            {
+                foreach (var (name, track) in new[] { ("sit-resume-body", "ilyich"), ("sit-fuelunlock", "ilyich"), ("sit-thislap", "ilyich"), ("sit-interrupted", "ilyich"), ("sit-resume", "atomgrad"), ("sit-resume-fuel", "siberia"), ("sit-resume-ilyich", "ilyich"), ("sit-resume-bonus", "bonus") })
+                {
+                    var (c, _) = VwChild(name, false, (name is "sit-fuel" or "sit-sputnik" or "sit-sputnik-order" or "sit-gallery" or "sit-ceremony-gate" ? new[] { "--viewer-windowed=" + name, "--track=" + track, "--no-intro" } : new[] { "--viewer-windowed=" + name, "--start", "--autodrive", "--track=" + track, "--no-intro", "--ap-speed=0.8" }).Concat(fxArgs).ToArray(), 400);
+                    VwJudge(name, c);
+                }
+            }
+            if (On("poligon"))      // the Poligon's low straw light and its dust streak: before/after pictures and the replay checks (run with --vw-resolution=1280x800 for the review pictures)
+            {
+                var (c, _) = VwChild("sit-poligon", false, new[] { "--viewer-windowed=sit-poligon", "--start", "--autodrive", "--track=bonus", "--no-intro", "--ap-speed=0.8" }.Concat(fxArgs).ToArray(), 400);
+                VwJudge("sit-poligon", c);
+                var (c2, _) = VwChild("sit-poligon-pass", false, new[] { "--viewer-windowed=sit-poligon-pass", "--start", "--autodrive", "--track=bonus", "--no-intro", "--ap-speed=0.9" }.Concat(fxArgs).ToArray(), 400);
+                VwJudge("sit-poligon-pass", c2);
+                var (c4, _) = VwChild("sit-poligon-veg", false, new[] { "--viewer-windowed=sit-poligon-veg", "--start", "--autodrive", "--track=bonus", "--no-intro", "--ap-speed=0.8" }.Concat(fxArgs).ToArray(), 500);
+                VwJudge("sit-poligon-veg", c4);
+                foreach (bool oldTrees in new[] { true, false })
+                {
+                    var args = new[] { "--viewer-windowed=sit-poligon-trees", "--start", "--autodrive", "--track=bonus", "--no-intro", "--ap-speed=0.8" }.Concat(oldTrees ? new[] { "--poligon-old-trees" } : new string[0]).Concat(fxArgs).ToArray();
+                    var (c6, _) = VwChild("sit-poligon-trees", false, args, 500);
+                    VwJudge("sit-poligon-trees", c6);
+                }
+                var (c5, _) = VwChild("sit-poligon-ilyich-ref", false, new[] { "--viewer-windowed=sit-poligon-ilyich-ref", "--start", "--autodrive", "--track=ilyich", "--no-intro", "--ap-speed=0.8" }.Concat(fxArgs).ToArray(), 400);
+                VwJudge("sit-poligon-ilyich-ref", c5);
+                foreach (var scopeTrack in new[] { "ilyich", "siberia", "atomgrad" })
+                {
+                    var (c3, _) = VwChild("sit-poligon-scope", false, new[] { "--viewer-windowed=sit-poligon-scope", "--start", "--autodrive", "--track=" + scopeTrack, "--no-intro", "--ap-speed=0.8" }.Concat(fxArgs).ToArray(), 400);
+                    VwJudge("sit-poligon-scope", c3);
                 }
             }
             if (On("rewardlook"))

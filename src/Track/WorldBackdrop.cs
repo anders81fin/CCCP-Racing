@@ -11,6 +11,9 @@ public partial class WorldBackdrop : Node3D
     ShaderMaterial _water;
     Color _waterColour = WaterMesh.Colour;
 
+    /// <summary>The share of the far trees that are conifers is 1 - this (the hash of a place against it): 45 % as before, but 7 % on the Poligon, whose cleared ground has no wall of spruce behind it.</summary>
+    public static float ConiferThreshold(TrackData t) => t.Id == "bonus" && BonusTrees.Enabled ? 0.93f : 0.55f;
+
     public static float OutsideDistance(TrackData t, Vector2 p) => Math.Max(0,
         Math.Max(Math.Max(-p.X, p.X - t.WorldSize), Math.Max(-p.Y, p.Y - t.WorldSize)));
 
@@ -223,7 +226,7 @@ public partial class WorldBackdrop : Node3D
             float h = 5 + Noise.Hash01((int)x, (int)z, 137) * 5;
             var at = new Vector3(p.X, HeightAt(t, p), p.Y);
             Cone(at, 0.20f, h * 0.7f, new Color(0.27f, 0.20f, 0.13f), 0.10f);
-            bool conifer = t.Winter || Noise.Hash01((int)x, (int)z, 138) > 0.55f;
+            bool conifer = t.Winter || Noise.Hash01((int)x, (int)z, 138) > ConiferThreshold(t);      // (the Poligon: broadleaf round the training ground, a conifer only here and there: no wall of spruce behind it)
             if (conifer)
             {
                 for (int tier = 0; tier < 3; tier++)

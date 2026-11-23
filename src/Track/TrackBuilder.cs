@@ -936,6 +936,7 @@ public static partial class TrackBuilder
         yield return 0; slice.Restart();
         // Birch groves: clustered, never on the road.
         var rng = new RandomNumberGenerator { Seed = (ulong)def.Seed };
+        var bonusTrees = t.Id == "bonus" && BonusTrees.Enabled ? new BonusTrees(t) : null;
         int placed = 0, tries = 0;
         while (placed < def.Birches && tries++ < def.Birches * 40)
         {
@@ -948,7 +949,10 @@ public static partial class TrackBuilder
             var s = t.TileSurface((int)(pos.X / t.Tile), (int)(pos.Y / t.Tile));
             if (s == SurfaceType.Field || s == SurfaceType.Mud || NearWater(t, pos, 3f)) continue;
             float size = 0.6f + 0.9f * MathF.Pow(rng.Randf(), 1.4f);
-            AddProp(t, t.InBlight(pos) ? "deadtree" : TreeKind(def, pos, rng), pos, rng.RandfRange(0, MathF.Tau), null, occupied, size);
+            string kind = t.InBlight(pos) ? "deadtree" : TreeKind(def, pos, rng);
+            float rot = rng.RandfRange(0, MathF.Tau);
+            if (bonusTrees != null && bonusTrees.Drops(kind, pos)) { occupied.Add(pos); bonusTrees.LeaveOut(kind, pos); placed++; continue; }      // (the Poligon's cleared ground: BonusTrees.cs; the same draws, the same reserved spot)
+            AddProp(t, kind, pos, rot, null, occupied, size);
             placed++;
         }
 

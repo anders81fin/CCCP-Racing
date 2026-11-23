@@ -65,9 +65,10 @@ public partial class RaceScene
     /// default; then this run's laps to watch (laps captured in this run: none, no row; one, WATCH LAST LAP; two or more, WATCH LAST LAP and BROWSE LAPS), the situation (LEADERBOARDS in the Stakhanov laps,
     /// NORMS AND MEDALS in the rally), DRIVING SCHOOL and SETTINGS (sounds, visuals, rumble, keys); RESTART RACE and EXIT RACE last. A row is found by its id, never by a position.
     /// </summary>
-    internal static System.Collections.Generic.List<PauseRowId> PauseRowList(bool norms, int laps, bool leaderboards = false)
+    internal static System.Collections.Generic.List<PauseRowId> PauseRowList(bool norms, int laps, bool leaderboards = false, bool thisLap = false)
     {
         var l = new System.Collections.Generic.List<PauseRowId> { PauseRowId.Continue };
+        if (thisLap) l.Add(PauseRowId.WatchThisLap);      // (the lap in progress, as far as it has gone: RaceScene.WatchThisLap.cs)
         if (laps >= 1) l.Add(PauseRowId.WatchLastLap);
         if (laps >= 2) l.Add(PauseRowId.BrowseLaps);
         if (leaderboards) l.Add(PauseRowId.Leaderboards);
@@ -76,7 +77,7 @@ public partial class RaceScene
         l.Add(PauseRowId.Restart); l.Add(PauseRowId.Exit);
         return l;
     }
-    System.Collections.Generic.List<PauseRowId> PauseRowsNow => PauseRowList(_norms.Enabled, ReplayRowShown ? _sessionLapOrder.Count : 0, StakhanovBoardAvailable);
+    System.Collections.Generic.List<PauseRowId> PauseRowsNow => PauseRowList(_norms.Enabled, ReplayRowShown ? _sessionLapOrder.Count : 0, StakhanovBoardAvailable, ThisLapAvailable);
     int PauseRowIndex(PauseRowId id) => PauseRowsNow.IndexOf(id);
     /// <summary>Where the cursor starts when the meeting opens: CONTINUE, the top row.</summary>
     int PauseStartRow => PauseRowIndex(PauseRowId.Continue);
@@ -227,6 +228,7 @@ void fragment() {
     {
         switch (id)
         {
+            case PauseRowId.WatchThisLap: WatchThisLap(); break;
             case PauseRowId.WatchLastLap: WatchLastLap(WatchFrom.PartyMeeting); break;
             case PauseRowId.BrowseLaps: OpenReplayList(); break;
             case PauseRowId.Leaderboards: OpenStakhanovBoard(); break;

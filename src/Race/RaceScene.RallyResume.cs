@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using CCCPRacing.UI;
 using Godot;
@@ -12,9 +13,11 @@ public partial class RaceScene
 
     void AskLeaveRally()
     {
-        if (!_norms.Enabled || _norms.Finished || _norms.Step == 0) { ReturnRallyToTrackSelect(); return; }
+        // Nothing to keep before the first norm is beaten; and on the window's last lap a resumed rally would have no lap left (the lap abandoned counts as used), so nothing is offered either
+        if (!_norms.Enabled || _norms.Finished || _norms.Step == 0 || _norms.OnLastLap) { ReturnRallyToTrackSelect(); return; }
         _hud.RallyExitSelection = 0;
         _hud.RallyExitError = null;
+        _hud.RallyExitRevenge = ActiveRevenges().Length > 0;
         _hud.SetRallyExitOpen(true);
     }
 
@@ -38,8 +41,7 @@ public partial class RaceScene
     {
         if (selection == 2) { CloseRallyExit(); return; }
         Error error = selection == 0
-            ? RallyResume.Save(FileDir, _trackId, ResumeSignature, new RallyResume.Checkpoint(_norms.Step, _norms.Left, _norms.Used,
-                _wrecks, _runClock, _runLaps, _dayNight.LapOffset) { PassedTimes = _norms.PassedTimes, PassedTargets = _norms.PassedTargets }, _rallyFuel)
+            ? RallyResume.Save(FileDir, _trackId, ResumeSignature, RallyCheckpointNow(), _rallyFuel)
             : RallyResume.Clear(FileDir, _trackId);
         if (error != Error.Ok)
         {
@@ -49,6 +51,17 @@ public partial class RaceScene
         CloseRallyExit();
         ReturnRallyToTrackSelect();
     }
+
+    /// <summary>The rally as it stands: the norm, the laps, and the car (the engine's health, the dose, the fuel) so that a resumed rally goes on with the same car.</summary>
+    RallyResume.Checkpoint RallyCheckpointNow() => new(_norms.Step, _norms.Left, _norms.Used, _wrecks, _runClock, _runLaps, _dayNight.LapOffset)
+    {
+        PassedTimes = _norms.PassedTimes, PassedTargets = _norms.PassedTargets,
+        Health = _health.Enabled ? _health.Health : -1f,
+        Dose = _rad != null && _doseOn && _rad.Limit > 0f ? _dose / _rad.Limit : -1f,
+        Litres = _tank.Enabled ? _tank.Litres : -1f,
+        Revenges = ActiveRevenges(),
+        Body = _carVis?.Damage is { IsDamaged: true } body ? body.SavedText() : "",
+    };
 
     void RestoreRallyRun()
     {
@@ -62,7 +75,14 @@ public partial class RaceScene
             if (RallyResume.Exists(FileDir, _trackId) && RallyResume.Clear(FileDir, _trackId) == Error.Ok) _resumeStale = true;
             return;
         }
-        _norms.Restore(point.Step, point.Left, point.Used, point.PassedTimes, point.PassedTargets);
+        // The lap that was being driven when the rally was saved is used up: one lap less in the window (a save from before this rule, with one lap left, keeps it)
+        _norms.Restore(point.Step, Math.Max(1, point.Left - 1), point.Used, point.PassedTimes, point.PassedTargets);
+        if (point.Health >= 0f && _health.Enabled) { _health.Set(point.Health); ApplyTrainingPower(); }
+        if (point.Dose >= 0f && _rad != null && _doseOn) _dose = point.Dose * _rad.Limit;
+        if (point.Litres >= 0f && _tank.Enabled) _tank.Litres = Math.Min(point.Litres, _tank.Capacity);
+        if (!string.IsNullOrEmpty(point.Body)) _carVis?.Damage?.RestoreSaved(point.Body);      // (the dents, the glass and the parts as they were)
+        _resumeRevenges.Clear(); _resumeRevengeWait = 0;
+        foreach (var token in point.Revenges.Split(',', StringSplitOptions.RemoveEmptyEntries)) _resumeRevenges.Add(token);      // (they begin again when the run does: RaceScene.Revenge.cs)
         _wrecks = point.Wrecks;
         _runClock = point.RunTime;
         _runLaps = point.RunLaps;

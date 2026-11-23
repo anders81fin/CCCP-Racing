@@ -73,7 +73,7 @@ public partial class RaceScene
         VwCheck(countdown && racing, $"the countdown ran and the race started ({frames} frames)");
         if (resume)
         {
-            VwCheck(_norms.Step == 3 && _norms.Left == 2 && _norms.Used == 9, $"the saved rally's progress is restored (step {_norms.Step}, {_norms.Left} laps left, {_norms.Used} used)");
+            VwCheck(_norms.Step == 3 && _norms.Left == 1 && _norms.Used == 9, $"the saved rally's progress is restored, one lap paid for the break (2 saved) (step {_norms.Step}, {_norms.Left} laps left, {_norms.Used} used)");
             VwCheck(!RallyResume.Exists(dir, track), "the saved rally was consumed at the start (as before)");
         }
         else VwCheck(_norms.Step == 0 && _norms.Left == NormPlan.WindowLaps, "a fresh rally starts at norm 1 with its five laps");

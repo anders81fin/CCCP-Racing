@@ -99,6 +99,45 @@ public partial class RaceScene
         }
     }
 
+    // A saved rally keeps the revenges already under way (the owner's order of 2026-11-23: saving must not shake one off): they are written into the checkpoint and begin again, from their start, when the resumed run is under way.
+    readonly System.Collections.Generic.List<string> _resumeRevenges = new();
+    float _resumeRevengeWait;
+    bool _revengeResumed;
+
+    /// <summary>The revenges that are going on now, as the checkpoint keeps them.</summary>
+    string ActiveRevenges()
+    {
+        var list = new System.Collections.Generic.List<string>();
+        if ((_jets?.RevengeActive ?? false) || (_hinds?.RetaliationActive ?? false)) list.Add("jet");
+        if (_tanks?.Chasing ?? false) list.Add("tanks");
+        if ((_slurry?.Avenging ?? false) && _slurry.RevengeLapsLeft > 0) list.Add($"slurry:{_slurry.RevengeLapsLeft}");
+        return string.Join(",", list);
+    }
+
+    /// <summary>Per physics step while racing: the saved revenges start as soon as their avenger can (the tractor must have left its barn first); one that cannot start within four minutes is dropped.</summary>
+    void ResumedRevengeTick(float dt)
+    {
+        if (_resumeRevenges.Count == 0 || _state != State.Racing || FateHasCar) return;
+        _resumeRevengeWait += dt;
+        _revengeResumed = true;
+        for (int i = _resumeRevenges.Count - 1; i >= 0; i--)
+        {
+            string token = _resumeRevenges[i];
+            bool started;
+            if (token == "jet") { StartJetRevenge(); started = (_jets?.RevengeActive ?? false) || (_hinds?.RetaliationActive ?? false); }
+            else if (token == "tanks") { StartTankRevenge(); started = _tanks?.Chasing ?? false; }
+            else if (token.StartsWith("slurry:") && int.TryParse(token["slurry:".Length..], out int laps))
+            {
+                if (_slurry != null && _tanks == null) StartSlurryRevenge();
+                started = _slurry?.Avenging ?? false;
+                if (started) _slurry.SetRevengeLapsLeft(laps);
+            }
+            else started = true;
+            if (started || _resumeRevengeWait > 240f) _resumeRevenges.RemoveAt(i);      // (the slurry tractor leaves its barn about 70 to 90 s into a run)
+        }
+        if (_resumeRevenges.Count == 0) _revengeResumed = false;
+    }
+
     void StartJetRevenge()
     {
         if(_hinds!=null) {
@@ -127,6 +166,7 @@ public partial class RaceScene
 
     void Reveal(string title, string sub)
     {
+        if (_revengeResumed) { title = "THE REVENGE DID NOT WAIT"; sub = "SAVING THE RALLY DID NOT SAVE YOU"; }      // (a revenge that was under way when the rally was saved)
         if (!CardsOn) _hud.Alert(title, sub, 4f, Hud.Red);    // with the cards on, the revenge card says it all
     }
 

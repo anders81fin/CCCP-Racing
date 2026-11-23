@@ -131,6 +131,40 @@ public partial class DayNight : Node3D
         (12f, DayLook),
     };
 
+    // ------------------------------------------------------------ the Poligon's own day (the owner's trial, 2026-11-23)
+
+    /// <summary>Master switch of the Poligon's low straw-yellow day light (a test flips it to take the "before" pictures).</summary>
+    public static bool PoligonLookEnabled = true;
+    /// <summary>The Poligon (set by the race before Init): its day keys carry the low side light; the dusk, night and dawn keys are the common ones, so the whole cycle's transitions stay.</summary>
+    public bool PoligonLook;
+    /// <summary>The azimuth (degrees about the vertical from the plain day sun) that puts the light across the start straight, set with PoligonLook.</summary>
+    public float PoligonSunAz;
+    bool Poligon => PoligonLook && PoligonLookEnabled;
+
+    /// <summary>A low, pale straw-yellow sun from the side: it shows the concrete's joints and the ground's forms; the ambient stays neutral so the concrete is grey and the birches green.</summary>
+    Look PoligonDay() => L(13f, PoligonSunAz, 1.25f, new Color(1f, 0.87f, 0.62f), new Color(0.55f, 0.56f, 0.55f), 0.7f, new Color(0.64f, 0.65f, 0.62f),
+        Colors.White, 0.8f, Colors.White);
+
+    Look KeyLook(int i) => Poligon && (i <= 1 || i == Keys.Length - 1) ? PoligonDay() : Keys[i].look;
+
+    /// <summary>The look at this many laps driven on this track: the same cycle as LookAt, the Poligon's day in place of the plain one.</summary>
+    public Look LookOf(float laps)
+    {
+        if (!Poligon) return LookAt(laps);
+        laps = Cycle(laps);
+        if (laps <= Keys[0].at) return KeyLook(0);
+        for (int i = 1; i < Keys.Length; i++)
+            if (laps < Keys[i].at)
+            {
+                float t = (laps - Keys[i - 1].at) / (Keys[i].at - Keys[i - 1].at);
+                return Look.Lerp(KeyLook(i - 1), KeyLook(i), t * t * (3f - 2f * t));
+            }
+        return KeyLook(Keys.Length - 1);
+    }
+
+    /// <summary>Asks for the light to be applied again (a test flipped a switch).</summary>
+    public void Refresh() { _dirty = true; _dayApplied = false; }
+
     /// <summary>The look at this many laps driven (continuous); smooth between the keys.</summary>
     public static Look LookAt(float laps)
     {
@@ -432,7 +466,7 @@ public partial class DayNight : Node3D
         if (active != Active) { Active = active; _dirty = true; }
         if (!Active)
         {
-            if (_dirty) { if (Overcast != null) Apply(TitleClock); else ApplyDay(); }
+            if (_dirty) { if (Overcast != null) Apply(TitleClock); else if (Poligon) Apply(0f); else ApplyDay(); }
             _carLights.Level = 0;
             _carLights.Tick(dt, 0, null);
             return;
@@ -485,9 +519,9 @@ public partial class DayNight : Node3D
         _dirty = false;
         _appliedClock = clock;
         if (_baseFog < 0) _baseFog = _env.FogDensity;
-        if (IsDay(clock) && Overcast == null) { ApplyDay(); return; }
+        if (IsDay(clock) && Overcast == null && !Poligon) { ApplyDay(); return; }
         _dayApplied = false;
-        var l = LookAt(clock);
+        var l = LookOf(clock);
         float overcast = Overcast?.Invoke(clock) ?? 0f;
         if (Overcast != null) l = Overcasted(l, overcast);
         _fogNominal = ExtraFog != null ? _baseFog + ExtraFog(clock) : _baseFog;

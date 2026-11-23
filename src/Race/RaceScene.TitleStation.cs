@@ -23,7 +23,7 @@ public partial class RaceScene
     const int TitleVolumeDefault = 5;
     int _titleVolume = -1;
 
-    static float TitleVolumeDb(int v) => v <= 0 ? -80f : 2f + (v - TitleVolumeDefault) * 2.5f;
+    static float TitleVolumeDb(int v) => v <= 0 ? -80f : 7f + (v - TitleVolumeDefault) * 2.5f;      // (2 -> 7 dB, the same two notches)
 
     int TitleVolume
     {

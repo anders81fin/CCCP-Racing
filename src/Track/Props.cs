@@ -384,6 +384,9 @@ public static partial class Props
     /// Birch of size 0.6 (slim sapling) .. 1.5 (big old tree); trunk height and crown size vary
     /// independently from the hash, with broken bark marks, forked branches and a fuller crown.
     /// </summary>
+    /// <summary>A birch that is only to look at (no obstacle is made for it): the Poligon's decorations.</summary>
+    internal static Node3D DecorBirch(float size, int hx, int hz) => Birch(size, hx, hz);
+
     static Node3D Birch(float size, int hx, int hz, bool winter = false, bool autumn = false)
     {
         var n = new Node3D();

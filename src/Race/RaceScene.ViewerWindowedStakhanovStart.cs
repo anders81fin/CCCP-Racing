@@ -114,6 +114,7 @@ public partial class RaceScene
         // 2. medals open PETROL and JET FUEL (on this temporary profile only; SPUTNIK stays locked); the pad's way: its hint; B steps back card by card and the pick is dropped at the menu
         foreach (var t in FuelTracks(FuelGrade.Petrol)) _campaign.Award(t, NormPlan.Medal.Silver, FuelGrade.Diesel);      // (silver on the three first tracks in the rally on DIESEL opens PETROL; the same on PETROL opens JET FUEL on every track)
         foreach (var t in FuelTracks(FuelGrade.Rocket)) _campaign.Award(t, NormPlan.Medal.Silver, FuelGrade.Petrol);
+        foreach (var t in Tracks) { _campaign.PresentLaps(t.id, false); _campaign.PresentLaps(t.id, true); }      // (the medals open tracks on every fuel now: their opening ceremonies are seen, so the track card takes the keys at once)
         VwCheck(!FuelLocked(FuelGrade.Petrol) && !FuelLocked(FuelGrade.Rocket) && FuelLocked(FuelGrade.Sputnik), $"test medals: PETROL and JET FUEL open, SPUTNIK locked (petrol locked {FuelLocked(FuelGrade.Petrol)}, jet locked {FuelLocked(FuelGrade.Rocket)}, sputnik locked {FuelLocked(FuelGrade.Sputnik)})");
         rallyFileBefore = VwRallyFuelOnFile();
         _padMode = true;

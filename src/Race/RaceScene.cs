@@ -430,7 +430,7 @@ public partial class RaceScene : Node3D
         TitleSoundApply();       // RaceScene.TitleRec.cs: music only, or the recorded background lap's sounds at half volume
         if (_menuSingleTest) OpenMenu(MenuItem.Single);
         _watching = _showBoard = _boardScoped = _showLog = _showFiles = _showLessons = _showKeys = _replaySelected = false;
-        if (!_hud.Clean) SetSaturation(0f);     // the menu's world is a faded poster (PosterGrade)
+        SetSaturation(1f);     // the menu's world is in its own colour (the poster filter, PosterGrade, was taken off by the owner's order of 2026-11-23)
         ApplyTrainingPower();
         PlaceAtStart();
         _ap.Aggression = 0.9f;
@@ -1556,7 +1556,7 @@ public partial class RaceScene : Node3D
                 _busHitCd = 8f;
                 _busWarnCd = 20f;
             }
-            // The Ilyich bus (the owner's order of 2026-11-21): up to 100 m from the nose, inside a 120 degree cone along the road's own direction, coming towards the car on the stretch of road ahead and in view (not across a
+            // The Ilyich bus (the owner's order of 2026-11-21): up to 85 m from the nose (100 until 2026-11-23, a little too early), inside a 120 degree cone along the road's own direction, coming towards the car on the stretch of road ahead and in view (not across a
             // bend, behind a crest or a building). Once per encounter; the next one after it has passed.
             Vector2 carHeading = new(-_car.Rot.Z.X, -_car.Rot.Z.Z);
             if (carHeading.LengthSquared() < 1e-4f) carHeading = Vector2.Down;
@@ -1682,8 +1682,11 @@ public partial class RaceScene : Node3D
         ArchiveAtLaunch();      // RaceScene.Files.cs: the KGB ARCHIVE before the main menu
         TrackChainTick(dt);      // (development only: RaceScene.DevHooks.cs)
         LapsRewardFrame(dt);
+        PoligonDustFrame();      // RaceScene.PoligonDust.cs
+        FuelUnlockFrame(dt);      // RaceScene.FuelUnlock.cs
         FuelCeremonyFrame(dt);
         SputnikCeremonyFrame(dt);
+        AfterCeremoniesFrame();      // (the cards a return from a run waits to open)
         GalleryFrame(dt);
         HandleInput();
         if (TrackLoadingScreen.Active != null)
@@ -1704,7 +1707,7 @@ public partial class RaceScene : Node3D
         LanFrame(dt);
 
         // The title's world is a faded poster, fading to colour in replay focus.
-        float sat = _state != State.Title || PresentationActive || _watching || _hud.Clean ? 1f : 0f;
+        float sat = 1f;      // (no poster filter on the title any more: the owner's order of 2026-11-23)
         if (_saturation != sat) SetSaturation(_state != State.Title ? 1f : Mathf.MoveToward(_saturation, sat, dt / 0.5f));
 
         if (_state == State.Countdown)

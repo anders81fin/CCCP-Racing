@@ -29,6 +29,15 @@ public partial class RaceScene
     /// A fuel that has just been opened by the rally silvers (PETROL, JET FUEL, SPUTNIK) gets a ceremony of its own, once, when the title comes up after the run (the owner's order of 2026-11-22): bigger than a track opening and than a
     /// gold on one track. A profile that has never been asked treats the fuels already open as old news.
     /// </summary>
+    /// <summary>The fuel whose car has not been shown yet, once the profile has been asked (RaceScene.FuelUnlock.cs waits for it).</summary>
+    FuelGrade? FuelCeremonyCandidate()
+    {
+        if (_campaign == null || !_campaign.FuelPresentationStarted) return null;
+        foreach (var g in new[] { FuelGrade.Petrol, FuelGrade.Rocket, FuelGrade.Sputnik })
+            if (FuelOpenByMedals(g) && !_campaign.FuelPresented(g)) return g;
+        return null;
+    }
+
     void BeginFuelCeremony()
     {
         if (_fuelCeremony != null || ViewerMode || _previewMovie || InstructionTrack != null || _campaign == null || !CeremonyClear) return;

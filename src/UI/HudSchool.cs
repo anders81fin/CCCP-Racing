@@ -223,7 +223,7 @@ public partial class Hud
 
     /// <summary>The rally's stop card (RaceScene.Cards): title, lines; set while the game stands under it.</summary>
     public (string title, string[] lines, Color color)? StopCard;
-    /// <summary>WATCH LAP on a stop card ("F3  WATCH LAP 3"): the card's offer to open the lap just driven; null when there is none.</summary>
+    /// <summary>WATCH LAP on a stop card ("F3 > WATCH LAP 3"): the card's offer to open the lap just driven; null when there is none.</summary>
     public string StopCardWatch;
     /// <summary>The card takes a key now (after RaceScene.CardMinShow): only then does it say PRESS ANY KEY.</summary>
     public bool StopCardReady;
@@ -381,6 +381,7 @@ public partial class Hud
         {
             float ow = PixelFont.Measure(CardOptions[i], scale) + pad;
             bool sel = i == CardSelection, locked = CardLocked != null && i < CardLocked.Length && CardLocked[i];
+            if (i == FuelUnlockIndex) _fuelUnlockOption = new Rect2(x + 4, r.Position.Y + oy, ow - 8, oh);
             if (sel) DrawRect(new Rect2(x + 4, r.Position.Y + oy, ow - 8, oh), locked ? new Color(0.3f, 0.3f, 0.3f, 0.8f) : new Color(Red, 0.7f));
             Color c = locked ? (sel ? new Color(0.88f, 0.88f, 0.88f) : new Color(0.42f, 0.42f, 0.42f)) : sel ? Gold : Grey;
             PixelFont.DrawCentered(this, CardOptions[i], x + ow / 2, r.Position.Y + oy + (scale == 2 ? 3 : Mathf.Floor((oh - 7) / 2f)), c, scale);
@@ -388,6 +389,7 @@ public partial class Hud
         }
         if (note && h >= (compact ? 66 : 93)) PixelFont.DrawCentered(this, CardNote, cx, r.Position.Y + oy + oh + (compact ? 3 : 5), Paper);
         DrawLapsReward(r, oy, compact);
+        DrawFuelUnlock(r, oy);      // HudFuelUnlock.cs
         if (LapsRewardSource != null) return;
         float keysY = r.End.Y - (compact ? 11 : 13);
         PixelFont.DrawCentered(this, keys, cx, keysY, Grey);

@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using CCCPRacing.Track;
 using CCCPRacing.UI;
 using Godot;
 
@@ -67,6 +68,16 @@ public partial class RaceScene
             else if (a.StartsWith("--time-of-day=")) _dnTestPin = DayNight.CycleLaps * float.Parse(a["--time-of-day=".Length..], CultureInfo.InvariantCulture);  // test: the light pinned (0 start .. 1 end of the first dawn)
             else if (a == "--one-beam") _dayNight.OneBeam = true;         // test: one combined headlight beam
             else if (a.StartsWith("--laps-time=") && DayNight.Parse(a["--laps-time=".Length..]) is { } lp) _lapsPhase = lp;   // test: the TIME OF DAY card's choice for Stakhanov laps
+        }
+        if (_trackId == "bonus")      // the Poligon's low straw-yellow day light, across the start straight (the owner's trial of 2026-11-23: DayNight.PoligonDay)
+        {
+            _dayNight.PoligonLook = true;
+            int si = 0; float sd = float.MaxValue;
+            for (int i = 0; i < _track.Center.Length; i += 2) { float d = _track.Center[i].DistanceSquaredTo(new Vector2(_track.StartPos.X, _track.StartPos.Z)); if (d < sd) { sd = d; si = i; } }
+            Vector2 road = _track.CenterDir(si), sun = new Vector2(TerrainMesh.SunDir.X, TerrainMesh.SunDir.Z).Normalized();
+            Vector2 side = new(-road.Y, road.X);
+            if (side.Dot(sun) < 0) side = -side;      // (the side nearer the plain sun: the least turn)
+            _dayNight.PoligonSunAz = Mathf.RadToDeg(sun.AngleTo(side));
         }
         _dayNight.PinnedClock = _dnTestPin;
         _dayNight.Init(_env, _sunLight, _terrainMesh, _track, _carVis, _busAll, _kozlikAll, _jetsAll, _tanksAll, _kgb, _fx);

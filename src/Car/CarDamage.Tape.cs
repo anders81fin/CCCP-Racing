@@ -92,6 +92,54 @@ public partial class CarDamage
         catch (Exception e) when (e is IOException or ArgumentException or FormatException or OverflowException) { return false; }
     }
 
+    // ------------------------------------------------------------------ a saved rally keeps the body as it was (the owner's order, 2026-11-23)
+
+    /// <summary>The body's damage as one line of text for a saved rally: the model's signature, then the compressed shape (the dents, the glass, the parts' states).</summary>
+    public string SavedText()
+    {
+        var g = CaptureTapeState().Shape;
+        using var ms = new MemoryStream();
+        using (var z = new System.IO.Compression.DeflateStream(ms, System.IO.Compression.CompressionLevel.Optimal, true)) z.Write(g.Data, 0, g.Data.Length);
+        return $"{g.Signature:x16}:{Convert.ToBase64String(ms.ToArray())}";
+    }
+
+    /// <summary>
+    /// Puts a saved body back, live (not a tape's playback). False, and the car left as it was, when the text is damaged or from another car model. A part that had come off stays off and out of sight (the
+    /// car is at the start line again: nothing of it lies on the road); one that hung by a side hangs again. A repair (Reset) brings them all back.
+    /// </summary>
+    public bool RestoreSaved(string text)
+    {
+        if (TapeDriven || string.IsNullOrEmpty(text) || text.Length < 18 || text[16] != ':') return false;
+        if (!ulong.TryParse(text.AsSpan(0, 16), System.Globalization.NumberStyles.HexNumber, null, out ulong signature)) return false;
+        byte[] data;
+        try
+        {
+            using var z = new System.IO.Compression.DeflateStream(new MemoryStream(Convert.FromBase64String(text[17..])), System.IO.Compression.CompressionMode.Decompress);
+            using var outMs = new MemoryStream();
+            z.CopyTo(outMs);
+            data = outMs.ToArray();
+        }
+        catch (Exception e) when (e is FormatException or InvalidDataException or IOException) { return false; }
+        var geometry = new Geometry(signature, data);
+        if (!Compatible(geometry)) return false;
+        Reset();
+        using var r = new BinaryReader(new MemoryStream(data, false));
+        r.ReadBoolean(); Dents = r.ReadInt32(); _glass = r.ReadSingle(); _crackStage = r.ReadInt32();
+        foreach (var s in AllSurfs())
+        { r.ReadInt32(); for (int i = 0; i < s.Off.Length; i++) s.Off[i] = ReadVector(r); }
+        foreach (var p in _parts)
+        {
+            r.ReadString(); p.Damage = r.ReadSingle(); p.State = (PartState)r.ReadByte(); p.HangSide = r.ReadSingle();
+            if (p.State == PartState.Off) { p.Resting = true; p.Node.Visible = false; }
+            else RebuildPart(p);
+        }
+        RebuildBody();
+        _crack.Visible = _crackStage > 0;
+        if (_crackStage > 0) ((StandardMaterial3D)_crack.MaterialOverride).AlbedoTexture = _crackTex[_crackStage - 1];
+        DamageChanged();
+        return true;
+    }
+
     public bool ApplyTapeState(State a, State b, float u, TyreEffects fx = null)
     {
         if (a == null || b == null || !PartCountFits(a) || !PartCountFits(b)) return false;

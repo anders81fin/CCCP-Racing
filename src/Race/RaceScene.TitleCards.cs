@@ -100,6 +100,7 @@ public partial class RaceScene
     {
         if (_card == TitleCard.None || _state != State.Title) return false;
         if (_lapsRewardIndex >= 0) return true;
+        if (FuelUnlockActive) { if (_fuelUnlockAge >= Hud.FuelUnlockBreak + 0.8f && (Input.IsActionJustPressed("start") || Input.IsActionJustPressed("pause"))) EndFuelUnlock(true); return true; }      // (the padlock; Enter or Esc skips the end of it)
         if (Engine.GetProcessFrames() <= _cardFrame) return true;
         if (_previewMovie) return true;      // --tour-movie: no menu controls
         if (CarTourInput()) return true;     // a car's tour is up (RaceScene.CarTour.cs)

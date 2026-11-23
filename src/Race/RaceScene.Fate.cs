@@ -1,5 +1,6 @@
 using System;
 using CCCPRacing.Audio;
+using CCCPRacing.Replay;
 using CCCPRacing.Car;
 using CCCPRacing.Track;
 using CCCPRacing.UI;
@@ -147,6 +148,8 @@ public partial class RaceScene
 
     void EnterFailed(string reason, float truckDelay)
     {
+        // The lap that was being driven ends here without reaching the line: it goes into the lap archive as a void lap (never a record), so that the end screens can offer it (WATCH LAST LAP is then the lap that ended the run)
+        if (_lapClock > 2f) LapArchiveCapture(_lapClock, LapKind.Void, false, false, _timer.LapsDone + 1);
         _failed = true;
         _failReason = reason;
         _failClock = 0;
@@ -239,6 +242,7 @@ public partial class RaceScene
     /// <summary>Per physics tick, after the car has moved: damage, effects and the failure sequence.</summary>
     void FateTick(float dt)
     {
+        ResumedRevengeTick(dt);      // RaceScene.Revenge.cs: the revenges a saved rally brought with it
         if (_state == State.Racing)
         {
             _runClock += dt;

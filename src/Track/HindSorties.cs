@@ -68,6 +68,8 @@ public partial class HindSorties : Node3D
     public event Action SoupUnshaken;
     int _retaliationPasses;
     Vector2 _retaliationAt;
+    /// <summary>The Hind's revenge (the pilot's friend) is under way: passes still to fly.</summary>
+    public bool RetaliationActive => _retaliationPasses > 0;
     public bool CallRetaliation(Vector3 at)
     {
         if(!_ready || _retaliationPasses>0) return false;

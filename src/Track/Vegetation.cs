@@ -57,7 +57,7 @@ public partial class Vegetation : Node3D
         AddChild(Multi(TuftMesh(), tufts, tuftCols, "Tufts"));
     }
 
-    static MultiMeshInstance3D Multi(Mesh mesh, List<Transform3D> xfs, List<Color> cols, string name)
+    internal static MultiMeshInstance3D Multi(Mesh mesh, List<Transform3D> xfs, List<Color> cols, string name)
     {
         var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, Mesh = mesh, InstanceCount = xfs.Count };
         for (int i = 0; i < xfs.Count; i++)
@@ -98,7 +98,7 @@ public partial class Vegetation : Node3D
     }
 
     /// <summary>Three squashed low-poly blobs.</summary>
-    static Mesh BushMesh()
+    internal static Mesh BushMesh()
     {
         var st = new SurfaceTool();
         st.Begin(Mesh.PrimitiveType.Triangles);

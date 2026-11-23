@@ -105,6 +105,8 @@ public partial class RaceScene
         _fx = new TyreEffects { Name = "TyreEffects" };
         _fx.Init(_track);
         AddChild(_fx);
+        if (_trackId == "bonus" && PoligonDust.TryCreate(_track) is { } poligonDust) AddChild(_poligonDust = poligonDust);      // the Poligon's wind: a streak of dust over the gravel ridge (PoligonDust.cs)
+        if (_poligonDust != null && PoligonVegetation.TryCreate(_track, _poligonDust.RidgeIndex) is { } poligonVeg) AddChild(_poligonVeg = poligonVeg);      // the static vegetation trial (PoligonVegetation.cs)
         _vegetation.Init(_track, _fx);
         AddChild(Fences.Build(_track, _fx, out _wood, out var stone));
         if (_booting) await LoadingFrame();      // LOADSLICES

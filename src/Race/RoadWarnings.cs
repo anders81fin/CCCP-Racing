@@ -11,7 +11,7 @@ namespace CCCPRacing.Race;
 /// </summary>
 public static class RoadWarnings
 {
-    public const float BusRange = 100f, BusHalfAngle = 60f;
+    public const float BusRange = 85f, BusHalfAngle = 60f;      // (100 m until 2026-11-23: the warning came a little too early)
     public const float TractorRange = 50f, TractorHalfAngle = 70f;
     /// <summary>Kozlik's bear patrol (the owner's addition of 2026-11-21): chosen from its own driving: it cruises at 15.5 m/s and slows to 8.5 in bends, a car comes up on it at 10 to 25 m/s, and a stop from 25 m/s with a second and a half to read takes about 80 m.</summary>
     public const float PatrolRange = 80f, PatrolHalfAngle = 60f, PatrolBodyRadius = 2.2f;

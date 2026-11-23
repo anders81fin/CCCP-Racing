@@ -213,7 +213,7 @@ public partial class Hud : Control
         if (WatchHint != null && Mode == HudMode.Race && !Clean) DrawWatchHint();
         if (Mode == HudMode.Card && StopCard is var (title, lines, color)) DrawStopCard(title, lines, color);
         if (!Clean && School && Mode is HudMode.Race or HudMode.Countdown) DrawSchool();
-        if (CardTitle != null && Mode == HudMode.Title) DrawCard();
+        if (CardTitle != null && Mode == HudMode.Title && !TitleMenuHidden) DrawCard();      // (a hidden menu hides the mode cards with it)
         if (NameAsk && Mode is HudMode.Title or HudMode.Files) DrawNameAsk();
         if (ShowDebug) DrawDebug();
         if (Mode == HudMode.Keys) DrawKeys();
@@ -287,15 +287,10 @@ public partial class Hud : Control
         {
             // The menu hidden to watch the background video: the CCCP RACING banner stays, and the hint at the bottom centre.
             DrawTitleBanner();
-            string showHint = P("SPACE  SHOW MENU", "ANY BUTTON  SHOW MENU");
-            float sw = PixelFont.Measure(showHint) + 12;
-            var hr = new Rect2(Mathf.Floor(cx - sw / 2), s.Y - 15, Mathf.Ceil(sw), 12);
-            DrawRect(hr, new Color(0, 0, 0, 0.45f));
-            PixelFont.DrawCentered(this, showHint, cx, hr.Position.Y + 2, new Color(Paper, 0.85f));
+            DrawCredits(s, cx);      // (the bottom line stays: the file, SPACE SHOW MENU in the middle, the version at the right: the owner's order of 2026-11-23)
             return;
         }
-        DrawRect(new Rect2(0, 0, s.X, s.Y), new Color(0, 0, 0, 0.25f));
-
+        // (no dimming of the title's world: the owner's order of 2026-11-23, with the poster colour filter)
         DrawTitleBanner();
 
         // SETTINGS from the top row: the Party Meeting's own screens over the title, the menu and the notes give way.
@@ -376,8 +371,8 @@ public partial class Hud : Control
         while (file.Length > 0 && PixelFont.Measure(file) > room) file = file[..^1];
         if (file.Length > 0) PixelFont.Draw(this, file, new Vector2(4, s.Y - 10), Grey);
         // The hint of the hidden menu's key, always at the bottom centre (a narrow window: the short form, or none when the file's name and the version leave no room).
-        string hint = P("SPACE  HIDE MENU", "RB  HIDE MENU");
-        if (PixelFont.Measure(hint) > s.X - 2 * Math.Max(PixelFont.Measure(file) + 12, PixelFont.Measure(version) + 12)) hint = P("SPACE  HIDE", "RB  HIDE");
+        string hint = TitleMenuHidden ? P("SPACE  SHOW MENU", "ANY BUTTON  SHOW MENU") : P("SPACE  HIDE MENU", "RB  HIDE MENU");
+        if (PixelFont.Measure(hint) > s.X - 2 * Math.Max(PixelFont.Measure(file) + 12, PixelFont.Measure(version) + 12)) hint = TitleMenuHidden ? P("SPACE  SHOW", "ANY BUTTON") : P("SPACE  HIDE", "RB  HIDE");
         if (PixelFont.Measure(hint) <= s.X - 2 * Math.Max(PixelFont.Measure(file) + 12, PixelFont.Measure(version) + 12)) PixelFont.DrawCentered(this, hint, cx, s.Y - 10, Paper);
     }
 
@@ -415,7 +410,7 @@ public partial class Hud : Control
         return y + h;
     }
 
-    /// <summary>The hint after a real lap in a single-player rally or Stakhanov drive ("F3  WATCH LAP 3", a pad: "START > WATCH LAST LAP"): a few seconds, fading out at the end (RaceScene.WatchLap.cs).</summary>
+    /// <summary>The hint after a real lap in a single-player rally or Stakhanov drive ("F3 > WATCH LAP 3", a pad: "START > WATCH LAST LAP"): a few seconds, fading out at the end (RaceScene.WatchLap.cs).</summary>
     public string WatchHint;
     public float WatchHintAlpha = 1f;
 
@@ -715,6 +710,7 @@ public partial class Hud : Control
         {
             string line = id switch
             {
+                PauseRowId.WatchThisLap => "       WATCH CURRENT LAP",
                 PauseRowId.WatchLastLap => "       WATCH LAST LAP" + (PauseWatchState == "" ? "" : " - " + PauseWatchState),
                 PauseRowId.BrowseLaps => "       BROWSE LAPS",
                 PauseRowId.Norms => "       NORMS AND MEDALS",

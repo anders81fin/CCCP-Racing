@@ -297,6 +297,7 @@ public partial class RaceScene
     void ViewerFrame(float dt)
     {
         if (!ViewerReady) return;
+        PoligonDustFrame();      // (the viewer's own clock: RaceScene.PoligonDust.cs)
         float vdt = ViewerPaused ? 0f : dt * ViewerSpeed;
         FadeUnder.Car = _car.Pos;
         SeeThrough.Car = _car.Pos;

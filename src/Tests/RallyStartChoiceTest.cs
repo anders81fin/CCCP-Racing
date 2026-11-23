@@ -68,7 +68,7 @@ public partial class RallyStartChoiceTest : Node
             Call(r, "ConsumeRallyCheckpoint");
             Require(!RallyResume.Exists(dir, "ilyich") && RallyResume.Exists(dir, "siberia"), "Replacement must remove only this track's save");
             Require(Read(r, "_newRallyTrack") == null, "Replacement request survived consumption");
-            // The car first, the track next, and each fuel has the progression of its own: what the diesel opened is not open on the petrol until the petrol has opened it.
+            // The car first, the track next, and a track opened on any fuel is open on every fuel (2026-11-23); the fuels open by their own medals.
             var camp = new Campaign(null);
             camp.Award("ilyich", NormPlan.Medal.Gold, FuelGrade.Diesel);
             Write(r, "_campaign", camp);
@@ -80,11 +80,8 @@ public partial class RallyStartChoiceTest : Node
             Require(!locked[0] && !locked[1] && locked[2] && !locked[3], "On the diesel: Kolkhoz and Siberia (the gold) and Poligon (a gold on any track) are open, Atomgrad is locked");
             Call(r, "OpenRallyStart", -1); Choose(r, (int)FuelGrade.Petrol); ExpectCard(r, "Track");
             locked = (bool[])Call(r, "LockedNow", new object[] { null });
-            Require(!locked[0] && locked[1] && locked[2] && locked[3], "On the petrol only Kolkhoz is open: the diesel's medals open nothing here");
-            Choose(r, 1); ExpectCard(r, "Track");      // a locked track refuses
-            camp.Award("ilyich", NormPlan.Medal.Silver, FuelGrade.Petrol);
-            locked = (bool[])Call(r, "LockedNow", new object[] { null });
-            Require(!locked[1] && locked[3] && locked[2], "A silver on the petrol opens Siberia on the petrol, and only that");
+            Require(!locked[0] && !locked[1] && locked[2] && locked[3], "On the petrol the tracks the diesel opened are open too, but Poligon waits for a gold on the petrol itself");
+            Choose(r, 3); ExpectCard(r, "Track");      // a locked track refuses
             camp.Award("ilyich", NormPlan.Medal.Gold, FuelGrade.Petrol);
             locked = (bool[])Call(r, "LockedNow", new object[] { null });
             Require(!locked[3], "A gold on the petrol opens Poligon on the petrol");

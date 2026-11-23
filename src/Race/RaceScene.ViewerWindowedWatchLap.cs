@@ -30,8 +30,8 @@ public partial class RaceScene
         string recordId = _lastLapId;
         for (int i = 0; i < 90; i++) yield return null;      // (the worker prepares the tape)
         VwCheck(recordId != null && _sessionLapOrder.Count == 1 && _sessionLapArchives.ContainsKey(recordId), "the record lap is the run's first lap, in its archive");
-        VwCheck(PauseRowsNow.SequenceEqual(PauseRowList(true, 1, StakhanovBoardAvailable)) && PauseRowsNow.Contains(PauseRowId.WatchLastLap) && !PauseRowsNow.Contains(PauseRowId.BrowseLaps), "1 lap: WATCH LAST LAP, no BROWSE LAPS");
-        VwCheck(_hud.WatchHint != null && _hud.WatchHint.StartsWith("F3  WATCH LAP"), $"the hint after the lap: '{_hud.WatchHint}'");
+        VwCheck(PauseRowsNow.SequenceEqual(PauseRowList(true, 1, StakhanovBoardAvailable, ThisLapAvailable)) && PauseRowsNow.Contains(PauseRowId.WatchLastLap) && !PauseRowsNow.Contains(PauseRowId.BrowseLaps), "1 lap: WATCH LAST LAP, no BROWSE LAPS");
+        VwCheck(_hud.WatchHint != null && _hud.WatchHint.StartsWith("F3 > WATCH LAP"), $"the hint after the lap: '{_hud.WatchHint}'");
         foreach (var x in VrShot("watchlap-hint")) yield return x;
 
         // ---- 2 laps: then a slower ordinary lap
@@ -86,7 +86,7 @@ public partial class RaceScene
         _stopCard = new StopCard("norm_missed", "A CARD", new[] { "THE RACE IS STOPPED UNDER IT" }, Hud.Gold, "", "");
         _cardAge = 5f; _state = State.Paused; _hud.Mode = HudMode.Card; _hud.StopCard = (_stopCard.Title, _stopCard.Lines, _stopCard.Color); _hud.StopCardReady = true;
         for (int i = 0; i < 10; i++) yield return null;
-        VwCheck(_hud.StopCardWatch == "F3  WATCH LAST LAP AS REPLAY", $"the lap's own card (LAP NOT COUNTED) offers '{_hud.StopCardWatch}'");
+        VwCheck(_hud.StopCardWatch == "F3 > WATCH LAST LAP AS REPLAY", $"the lap's own card (LAP NOT COUNTED) offers '{_hud.StopCardWatch}'");
         // a card that comes in the middle of another lap (a radar trap, fuel, engine) does not offer the last lap
         var lapCard = _stopCard; _stopCard = new StopCard("gai_chase", "RADAR TRAP!", new[] { "THE OFFICER IS AFTER YOU!" }, Hud.Red, "", ""); for (int i = 0; i < 6; i++) yield return null;
         VwCheck(_hud.StopCardWatch == null, "a card from the middle of a lap offers no replay");

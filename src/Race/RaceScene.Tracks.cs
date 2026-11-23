@@ -84,7 +84,7 @@ public partial class RaceScene
         return i >= 0 && !Locked(i, MenuItem.Training) ? $"BRONZE: {TrackName(next)} OPEN IN STAKHANOV LAPS" : null;
     }
 
-    /// <summary>After a Socialist Rally ends, return to its track card, highlighting a track opened by this run.</summary>
+    /// <summary>After a Socialist Rally ends, return to its track card on the fuel the rally was driven with (the owner's order, repeated 2026-11-23), highlighting a track opened by this run; a newly opened fuel comes first, with its padlock.</summary>
     void ReturnRallyToTrackSelect()
     {
         string selected = _trackId;
@@ -96,18 +96,37 @@ public partial class RaceScene
         int selectedIndex = Array.FindIndex(Tracks, t => t.id == selected);
         EnterTitle();
         OpenMenu(MenuItem.Single, MenuItem.Race);
-        OpenRallyStart(Math.Max(0, selectedIndex));      // the fuel again first, then the track card on the track this run opened
-        // (a track-opening ceremony of the laps reward comes with the track card)
+        _unlockFuel = FuelUnlockPending();      // (before the car's ceremony marks the fuel presented)
+        AfterTitleCeremonies(() =>      // (a newly opened fuel's car is shown first, the cards come after it)
+        {
+            OpenRallyStart(Math.Max(0, selectedIndex));      // the fuel again first, then the track card on the track this run opened
+            if (BeginFuelUnlock()) return;      // (the fuel this run opened comes up selected, its padlock bursting: RaceScene.FuelUnlock.cs)
+            // Otherwise straight back on the track card, on the fuel the rally was driven with (Esc there is one step back to CHOOSE FUEL, the same fuel selected)
+            _rallyFuelFirst = false; _rallyFuelPicked = true;
+            OpenTrackCard(MenuItem.Race);
+            if (_lapsRewardIndex < 0) _cardSel = Math.Max(0, selectedIndex);      // (a track this run opened has its own opening ceremony on the card)
+            _rallyTrackHighlight = -1;
+        });
     }
 
-    /// <summary>After STAKHANOV LAPS are left (EXIT RACE, a failure screen): back to the laps' CHOOSE FUEL, the fuel last used selected, and forward the track card stands on the track just driven (not the main menu).</summary>
+    /// <summary>After STAKHANOV LAPS are left (EXIT RACE, a failure screen): back to the laps' track card of the fuel they were started with (CHOOSE FUEL is one Esc back), the track card standing on the track just driven (not the main menu).</summary>
     void ReturnLapsToFuelSelect()
     {
         int index = Math.Max(0, Array.FindIndex(Tracks, t => t.id == _trackId));
         EnterTitle();
         OpenMenu(MenuItem.Single, MenuItem.Training);
-        OpenLapsStart();      // CHOOSE FUEL (the last used selected), then the track card, then the time of day
-        _lapsTrackHighlight = index;
+        _unlockFuel = FuelUnlockPending();
+        AfterTitleCeremonies(() =>
+        {
+            OpenLapsStart();
+            if (BeginFuelUnlock()) return;      // (a fuel the drive opened: the fuel card with its padlock first)
+            // The owner's order of 2026-11-23: back on the track card of the fuel the laps were started with (Esc there goes on to CHOOSE FUEL, the same fuel selected)
+            _lapsFuelFirst = false; _lapsFuelPicked = true;
+            if (_lapsFuelLast is FuelGrade used) _lapsFuelPick = used;
+            OpenTrackCard(MenuItem.Training);
+            _cardSel = index;
+            _lapsTrackHighlight = -1;
+        });
     }
 
     /// <summary>The rally medal on the required track that opens a track for this mode: bronze for Stakhanov laps, silver for the rally.</summary>
@@ -117,17 +136,20 @@ public partial class RaceScene
     bool Locked(int i, MenuItem? mode = null, bool anyFuel = false) => !(CheatUnlock && (mode ?? _trackFor) != MenuItem.Lan) && LockedByMedals(i, mode, anyFuel);      // (the LAN host's tracks follow his real medals)
 
     /// <summary>
-    /// The track is locked by the medals, whatever the cheat says (the unlocking ceremonies follow the real ones). In the SOCIALIST RALLY each fuel has a progression of its own (the fuel is chosen
-    /// before the track): a track opens only by the medals won on the chosen fuel (_rallyFuel), so what the diesel opened is not open on the petrol until the petrol has opened it. The Stakhanov
-    /// laps do the same with the bronze on the fuel picked first; the LAN and the school count the medals of every fuel.
+    /// The track is locked by the medals, whatever the cheat says (the unlocking ceremonies follow the real ones). The owner's rule of 2026-11-23, the bonus track excepted (it needs a gold on the fuel itself): a track opened by the medals of any fuel (the diesel's, say) is
+    /// open on every fuel, as soon as that fuel itself has been opened (FuelOpenByMedals, which still counts the medals per fuel). The anyFuel flag is kept for the callers; it no longer changes the answer.
     /// </summary>
     bool LockedByMedals(int i, MenuItem? mode = null, bool anyFuel = false)
     {
         mode ??= _trackFor;
         if (mode == MenuItem.Lan && _lanTrackHosting != true) return false;
-        FuelGrade? own = anyFuel ? null : mode == MenuItem.Race ? _rallyFuel : mode == MenuItem.Training && _lapsFuelPicked ? _lapsFuelPick : null;
-        NormPlan.Medal Medal(string id) => own is FuelGrade f ? _campaign.BestOn(id, f) : _campaign.Best(id);
-        if (Tracks[i].requires == Bonus) return !Tracks.Any(t => Medal(t.id) == NormPlan.Medal.Gold);
+        NormPlan.Medal Medal(string id) => _campaign.Best(id);      // (a track opened on any fuel is open on every fuel; the fuel itself opens by its own medals, FuelOpenByMedals)
+        if (Tracks[i].requires == Bonus)
+        {
+            // The bonus track is the exception (the owner, 2026-11-23): it needs a gold on the fuel itself, the rally's chosen one, the laps' picked one (the LAN and the school count every fuel)
+            FuelGrade? own = anyFuel ? null : mode == MenuItem.Race ? _rallyFuel : mode == MenuItem.Training && _lapsFuelPicked ? _lapsFuelPick : null;
+            return !Tracks.Any(t => (own is FuelGrade f ? _campaign.BestOn(t.id, f) : _campaign.Best(t.id)) == NormPlan.Medal.Gold);
+        }
         string r = Tracks[i].requires;
         if (r != null && Medal(Tracks[i].id) > NormPlan.Medal.None) return false;      // (a medal already won on the track keeps it open: the 2026-11-11 reorder of Siberia and Atomgrad must not lock a player out of one he had opened)
         return r != null && Medal(r) < MedalToOpen(mode.Value);
@@ -137,7 +159,7 @@ public partial class RaceScene
     /// <summary>What opens a locked track for the track card's mode, for its notes.</summary>
     string Opens(int i)
     {
-        string fuel = _trackFor == MenuItem.Race ? $" ON {FuelGrades.Names[(int)_rallyFuel]}" : _trackFor == MenuItem.Training && _lapsFuelPicked ? $" ON {FuelGrades.Names[(int)_lapsFuelPick]}" : "";      // (the medal of the chosen fuel)
+        string fuel = Tracks[i].requires != Bonus ? "" : _trackFor == MenuItem.Race ? $" ON {FuelGrades.Names[(int)_rallyFuel]}" : _trackFor == MenuItem.Training && _lapsFuelPicked ? $" ON {FuelGrades.Names[(int)_lapsFuelPick]}" : "";      // (the medals count on any fuel, the bonus track's gold on its own)
         return Tracks[i].requires == Bonus ? "A GOLD ON ANY TRACK" + fuel : $"A {Campaign.Name(MedalToOpen(_trackFor))} ON {TrackName(Tracks[i].requires)}{fuel}";
     }
 
@@ -319,8 +341,14 @@ public partial class RaceScene
             _rallyNextOpenedThisRun = true;
         _bonusOpened = medal == NormPlan.Medal.Gold && rally.Any(n => Array.Exists(Tracks, t => t.name == n && t.requires == Bonus));
         if (!celebrate) return;
-        string unlock = rally.Length > 0 ? string.Join(" + ", rally) + ": RALLY UNLOCKED"
-            : laps.Length > 0 ? string.Join(" + ", laps) + ": STAKHANOV UNLOCKED" : "GLORY TO YOUR GOOD WORK!";
+        // A medal that opens a track is announced like a comment, in the middle of the screen (the owner's order, 2026-11-23); the medal's own small note keeps to the glory
+        if (rally.Length > 0 || laps.Length > 0)
+        {
+            string names = string.Join(" + ", rally.Length > 0 ? rally : laps);
+            string where = rally.Length > 0 ? (laps.Length > 0 ? "OPEN IN THE SOCIALIST RALLY AND THE STAKHANOV LAPS" : "OPEN IN THE SOCIALIST RALLY") : "OPEN IN THE STAKHANOV LAPS";
+            _hud.ShowAlways("NEW TRACK: " + names, $"{Campaign.Name(medal)} MEDAL - {where}", 6f, Hud.Gold);
+        }
+        string unlock = "GLORY TO YOUR GOOD WORK!";
         _hud.CelebrateMedal(medal, unlock);
         if (OS.HasEnvironment("PLANDBG")) GD.Print($"medal celebration: {medal}, race continues");
     }

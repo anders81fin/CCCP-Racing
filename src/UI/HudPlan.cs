@@ -77,7 +77,7 @@ public partial class Hud
     }
 
     /// <summary>The plan is fulfilled: a sunburst, the order of the Red Banner of Labour, the stats and the next kolkhoz (under construction).</summary>
-    /// <summary>The end-of-rally screens' offer to watch the last lap ("F3  WATCH LAP 5"; a pad: the Party Meeting's route is gone there, so none): null when there is no lap to watch.</summary>
+    /// <summary>The end-of-rally screens' offer to watch the last lap ("F3 > WATCH LAP 5"; a pad: the Party Meeting's route is gone there, so none): null when there is no lap to watch.</summary>
     public string EndWatchHint;
 
     void DrawPlanFulfilled()

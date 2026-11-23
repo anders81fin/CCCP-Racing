@@ -42,7 +42,7 @@ public partial class RaceScene
     bool WatchAvailable => _lastLapId != null && ReplayRowShown && _replayViewer == null && _watchTask == null && _sessionLapArchives.ContainsKey(_lastLapId);
 
     /// <summary>The hint line after a lap: F3 for the keyboard, the Party Meeting's route for a pad (null: none now).</summary>
-    string WatchHintText => _lastLapId == null ? null : _padMode ? "START > WATCH LAST LAP" : $"F3  WATCH LAP {_lastLapNumber}";
+    string WatchHintText => _lastLapId == null ? null : _padMode ? "START > WATCH LAST LAP" : $"F3 > WATCH LAP {_lastLapNumber}";
 
     /// <summary>"PREPARING", "NOT SAVED", "OLD VERSION" for a lap that cannot be opened (yet); empty when it can.</summary>
     static string WatchStateText(LapEntryInfo i) => i.Openable ? "" : i.State switch
@@ -73,12 +73,21 @@ public partial class RaceScene
     void WatchLastLap(WatchFrom from)
     {
         if (!WatchAvailable) return;
-        _watchId = _lastLapId; _watchNumber = _lastLapNumber; _watchFrom = from;
+        WatchLapId(_lastLapId, _lastLapNumber, from);
+    }
+
+    /// <summary>Opens the given lap of this run's archive (the last lap, or the lap in progress).</summary>
+    void WatchLapId(string lapId, int number, WatchFrom from)
+    {
+        if (lapId == null || !_sessionLapArchives.ContainsKey(lapId)) return;
+        _watchId = lapId; _watchNumber = number; _watchFrom = from;
         _watchArchive = _sessionLapArchives[_watchId];
         var archive = _watchArchive; string id = _watchId;
         _watchTask = Task.Run(() =>
         {
             var info = archive.List().FirstOrDefault(i => i.Id == id);
+            for (int wait = 0; wait < 100 && info is { Openable: false, State: LapEntryState.Pending }; wait++)      // (a lap captured just now: its tape is being prepared; a few seconds at most)
+            { System.Threading.Thread.Sleep(50); info = archive.List().FirstOrDefault(i => i.Id == id); }
             if (info == null) return ((LapSource)null, "NOT IN THE ARCHIVE", (LapEntryInfo)null);
             if (!info.Openable) return (null, WatchStateText(info) is { Length: > 0 } t ? t : "CANNOT BE OPENED", info);
             var src = archive.Open(id, out string reason);
@@ -95,9 +104,9 @@ public partial class RaceScene
         bool offer = _lastLapId != null && ReplayRowShown && _sessionLapArchives.ContainsKey(_lastLapId);
         _hud.WatchHint = offer && _state == State.Racing && _watchHintClock < WatchHintSeconds && !PlanHasCar && !FateHasCar ? WatchHintText : null;
         _hud.WatchHintAlpha = Math.Clamp((WatchHintSeconds - _watchHintClock) / 2f, 0f, 1f);
-        string end = offer ? (_padMode ? "START  WATCH LAST LAP AS REPLAY" : "F3  WATCH LAST LAP AS REPLAY") : null;      // (the end screens: the plan fulfilled, the gulag; the pad has START as on the stop card)
+        string end = offer ? (_padMode ? "START > WATCH LAST LAP AS REPLAY" : "F3 > WATCH LAST LAP AS REPLAY") : null;      // (the end screens: the plan fulfilled, the gulag; the pad has START as on the stop card)
         // The stop card offers the lap only when the card is about that lap (LAP NOT COUNTED): a radar trap, fuel or engine card comes in the middle of another lap, and "the last lap" would be an older one.
-        _hud.StopCardWatch = _stopCard is { Kind: "norm_missed" } && offer ? (_padMode ? "START  WATCH LAST LAP AS REPLAY" : "F3  WATCH LAST LAP AS REPLAY") : null;
+        _hud.StopCardWatch = _stopCard is { Kind: "norm_missed" } && offer ? (_padMode ? "START > WATCH LAST LAP AS REPLAY" : "F3 > WATCH LAST LAP AS REPLAY") : null;
         _hud.EndWatchHint = _planScreen || _gulag ? end : null;
         if (_watchTask is not { IsCompleted: true } t) return;
         _watchTask = null;

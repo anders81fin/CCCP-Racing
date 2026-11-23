@@ -13,6 +13,8 @@ public partial class Hud
 
     public int RallyExitSelection;
     public string RallyExitError;
+    /// <summary>A revenge is under way: the question says it comes along with the save.</summary>
+    public bool RallyExitRevenge;
 
     public int RallyExitRowAt(Vector2 pos)
     {
@@ -31,7 +33,8 @@ public partial class Hud
         DrawHeading("CONTINUE NEXT TIME?", Screen.X / 2, r.Position.Y + 10, _menuTextClock);
         PixelFont.DrawCentered(this, "RETURN TO THIS RALLY WHEN YOU PICK", Screen.X / 2, r.Position.Y + 34, Paper);
         PixelFont.DrawCentered(this, "THIS TRACK AGAIN?", Screen.X / 2, r.Position.Y + 44, Paper);
-        PixelFont.DrawCentered(this, "SAME NORM AND LAPS - FROM THE START LINE", Screen.X / 2, r.Position.Y + 60, Grey);
+        PixelFont.DrawCentered(this, "SAME NORM, ENGINE, FUEL AND DOSE - LAP LOST", Screen.X / 2, r.Position.Y + 60, Grey);
+        if (RallyExitRevenge) PixelFont.DrawCentered(this, "A REVENGE UNDER WAY COMES WITH YOU", Screen.X / 2, r.Position.Y + 69, Red);
         string[] options = { "YES - SAVE AND LEAVE", "NO - LEAVE WITHOUT SAVING", "CANCEL - BACK TO PARTY MEETING" };
         for (int i = 0; i < options.Length; i++)
         {

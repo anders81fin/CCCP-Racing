@@ -27,7 +27,7 @@ public partial class CarRadio : Node
     /// <summary>Volume levels 0..10, 2.5 dB apart like the other mixer rows; level 5 (the default, 50 %) is the
     /// loudness that used to be the maximum, 0 is mute. Saved as radio/level (the old radio/volume was on a different scale).</summary>
     public const int MaxVolume = 10, DefaultVolume = 5;
-    const float DefaultDb = 3f, StepDb = 2.5f;
+    const float DefaultDb = 8f, StepDb = 2.5f;      // (the owner, 2026-11-23: the music two notches louder than before at the mixer's middle: 3 -> 8 dB)
     int _volume = DefaultVolume;
     string _settingsPath;
 

@@ -173,10 +173,14 @@ public partial class RaceScene
         foreach (var x in VrTap(Key.Space)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
         VwCheck(_titleMenuHidden && _hud.TitleMenuHidden, "Space hides the menu");
+        // the title has no poster colour filter any more; the bottom line stays with the menu hidden
+        VwCheck(_saturation > 0.99f, $"the world is in its own colour (saturation {_saturation:0.00}): the poster filter is off");
         foreach (var x in VrShot("titlesettings-hidden")) yield return x;
+        VwCheck(_saturation > 0.99f, "the hidden menu's world has no poster filter");
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
         VwCheck(!_titleMenuHidden && _card == TitleCard.None, "Enter on the hidden menu only brings it back (nothing starts)");
+        VwCheck(_saturation > 0.99f, "and it stays in colour when the menu is back (no poster filter)");
         foreach (var x in VrTap(Key.Space)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
         VwCheck(_titleMenuHidden, "Space hides it again");
@@ -203,6 +207,7 @@ public partial class RaceScene
         foreach (var x in VrTap(Key.Space)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
         VwCheck(_titleMenuHidden && _card == TitleCard.RallyFuel && _hud.TitleMenuHidden, "Space hides the menu and its card too");
+        foreach (var x in VrShot("titlesettings-card-hidden")) yield return x;
         foreach (var x in VrTap(Key.Left)) yield return x;
         VwCheck(_titleMenuHidden, "while it is hidden the card takes no keys");
         foreach (var x in VrTap(Key.Space)) yield return x;

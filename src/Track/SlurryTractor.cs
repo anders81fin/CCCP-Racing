@@ -37,6 +37,8 @@ public partial class SlurryTractor : Node3D
     public bool Avenging => _departureStage is 5 or 6;
     /// <summary>The tractor's revenge laps still to be driven by the car.</summary>
     public int RevengeLapsLeft => _revengeLapsLeft;
+    /// <summary>A resumed rally: the revenge goes on with the laps it had left (never more than it started with).</summary>
+    public void SetRevengeLapsLeft(int laps) { if (Avenging && laps > 0) _revengeLapsLeft = Math.Min(laps, RevengeLaps); }
     /// <summary>The revenge is over: the tractor drives back to its fields.</summary>
     public event Action RevengeOver;
     /// <summary>The car finished a lap of the revenge and laps are left (how many).</summary>

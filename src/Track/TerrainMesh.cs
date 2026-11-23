@@ -29,6 +29,7 @@ public static class TerrainMesh
         var cols = new Color[triCount * 3];
         var nrms = new Vector3[triCount * 3];
         var uv2s = new Vector2[triCount * 3];      // x: the tile's tint without relief or hill shadow (the lit night material)
+        var dryGrass = t.Id == "bonus" ? new DryGrassMap(t) : null;
         int k = 0;
         const float cellU = 1f / Surfaces.Count, cellV = 1f / TileAtlas.Variants;
         const float inset = 0.5f / 16f;
@@ -75,6 +76,10 @@ public static class TerrainMesh
             for (int j = k; j < k + 6; j++) uv2s[j] = new Vector2(plain, rock);
             Tri(verts, uvs, cols, nrms, ref k, v00, v10, v11, t00, t10, t11, tint);
             Tri(verts, uvs, cols, nrms, ref k, v00, v11, v01, t00, t11, t01, tint);
+            // The Poligon's drier grass: how far this tile's grass is shifted to a dry yellow-green is carried in the vertex colour's alpha (1 - amount; 1 everywhere else, so no other
+            // track or surface changes); the shader tints the grass texture's own pixels by it (a drawing-only change: the surfaces, heights and grip are not touched).
+            if (dryGrass != null && dryGrass.At(ix, iz, s) is float dryAmount and > 0f)
+                for (int j = k - 6; j < k; j++) { var cj = cols[j]; cols[j] = new Color(cj.R, cj.G, cj.B, 1f - dryAmount); }
         }
         }
 
@@ -148,6 +153,15 @@ public static class TerrainMesh
         foreach (var child in terrain.GetChildren())
             if (child is MeshInstance3D mesh && mesh.Name.ToString().StartsWith("TerrainChunk", StringComparison.Ordinal))
                 mesh.MaterialOverride = material;
+    }
+
+    /// <summary>Scales the dry grass on every material of this terrain (0 off, 1 as built): used by the Poligon review's before/after pictures.</summary>
+    public static void SetDryScale(MeshInstance3D terrain, float scale)
+    {
+        void Set(Material m) { if (m is ShaderMaterial sm) sm.SetShaderParameter("dry_scale", scale); }
+        Set(terrain.MaterialOverride); Set(terrain.Mesh?.SurfaceGetMaterial(0));
+        foreach (var child in terrain.GetChildren())
+            if (child is MeshInstance3D mesh && mesh.Name.ToString().StartsWith("TerrainChunk", StringComparison.Ordinal)) { Set(mesh.MaterialOverride); Set(mesh.Mesh?.SurfaceGetMaterial(0)); }
     }
 
     static float NorthRock(TrackData t, int surface, Vector3 p, float dx, float dz)
@@ -348,6 +362,8 @@ render_mode cull_disabled, specular_disabled, diffuse_lambert;
 uniform sampler2D atlas : source_color, filter_nearest;
 uniform vec3 baked_tint = vec3(1.0);
 uniform float lit_mix = 0.0;
+uniform vec3 dry_tint = vec3(1.46, 1.1, 0.52);      // the Poligon's dry grass: red up, blue down (the texture's pixels keep their pattern)
+uniform float dry_scale = 1.0;      // 0 turns the dry grass off (a test's before picture)
 uniform vec2 cells = vec2(16.0, 4.0);
 const float INSET = 0.03125;       // half a texel of the 16 px tile (TerrainMesh)
 varying flat vec2 cell;
@@ -360,6 +376,17 @@ void fragment() {
 	// A tile's UVs span exactly its inset cell; an edge pixel's extrapolated UV is held inside it (MSAA).
 	vec2 uv = clamp(UV, (cell + INSET) / cells, (cell + 1.0 - INSET) / cells);
 	vec3 tex = texture(atlas, uv).rgb;
+    float dry = (1.0 - COLOR.a) * dry_scale;
+    if (dry > 0.002) {
+        // Inside the grass, texel by texel: some blades take the dry tint fully, some hardly (a hash of the world texel, 8 to a metre like the atlas), so the pixel pattern and its light and dark
+        // blades stay and the change is grass-internal and irregular, not a patch or a filter.
+        vec2 px = floor(terrain_world.xz * 8.0);
+        float h = fract(sin(dot(px, vec2(127.1, 311.7))) * 43758.5453);
+        tex = mix(tex, tex * dry_tint, clamp(dry * (0.55 + 0.7 * h), 0.0, 1.0));
+        // Where a tree was left out the ground is bare earth (the amount reaches 1): the texel's own light and dark kept, the hue turned to brown
+        float earth = smoothstep(0.96, 1.0, dry);
+        if (earth > 0.0) { float l = dot(tex, vec3(0.299, 0.587, 0.114)); tex = mix(tex, vec3(l) * vec3(1.5, 1.08, 0.7), earth * 0.8); }
+    }
     if (UV2.y > 0.001) {
         // Coherent mineral beds, thin horizontal seams and staggered fractures.
         // World-space coordinates keep the layers continuous across terrain chunks.
@@ -429,6 +456,71 @@ void fragment() {
         v[k] = a; uv[k] = ta; c[k++] = col;
         v[k] = b; uv[k] = tb; c[k++] = col;
         v[k] = d; uv[k] = td; c[k++] = col;
+    }
+}
+
+/// <summary>
+/// How dry the Poligon's grass is drawn, tile by tile (0: the grass as authored, 1: the full dry yellow-green). The whole map's grass leans a little to dry; the worn verge on the LEFT of the start straight
+/// (the left in the direction of driving, from a little behind the line to some metres past it, out to a score of metres from the road) most of all; the amount is broken up by a smooth noise and a per-tile hash so it
+/// never forms a clean patch. Only Grass tiles of the bonus track: the roads, the other surfaces and every other track are 0.
+/// </summary>
+public sealed class DryGrassMap
+{
+    readonly TrackData _t;
+    readonly int _start;
+    public const float Base = 0.3f, Peak = 0.95f;
+
+    public DryGrassMap(TrackData t)
+    {
+        _t = t;
+        var s = new Vector2(t.StartPos.X, t.StartPos.Z); float best = float.MaxValue;
+        for (int i = 0; i < t.Center.Length; i++) { float d = t.Center[i].DistanceSquaredTo(s); if (d < best) { best = d; _start = i; } }
+    }
+
+    static float Smooth(float a, float b, float x) { float u = Math.Clamp((x - a) / (b - a), 0f, 1f); return u * u * (3f - 2f * u); }
+
+    /// <summary>The worn left verge's weight (0..1) at a ground point.</summary>
+    public float VergeWeight(Vector2 p)
+    {
+        int ci = _t.NearestCenter(p, out _);
+        Vector2 c = _t.Center[ci], d = _t.CenterDir(ci), left = new(-d.Y, d.X);
+        float lateral = (p - c).Dot(left);
+        if (lateral <= 0f) return 0f;      // the other side of the road
+        float off = lateral - _t.HalfWidth[ci];
+        int n = _t.Center.Length, rel = ((ci - _start) % n + n) % n; if (rel > n / 2) rel -= n;
+        float outside = rel < -14 ? -14 - rel : rel > 30 ? rel - 30 : 0f;      // metres past the stretch from 14 behind the line to 30 beyond it
+        return (1f - Smooth(0f, 14f, outside)) * (1f - Smooth(10f, 24f, off));
+    }
+
+    /// <summary>1 on the spot of a tree left out (BonusTrees), easing to 0 about 4 m away: the ground there is drawn as earth.</summary>
+    public float ClearedWeight(float x, float z)
+    {
+        float w = 0f;
+        foreach (var c in _t.ClearedTrees)
+        {
+            float dx = c.X - x, dz = c.Y - z; float d2 = dx * dx + dz * dz;
+            if (d2 > 17f) continue;
+            w = Math.Max(w, 1f - Smooth(1.2f, 4.1f, MathF.Sqrt(d2)));
+        }
+        return w;
+    }
+
+    public float AtPoint(float x, float z, int ix, int iz)
+    {
+        float weight = VergeWeight(new Vector2(x, z));
+        float amount = Base + (Peak - Base) * weight;
+        float smooth = 0.5f + 0.5f * Noise.Value(x / 6f, z / 6f, 4417), tile = Noise.Hash01(ix, iz, 4418);
+        float dry = Math.Clamp(amount * (0.72f + 0.28f * (0.6f * smooth + 0.4f * tile)), 0f, 1f);
+        float cleared = ClearedWeight(x, z);
+        return cleared > 0.9f ? 1f : Math.Max(dry, cleared * 0.95f);
+    }
+
+    /// <summary>The amount for a tile of the given surface (0 unless it is grass).</summary>
+    public float At(int ix, int iz, int surface)
+    {
+        if (surface != (int)SurfaceType.Grass) return 0f;
+        float tile = _t.Tile;
+        return AtPoint((ix + 0.5f) * tile, (iz + 0.5f) * tile, ix, iz);
     }
 }
 

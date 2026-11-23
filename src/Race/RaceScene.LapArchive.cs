@@ -18,7 +18,8 @@ public partial class RaceScene
     static readonly bool LapArchiveOff = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--no-lap-archive") >= 0;
     static readonly bool LapArchiveRetainAll = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--lap-archive-retain-all") >= 0;
 
-    bool LapArchiveEligible => !LapArchiveOff && _state == State.Racing && _run is RunMode.Rally or RunMode.Training && !InSchool && !InLanRace
+    bool LapArchiveEligible => LapArchiveEligibleIn(State.Racing);
+    bool LapArchiveEligibleIn(State state) => !LapArchiveOff && _state == state && _run is RunMode.Rally or RunMode.Training && !InSchool && !InLanRace
         && !_tourCapture && !_cinematicTour && !_droneTour && !_previewMovie && !NoRecords;
 
     /// <summary>The active personnel file's lap folder (retained laps live here); user:// or the test data dir, globalised.</summary>
@@ -33,22 +34,22 @@ public partial class RaceScene
     LapArchive LapArchiveBox => LapArchive.For(LapArchiveDir);
 
     /// <summary>The lap that just ended, before the recorders are reset. Cheap on the main thread: a ghost copy and the recorder snapshot; the rest runs on the archive's worker.</summary>
-    void LapArchiveCapture(float time, LapKind kind, bool ranked, bool fake)
+    void LapArchiveCapture(float time, LapKind kind, bool ranked, bool fake, int lapNumber = 0, bool partial = false)
     {
-        _lastBoardRecordingId = null;
-        if (fake || !LapArchiveEligible || _rec.Count < 2) return;
+        if (!partial) { _lastBoardRecordingId = null; DropPartialLap(); }
+        if (fake || !LapArchiveEligibleIn(partial ? State.Paused : State.Racing) || _rec.Count < 2) return;
         var sw = Stopwatch.StartNew();
         var copy = _rec.CopyWithTime(time);
         var cap = LapCapture.FromGhostCopy(copy, _tapeOn ? _tapeRec : null, _track.Id, RecordSet, _run == RunMode.Rally ? "rally" : "stakhanov", kind, ranked,
             copy.HasDayClock ? copy.DayClockAt(0) : -1, _file.ToString(), _records.Signature);
         cap.Fuels = LapFuelsText();
         cap.Livery = LiveryText();      // RaceScene.Livery.cs: the chief test pilot's name and stars, when this lap wore them
-        cap.LapNumber = System.Math.Max(1, _timer.LapsDone);
+        cap.LapNumber = lapNumber > 0 ? lapNumber : System.Math.Max(1, _timer.LapsDone);
         bool board = ranked && !_autodrive && _board.Qualifies(time, _lapPeak);
         var archive = board ? LeaderboardLapArchive : LapArchiveBox;
         if (board) _boardLapArchiveUsed = archive; else _lapArchiveUsed = archive;
         var res = archive.Submit(cap);
-        if (res.Accepted) { _sessionLapArchives[res.Id] = archive; _sessionLapOrder[res.Id] = ++_sessionLapSequence; NoteLastLap(res.Id, cap.LapNumber, time, kind); }
+        if (res.Accepted) { _sessionLapArchives[res.Id] = archive; _sessionLapOrder[res.Id] = ++_sessionLapSequence; if (partial) _partialLapId = res.Id; else NoteLastLap(res.Id, cap.LapNumber, time, kind); }
         if (board && res.Accepted)
         {
             _lastBoardRecordingId = res.Id;

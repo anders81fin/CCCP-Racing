@@ -84,6 +84,8 @@ public class TrackData : IGround
     public MaintenanceHallSite MaintenanceHall;
 
     public readonly List<PropInstance> Props = new();
+    /// <summary>Where the builder left a tree out on purpose (the Poligon's cleared ground: BonusTrees.cs): drawn as earth and hay, never an obstacle.</summary>
+    public readonly List<Vector2> ClearedTrees = new();
     public readonly List<FenceRun> Fences = new();
     /// <summary>The winter road's snow banks (null: a summer track).</summary>
     public Snowbanks Banks;
