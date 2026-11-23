@@ -176,6 +176,19 @@ public partial class Breakables : Node3D
     /// CarSim.BreakObstacle: obstacle i was hit at this speed by a car moving at vel. Breaks it and
     /// returns true if it is breakable (the threshold is the obstacle's BreakAt).
     /// </summary>
+    /// <summary>The vehicles of the world against the people who fall over (MoverBlockers.KnockPass): the mechanic, the drunks, the officers, the workers knocked over by a tractor, a bus, a tank.</summary>
+    public int KnockByMovers()
+    {
+        if (_t == null || _knocks.Count == 0) return 0;
+        return MoverBlockers.KnockPass(_t, _knocks.Keys, (i, vel) =>
+        {
+            if (_removed.ContainsKey(i) || !_knocks.TryGetValue(i, out var knock)) return false;
+            bool down = knock(vel);
+            if (down) { KnockedThisTick++; KnockSpeed = Math.Max(KnockSpeed, new Vector2(vel.X, vel.Z).Length()); }
+            return down;
+        });
+    }
+
     public bool TryBreak(int i, float impact, Vector3 vel, Vector3 carPos)
     {
         if (_removed.ContainsKey(i)) return false;

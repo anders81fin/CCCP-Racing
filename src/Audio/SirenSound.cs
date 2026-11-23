@@ -42,7 +42,7 @@ public partial class SirenSound : AudioStreamPlayer3D
         VolumeDb = Loudness;
         Bus = AudioMix.BusFor(AudioMix.Diesel);
         Play();
-        _pb = GetStreamPlayback() as AudioStreamGeneratorPlayback;
+        _pb = GeneratorOwnership.Playback(this);
     }
 
     public override void _Process(double delta)

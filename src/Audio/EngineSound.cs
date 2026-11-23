@@ -147,7 +147,7 @@ public partial class EngineSound : Node
         AddChild(_player);
         _player.TreeExiting += _ExitTree;
         _player.Play();
-        _pb = _player.GetStreamPlayback() as AudioStreamGeneratorPlayback;
+        _pb = GeneratorOwnership.Playback(_player);
     }
 
     /// <summary>Drop queued PCM on an isolated replay seek, then fill a fresh playback from the new pose.</summary>

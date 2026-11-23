@@ -61,7 +61,7 @@ public partial class GurgleSound : Node
         _player = new AudioStreamPlayer { Stream = gen, VolumeDb = EngineSound.GainDb, Bus = AudioMix.BusFor(AudioMix.Engine) };
         AddChild(_player);
         _player.Play();
-        _pb = _player.GetStreamPlayback() as AudioStreamGeneratorPlayback;
+        _pb = GeneratorOwnership.Playback(_player);
     }
 
     public override void _Process(double delta)

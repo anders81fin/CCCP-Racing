@@ -51,7 +51,7 @@ public partial class JetSound : AudioStreamPlayer3D
         AttenuationFilterDb = 0f;   // distance filtering is done in the synth below
         Bus = Debug ? "Jet" : AudioMix.BusFor(AudioMix.Jet);   // test: record the jets alone with --record-bus=Jet
         Play();
-        _pb = GetStreamPlayback() as AudioStreamGeneratorPlayback;
+        _pb = GeneratorOwnership.Playback(this);
     }
 
     Vector3 Ear()
@@ -205,7 +205,7 @@ public partial class ExplosionSound : AudioStreamPlayer3D
             _cut = 1f - MathF.Exp(-MathF.Tau * fc / MixRate);
         }
         Play();
-        _pb = GetStreamPlayback() as AudioStreamGeneratorPlayback;
+        _pb = GeneratorOwnership.Playback(this);
     }
 
     public override void _Process(double delta)

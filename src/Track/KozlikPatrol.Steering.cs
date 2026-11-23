@@ -39,7 +39,7 @@ public partial class KozlikPatrol
         {
             Vector2 nextAt = Position2D + Forward2D.Rotated(turn * 0.5f) * (signedSpeed * dt), nextFwd = Forward2D.Rotated(turn).Normalized();
             for (int k = 0; k < 3; k++)
-                if (GulagTruck.BlocksAt(nextAt + nextFwd * (k - 1) * (Wheelbase * .5f), ObsRadius)) { _speed = 0; signedSpeed = 0; turn = 0; break; }
+                if (GulagTruck.BlocksAt(nextAt + nextFwd * (k - 1) * (Wheelbase * .5f), ObsRadius, this, !Chasing)) { _speed = 0; signedSpeed = 0; turn = 0; break; }
         }
         Position2D += Forward2D.Rotated(turn * 0.5f) * (signedSpeed * dt);
         Forward2D = Forward2D.Rotated(turn).Normalized();

@@ -331,11 +331,12 @@ public partial class RaceScene
         foreach (var b in _boards) b.LastName = "ANTTI KORSUMAKI";
         const NormPlan.Medal N = NormPlan.Medal.None, S = NormPlan.Medal.Silver, G = NormPlan.Medal.Gold;
         void Award(string t, NormPlan.Medal m) => _campaign.Award(t, m, FuelGrade.Sputnik);
-        BeginFuelCeremony(); _fuelCeremony = null; _hud.EndFuelCeremony();      // (no fuel ceremony in the way)
+        _campaign.PresentFuel(FuelGrade.Diesel);      // (the fuel question is asked: no fuel ceremony in the way)
         BeginSputnikCeremony();
         VwCheck(_spStage == SpStage.None, "no Sputnik medals: no ceremony");
         // other fuels' golds on every track do nothing
         foreach (var t in SputnikStanding.AllTracks) { _campaign.Award(t, G, FuelGrade.Rocket); _campaign.Award(t, G, FuelGrade.Petrol); }
+        foreach (var g in new[] { FuelGrade.Petrol, FuelGrade.Rocket, FuelGrade.Sputnik }) _campaign.PresentFuel(g);      // (the gold on the other fuels opens fuels: their ceremonies are not what this scenario looks at)
         BeginSputnikCeremony();
         VwCheck(_spStage == SpStage.None, "gold on the other fuels: no ceremony");
 
@@ -409,7 +410,7 @@ public partial class RaceScene
         for (int i = 0; i < 60; i++) yield return null;
         foreach (var b in _boards) b.LastName = "A VERY LONG NAME";
         const NormPlan.Medal G = NormPlan.Medal.Gold;
-        BeginFuelCeremony(); _fuelCeremony = null; _hud.EndFuelCeremony();
+        _campaign.PresentFuel(FuelGrade.Diesel);
         // the three main golds before Poligon: the champion's pennant (and the licence), no order
         foreach (var t in SputnikStanding.MainTracks) _campaign.Award(t, G, FuelGrade.Sputnik);
         BeginSputnikCeremony();
@@ -562,5 +563,40 @@ public partial class RaceScene
         for (int i = 0; i < 20; i++) yield return null;
         VwCheck(!_showFiles && !_galleryOpen && _state == State.Title, "Esc again leaves the files");
         VwCheck(_campaign.SputnikPaintedName == "KOSTIA", "the gallery wrote nothing");
+    }
+
+    // ------------------------------------------------------------------ the ceremonies wait for a clear title (the Deck's launch: a licence over the launch flow that took no key)
+    IEnumerable VwSitCeremonyGate()
+    {
+        foreach (var x in VwWaitReady()) yield return x;
+        for (int i = 0; i < 600 && !(_state == State.Title && _card == TitleCard.None && !_showLog && !_askName); i++) yield return null;
+        for (int i = 0; i < 60; i++) yield return null;
+        foreach (var b in _boards) b.LastName = "ANDERS81FIN";
+        BeginFuelCeremony(); _fuelCeremony = null; _hud.EndFuelCeremony();
+        foreach (var t in SputnikStanding.MainTracks) _campaign.Award(t, NormPlan.Medal.Silver, FuelGrade.Sputnik);      // (earned before, never presented: the profile of the Deck)
+        // the launch flow: the archive is up (at launch) and the startup banner runs: the ceremony stays away
+        _filesAtLaunch = true; _showFiles = true; _hud.Mode = HudMode.Files; _ceremonyDue = true;
+        for (int i = 0; i < 120; i++) yield return null;
+        VwCheck(_spStage == SpStage.None && !_hud.SpOn, "with the KGB ARCHIVE open at launch no ceremony starts under it");
+        CloseFiles();
+        _hud.BeginStartupBanner(); _ceremonyDue = true;
+        int stillPending = 0; for (int i = 0; i < 30; i++) { if (_hud.StartupArchivePending) stillPending++; yield return null; }
+        VwCheck(stillPending == 0 || (_spStage == SpStage.None && !_hud.SpOn), "during the startup banner no ceremony starts");
+        // clear: it starts by itself
+        for (int i = 0; i < 60 * 12 && !_hud.SpOn; i++) yield return null;
+        VwCheck(_hud.SpOn && _spStage == SpStage.Card && !_hud.StartupArchivePending, $"once the title is clear the licence comes ({_hud.SpOn}, {_spStage})");
+        foreach (var x in SpWaitAge(3.5f)) yield return x;
+        foreach (var x in VrShot("ceremony-gate")) yield return x;
+        // a key closes it
+        foreach (var x in SpPress()) yield return x;
+        VwCheck(_spStage == SpStage.None && !_hud.SpOn && _campaign.SputnikPresented(SputnikAward.TestPilot), "a key closes it");
+        // a loading card over the title keeps it away too
+        _campaign.Award("bonus", NormPlan.Medal.Silver, FuelGrade.Sputnik); _ceremonyDue = true;
+        _titleMenuHidden = true;
+        for (int i = 0; i < 60; i++) yield return null;
+        VwCheck(_spStage == SpStage.None, "with the menu hidden (SPACE) nothing starts");
+        _titleMenuHidden = false;
+        for (int i = 0; i < 60 * 6 && _spStage == SpStage.None; i++) yield return null;
+        VwCheck(_spStage == SpStage.Card && _spMain == SputnikAward.Third, "and when it is shown again the third class comes");
     }
 }

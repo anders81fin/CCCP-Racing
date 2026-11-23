@@ -23,6 +23,7 @@ public partial class RaceScene
     partial void LanRecordProbeTick();
     partial void LanExportUiProbe();
     partial void LanWorldCheck();
+    partial void TrackChainTick(float dt);      // --track-chain=a,b,c: the track changes of a play session, driven through the game's own menu functions (RaceScene.ViewerWindowedTrackChain.cs)
 
     // Set by the test flags (parsed in production code); read only by the test files.
     bool _lanBoardProbe, _lanLeaveProbe, _lanRecordProbe;

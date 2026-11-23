@@ -3,6 +3,15 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.917
+
+- STEAM DECK: the new fuel and SPUTNIK honours no longer come over the launch cards. A licence for medals already on file could cover the start and take no key. The ceremonies now wait until the main menu is clear
+- AUDIO: the freeze on a track change and the freeze when the game closed are fixed at the root. A stopped generated sound could be freed while the mixer still read it, and the mixer then looped for ever. Every generated sound is now kept alive by its own playback for exactly as long as the mixer needs it
+- VEHICLES: your car is solid to the bus, the tractors, the ploughs, the Kozlik, the BTRs and the tanks. They stop in front of it instead of driving through. The Kozlik stays solid to the traffic during the stop and the autograph, though not to your car
+- PEOPLE: a vehicle that rolls into a man knocks him over, also the mechanic, the drunks, the officers and the workers. The mechanic had no body at all before: now he falls, his job is off and your car is let go, and he gets up again. This holds on the camp and the bonus track too
+- STEAM DECK: the stall log no longer calls a loading card that waits for your key a frozen game
+- STEAM DECK: the diagnostics of the 0.916 audio test are in the log of every run: the sound driver and the life of the generated sounds. A file named diag-nogen next to the saves still keeps them quiet
+
 ## 0.916
 
 - FUELS: opening a new fuel (PETROL, JET FUEL, SPUTNIK) now has a ceremony of its own, bigger than opening a track or a gold on one track: the new fuels car turns in the middle of the screen, with its name, its numbers and what opened it. It comes once, when you are back in the menu

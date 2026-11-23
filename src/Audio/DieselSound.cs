@@ -71,7 +71,7 @@ public partial class DieselSound : AudioStreamPlayer3D
         VolumeDb = Loudness;
         Bus = AudioMix.BusFor(AudioMix.Diesel);
         Play();
-        _pb = GetStreamPlayback() as AudioStreamGeneratorPlayback;
+        _pb = GeneratorOwnership.Playback(this);
     }
 
     public void Cough() => _cough = 1f;

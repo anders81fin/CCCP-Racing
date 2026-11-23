@@ -26,7 +26,7 @@ public partial class EarRingSound : AudioStreamPlayer
         Bus = AudioMix.BusFor(AudioMix.Warning);
         VolumeDb = -22f + 12f * Level;
         Play();
-        _pb = GetStreamPlayback() as AudioStreamGeneratorPlayback;
+        _pb = GeneratorOwnership.Playback(this);
     }
     public override void _Process(double delta)
     {

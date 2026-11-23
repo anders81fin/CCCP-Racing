@@ -172,6 +172,7 @@ src/Car/CarSim.Network.cs.uid
 src/Car/CarSim.cs
 src/Car/CarSim.cs.uid
 src/Car/CarVisual.Livery.cs
+src/Car/CarVisual.Livery.cs.uid
 src/Car/CarVisual.cs
 src/Car/CarVisual.cs.uid
 src/Car/CollisionResponse.cs
@@ -384,6 +385,7 @@ src/Race/RaceScene.LeaderboardReplay.cs.uid
 src/Race/RaceScene.LensFx.cs
 src/Race/RaceScene.LensFx.cs.uid
 src/Race/RaceScene.Livery.cs
+src/Race/RaceScene.Livery.cs.uid
 src/Race/RaceScene.LoadProgress.cs
 src/Race/RaceScene.LoadProgress.cs.uid
 src/Race/RaceScene.LoadSlices.cs
@@ -451,7 +453,9 @@ src/Race/RaceScene.SoundMixer.cs.uid
 src/Race/RaceScene.SpeedTrap.cs
 src/Race/RaceScene.SpeedTrap.cs.uid
 src/Race/RaceScene.SputnikCeremony.cs
+src/Race/RaceScene.SputnikCeremony.cs.uid
 src/Race/RaceScene.SputnikGallery.cs
+src/Race/RaceScene.SputnikGallery.cs.uid
 src/Race/RaceScene.StakhanovBoard.cs
 src/Race/RaceScene.StakhanovBoard.cs.uid
 src/Race/RaceScene.StakhanovSession.cs
@@ -575,6 +579,7 @@ src/Race/RaceScene.ViewerWindowedTitle.cs
 src/Race/RaceScene.ViewerWindowedTitle.cs.uid
 src/Race/RaceScene.ViewerWindowedTrackBoards.cs
 src/Race/RaceScene.ViewerWindowedTrackBoards.cs.uid
+src/Race/RaceScene.ViewerWindowedTrackChain.cs
 src/Race/RaceScene.VisualSettings.cs
 src/Race/RaceScene.VisualSettings.cs.uid
 src/Race/RaceScene.WorldBuild.cs
@@ -602,6 +607,7 @@ src/Race/SchoolScript.cs.uid
 src/Race/SpeedRecords.cs
 src/Race/SpeedRecords.cs.uid
 src/Race/SputnikProgram.cs
+src/Race/SputnikProgram.cs.uid
 src/Race/Tape.cs
 src/Race/Tape.cs.uid
 src/Race/TapeEmitters.cs
@@ -756,6 +762,7 @@ src/Tests/PhysicsTest.GameplayCamera.cs
 src/Tests/PhysicsTest.GameplayCamera.cs.uid
 src/Tests/PhysicsTest.GearSweep.cs
 src/Tests/PhysicsTest.GearSweep.cs.uid
+src/Tests/PhysicsTest.GeneratorOwnership.cs
 src/Tests/PhysicsTest.GhostBytesWorker.cs
 src/Tests/PhysicsTest.GhostBytesWorker.cs.uid
 src/Tests/PhysicsTest.GroundEngineSound.cs
@@ -842,6 +849,8 @@ src/Tests/PhysicsTest.MilitaryMotion.cs
 src/Tests/PhysicsTest.MilitaryMotion.cs.uid
 src/Tests/PhysicsTest.ModelReview.cs
 src/Tests/PhysicsTest.ModelReview.cs.uid
+src/Tests/PhysicsTest.MoverContacts.cs
+src/Tests/PhysicsTest.MoverContacts.cs.uid
 src/Tests/PhysicsTest.NormCard.cs
 src/Tests/PhysicsTest.NormCard.cs.uid
 src/Tests/PhysicsTest.OctaneTape.cs
@@ -905,6 +914,7 @@ src/Tests/PhysicsTest.SoundGrades.cs.uid
 src/Tests/PhysicsTest.Spin.cs
 src/Tests/PhysicsTest.Spin.cs.uid
 src/Tests/PhysicsTest.SputnikProgram.cs
+src/Tests/PhysicsTest.SputnikProgram.cs.uid
 src/Tests/PhysicsTest.StakhanovFuelBoards.cs
 src/Tests/PhysicsTest.StakhanovFuelBoards.cs.uid
 src/Tests/PhysicsTest.StartHillAssist.cs
@@ -1133,6 +1143,8 @@ src/Track/Missile.Tape.cs
 src/Track/Missile.Tape.cs.uid
 src/Track/Missile.cs
 src/Track/Missile.cs.uid
+src/Track/MoverBlockers.cs
+src/Track/MoverBlockers.cs.uid
 src/Track/NightGlow.cs
 src/Track/NightGlow.cs.uid
 src/Track/PartyDacha.Car.cs
@@ -1376,7 +1388,9 @@ src/UI/HudSettings.cs.uid
 src/UI/HudSoundBalance.cs
 src/UI/HudSoundBalance.cs.uid
 src/UI/HudSputnik.cs
+src/UI/HudSputnik.cs.uid
 src/UI/HudSputnikGallery.cs
+src/UI/HudSputnikGallery.cs.uid
 src/UI/HudStakhanovBoard.cs
 src/UI/HudStakhanovBoard.cs.uid
 src/UI/HudStartup.cs

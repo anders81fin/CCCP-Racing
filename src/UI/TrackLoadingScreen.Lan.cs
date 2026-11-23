@@ -18,6 +18,7 @@ public partial class TrackLoadingScreen
     }
     public override void _Process(double delta)
     {
+        if (_continue != null) CCCPRacing.Race.StallWatch.Beat();      // a card waiting for its key is not a frozen game (the scene is not processing while it is up, so it cannot say so itself)
         if(!IsLan) return;
         _hud.Lan.Page=LanPage.Loading;
         _hud.Lan.Title=_lan.Active?"LOADING TRACK":"SESSION CLOSED";

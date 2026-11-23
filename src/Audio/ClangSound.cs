@@ -41,7 +41,7 @@ public partial class ClangSound : AudioStreamPlayer
         Bus = AudioMix.BusFor(AudioMix.Engine);
         VolumeDb = -3f;
         Play();
-        _pb = GetStreamPlayback() as AudioStreamGeneratorPlayback;
+        _pb = GeneratorOwnership.Playback(this);
     }
 
     public override void _Process(double delta)

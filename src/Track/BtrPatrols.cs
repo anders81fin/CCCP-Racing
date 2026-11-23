@@ -293,6 +293,12 @@ public partial class BtrPatrols : Node3D
             Vector2 rel=c-here;float along=rel.Dot(heading),side=MathF.Abs(rel.X*heading.Y-rel.Y*heading.X);
             if(along>-1f && along<11f+r && side<r+2.6f) {target=0;break;}
         }
+        // The player's car, the gulag truck and the people round it: the BTR stops short of them too, it drives through nothing.
+        foreach(var s in GulagTruck.Solids)
+        {
+            Vector2 rel=s.Centre-here;float along=rel.Dot(heading),side=MathF.Abs(rel.X*heading.Y-rel.Y*heading.X);
+            if(along>-1f && along<9f+s.Radius && side<s.Radius+2.6f) {target=0;break;}
+        }
         float rate=target<p.Speed?1.5f:.8f;
         p.Speed=Mathf.MoveToward(p.Speed,target,rate*dt);
         if(p.State==0) p.FireWait-=dt;

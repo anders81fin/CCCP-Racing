@@ -51,7 +51,15 @@ public partial class GulagTruck : Node3D
     public const float PersonRadius = 0.7f;
 
     /// <summary>The truck, the officer and the driver, whichever are out on the road now: nothing drives through any of them (BlocksAt, TrafficCap, the vehicles' own checks).</summary>
-    public static IEnumerable<Solid> Solids => _onRoad is { Active: true } g ? g.SolidList() : Array.Empty<Solid>();
+    public static IEnumerable<Solid> Solids => SolidsFor(null);
+
+    /// <summary>The solids a vehicle must not drive through, but its own (owner: the Kozlik's ghost circles) and, if it says so, not the cars (the Kozlik on a car's tail).</summary>
+    public static IEnumerable<Solid> SolidsFor(object owner, bool cars = true)
+    {
+        if (_onRoad is { Active: true } g) foreach (var s in g.SolidList()) yield return s;
+        if (cars) foreach (var c in MoverBlockers.Cars) yield return new Solid(c.Centre, c.Radius, c.Velocity);      // (the player's car: nothing drives through it either)
+        foreach (var gh in MoverBlockers.Ghosts) if (!ReferenceEquals(gh.Key, owner)) foreach (var c in gh.Value) yield return new Solid(c.Centre, c.Radius, c.Velocity);
+    }
 
     IEnumerable<Solid> SolidList()
     {
@@ -62,9 +70,9 @@ public partial class GulagTruck : Node3D
     }
 
     /// <summary>Whether a body (a circle at pos) would overlap the truck, the officer or the driver: other vehicles stop short of them.</summary>
-    public static bool BlocksAt(Vector2 pos, float radius)
+    public static bool BlocksAt(Vector2 pos, float radius, object owner = null, bool cars = true)
     {
-        foreach (var s in Solids)
+        foreach (var s in SolidsFor(owner, cars))
             if (pos.DistanceSquaredTo(s.Centre) < MathF.Pow(radius + s.Radius + 0.1f, 2)) return true;
         return false;
     }

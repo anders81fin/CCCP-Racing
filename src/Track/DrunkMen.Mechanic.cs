@@ -84,6 +84,16 @@ public partial class DrunkMen
     /// <summary>The fixed service location, even while the mechanic walks over to a car.</summary>
     public Vector2? MechanicPostPosition => _mech == null ? null : new Vector2(_shelter.Origin.X, _shelter.Origin.Z);
 
+    bool _mechWasDown;
+
+    /// <summary>The mechanic's circle in the world: where he stands while he is up, and nothing while he lies on his bench or lies knocked down (Knockdown holds that one away itself).</summary>
+    void MechanicSyncObstacle()
+    {
+        if (_mech.Obstacle < 0 || _mech.Down.Down) return;
+        bool up = _mechPhase is not (Mech.Asleep or Mech.Servicing) && !_mech.Lying;
+        _t.Obstacles[_mech.Obstacle] = up ? new Obstacle(_mech.Pos, Radius, default, false, 0.5f, true, 2.5f, Material: ImpactMaterial.Soft) : new Obstacle(new Vector2(-1e4f, -1e4f), 0.1f);
+    }
+
     public event Action Woke, RepairStarted, Repaired, NothingToFix, RepairInterrupted;
     /// <summary>A hammer blow lands: where, and whether it is the big last one.</summary>
     public event Action<Vector3, bool> Whack;
@@ -103,6 +113,7 @@ public partial class DrunkMen
         _toldFine = false;
         _alert = _toJob = false;
         _mech.Lying = true;
+        MechanicSyncObstacle();      // (he lies on his bench again: no circle in the world)
         _mech.Pos = LyingPos();
         _mech.Yaw = _shelterYaw;     // facing out of the shelter: on his side, he lies along the bench
         _mech.Cheer = 0;
@@ -193,6 +204,13 @@ public partial class DrunkMen
     {
         if (_mech == null) return;
         EnsureHammer();
+        MechanicSyncObstacle();
+        // Knocked over (by the car, a tractor, a tank: Breakables.KnockByMovers): the job is off, he lies where he fell and gets up again (Knockdown); he goes on from his own phase after that
+        // (back to the bench if he was on the way to a car or at work).
+        bool downNow = _mech.Down.Down;
+        if (downNow && !_mechWasDown) { _mechWasDown = true; Interrupt(); Say("ЧТО ТАКОЕ?!", 1.5f); }
+        else if (!downNow) _mechWasDown = false;
+        if (downNow) return;
         _mechT += dt;
         var carPos2 = new Vector2(car.Pos.X, car.Pos.Z);
 

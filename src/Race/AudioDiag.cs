@@ -17,6 +17,22 @@ public partial class AudioDiag : Node
     public static int Mixes => _lifecycle;
     static int _lifecycle;
     double _sweep;
+    SceneTree _tree;
+    SceneTree.NodeAddedEventHandler _added;
+    SceneTree.NodeRemovedEventHandler _removed;
+
+    /// <summary>The subscriptions of the old world go with it (0.916: 276 calls into a freed AudioDiag after four track changes, each a new player added to a tree whose old diagnostics were gone).</summary>
+    public override void _ExitTree()
+    {
+        if (_tree != null && GodotObject.IsInstanceValid(_tree))
+        {
+            if (_added != null) _tree.NodeAdded -= _added;
+            if (_removed != null) _tree.NodeRemoved -= _removed;
+        }
+        _added = null; _removed = null; _tree = null;
+    }
+
+    bool Live => _added != null && GodotObject.IsInstanceValid(this) && IsInsideTree() && !IsQueuedForDeletion();
 
     public static void Install(Node owner)
     {
@@ -28,9 +44,10 @@ public partial class AudioDiag : Node
             StallWatch.Note($"AUDIO DIAG: driver setting '{ProjectSettings.GetSetting("audio/driver/driver", "")}', args '{args}', output device '{AudioServer.GetOutputDevice()}', mix rate {AudioServer.GetMixRate()}, output latency {AudioServer.GetOutputLatency():F3}, generators muted by diag-nogen: {NoGen}");
             var d = new AudioDiag { Name = "AudioDiag", ProcessMode = ProcessModeEnum.Always };
             owner.AddChild(d);
-            var tree = owner.GetTree();
-            tree.NodeAdded += n => d.Added(n);
-            tree.NodeRemoved += n => d.Removed(n);
+            d._tree = owner.GetTree();
+            d._added = new SceneTree.NodeAddedEventHandler(d.Added); d._removed = new SceneTree.NodeRemovedEventHandler(d.Removed);      // (named delegates: they are taken off the tree again when this one leaves it, _ExitTree)
+            d._tree.NodeAdded += d._added;
+            d._tree.NodeRemoved += d._removed;
         }
         catch (Exception ex) { StallWatch.Note("AUDIO DIAG failed: " + ex.GetType().Name + " " + ex.Message); }
     }
@@ -45,13 +62,13 @@ public partial class AudioDiag : Node
 
     void Added(Node n)
     {
-        if (n is not (AudioStreamPlayer or AudioStreamPlayer3D)) return;
+        if (!Live || n is not (AudioStreamPlayer or AudioStreamPlayer3D)) return;
         CallDeferred(nameof(AfterAdded), n);
     }
 
     void AfterAdded(Node n)
     {
-        if (!IsInstanceValid(n) || !IsGen(n)) return;
+        if (!Live || !IsInstanceValid(n) || !IsGen(n)) return;      // (a call queued before this diagnostics left the tree finds it gone)
         _lifecycle++;
         if (NoGen) Silence(n);
         StallWatch.Note("AUDIO GEN added: " + Describe(n) + (NoGen ? " (muted by diag-nogen)" : ""));
@@ -59,7 +76,7 @@ public partial class AudioDiag : Node
 
     void Removed(Node n)
     {
-        if (!IsInstanceValid(n) || !IsGen(n)) return;
+        if (!Live || !IsInstanceValid(n) || !IsGen(n)) return;
         _lifecycle++;
         StallWatch.Note("AUDIO GEN removed: " + Describe(n));
     }
@@ -72,7 +89,7 @@ public partial class AudioDiag : Node
 
     public override void _Process(double delta)
     {
-        if (!NoGen) return;
+        if (!NoGen || !Live) return;
         _sweep += delta;
         if (_sweep < 0.2) return;
         _sweep = 0;

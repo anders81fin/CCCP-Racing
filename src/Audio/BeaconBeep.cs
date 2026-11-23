@@ -53,7 +53,7 @@ public partial class BeaconBeep : AudioStreamPlayer3D
         VolumeDb = Loudness;
         Bus = AudioMix.BusFor(AudioMix.Warning);      // an alert (the ALERTS level), not part of the surroundings
         Play();
-        _pb = GetStreamPlayback() as AudioStreamGeneratorPlayback;
+        _pb = GeneratorOwnership.Playback(this);
     }
 
     public override void _Process(double delta)

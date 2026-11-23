@@ -46,7 +46,7 @@ public partial class DashChime : Node
         _player = new AudioStreamPlayer { Stream = new AudioStreamGenerator { MixRate = MixRate, BufferLength = 0.1f }, VolumeDb = EngineSound.GainDb, Bus = AudioMix.BusFor(AudioMix.Warning) };
         AddChild(_player);
         _player.Play();
-        _pb = _player.GetStreamPlayback() as AudioStreamGeneratorPlayback;
+        _pb = GeneratorOwnership.Playback(_player);
     }
 
     /// <summary>The drive goes on or stops being live. Stopping silences it at once (the notes and the repeat); it picks up where it was when the drive is live again.</summary>

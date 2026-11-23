@@ -145,7 +145,7 @@ public partial class RadioMusic : Node
         if (!_static.Playing)
         {
             _static.Play();
-            _pb = _static.GetStreamPlayback() as AudioStreamGeneratorPlayback;
+            _pb = GeneratorOwnership.Playback(_static);
         }
     }
 

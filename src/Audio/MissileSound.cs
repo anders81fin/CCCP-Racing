@@ -32,7 +32,7 @@ public partial class MissileSound : AudioStreamPlayer
         Bus = AudioMix.BusFor(AudioMix.Boom);
         VolumeDb = -2f;
         Play();
-        _pb = GetStreamPlayback() as AudioStreamGeneratorPlayback;
+        _pb = GeneratorOwnership.Playback(this);
     }
 
     public override void _Process(double delta)

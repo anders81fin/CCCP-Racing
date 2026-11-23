@@ -104,7 +104,7 @@ public partial class Weather : Node3D
     public override void _Ready()
     {
         _hiss.Play();
-        _pb = _hiss.GetStreamPlayback() as AudioStreamGeneratorPlayback;
+        _pb = GeneratorOwnership.Playback(_hiss);
     }
 
     /// <summary>Per frame: the weather at this time of day (laps). The road's wetness goes to the tyres.</summary>

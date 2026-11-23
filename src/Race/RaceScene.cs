@@ -204,6 +204,7 @@ public partial class RaceScene : Node3D
 
     public override void _ExitTree()
     {
+        MoverBlockers.Clear(); MoverBlockers.ClearGhosts();      // (a static list of the cars the vehicles yield to: not carried into the next scene)
         if (LanPlaybackSource!=null) { _lanExportUi?.Dispose();LanPlaybackReleaseAccess();ViewerExit();LanPlaybackSource.Dispose();Props.ReleaseCache();return; }
         if (ViewerMode) { ViewerExit(); return; }      // RaceScene.Viewer.cs: nothing of the live world's is saved, flushed or reset
         LabExit();
@@ -425,8 +426,7 @@ public partial class RaceScene : Node3D
         _run = RunMode.Title;     // the title replay runs in the full rally world
         ResetMenu();             // the top row, on the parent of the mode played last
         _titleMenuHidden = false;
-        BeginFuelCeremony();     // RaceScene.FuelCeremony.cs: a fuel the last run opened has its ceremony over the title
-        if (_fuelCeremony == null) BeginSputnikCeremony();      // RaceScene.SputnikCeremony.cs: then the SPUTNIK test pilots' programme
+        _ceremonyDue = true;     // RaceScene.FuelCeremony.cs: a new fuel's ceremony, then the SPUTNIK test pilots' programme, once the title is clear (not under the launch cards, the archive or a loading card)
         TitleSoundApply();       // RaceScene.TitleRec.cs: music only, or the recorded background lap's sounds at half volume
         if (_menuSingleTest) OpenMenu(MenuItem.Single);
         _watching = _showBoard = _boardScoped = _showLog = _showFiles = _showLessons = _showKeys = _replaySelected = false;
@@ -1680,6 +1680,7 @@ public partial class RaceScene : Node3D
         SeeThrough.Car = _car.Pos;    // ...and a building between the camera and the car
         SeeThrough.Off = opaqueTapeScenery || (_droneTour && (_trackId != "bonus" || _droneStartT < 0));
         ArchiveAtLaunch();      // RaceScene.Files.cs: the KGB ARCHIVE before the main menu
+        TrackChainTick(dt);      // (development only: RaceScene.DevHooks.cs)
         LapsRewardFrame(dt);
         FuelCeremonyFrame(dt);
         SputnikCeremonyFrame(dt);

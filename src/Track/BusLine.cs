@@ -143,6 +143,7 @@ public partial class DrunkMen : Node3D
                     m.Pos = new Vector2(p.X, p.Z);
                     m.Yaw = stop.Yaw + MathF.PI / 2f;
                     _mech = m;
+                    AddMechanicObstacle(t, m);
                     _shelter = shelter;
                     _shelterYaw = stop.Yaw;
                 }
@@ -169,6 +170,7 @@ public partial class DrunkMen : Node3D
             m.Pos = new Vector2(p.X, p.Z);
             m.Yaw = _shelterYaw + MathF.PI / 2f;
             _mech = m;
+            AddMechanicObstacle(t, m);
             Build(m);
             _men.Add(m);
         }
@@ -211,6 +213,14 @@ public partial class DrunkMen : Node3D
         b.AddChild(Props.Part(Props.Cyl(0.023f, 0.022f, 8), new Color(0.78f, 0.78f, 0.74f), new Vector3(0, 0.1613f, 0)));      // the cap
         b.AddChild(Props.Part(Props.Cyl(0.0465f, 0.07f, 10), new Color(0.88f, 0.84f, 0.68f), new Vector3(0, -0.07f, 0)));       // the paper label
         return b;
+    }
+
+    /// <summary>The mechanic is a man like the others once he is up: an obstacle the car and every vehicle meets, and one that falls over (MechanicSyncObstacle, DrunkMen.Mechanic.cs). Parked out of the world while he lies on his bench.</summary>
+    static void AddMechanicObstacle(TrackData t, Man m)
+    {
+        m.Obstacle = t.Obstacles.Count;
+        t.Obstacles.Add(new Obstacle(new Vector2(-1e4f, -1e4f), 0.1f));
+        m.Down.Bind(t, m.Obstacle);
     }
 
     public static Figure BuildFigure(Color coat)
@@ -276,7 +286,7 @@ public partial class DrunkMen : Node3D
         foreach (var m in _men)
         {
             float d = m.Pos.DistanceTo(carPos);
-            if (m == _mech) { m.Cheer -= dt; Place(m); continue; }
+            if (m == _mech) { m.Cheer -= dt; m.Down.Tick(dt); Place(m); continue; }      // (the mechanic falls and gets up like the others)
             if (!m.Lying && d < Radius + 1.2f && impact > 1f) HitThisTick = true;
             if (!m.Lying && d < 14f && car.Speed > 11f)
             {

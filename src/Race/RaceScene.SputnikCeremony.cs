@@ -28,7 +28,7 @@ public partial class RaceScene
 
     void BeginSputnikCeremony()
     {
-        if (_spStage != SpStage.None || _fuelCeremony != null || ViewerMode || _previewMovie || InstructionTrack != null || _campaign == null || _state != State.Title) return;
+        if (_spStage != SpStage.None || _fuelCeremony != null || ViewerMode || _previewMovie || InstructionTrack != null || _campaign == null || !CeremonyClear) return;
         var standing = _campaign.SputnikStanding();
         var fresh = Enum.GetValues<SputnikAward>().Where(a => standing.Has(a) && !_campaign.SputnikPresented(a)).ToArray();
         if (fresh.Length == 0) return;
@@ -82,7 +82,7 @@ public partial class RaceScene
         _spStage = SpStage.None;
         _hud.SpEnd();
         _overlayExitFrame = Engine.GetProcessFrames();
-        if (mark) BeginSputnikCeremony();
+        if (mark) _ceremonyDue = true;      // (anything still new is shown when the title is clear again)
     }
 
     // ------------------------------------------------------------------ the paint scene

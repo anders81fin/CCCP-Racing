@@ -17,7 +17,7 @@ public static class TrafficCap
     /// <param name="halfWidth">Half the width of the one asking (m).</param>
     /// <param name="brake">How hard the asker really brakes (m/s squared): the stopping distance is worked out with it.</param>
     /// <param name="own">The asker's own obstacles (and any others that are none of its business, such as its convoy).</param>
-    public static float Cap(TrackData t, Vector2 pos, Vector2 fwd, float speed, float halfWidth, Func<int, bool> own, float brake = 3f)
+    public static float Cap(TrackData t, Vector2 pos, Vector2 fwd, float speed, float halfWidth, Func<int, bool> own, float brake = 3f, object owner = null, bool cars = true)
     {
         Vector2 right = new(-fwd.Y, fwd.X);
         float reach = 14f + speed * 2.2f, cap = float.MaxValue;
@@ -40,7 +40,7 @@ public static class TrafficCap
             Consider(o.Center, o.Radius, o.Velocity);
         }
         // The gulag truck, its officer and the driver, standing or moving, are in the way too.
-        foreach (var s in GulagTruck.Solids) Consider(s.Centre, s.Radius, s.Velocity);
+        foreach (var s in GulagTruck.SolidsFor(owner, cars)) Consider(s.Centre, s.Radius, s.Velocity);
         return cap;
     }
 }

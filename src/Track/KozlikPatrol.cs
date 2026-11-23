@@ -188,6 +188,7 @@ public partial class KozlikPatrol : Node3D
 
     public void Reset()
     {
+        MoverBlockers.SetGhost(this, null);
         _carTopSeen = _carPullSeen = 0f;
         int n = _t.Center.Length;
         _s = ((StartS % n) + n) % n;
@@ -506,6 +507,14 @@ public partial class KozlikPatrol : Node3D
         bool ghost = Chasing && _gapToCar < 12f;
         for (int k = 0; k < _obs.Length; k++)
             _t.Obstacles[_obs[k]] = ghost ? new Obstacle(new Vector2(-1e4f, -1e4f), 0.1f) : new Obstacle(pos + fwd * (k - 1) * (Wheelbase*.5f), ObsRadius, vel, Material: ImpactMaterial.Metal);
+        // Not solid to the car, but a vehicle like any other to the traffic: the bus, the tractors, the ploughs, the BTRs and the tanks stop for it (MoverBlockers.Ghosts)
+        if (ghost)
+        {
+            var circles = new MoverBlockers.Circle[_obs.Length];
+            for (int k = 0; k < circles.Length; k++) circles[k] = new MoverBlockers.Circle(pos + fwd * (k - 1) * (Wheelbase * .5f), ObsRadius, vel);
+            MoverBlockers.SetGhost(this, circles);
+        }
+        else MoverBlockers.SetGhost(this, null);
 
         HitThisTick = false;
         if (car != null && dt > 0 && impact > 2f && pos.DistanceTo(new Vector2(car.Pos.X, car.Pos.Z)) < Length * 0.5f + 3f)
@@ -958,7 +967,7 @@ public partial class KozlikPatrol : Node3D
     float TrafficCap()
     {
         if (_mode == Mode.Guard || NoCap) return float.MaxValue;
-        return Track.TrafficCap.Cap(_t, Position2D, Forward2D, _speed, ObsRadius, i => i >= _obs[0] && i < _obs[0] + _obs.Length);
+        return Track.TrafficCap.Cap(_t, Position2D, Forward2D, _speed, ObsRadius, i => i >= _obs[0] && i < _obs[0] + _obs.Length, 3f, this, !Chasing);      // (on the car's tail it ignores the car, as ever; the others are none of its own)
     }
 
     /// <summary>A Balalaika on the ground near the leg or rolling on the runway it joins, or the bus on it.</summary>

@@ -242,6 +242,10 @@ public partial class PhysicsTest : Node
         { AtomgradLandmarkTest(); AtomgradPlantWallsTest(); BuildingBoxWallsTest(); AtomgradWashYardTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--export-card-tests"))
         { ExportCardDefaultsTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--generator-ownership-tests"))
+        { _ = RunGeneratorOwnership(); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--mover-contact-tests"))
+        { MoverContactTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--sputnik-program-tests"))
         { SputnikProgramTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--prisoner-knee-tests"))
@@ -662,6 +666,7 @@ public partial class PhysicsTest : Node
         CatfishTest();
         PrisonerKneeTest();
         SputnikProgramTest();
+        MoverContactTest();
         ExportCardDefaultsTest();
         RoadWarningsTest();
         AtomgradLandmarkTest(); AtomgradPlantWallsTest(); BuildingBoxWallsTest(); AtomgradWashYardTest();

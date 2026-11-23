@@ -353,6 +353,7 @@ public partial class TankBattle : Node3D
         var carPos = car != null ? car.Pos : new Vector3(-1e4f, 0, -1e4f);
         _car = car;
         _movers.Clear(); Movers?.Invoke(_movers);
+        foreach (var s in GulagTruck.Solids) _movers.Add((s.Centre, s.Radius));      // (the player's car, the gulag truck and its people: a tank rolls through none of them)
         // Rearm only after leaving the exercise, never while waiting for a tank to pass.
         if (car != null && !_area.Grow(60f).HasPoint(new Vector2(car.Pos.X, car.Pos.Z)) &&
             !_tanks.Exists(k => k.Crossing || k.AcrossRoad))

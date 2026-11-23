@@ -129,8 +129,8 @@ public partial class DrunkTractor : Node3D
         _barnDoor?.SetOpen(0);
         Place(0);
         // Departure can wait in the barn for many seconds: move collision circles now, not on its first drive tick.
-        _t.Obstacles[_obsBody] = new Obstacle(_pos, 1.3f, Material: ImpactMaterial.Metal);
-        _t.Obstacles[_obsPlough] = new Obstacle(_pos - Forward * PloughBack, 1.1f, Material: ImpactMaterial.Metal);
+        _t.Obstacles[_obsBody] = new Obstacle(_pos, 1.3f, Forward * _speed, Material: ImpactMaterial.Metal);
+        _t.Obstacles[_obsPlough] = new Obstacle(_pos - Forward * PloughBack, 1.1f, Forward * _speed, Material: ImpactMaterial.Metal);
         _sound.Speed = 0;
     }
 
@@ -661,8 +661,8 @@ public partial class DrunkTractor : Node3D
             _speed = nextSpeed;
             _t0 += dt;
             Place(dt);
-            _t.Obstacles[_obsBody] = new Obstacle(_pos, 1.3f, Material: ImpactMaterial.Metal);
-            _t.Obstacles[_obsPlough] = new Obstacle(_pos - Forward * PloughBack, 1.1f, Material: ImpactMaterial.Metal);
+            _t.Obstacles[_obsBody] = new Obstacle(_pos, 1.3f, Forward * _speed, Material: ImpactMaterial.Metal);
+            _t.Obstacles[_obsPlough] = new Obstacle(_pos - Forward * PloughBack, 1.1f, Forward * _speed, Material: ImpactMaterial.Metal);
             _sound.Speed = _speed;
             if (_pos.Y >= _start.Y + 26f)
             {
@@ -679,8 +679,8 @@ public partial class DrunkTractor : Node3D
             Unwedge(dt);
             Exhaust(dt);
             Place(dt);
-            _t.Obstacles[_obsBody] = new Obstacle(_pos + Forward * 0.2f, 1.3f, Material: ImpactMaterial.Metal);
-            _t.Obstacles[_obsPlough] = new Obstacle(_pos - Forward * PloughBack, 1.1f, Material: ImpactMaterial.Metal);
+            _t.Obstacles[_obsBody] = new Obstacle(_pos + Forward * 0.2f, 1.3f, Forward * _speed, Material: ImpactMaterial.Metal);
+            _t.Obstacles[_obsPlough] = new Obstacle(_pos - Forward * PloughBack, 1.1f, Forward * _speed, Material: ImpactMaterial.Metal);
             _sound.Speed = 1.2f;
             _sound.Dozing = false;
             return;
@@ -763,8 +763,8 @@ public partial class DrunkTractor : Node3D
         Exhaust(dt);
         Place(dt);
 
-        _t.Obstacles[_obsBody] = new Obstacle(_pos + Forward * 0.2f, 1.3f, Material: ImpactMaterial.Metal);
-        _t.Obstacles[_obsPlough] = new Obstacle(_pos - Forward * PloughBack, 1.1f, Material: ImpactMaterial.Metal);
+        _t.Obstacles[_obsBody] = new Obstacle(_pos + Forward * 0.2f, 1.3f, Forward * _speed, Material: ImpactMaterial.Metal);
+        _t.Obstacles[_obsPlough] = new Obstacle(_pos - Forward * PloughBack, 1.1f, Forward * _speed, Material: ImpactMaterial.Metal);
         _sound.Speed = _speed;
         _sound.Dozing = Dozing;
     }

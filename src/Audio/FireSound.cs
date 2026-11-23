@@ -47,7 +47,7 @@ public partial class FireSound : AudioStreamPlayer3D
         VolumeDb = 2f;
         Bus = AudioMix.BusFor(AudioMix.Boom);
         Play();
-        _pb = GetStreamPlayback() as AudioStreamGeneratorPlayback;
+        _pb = GeneratorOwnership.Playback(this);
     }
 
     public override void _Process(double delta)

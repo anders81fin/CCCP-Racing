@@ -190,6 +190,7 @@ public partial class RaceScene
             "sit-sputnik" => live.VwSitSputnik(),
             "sit-livery" => live.VwSitLivery(),
             "sit-gallery" => live.VwSitGallery(),
+            "sit-ceremony-gate" => live.VwSitCeremonyGate(),
             "sit-sputnik-order" => live.VwSitSputnikOrder(),
             "loading-still" => live.VwLoadingStill(),
             "title-menu" => live.VwTitleMenu(),

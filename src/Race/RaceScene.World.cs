@@ -154,6 +154,9 @@ public partial class RaceScene
     {
         if(InLanRace && !_net.IsHost) return;
         if(!afterCar && InWorld(Actors.Jets | Actors.Tanks)) _bonusExercise?.Tick(dt);
+        // The cars the vehicles must not drive through (MoverBlockers.cs): the player's, and on a LAN host every driver's. The title's replay has none (its actors are on the tape).
+        MoverBlockers.Clear();
+        if(!replay) { MoverBlockers.AddCar(_car); if(InLanRace) foreach(var d in _lanDrivers.Values) if(d.Car!=_car) MoverBlockers.AddCar(d.Car); }
         var own=_car;float ownImpact=_maxImpact;
         try {
             foreach(var a in _actors) if(a.AfterCar==afterCar && InWorld(a.Who)) {
@@ -174,6 +177,7 @@ public partial class RaceScene
                 _car=own;_maxImpact=ownImpact;
             }
         } finally {_car=own;_maxImpact=ownImpact;}
+        if(afterCar && !replay) _scenery?.KnockByMovers();      // the vehicles that have rolled into a person (the mechanic, a drunk, an officer) have knocked them down
     }
 
     /// <summary>The start of a run: the actors in the world back to their places.</summary>

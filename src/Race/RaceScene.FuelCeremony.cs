@@ -1,5 +1,6 @@
 using System;
 using CCCPRacing.Audio;
+using CCCPRacing.UI;
 using Godot;
 
 namespace CCCPRacing.Race;
@@ -7,6 +8,16 @@ namespace CCCPRacing.Race;
 public partial class RaceScene
 {
     FuelGrade? _fuelCeremony;
+    /// <summary>The title has come up (or a ceremony has just closed): the ceremonies that are due start when the title is clear (CeremonyClear), never before.</summary>
+    bool _ceremonyDue;
+
+    /// <summary>
+    /// The main menu is up with nothing over it and nothing still on its way: not booting, the launch cards and the KGB ARCHIVE done, no loading card, no screen or card open, the settled frame after the last one.
+    /// A ceremony that began earlier (the Deck's launch, 0.916 diag: a licence over the launch cards that took no key) sat under the startup flow's own input.
+    /// </summary>
+    bool CeremonyClear => _state == State.Title && !_booting && _archiveDone && !_filesAtLaunch && TrackLoadingScreen.Active == null
+        && !_hud.StartupArchivePending && !_hud.StartupVideoOnly && TitleMenuToggleAllowed && !TitleSettingsOpen && !_titleMenuHidden && _card == TitleCard.None
+        && !FuelCeremonyActive && !SputnikCeremonyActive && _tourCapture == false;
     bool _fcSetup, _fcDamageWas;      // (the car on show, below)
     float _fcPowerWas, _fcTurboWas, _fcVolumeWas, _fcFov, _fcNear, _fcFar;
 
@@ -20,7 +31,7 @@ public partial class RaceScene
     /// </summary>
     void BeginFuelCeremony()
     {
-        if (_fuelCeremony != null || ViewerMode || _previewMovie || InstructionTrack != null || _campaign == null) return;
+        if (_fuelCeremony != null || ViewerMode || _previewMovie || InstructionTrack != null || _campaign == null || !CeremonyClear) return;
         var candidates = new[] { FuelGrade.Petrol, FuelGrade.Rocket, FuelGrade.Sputnik };
         if (!_campaign.FuelPresentationStarted)
         {
@@ -41,6 +52,7 @@ public partial class RaceScene
     void FuelCeremonyFrame(float dt)
     {
         ShowCarFrame();
+        if (_ceremonyDue && CeremonyClear) { _ceremonyDue = false; BeginFuelCeremony(); if (_fuelCeremony == null) BeginSputnikCeremony(); }
         if (_fuelCeremony == null) return;
         if (_state != State.Title) { _fuelCeremony = null; _hud.EndFuelCeremony(); return; }
         _hud.FuelCeremonyTick(Math.Min(dt, 0.1f));
@@ -55,8 +67,7 @@ public partial class RaceScene
         _campaign.PresentFuel(_fuelCeremony.Value);
         _fuelCeremony = null; _hud.EndFuelCeremony();
         _overlayExitFrame = Engine.GetProcessFrames();
-        BeginFuelCeremony();      // (the next one, if two fuels opened together)
-        if (_fuelCeremony == null) BeginSputnikCeremony();      // (RaceScene.SputnikCeremony.cs: then the test pilots' programme)
+        _ceremonyDue = true;      // (the next one, if two fuels opened together, then the test pilots' programme: when the title is clear again)
         return true;
     }
 

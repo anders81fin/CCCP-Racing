@@ -202,3 +202,23 @@ internal sealed partial class AudioShutdown : Node
         GetTree().Quit(ExitCode);
     }
 }
+
+/// <summary>
+/// Godot's generator playback keeps a raw pointer to its AudioStreamGenerator and reads the source rate through it at every mix, also during the fade-out of a stopped player. Freeing the generator earlier
+/// made the rate NaN and the resampler loop for ever. The playback holds the generator as a meta value (a strong native reference): the generator lives as long as the playback, whoever releases it.
+/// Take every generator playback through here (each Play or restart makes a new one).
+/// </summary>
+internal static class GeneratorOwnership
+{
+    public const string MetaKey = "owned_generator";
+
+    public static AudioStreamGeneratorPlayback Playback(AudioStreamPlayer player) => Hold(player.GetStreamPlayback(), player.Stream);
+    public static AudioStreamGeneratorPlayback Playback(AudioStreamPlayer3D player) => Hold(player.GetStreamPlayback(), player.Stream);
+
+    static AudioStreamGeneratorPlayback Hold(AudioStreamPlayback playback, AudioStream stream)
+    {
+        if (playback is not AudioStreamGeneratorPlayback g) return null;
+        if (stream is AudioStreamGenerator generator) { using var held = Variant.From(generator); g.SetMeta(MetaKey, held); }      // (the temporary Variant is released here: only the playback's own copy keeps the reference)
+        return g;
+    }
+}

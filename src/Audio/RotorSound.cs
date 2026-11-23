@@ -16,7 +16,7 @@ public partial class RotorSound : AudioStreamPlayer3D
         Stream = new AudioStreamGenerator { MixRate=22050, BufferLength=.2f };
         UnitSize=30; MaxDistance=700; MaxDb=0; VolumeDb=-6; AttenuationFilterDb=-12;
         Bus=AudioMix.BusFor(AudioMix.Jet);
-        Play(); _playback=GetStreamPlayback() as AudioStreamGeneratorPlayback;
+        Play(); _playback=GeneratorOwnership.Playback(this);
     }
     /// <summary>Back to a freshly made sound's state (a replay that keeps its aircraft across a seek): silent, smoothing and phases at zero, queued audio dropped.</summary>
     public void ResetState()
