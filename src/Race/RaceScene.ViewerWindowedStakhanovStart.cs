@@ -89,7 +89,7 @@ public partial class RaceScene
         foreach (var x in VrShot("stakhanov-1-choose-fuel-keys")) yield return x;
         foreach (var x in VrTap(Key.Right)) yield return x;
         for (int i = 0; i < 4; i++) yield return null;
-        VwCheck(_cardSel == (int)FuelGrade.Petrol && _hud.CardSub.StartsWith("LOCKED: SILVER ON") && _hud.CardSub.EndsWith("ON DIESEL OPENS IT"), $"PETROL is locked and says what opens it ('{_hud.CardSub}')");
+        VwCheck(_cardSel == (int)FuelGrade.Petrol && _hud.CardSub.StartsWith("LOCKED: SILVER ON") && _hud.CardSub.EndsWith("3 FIRST TRACKS REQUIRED"), $"PETROL is locked and says what opens it ('{_hud.CardSub}')");
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 20; i++) yield return null;
         VwCheck(_card == TitleCard.LapsFuel && _cardSel == (int)FuelGrade.Petrol && VwNothingStarted(), $"Enter on the locked PETROL does nothing: the card stays, no loading, no run ({_card}, {_state}, loading {TrackLoadingScreen.Active != null})");

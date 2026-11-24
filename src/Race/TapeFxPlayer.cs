@@ -17,7 +17,7 @@ namespace CCCPRacing.Race;
 public sealed partial class TapeFxPlayer
 {
     sealed class Proj { public TapeEvent E; public Node3D Node; public Vector3 Last; public bool Placed; }
-    sealed class Piece { public Node3D Node; public Vector3 Vel, Spin; public float Life = 20f; public bool Falling = true; }
+    sealed class Piece { public Node3D Node; public Vector3 Vel, Spin; public float Life = 20f; public bool Falling = true; public float? Expires; }
 
     readonly TyreEffects _fx;
     readonly TrackData _track;
@@ -29,6 +29,7 @@ public sealed partial class TapeFxPlayer
     Mesh _hindTracerMesh;
     StandardMaterial3D _hindTracerMaterial;
     IReadOnlyDictionary<int, (Vector3 Vel, Vector3 At)> _how;
+    IReadOnlyDictionary<int, ulong> _wallState;      // the generator state each wall's stones were thrown with (an older tape has none)
     IReadOnlyDictionary<int, float> _brokeAt;      // when each breakable broke (a negative time: it was broken when the lap began)
     float _last = float.NaN;
     /// <summary>What the replay has made, by kind, since this player exists (the tests count them).</summary>
@@ -43,6 +44,15 @@ public sealed partial class TapeFxPlayer
     /// <summary>A slurry patch of the tape (where, whether it is the revenge's, how old); the tractor lays it. SlurryClear takes the laid ones away (a seek, the end of the replay).</summary>
     public Action<Vector2, bool, float> Slurry;
     public Action SlurryClear;
+    /// <summary>The dacha's shotgun shot (the muzzle, where the pellets land, how old); the boat shows its smoke and splash. ShotClear takes them away.</summary>
+    public Action<TapeEvent, float> Shot;
+    public Action ShotClear;
+    /// <summary>A lightning strike of the tape (the thunder's delay in Param, how old); the weather flashes and rumbles. StrikeClear stops them.</summary>
+    public Action<TapeEvent, float> Strike;
+    public Action StrikeClear;
+    /// <summary>The player's engine seized or blew up (the event, how old, the replay's own generator); the engine effects make the oil, the fire and the slick. EngineClear takes the slick and the burnt paint away.</summary>
+    public Action<TapeEvent, float, RandomNumberGenerator> Engine;
+    public Action EngineClear;
     TapeEvent? _lensHit;
     TapeEvent? _radarReading;
 
@@ -61,10 +71,17 @@ public sealed partial class TapeFxPlayer
     /// <summary>The way each breakable of the tape went down (direction and place), for the ones a seek shows already lying.</summary>
     public void SetBreakInfo(IEnumerable<TapeEvent> events)
     {
-        var d = new Dictionary<int, (Vector3, Vector3)>(); var at = new Dictionary<int, float>();
-        foreach (var e in events) if (e.Type == TapeEventType.Effect && e.Effect == TapeEffect.BreakableBroken) { d[(int)e.Param] = (e.Dir, e.Pos); at[(int)e.Param] = e.Time; }
-        _how = d; _brokeAt = at;
+        var d = new Dictionary<int, (Vector3, Vector3)>(); var at = new Dictionary<int, float>(); var ws = new Dictionary<int, ulong>();
+        foreach (var e in events)
+            if (e.Type == TapeEventType.Effect && e.Effect == TapeEffect.BreakableBroken)
+            {
+                d[(int)e.Param] = (e.Dir, e.Pos); at[(int)e.Param] = e.Time;
+                if (WallState(e) is ulong st) ws[(int)e.Param] = st;
+            }
+        _how = d; _brokeAt = at; _wallState = ws;
     }
+
+    static ulong? WallState(in TapeEvent e) => e.Kind == TapeFxKind.Breakable && e.Parent != null && ulong.TryParse(e.Parent, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out ulong st) ? st : null;
 
     void Count(string kind) { Made[kind] = Made.GetValueOrDefault(kind) + 1; }
 
@@ -99,6 +116,17 @@ public sealed partial class TapeFxPlayer
         {
             switch (e.Kind)
             {
+                case TapeFxKind.MixerConcreteStrip:
+                case TapeFxKind.MixerConcrete:
+                    if (age < e.Life)
+                    {
+                        var pile = e.Kind == TapeFxKind.MixerConcreteStrip
+                            ? SnowPloughs.MakeConcreteStrip(_track, e.Dir, e.Pos, e.Param, e.Velocity.X)
+                            : SnowPloughs.MakeConcretePile(e.Pos, e.Param);
+                        _root.AddChild(pile);
+                        _pieces.Add(new Piece { Node = pile, Falling = false, Expires = e.Time + e.Life });
+                    }
+                    break;
                 case TapeFxKind.BusFire: BusFire(e, age); break;
                 case TapeFxKind.WoodBreak:
                     if (WoodReplay && ulong.TryParse(e.Parent, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out ulong state))
@@ -137,6 +165,12 @@ public sealed partial class TapeFxPlayer
                 case TapeFxKind.CatfishLaunch: ZoneLife.LaunchSplashFx(_fx, _rng, e.Pos, e.Dir); break;      // (the live functions: restored by age through the tagged particles)
                 case TapeFxKind.CatfishSplash: ZoneLife.SplashFx(_fx, _rng, e.Pos); break;
                 case TapeFxKind.SlurryPatch: Slurry?.Invoke(new Vector2(e.Pos.X, e.Pos.Z), e.Param > .5f, age); break;
+                case TapeFxKind.DachaShot:
+                    SoundParent(age).AddChild(new ShotgunSound { Position = e.Pos });
+                    Shot?.Invoke(e, age);
+                    break;
+                case TapeFxKind.Lightning: Strike?.Invoke(e, age); break;
+                case TapeFxKind.EngineSeize: case TapeFxKind.EngineExplode: Engine?.Invoke(e, age, _rng); break;
                 case TapeFxKind.RunWarning: Warning(e, age); break;
                 case TapeFxKind.BukLaunch: Buk21Battery.LaunchFx(_fx, _track, SoundParent(age), e.Pos, e.Dir); break;
                 case TapeFxKind.BukTrail: Buk21Battery.TrailFx(_fx, e.Pos); break;
@@ -144,7 +178,7 @@ public sealed partial class TapeFxPlayer
                 case TapeFxKind.TankBlast: TankBattle.BlastFx(_fx, _track, _rng, SoundParent(age), e.Pos, e.Dir); break;
                 case TapeFxKind.TankImpact: Crater(e, age); break;
                 case TapeFxKind.TankRicochet: TankBattle.RicochetFx(_fx, _rng, SoundParent(age), e.Pos); break;
-                case TapeFxKind.Breakable: _scenery?.ReplayBreak((int)e.Param, e.Dir, e.Pos, age); break;
+                case TapeFxKind.Breakable: _scenery?.ReplayBreak((int)e.Param, e.Dir, e.Pos, age, WallState(e)); break;
                 default:
                     if (e.Effect == TapeEffect.BreakableBroken) _scenery?.ReplayBreak((int)e.Param, e.Dir, e.Pos, age);
                     break;
@@ -285,19 +319,29 @@ public sealed partial class TapeFxPlayer
             }
             Place(p, Math.Max(0, t), true);
         }
-        if (dt > 0)
-            for (int i = _pieces.Count - 1; i >= 0; i--)
+        for (int i = _pieces.Count - 1; i >= 0; i--)
+        {
+            var p = _pieces[i];
+            if (p.Expires is float expires)
             {
-                var p = _pieces[i]; StepPiece(p, dt);
-                if (p.Life <= 0) { p.Node.GetParent()?.RemoveChild(p.Node); p.Node.QueueFree(); _pieces.RemoveAt(i); }
+                if (clock < expires) continue;
             }
+            else
+            {
+                if (dt > 0) StepPiece(p, dt);
+                if (p.Life > 0) continue;
+            }
+            p.Node.GetParent()?.RemoveChild(p.Node);
+            p.Node.QueueFree();
+            _pieces.RemoveAt(i);
+        }
     }
 
     /// <summary>Seek step 1: every effect, projectile and piece the replay made goes (and the particles it tagged); nothing it did is left to multiply.</summary>
     public void Clear()
     {
         _radarReading = null; Radar?.Invoke(null, 0);
-        SlurryClear?.Invoke();
+        SlurryClear?.Invoke(); ShotClear?.Invoke(); StrikeClear?.Invoke(); EngineClear?.Invoke();
         _lensHit = null; Lens?.Invoke(null, 0);
         _busFires.Clear();
         if (WoodReplay) Wood?.ReplayClear();
@@ -316,6 +360,6 @@ public sealed partial class TapeFxPlayer
             ages = new Dictionary<int, float>();
             foreach (int id in ids) if (_brokeAt.TryGetValue(id, out float t)) ages[id] = Math.Max(0f, clock - t);
         }
-        _scenery?.ReplaySet(ids, _how, ages);
+        _scenery?.ReplaySet(ids, _how, ages, _wallState);
     }
 }

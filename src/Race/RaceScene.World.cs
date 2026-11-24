@@ -45,6 +45,10 @@ public partial class RaceScene
     SnowPloughs _ploughsAll;                // the winter road's snowploughs
     PrisonerColumn _columnAll;              // ...the labour detail on the march
     ZoneLife _zoneAll;                      // ATOMGRAD-4's horses, lunokhod and train (the catfish too)
+    readonly List<RotatingBeacon> _beaconsAll = new(); readonly List<CampSearchlight> _lightsAll = new(); readonly List<RadarHead> _radarsAll = new();      // the decorations the world tape poses
+    MillWheel _millWheel; MillSpray _millSpray;
+    PartyRowboat _rowing; PartyPondDuck _pondDuck;      // the dacha's rowboat (rower, guest, oars, shotgun) and the mallard: the world tape poses them
+    BarnDoors _barnDoorSmall, _barnDoorBig; // Ilyich's two tractor barns' doors (the drunk tractor's, the slurry tractor's): the world tape poses their leaves
     DrunkTractor _tractor => InWorld(Actors.Tractor) ? _tractorAll : null;
     SlurryTractor _slurry => InWorld(Actors.Slurry) ? _slurryAll : null;
     Babushkas _babushkas => InWorld(Actors.Babushkas) ? _babushkasAll : null;
@@ -71,6 +75,7 @@ public partial class RaceScene
     {
         public Actors Who;                  // Actors.None: never leaves the world
         public Node3D Node;                 // hidden, stopped and silenced while out of the world
+        public string Key;                  // the world tape's key when "{Who}:{Node.Name}" would not be unique or meaningful (the two barn doors); null: that
         public Action<float, bool> Tick;    // (dt, replaying the title's ghost)
         public bool AfterCar;               // stepped after the car, with its impact
         public Action Reset;                // at each start (PlaceAtStart); null: keeps its state
@@ -145,6 +150,44 @@ public partial class RaceScene
         _actors.Add(new() { Who = Actors.Liaison, Node = _kgb.Liaison });
         _actors.Add(new() { Who = Actors.Depot, Node = _depot, TapeDrive = _depot.SetTapeDriven });
         _actors.Add(new() { Who = Actors.None, Node = _powerTape, TapeDrive = _powerTape.SetTapeDriven });
+        // People and parts that animate in _Process (not stepped here) or inside another actor's tree: their own tape actors, each with a TapeDrive that switches the live animation off.
+        Add(_cones, () => new() { Who = Actors.None, Node = _cones, TapeDrive = _cones.SetTapeDriven });
+        Add(_barnDoorSmall, () => new() { Who = Actors.None, Key = "None:BarnDoorsTractor", Node = _barnDoorSmall, TapeDrive = _barnDoorSmall.SetTapeDriven });
+        Add(_barnDoorBig, () => new() { Who = Actors.None, Key = "None:BarnDoorsSlurry", Node = _barnDoorBig, TapeDrive = _barnDoorBig.SetTapeDriven });
+        var workers = FindChild("KolkhozWorkers", true, false) as KolkhozWorkers;
+        Add(workers is { Count: > 0 } ? workers : null, () => new() { Who = Actors.None, Node = workers, TapeDrive = workers.SetTapeDriven });
+        var guards = FindChild("DachaGuards", true, false) as KnockGroup;
+        Add(guards, () => new() { Who = Actors.None, Node = guards, TapeDrive = guards.SetTapeDriven });
+        _rowing = FindChild("PartyOfficialRowing", true, false) as PartyRowboat; _pondDuck = FindChild("PondMallard", true, false) as PartyPondDuck;
+        Add(_rowing != null && _rowing.HasMeta(WorldTapeConst.PartMeta) ? _rowing : null, () => new() { Who = Actors.None, Node = _rowing, TapeDrive = _rowing.SetTapeDriven });
+        Add(_pondDuck != null && _pondDuck.HasMeta(WorldTapeConst.PartMeta) ? _pondDuck : null, () => new() { Who = Actors.None, Node = _pondDuck, TapeDrive = _pondDuck.SetTapeDriven });
+        // The decorations that turn and sweep (nothing in them is gameplay): each its own small actor, in tree order, so the key of one is the same in every build of the track.
+        _beaconsAll.Clear(); _lightsAll.Clear(); _radarsAll.Clear(); _millWheel = null; _millSpray = null;
+        foreach (var n in FindChildren("*", "", true, false))
+            switch (n)
+            {
+                case RotatingBeacon b when b.HasMeta(WorldTapeConst.PartMeta): _beaconsAll.Add(b); break;
+                case CampSearchlight l: _lightsAll.Add(l); break;
+                case RadarHead r when r.GetParent() is Node3D rp && rp.HasMeta(WorldTapeConst.PartMeta): _radarsAll.Add(r); break;
+                case MillWheel w: _millWheel ??= w; break;
+                case MillSpray sp: _millSpray ??= sp; break;
+            }
+        for (int i = 0; i < _beaconsAll.Count; i++) { var b = _beaconsAll[i]; _actors.Add(new() { Who = Actors.None, Key = $"None:Beacon{i}", Node = b, TapeDrive = b.SetTapeDriven }); }
+        int sweeping = 0;      // (a lamp that holds one direction is no tape actor; it is only started with the others)
+        foreach (var l in _lightsAll) if (l.HasMeta(WorldTapeConst.PartMeta)) _actors.Add(new() { Who = Actors.None, Key = $"None:Searchlight{sweeping++}", Node = l, TapeDrive = l.SetTapeDriven });
+        if (_radarsAll.Count > 0) { var r = _radarsAll[0]; _actors.Add(new() { Who = Actors.None, Key = "None:Radar", Node = (Node3D)r.GetParent(), TapeDrive = r.SetTapeDriven }); }
+        if (_millWheel?.GetParent() is Node3D mill && mill.HasMeta(WorldTapeConst.PartMeta))
+            _actors.Add(new() { Who = Actors.None, Key = "None:WaterMill", Node = mill, TapeDrive = on => { _millWheel.SetTapeDriven(on); _millSpray?.SetTapeDriven(on); } });
+        Add(_engineFx != null && _engineFx.HasMeta(WorldTapeConst.PartMeta) ? _engineFx : null, () => new() { Who = Actors.None, Node = _engineFx, TapeDrive = _engineFx.SetTapeDriven });
+        Add(_weather != null && _weather.HasMeta(WorldTapeConst.PartMeta) ? _weather : null, () => new() { Who = Actors.None, Node = _weather, TapeDrive = _weather.SetTapeDriven });
+        var village = FindChild("VillageLife", true, false) as VillageLife;
+        Add(village != null && village.HasMeta(WorldTapeConst.PartMeta) ? village : null, () => new() { Who = Actors.None, Node = village, TapeDrive = village.SetTapeDriven });
+        if (_hindsAll?.ExerciseCrew is { Kitchen: not null } crewLife)
+        {
+            _actors.Add(new() { Who = Actors.Jets, Key = "Jets:FieldKitchen", Node = crewLife.Kitchen, TapeDrive = crewLife.SetKitchenDriven });
+            _actors.Add(new() { Who = Actors.Jets, Key = "Jets:FieldCombine", Node = crewLife.Combine, TapeDrive = crewLife.SetCombineDriven });
+        }
+        Add(_hindsAll?.ExerciseCrew, () => new() { Who = Actors.Jets, Node = _hindsAll.ExerciseCrew, TapeDrive = _hindsAll.ExerciseCrew.SetTapeDriven });
     }
 
     /// <summary>One physics step of the actors in the world: those before the car, or those after it.</summary>

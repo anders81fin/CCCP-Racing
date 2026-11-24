@@ -91,6 +91,11 @@ public partial class RaceScene
         if (InSchool) { _scHit = true; return; }      // the driving school: no revenge, the lesson just notes it
         if (_state != State.Racing || _babushkas == null || FateHasCar) return;
         if (RevengeDbg) GD.Print($"revenge: babushka {i} hit at {_clock:F1} s (pilot's mother {_babushkas.PilotMother}, tank driver's mother {_babushkas.TankMother})");
+        if (_track.Id == "atomgrad" && !InLanRace && i == _babushkas.PilotMother)
+        {
+            StartConcreteRevenge();
+            return;
+        }
         if (i == _babushkas.PilotMother) StartJetRevenge();
         else if (i == _babushkas.TankMother)
         {
@@ -111,6 +116,7 @@ public partial class RaceScene
         if ((_jets?.RevengeActive ?? false) || (_hinds?.RetaliationActive ?? false)) list.Add("jet");
         if (_tanks?.Chasing ?? false) list.Add("tanks");
         if ((_slurry?.Avenging ?? false) && _slurry.RevengeLapsLeft > 0) list.Add($"slurry:{_slurry.RevengeLapsLeft}");
+        if (_ploughsAll?.ConcreteRevengePending == true) list.Add("concrete");
         return string.Join(",", list);
     }
 
@@ -132,6 +138,7 @@ public partial class RaceScene
                 started = _slurry?.Avenging ?? false;
                 if (started) _slurry.SetRevengeLapsLeft(laps);
             }
+            else if (token == "concrete") { StartConcreteRevenge(); started = true; }
             else started = true;
             if (started || _resumeRevengeWait > 240f) _resumeRevenges.RemoveAt(i);      // (the slurry tractor leaves its barn about 70 to 90 s into a run)
         }
@@ -162,6 +169,19 @@ public partial class RaceScene
         if (_slurry == null || !_slurry.StartRevenge()) return;
         Reveal("THAT WAS THE TRACTOR DRIVER'S GRANDMA!", "HE WILL SPREAD HIS GRIEF ON THE ROAD FOR THREE LAPS");
         CardSlurryRevenge();
+    }
+
+    void StartConcreteRevenge()
+    {
+        if (_ploughsAll?.ArmConcreteRevenge() != true) return;
+        Reveal("THAT WAS THE MIXER DRIVER'S GRANDMA!", "HE WILL POUR CONCRETE ACROSS HIS LANE");
+        CardConcreteRevenge();
+    }
+
+    void ConcreteLapDone()
+    {
+        if (_ploughsAll?.ConcreteRevengeLapDone() == true)
+            _tapeFxLive.RemoveAll(x => x.E.Kind == TapeFxKind.MixerConcreteStrip);
     }
 
     void Reveal(string title, string sub)
@@ -224,14 +244,16 @@ public partial class RaceScene
     void RevengeHud()
     {
         MissileWarnings();
-        string jet = null, tanks = null, slurry = null;
+        string jet = null, tanks = null, slurry = null, concrete = null;
         if (_state is State.Racing or State.Paused or State.Failed)
         {
             if (_jets is { RevengeActive: true }) jet = "MIK: PERSONAL";
             if (_tanks is { Chasing: true }) tanks = $"TANKS: {_tanks.ShotsLeft} SHOTS LEFT";
             if (_slurry is { Avenging: true } sl) slurry = sl.RevengeLapsLeft == 1 ? "SLURRY: LAST LAP" : $"SLURRY: {sl.RevengeLapsLeft} LAPS LEFT";
+            if (_ploughsAll is { ConcreteLapsLeft: > 0 } pl) concrete = pl.ConcreteLapsLeft == 1 ? "CONCRETE: LAST LAP" : $"CONCRETE: {pl.ConcreteLapsLeft} LAPS LEFT";      // (the mixer driver's revenge: the reminder stays while it is on)
         }
         _hud.RevengeJet = jet;
+        _hud.RevengeConcrete = concrete;
         _hud.RevengeTanks = tanks;
         _hud.RevengeSlurry = slurry;
     }

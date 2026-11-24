@@ -297,13 +297,16 @@ public static class InputSetup
         Add("rescue", Key.R);
         Add("pause", Key.Escape);
         Add("start", Key.Enter, Key.KpEnter);
-        Add("debug", Key.F1);
+        Add("debug", Key.F9);              // the telemetry (debug) overlay; the LAB panel is F10
         Add("keys", Key.K);                // the key card
         Add("tour", Key.T);                // CHOOSE TRACK: the track's scenic tour
         Add("track_boards", Key.L);        // CHOOSE TRACK: the highlighted track's leaderboards
         Add("comments", Key.Tab);          // centre-screen comments on/off
         Add("camera", Key.C);              // top-down / cinematic / bonnet
-        Add("watch_lap", Key.F3);          // the lap just driven in the replay viewer (RaceScene.WatchLap.cs)
+        Add("watch_this_lap", Key.F1);     // the Party Meeting's WATCH CURRENT LAP (RaceScene.WatchThisLap.cs)
+        Add("watch_lap", Key.F2);          // the lap just driven in the replay viewer (RaceScene.WatchLap.cs)
+        Add("browse_laps", Key.F3);        // the Party Meeting's BROWSE LAPS
+        Add("norms_board", Key.F4);        // the Party Meeting's NORMS AND MEDALS (the rally) or LEADERBOARDS (the Stakhanov laps)
         Add("minimap", Key.M);             // the minimap on/off
         Add("rumble", Key.V);              // pause menu: the pad's rumble on/off
         Add("radio_toggle", Key.Backspace);

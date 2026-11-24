@@ -149,6 +149,13 @@ public partial class LapTimer
     /// <summary>The car passed the line wide of its posts on the lap's last stretch: the lap has not ended.</summary>
     public event Action LineMissed;
 
+    public void AdvanceServiceTime(float dt)
+    {
+        if (!Running) return;
+        LapTime += dt;
+        _hasPrev = false;
+    }
+
     public void Update(float dt, Vector2 pos)
     {
         if (!Running) return;

@@ -410,7 +410,7 @@ public partial class Hud : Control
         return y + h;
     }
 
-    /// <summary>The hint after a real lap in a single-player rally or Stakhanov drive ("F3 > WATCH LAP 3", a pad: "START > WATCH LAST LAP"): a few seconds, fading out at the end (RaceScene.WatchLap.cs).</summary>
+    /// <summary>The hint after a real lap in a single-player rally or Stakhanov drive ("F2 > WATCH LAP 3", a pad: "START > WATCH LAST LAP"): a few seconds, fading out at the end (RaceScene.WatchLap.cs).</summary>
     public string WatchHint;
     public float WatchHintAlpha = 1f;
 

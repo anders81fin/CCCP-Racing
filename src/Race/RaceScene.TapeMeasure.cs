@@ -25,7 +25,7 @@ public partial class RaceScene
             foreach (var a in _actors)
             {
                 if (a.Node == null || !IsInstanceValid(a.Node)) continue;
-                var key = $"{a.Who}:{a.Node.Name}";
+                var key = a.Key ?? $"{a.Who}:{a.Node.Name}";
                 if (seen.Add(key)) actors.Add((key, a.Node));
             }
             if (mode == "all") foreach (var (_, root) in actors) TapeMeasureMarkAll(root, root, "n");

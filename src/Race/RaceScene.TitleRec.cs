@@ -12,7 +12,8 @@ namespace CCCPRacing.Race;
 /// then the petrol, the jet fuel and the Sputnik on the keys 1-4 as the driver likes. Every change of the car brings the next hour of the day (the light and the weather follow the
 /// time of day, the car's own fuel lights it), so the lap goes from noon to night in four cars. The take is recorded as a pair (ghost, world tape) with the fuel list beside it
 /// (tools/title/promote_title_take.sh puts a good one into assets/replays), and the title plays it with the moving world, the day and the car of each moment.
-/// Record with: godot-mono --path . -- --title-rec=DIR   (DIR/lap-001 has the take; the game quits when the lap is done).
+/// Record with: godot-mono --path . -- --title-rec=DIR [--track=ilyich|siberia|atomgrad|bonus]   (the kolkhoz without --track=; DIR/lap-001 has the take; the game quits when the lap is done).
+/// The title plays the take of the track it is built on (assets/replays/TRACK-title-rally.*), tools/title/promote_title_take.sh TAKE TRACK puts one there.
 /// </summary>
 public partial class RaceScene
 {
@@ -25,6 +26,20 @@ public partial class RaceScene
     {
         float target = TitleRecLights[Math.Clamp((int)fuel, 0, TitleRecLights.Length - 1)];
         return Mathf.MoveToward(clock, target, TitleRecLightRate * dt);
+    }
+
+    /// <summary>The number of the next take in a --title-rec folder: one after the highest lap-NNN folder in it (1 for a new or empty folder).</summary>
+    internal static int NextTakeNumber(string dir)
+    {
+        int top = 0;
+        try
+        {
+            if (System.IO.Directory.Exists(dir))
+                foreach (var d in System.IO.Directory.GetDirectories(dir, "lap-*"))
+                    if (int.TryParse(System.IO.Path.GetFileName(d)["lap-".Length..], out int n) && n > top) top = n;
+        }
+        catch (Exception) { }
+        return top + 1;
     }
 
     void TitleRecLightTick(float dt) => _titleRecClock = TitleRecLightStep(_titleRecClock, _rallyFuel, dt);
@@ -45,13 +60,14 @@ public partial class RaceScene
         return (FuelGrade)_bundledTitleFuels[at].Grade;
     }
 
-    const string BundledRallyTake = "res://assets/replays/ilyich-title-rally";
+    /// <summary>The recorded background lap of the track built now (assets/replays/TRACK-title-rally.*).</summary>
+    string BundledRallyTake => $"res://assets/replays/{_track.Id}-title-rally";
 
     /// <summary>The recorded background lap (ghost, world tape and fuel list in assets/replays), if it was made on this very track: it plays on the title before the older demonstration.</summary>
     bool LoadBundledRallyTake()
     {
         if (Array.IndexOf(OS.GetCmdlineUserArgs(), "--no-bundled-title") >= 0) return false;      // (development: the tape tests replay the record sets they drove, not the take that ships on the title)
-        if (_track.Id != "ilyich" || !FileAccess.FileExists(BundledRallyTake + ".sig") || !FileAccess.FileExists(BundledRallyTake + ".bin")) return false;
+        if (!FileAccess.FileExists(BundledRallyTake + ".sig") || !FileAccess.FileExists(BundledRallyTake + ".bin")) return false;
         if (FileAccess.GetFileAsString(BundledRallyTake + ".sig").StripEdges() != _records.Signature) return false;      // (the terrain changed: the take no longer fits)
         var ghost = Ghost.Load(BundledRallyTake + ".bin", _params, _track);
         if (ghost == null) return false;

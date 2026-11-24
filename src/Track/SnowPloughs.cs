@@ -60,6 +60,7 @@ public partial class SnowPloughs : Node3D
         {
             if (_tapeDriven == value) return;
             _tapeDriven = value;
+            if (value) ClearConcreteRevenge();
             if (!value)
                 foreach (var p in _ploughs) { p.Sound.Speed = p.Speed; SnowLoad(p, p.Speed); }
         }
@@ -84,6 +85,7 @@ public partial class SnowPloughs : Node3D
             MarkTape(p, _ploughs.Count + 1);
             _ploughs.Add(p);
         }
+        InitConcreteRevenge();
         Reset();
     }
 
@@ -125,6 +127,7 @@ public partial class SnowPloughs : Node3D
 
     public void Reset()
     {
+        ClearConcreteRevenge();
         foreach (var p in _ploughs)
         {
             p.S = p.StartS;
@@ -151,6 +154,7 @@ public partial class SnowPloughs : Node3D
     public void Tick(float dt, CarSim car)
     {
         if (_tapeDriven) return;
+        ConcreteRevengeTick(dt, car);
         int n = _t.Center.Length;
         foreach (var p in _ploughs)
         {
@@ -359,7 +363,7 @@ public partial class SnowPloughs : Node3D
         // Rear mouth, filling hopper and an open discharge trough make the machine readable.
         tilt.AddChild(Props.Part(Props.Cyl(0.36f, 0.025f, 24), Black, new Vector3(0, 0, 2.32f), new Vector3(90, 0, 0)));
         m.AddChild(Props.Part(Props.Cyl(0.55f, 0.55f, 12, 0.28f), Steel, new Vector3(0, 3.36f, 3.35f)));
-        var chute = new Node3D { Position = new Vector3(0, 2.35f, 3.65f), RotationDegrees = new Vector3(22, -18, 0) };
+        var chute = new Node3D { Name = "MixingChute", Position = new Vector3(0, 2.35f, 3.65f), RotationDegrees = new Vector3(22, -18, 0) };
         m.AddChild(chute);
         chute.AddChild(Props.Part(Props.Box(0.58f, 0.08f, 1.15f), Steel, new Vector3(0, 0, 0)));
         foreach (float x in new[] { -0.29f, 0.29f })

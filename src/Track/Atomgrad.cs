@@ -237,31 +237,52 @@ public static partial class Atomgrad
         var suit = new Color(0.92f, 0.93f, 0.9f);
         var vest = new Color(0.98f, 0.42f, 0.04f);
         var stripe = new Color(0.88f, 0.9f, 0.8f);
-        foreach (float x in new[] { -0.13f, 0.13f })
+        var rubber = new Color(0.12f, 0.15f, 0.14f);
+        Node3D Joint(Node3D parent, string name, Vector3 position)
         {
-            n.AddChild(P(Props.Box(0.18f, 0.7f, 0.2f), suit, x, 0.45f, 0));
-            n.AddChild(P(Props.Box(0.2f, 0.12f, 0.3f), new Color(0.12f, 0.1f, 0.08f), x, 0.06f, 0.03f));       // boots
+            var joint = new Node3D { Name = name, Position = position };
+            parent.AddChild(joint);
+            return joint;
         }
-        n.AddChild(P(Props.Box(0.5f, 0.7f, 0.3f), suit, 0, 1.15f, 0));
-        n.AddChild(P(Props.Box(0.54f, 0.5f, 0.34f), vest, 0, 1.22f, 0));                                    // the vest
-        n.AddChild(P(Props.Box(0.56f, 0.06f, 0.36f), vest, 0, 1.5f, 0));                                    // orange across the shoulders, for the camera above
-        foreach (float y in new[] { 1.1f, 1.3f }) n.AddChild(P(Props.Box(0.56f, 0.06f, 0.36f), stripe, 0, y, 0));
-        // The head, the probe arm and the meter arm hang on pivots (named Head, ProbeArm, MeterArm) so the check can move them (ZoneDosimetrist.Inspect); at rest the picture is the same as before.
-        var head = new Node3D { Name = "Head", Position = new Vector3(0, 1.6f, 0) };
-        n.AddChild(head);
-        head.AddChild(P(Props.Ball(0.17f), suit, 0, 0.08f, 0));                                              // the hood
-        head.AddChild(P(Props.Box(0.36f, 0.07f, 0.36f), vest, 0, 0.23f, 0));                                 // an orange cap on it
-        head.AddChild(P(Props.Box(0.22f, 0.16f, 0.12f), new Color(0.3f, 0.32f, 0.3f), 0, 0.04f, 0.14f));     // respirator
-        head.AddChild(P(Props.Cyl(0.06f, 0.1f, 8), Black, 0, 0f, 0.24f, 90, 0, 0));                          // its filter
-        var probeArm = new Node3D { Name = "ProbeArm", Position = new Vector3(0.3f, 1.3f, 0) };              // (the shoulder: the arm is held out in front, the probe at its end)
-        n.AddChild(probeArm);
-        probeArm.AddChild(P(Props.Box(0.12f, 0.12f, 0.55f), suit, 0, 0, 0.2f));                              // the arm held out
-        probeArm.AddChild(P(Props.Box(0.14f, 0.14f, 0.14f), Black, 0, 0, 0.5f));                             // the glove
-        probeArm.AddChild(P(Props.Cyl(0.03f, 0.5f, 6), Steel, 0, 0, 0.8f, 90, 0, 0));                        // the probe
-        var meterArm = new Node3D { Name = "MeterArm", Position = new Vector3(-0.31f, 1.4f, 0) };            // (the shoulder: the other arm hangs down with the meter on its strap)
-        n.AddChild(meterArm);
-        meterArm.AddChild(P(Props.Box(0.12f, 0.5f, 0.12f), suit, 0, -0.25f, 0));                             // the other arm, down
-        n.AddChild(P(Props.Box(0.2f, 0.12f, 0.08f), Yellow, -0.3f, 1.1f, 0.1f));                            // the meter on its strap (on his chest: it does not move)
+
+        foreach (int side in new[] { -1, 1 })
+        {
+            string suffix = side < 0 ? "L" : "R";
+            var hip = Joint(n, "Hip" + suffix, new Vector3(side * .14f, .86f, 0));
+            hip.AddChild(P(Props.Box(.21f, .43f, .23f), suit, 0, -.19f, 0));
+            var knee = Joint(hip, "Knee", new Vector3(0, -.41f, 0));
+            knee.AddChild(P(Props.Box(.18f, .39f, .2f), suit, 0, -.18f, 0));
+            knee.AddChild(P(Props.Box(.2f, .25f, .23f), rubber, 0, -.26f, 0));
+            knee.AddChild(P(Props.Box(.22f, .12f, .33f), rubber, 0, -.39f, .06f));
+        }
+
+        var body = Joint(n, "Torso", new Vector3(0, .86f, 0));
+        body.AddChild(P(Props.Box(.52f, .68f, .33f), suit, 0, .34f, 0));
+        body.AddChild(P(Props.Box(.54f, .30f, .35f), vest, 0, .49f, 0));
+        body.AddChild(P(Props.Box(.55f, .055f, .36f), stripe, 0, .34f, 0));
+        body.AddChild(P(Props.Box(.055f, .49f, .021f), rubber, 0, .32f, .18f));
+
+        var head = Joint(body, "Head", new Vector3(0, .76f, 0));
+        head.AddChild(P(Props.Ball(.19f), suit, 0, .10f, 0));
+        head.AddChild(P(Props.Box(.28f, .09f, .06f), new Color(.18f, .32f, .34f), 0, .13f, .17f));
+        head.AddChild(P(Props.Box(.20f, .13f, .095f), rubber, 0, .025f, .15f));
+        head.AddChild(P(Props.Cyl(.058f, .09f, 8), Steel, 0, .02f, .22f, 90, 0, 0));
+
+        var probeArm = Joint(body, "ProbeArm", new Vector3(.32f, .57f, 0));
+        probeArm.AddChild(P(Props.Box(.16f, .32f, .16f), suit, 0, -.14f, 0));
+        var probeElbow = Joint(probeArm, "Elbow", new Vector3(0, -.29f, 0));
+        probeElbow.AddChild(P(Props.Box(.14f, .30f, .15f), suit, 0, -.14f, 0));
+        probeElbow.AddChild(P(Props.Box(.15f, .15f, .15f), vest, 0, -.31f, 0));
+        probeElbow.AddChild(P(Props.Cyl(.045f, .47f, 8), Steel, 0, -.39f, .19f, 90, 0, 0));
+        probeElbow.AddChild(P(Props.Cyl(.065f, .15f, 8), Yellow, 0, -.39f, .40f, 90, 0, 0));
+
+        var meterArm = Joint(body, "MeterArm", new Vector3(-.32f, .57f, 0));
+        meterArm.AddChild(P(Props.Box(.16f, .32f, .16f), suit, 0, -.14f, 0));
+        var meterElbow = Joint(meterArm, "Elbow", new Vector3(0, -.29f, 0));
+        meterElbow.AddChild(P(Props.Box(.14f, .30f, .15f), suit, 0, -.14f, 0));
+        meterElbow.AddChild(P(Props.Box(.15f, .15f, .15f), vest, 0, -.28f, 0));
+        meterElbow.AddChild(P(Props.Box(.24f, .26f, .14f), rubber, 0, -.32f, .10f));
+        meterElbow.AddChild(P(Props.Box(.16f, .11f, .02f), new Color(.72f, .87f, .64f), 0, -.27f, .18f));
         return n;
     }
 

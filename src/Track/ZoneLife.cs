@@ -41,10 +41,14 @@ public partial class ZoneLife : Node3D
     /// <summary>The world tape parts: the catfish (it shows and hides), each horse and its head, the lunokhod and its dish (a spinner), the train with each vehicle's own pose and its engine sound, the crossing lamps (they show and hide).</summary>
     void MarkTape()
     {
-        Tape.Version(this, 3); Tape.Part(this, "root");      // 3: the catfish's rear body and tail turn (2: the horses have legs, a tail and a gait; 1: a stiff body and a head)
+        Tape.Version(this, _robot != null ? 4 : 3); Tape.Part(this, "root");
         if (_def.Catfish != null) { Tape.Part(_fish, "catfish"); Tape.Part(_fishRear, "catfishRear"); Tape.Part(_fishTail, "catfishTail"); }
         MarkHorseTape();
-        if (_robot != null) { Tape.Part(_robot, "lunokhod"); Tape.Part(_dish, "dish"); Tape.Spin(_dish, Vector3.Up, () => _clock * 0.8f); }
+        if (_robot != null)
+        {
+            Tape.Part(_robot, "lunokhod"); Tape.Part(_dish, "dish"); Tape.Spin(_dish, Vector3.Up, () => _clock * 0.8f);
+            Tape.Part(_robotProbe, "robotProbe"); Tape.Part(_surveyLamp, "robotSurveyLamp");
+        }
         if (_train == null) return;
         Tape.Part(_train, "train");
         int v = 0;
@@ -62,7 +66,8 @@ public partial class ZoneLife : Node3D
         _fishRear.Rotation = Vector3.Zero; _fishTail.Rotation = Vector3.Zero;
         ResetHorses();
         _robotT = 0;
-        _robotWait = 0;
+        _robotWait = 2f;
+        _robotSurvey = false;
         _trainS = 0;
         _trainSpeed = 0;
         _trainWait = _def.Train != null ? 6f : 1e9f;
@@ -212,7 +217,9 @@ public partial class ZoneLife : Node3D
 
     // ------------------------------------------------------------ the lunokhod
 
-    Node3D _robot, _dish;
+    Node3D _robot, _dish, _robotProbe, _surveyLamp;
+    bool _robotSurvey;
+    const float SurveySeconds = 5f;
     float _robotT, _robotWait;
     int _robotObs = -1;
     const float RobotSpeed = 1.6f;
@@ -234,8 +241,60 @@ public partial class ZoneLife : Node3D
         _dish.AddChild(Props.Part(Props.Cyl(0.32f, 0.06f, 10, 0.05f), new Color(0.85f, 0.85f, 0.8f), new Vector3(0, 0.62f, 0), new Vector3(30, 0, 0)));
         _robot.AddChild(Props.Part(Props.Box(0.3f, 0.2f, 0.15f), new Color(0.1f, 0.1f, 0.1f), new Vector3(0, 1.1f, -0.85f)));   // the camera eyes
         _robot.AddChild(Buildings.TextPanel("СССР", 0.9f, 0.25f, new Vector3(0, 1.0f, 0.82f), new Color(0.78f, 0.1f, 0.08f), new Color(1f, 0.85f, 0.3f)));
+        _robotProbe = new Node3D { Name = "SurveyProbe", Position = new Vector3(.51f, .81f, -.85f) };
+        _robot.AddChild(_robotProbe);
+        var armColor = new Color(.92f, .63f, .12f);
+        _robotProbe.AddChild(Props.Part(Props.Box(.11f, .11f, .74f), armColor, new Vector3(0, 0, -.37f)));
+        _robotProbe.AddChild(Props.Part(Props.Box(.22f, .17f, .23f), new Color(.18f, .20f, .19f), new Vector3(0, 0, -.74f)));
+        _surveyLamp = Props.Part(Props.Box(.24f, .12f, .24f), armColor, new Vector3(-.45f, 1.55f, -.20f));
+        ((MeshInstance3D)_surveyLamp).MaterialOverride = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(1f, .70f, .12f),
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+        };
+        _robot.AddChild(_surveyLamp);
+        var route = _def.Robot;
+        Vector2 dock = new(route.X0, route.Z0), sample = new(route.X1, route.Z1);
+        BuildRobotStation(dock, (sample - dock).Normalized(), false);
+        BuildRobotStation(sample, (dock - sample).Normalized(), true);
         _robotObs = _t.Obstacles.Count;
         _t.Obstacles.Add(new Obstacle(new Vector2(-1e4f, -1e4f), 0.1f));
+    }
+
+    void BuildRobotStation(Vector2 at, Vector2 heading, bool survey)
+    {
+        var station = new Node3D
+        {
+            Name = survey ? "SurveyPoint" : "RobotServiceDock",
+            Position = new Vector3(at.X, _t.MeshHeight(at.X, at.Y), at.Y),
+            Rotation = new Vector3(0, TrackData.YawFor(heading), 0),
+        };
+        AddChild(station);
+        var paint = new Color(.88f, .64f, .13f);
+        float half = survey ? 1.5f : 1.85f;
+        void Mark(float x, float z, float w, float length, Color color)
+        {
+            var offset = station.Basis * new Vector3(x, 0, z);
+            float y = _t.MeshHeight(at.X + offset.X, at.Y + offset.Z) - station.Position.Y;
+            station.AddChild(Props.Part(Props.Box(w, .035f, length), color, new Vector3(x, y + .023f, z)));
+        }
+        foreach (float side in new[] { -1f, 1f })
+        {
+            Mark(side * half, 0, .17f, 3.6f, paint);
+            Mark(0, side * 1.72f, half * 2f, .17f, paint);
+        }
+        if (survey) Mark(-.64f, 1.63f, .8f, .8f, new Color(.27f, .30f, .29f));
+        else
+        {
+            var steel = new Color(.36f, .43f, .38f);
+            station.AddChild(Props.Part(Props.Box(2.75f, .88f, .65f), steel, new Vector3(0, .45f, 2.16f)));
+            for (int i = -2; i <= 2; i++)
+                station.AddChild(Props.Part(Props.Box(.23f, .14f, .038f), paint, new Vector3(i * .47f, .55f, 1.82f)));
+        }
+        var sign = Buildings.TextPanel(survey ? "ДОЗА 01" : "ПОСТ 01", 1.8f, .38f,
+            survey ? new Vector3(0, .06f, 2.17f) : new Vector3(0, .59f, 1.80f), new Color(.16f, .18f, .16f), paint);
+        sign.RotationDegrees = survey ? new Vector3(-90, 0, 0) : new Vector3(0, 180, 0);
+        station.AddChild(sign);
     }
 
     void TickRobot(float dt, CarSim car)
@@ -251,20 +310,40 @@ public partial class ZoneLife : Node3D
         float at = out_ ? leg : 2f * len - leg;
         bool atEnd = at < 0.3f || at > len - 0.3f;
         bool carNear = car != null && new Vector2(car.Pos.X, car.Pos.Z).DistanceTo(a.Lerp(b, 0.5f)) < 90f;
-        if (_robotWait > 0) _robotWait -= dt;
-        else if (atEnd && carNear) { }
-        else
+        float probe = 0f;
+        if (_robotSurvey)
         {
-            _robotT += RobotSpeed * dt;
-            float leg2 = _robotT % (2f * len);
-            if ((leg2 < len) != out_) _robotWait = 3f;       // rests at the end
+            float elapsed = SurveySeconds - _robotWait;
+            probe = Mathf.SmoothStep(0f, .8f, elapsed) * (1f - Mathf.SmoothStep(4f, SurveySeconds, elapsed));
         }
-        Vector2 dir = (out_ ? b - a : a - b).Normalized();
+        bool moving = _robotWait <= 0f && !(atEnd && carNear);
+        if (_robotWait > 0f)
+        {
+            _robotWait = Math.Max(0f, _robotWait - dt);
+            if (_robotWait == 0f) _robotSurvey = false;
+        }
+        else if (moving)
+        {
+            float end = out_ ? len : 2f * len;
+            _robotT = Math.Min(end, _robotT + RobotSpeed * dt);
+            if (_robotT >= end)
+            {
+                _robotSurvey = out_;
+                _robotWait = out_ ? SurveySeconds : 3f;
+                if (!out_) _robotT = 0f;
+                moving = false;
+            }
+            at = out_ ? _robotT : _robotT == 0f ? 0f : 2f * len - _robotT;
+        }
+
+        bool faceSurvey = _robotSurvey || out_;
+        Vector2 dir = (faceSurvey ? b - a : a - b).Normalized();
         Vector2 p = a.Lerp(b, Math.Clamp(at / len, 0f, 1f));
         _robot.GlobalPosition = new Vector3(p.X, _t.MeshHeight(p.X, p.Y), p.Y);
-        _robot.Rotation = new Vector3(0, MathF.Atan2(-dir.X, -dir.Y), 0);
+        _robot.Rotation = new Vector3(0, TrackData.YawFor(dir), 0);
         _dish.Rotation = new Vector3(0, _clock * 0.8f, 0);
-        bool moving = _robotWait <= 0 && !(atEnd && carNear);
+        _robotProbe.Rotation = new Vector3(-.93f * probe, 0, 0);
+        _surveyLamp.Visible = probe > .6f;
         _t.Obstacles[_robotObs] = new Obstacle(p, 1.5f, moving ? dir * RobotSpeed : Vector2.Zero);
     }
 

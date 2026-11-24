@@ -1,5 +1,6 @@
 using System;
 using CCCPRacing.Audio;
+using CCCPRacing.Race;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -78,10 +79,41 @@ public partial class PartyRowboat
         _lastShot = _clock;
         _smoke.Position = _flash.GlobalPosition;
         AddChild(new ShotgunSound { Position = _flash.GlobalPosition });
+        // The world tape: the shot as one effect event (the muzzle, where the pellets land), its smoke and splash are 1.2 s long.
+        TapeFx?.Fx(new TapeEvent(0f, TapeEventType.Effect, Kind: TapeFxKind.DachaShot, Effect: TapeEffect.Smoke, Pos: _flash.GlobalPosition, Dir: _impact, Life: 1.2f));
         _shots++;
         _nextShot = _clock + ShotInterval(_shots);
         if (OS.HasEnvironment("DACHADBG"))
             GD.Print($"dacha: shotgun {_shots} at {_clock:F2} s, duck missed by {miss.DistanceTo(PartyPondDuck.PositionAt(_clock)):F1} m, splash {miss}");
+    }
+
+    public ITapeFxHost TapeFx;
+
+    /// <summary>The shot of the tape (<see cref="ReplayShot"/>) at the replay's clock: the same smoke, splash ring and droplets the live <see cref="HuntEffects"/> shows, as functions of the shot's age.</summary>
+    void ReplayShotFx()
+    {
+        if (!TapeDriven || !_replayShot) return;
+        float since = _replayClock - _replayShotClock;
+        _smoke.Visible = since >= 0 && since < 1.2f;
+        if (_smoke.Visible)
+        {
+            _smoke.Position = _replayShotAt + new Vector3(0.18f, 0.55f, 0.10f) * since;
+            _smoke.Scale = Vector3.One * (0.10f + since * 0.5f);
+            _smokeMat.AlbedoColor = new Color(0.78f, 0.77f, 0.70f, (1f - since / 1.2f) * 0.6f);
+        }
+        float age = since - 0.12f;
+        _splash.Visible = age >= 0 && age < 0.85f;
+        if (!_splash.Visible) return;
+        _splash.Position = _replayImpact;
+        for (int i = 0; i < _droplets.Length; i++)
+        {
+            float angle = i * MathF.Tau / _droplets.Length;
+            float radius = 0.16f + age * 0.75f;
+            _droplets[i].Position = new Vector3(MathF.Cos(angle) * radius,
+                Math.Max(0, age * (3.4f + (i % 3) * 0.3f) - age * age * 5f), MathF.Sin(angle) * radius);
+            _droplets[i].Scale = Vector3.One * (1f - age / 0.85f);
+        }
+        _splashRing.Scale = new Vector3(0.2f + age * 1.5f, 0.12f, 0.2f + age * 1.5f);
     }
 
     void HuntEffects(float dt)

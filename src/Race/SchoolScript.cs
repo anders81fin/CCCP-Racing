@@ -178,11 +178,11 @@ public static class SchoolScript
         (0, new("atom_tour_plant", new[] { "THE POWER PLANT AND THE VEHICLE GRAVEYARD.", "THE PAPERWORK SAYS: DO NOT TOUCH." }, None)),
         (0, new("atom_tour_channel", new[] { "THE COOLING CHANNEL: WET CONCRETE.", "A LONG STRAIGHT, THEN BRAKE FOR TOWN." }, None)),
         (0, new("atom_tour_town", new[] { "ATOMGRAD-4: TIGHT CITY CORNERS.", "THE SQUARE AND THE FERRIS WHEEL." }, None)),
-        (0, new("atom_tour_wash", new[] { "THE BIRCH AVENUE LEADS TO THE CHECKPOINT.", "THE WASH STATION IS JUST BEFORE IT." }, None)),
+        (0, new("atom_tour_wash", new[] { "THE CHECKPOINT ROAD PASSES THE WASH.", "THE WASH STATION IS JUST BEFORE IT." }, None)),
         (1, new("atom_rad_sources", new[] { "THE DOSIMETER CLICKS IN THE ZONE.", "THE RED FOREST AND BLOCK 4 ARE HOT." }, None)),
         (1, new("atom_rad_dose", new[] { "THE GAUGE SHOWS YOUR DOSE IN MSV.", "OFF THE ROAD: THREE TIMES THE DOSE." }, None)),
         (1, new("atom_rad_limit", new[] { "OVER 20 MSV: THE DOSIMETRIST STOPS YOU.", "THE CHECK AT THE LINE COSTS TIME." }, None)),
-        (1, new("atom_rad_wash", new[] { "WASH AT THE BIRCH AVENUE STATION.", "CROSS THE BAY SLOWLY TO LOSE DOSE." }, None)),
+        (1, new("atom_rad_wash", new[] { "THE WASH IS BEFORE THE FINISH LINE.", "CROSS THE BAY SLOWLY TO LOSE DOSE." }, None)),
         (2, new("atom_repairs", new[] { "THE MECHANIC SLEEPS BY THE BUS STOP.", "HONK, THEN PARK BESIDE HIM TO REPAIR." }, None)),
     };
 

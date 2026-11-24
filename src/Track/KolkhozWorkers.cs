@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using CCCPRacing.Car;
+using CCCPRacing.Race;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -17,6 +19,10 @@ public partial class KolkhozWorkers : Node3D
     readonly List<(KolkhozWorkerModel Model, KolkhozWorkerSpec Spec)> _crew = new();
     // Hit by the car a worker falls over and gets up again (Knockdown): his rest pose, his obstacle.
     readonly List<(Knockdown Down, Transform3D Pose, int Obstacle)> _down = new();
+    TrackData _t;
+    readonly List<(int Index, Obstacle Was)> _tapeObstacles = new();
+    /// <summary>The replay shows the workers' tape poses: no animation of their own, no knock-over of their own, their obstacles parked.</summary>
+    public bool TapeDriven { get; private set; }
     float _clock, _step;
     Vector3 _prevCar;
     bool _hasPrevCar;
@@ -47,7 +53,9 @@ public partial class KolkhozWorkers : Node3D
 
     public static KolkhozWorkers Build(TrackData t)
     {
-        var root = new KolkhozWorkers { Name = "KolkhozWorkers" };
+        var root = new KolkhozWorkers { Name = "KolkhozWorkers", _t = t };
+        root.SetProcess(false);      // (idle until the race has taken its world-tape index: the workers' rest poses are the ones they were built at, in every session; Begin() starts them)
+        Tape.Version(root, 1); Tape.Part(root, "root");
         foreach (var spec in Layout(t))
         {
             var model = KolkhozWorkerModel.Build(spec.Job, spec.Variant, (t.WaterLevel - t.MeshHeight(spec.Position.X, spec.Position.Y)) / SizeScale, root._crew.Count);
@@ -55,6 +63,7 @@ public partial class KolkhozWorkers : Node3D
             model.Position = new Vector3(spec.Position.X, t.MeshHeight(spec.Position.X, spec.Position.Y), spec.Position.Y);
             model.Rotation = new Vector3(0, spec.Yaw, 0);
             model.Animate(spec.Phase);
+            model.MarkTape(root._crew.Count);      // the world tape: his moving parts and limb stretch, numbered in layout order
             root.AddChild(model);
             root._crew.Add((model, spec));
             int obstacle = root._crew.Count - 1 < t.WorkerObstacles.Count ? t.WorkerObstacles[root._crew.Count - 1] : -1;
@@ -62,8 +71,31 @@ public partial class KolkhozWorkers : Node3D
             if (obstacle >= 0) down.Bind(t, obstacle);
             root._down.Add((down, model.Transform, obstacle));
         }
-        if (root._crew.Count == 0) root.SetProcess(false);
         return root;
+    }
+
+    public int Count => _crew.Count;
+
+    /// <summary>The workers go about their work (the race has taken its world-tape index).</summary>
+    public void Begin() { if (_crew.Count > 0) SetProcess(true); }
+
+    /// <summary>The replay's tape poses the workers (true), or lets go: all stand, their obstacles come back and their limbs go back to the stretch they were built with.</summary>
+    public void SetTapeDriven(bool on)
+    {
+        if (TapeDriven == on) return;
+        if (!on)
+        {
+            foreach (var (index, was) in _tapeObstacles) _t.Obstacles[index] = was;
+            _tapeObstacles.Clear();
+            TapeDriven = false;
+            ResetKnocks();
+            foreach (var (model, _) in _crew) model.RestoreReach();
+            return;
+        }
+        ResetKnocks();
+        foreach (var d in _down)
+            if (d.Obstacle >= 0) { _tapeObstacles.Add((d.Obstacle, _t.Obstacles[d.Obstacle])); _t.Obstacles[d.Obstacle] = new Obstacle(new Vector2(-1e4f, -1e4f), .1f); }
+        TapeDriven = true;
     }
 
     /// <summary>The workers: what knocks them over (Breakables.AddKnock).</summary>
@@ -81,6 +113,7 @@ public partial class KolkhozWorkers : Node3D
 
     public override void _Process(double delta)
     {
+        if (TapeDriven) return;      // (the replay poses them)
         for (int i = 0; i < _down.Count; i++)
         {
             var d = _down[i];

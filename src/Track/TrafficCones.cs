@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CCCPRacing.Car;
+using CCCPRacing.Race;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -48,6 +49,7 @@ public partial class TrafficCones : Node3D
                 for (int k = -(int)Reach; k <= Reach; k++) { ice[((i + k) % n + n) % n] = true; any = true; }
         if (!any) return null;
         var cones = new TrafficCones { Name = "TrafficCones", _t = t };
+        Tape.Version(cones, 1); Tape.Part(cones, "root");
         cones._collar = new StandardMaterial3D
         {
             AlbedoColor = new Color(0.95f, 0.95f, 0.93f), Roughness = 0.15f, MetallicSpecular = 1f,
@@ -93,6 +95,8 @@ public partial class TrafficCones : Node3D
         });
         AddChild(node);
         float yaw = TrackData.YawFor(dir);
+        // The world tape: each cone's pose (it stands, flies, tumbles and lies); numbered in build order, which the road fixes.
+        Tape.Part(node, $"{_cones.Count}/cone");
         _cones.Add(new Cone { Node = node, Home = home, HomeYaw = yaw });
         Place(_cones[^1], home, new Basis(Vector3.Up, yaw));
     }
@@ -102,6 +106,17 @@ public partial class TrafficCones : Node3D
         c.Pos = pos;
         c.Rot = rot;
         c.Node.Transform = new Transform3D(rot, pos);
+    }
+
+    /// <summary>The replay shows the cones' tape poses (their live knock-over and flight are off); leaving it stands them all again.</summary>
+    public bool TapeDriven { get; private set; }
+
+    public void SetTapeDriven(bool on)
+    {
+        if (TapeDriven == on) return;
+        TapeDriven = false;
+        Reset();
+        TapeDriven = on;
     }
 
     public void Reset()
@@ -118,7 +133,7 @@ public partial class TrafficCones : Node3D
     /// <summary>Per physics tick: the car knocks standing cones flying; flying ones fall, bounce and come to rest.</summary>
     public void Tick(float dt, CarSim car)
     {
-        if (dt <= 0) return;
+        if (dt <= 0 || TapeDriven) return;
         var cp = car != null ? new Vector2(car.Pos.X, car.Pos.Z) : Vector2.Zero;
         foreach (var c in _cones)
         {

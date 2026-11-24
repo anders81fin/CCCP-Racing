@@ -1,3 +1,4 @@
+using CCCPRacing.Race;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -6,10 +7,16 @@ namespace CCCPRacing.Track;
 public partial class BarnDoors : Node3D
 {
     readonly Node3D _left = new(), _right = new();
+    float _open;
+    float _beforeTape;
+    /// <summary>The replay shows the leaves' tape poses: the departing tractor's own SetOpen does nothing meanwhile.</summary>
+    public bool TapeDriven { get; private set; }
 
     public BarnDoors(float width, float height, float front, Color wood, Color trim)
     {
         Name = "BarnDoors";
+        // The world tape (docs/replay-tape.md): the two hinged leaves (their rotation about the hinge); the building's own nodes are not parts.
+        Tape.Version(this, 1); Tape.Part(this, "root"); Tape.Part(_left, "left"); Tape.Part(_right, "right");
         float half = width / 2f;
         foreach (var (hinge, side) in new[] { (_left, -1f), (_right, 1f) })
         {
@@ -32,8 +39,22 @@ public partial class BarnDoors : Node3D
     /// <param name="amount">0 closed, 1 fully open.</param>
     public void SetOpen(float amount)
     {
+        if (TapeDriven) return;
+        _open = amount;
         float angle = Mathf.DegToRad(88f) * Mathf.Clamp(amount, 0f, 1f);
         _left.Rotation = new Vector3(0, -angle, 0);
         _right.Rotation = new Vector3(0, angle, 0);
+    }
+}
+
+public partial class BarnDoors
+{
+    /// <summary>The replay's tape poses the leaves (true), or lets go of them: they go back to the angle they had before the replay (false).</summary>
+    public void SetTapeDriven(bool on)
+    {
+        if (TapeDriven == on) return;
+        if (on) { _beforeTape = _open; TapeDriven = true; return; }
+        TapeDriven = false;
+        SetOpen(_beforeTape);
     }
 }

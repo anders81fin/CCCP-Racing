@@ -182,6 +182,7 @@ public partial class RaceScene
             "sit-stuck" => live.VwSitStuck(),
             "sit-shortcut" => live.VwSitShortcut(),
             "sit-slurry" => live.VwSitSlurry(),
+            "sit-concrete-card" => live.VwSitConcreteCard(),
             "sit-snow" => live.VwSitSnow(),
             "sit-kitchen" => live.VwSitKitchen(),
             "sit-end" => live.VwSitEnd(),

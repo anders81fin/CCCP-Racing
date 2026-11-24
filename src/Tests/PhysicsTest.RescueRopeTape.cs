@@ -34,8 +34,10 @@ public partial class PhysicsTest
         var source = Make(); var index = Index(source);
         var legacyIndex = new WorldTapeIndex(new[] { (tractorKey, (Node3D)source) });
         var legacyRecorder = new WorldTapeRecorder(); legacyRecorder.Begin(legacyIndex);
-        Check(legacyIndex.Count == 4 && legacyIndex.StructureOf(tractorKey).Version == 1,
-            $"rope tape {id}: existing version-1 tractor keeps its four original parts and hierarchy");
+        var tractorParts = legacyIndex.StructureOf(tractorKey).ParentPaths.Keys.ToHashSet();
+        Check(legacyIndex.Count == 8 && legacyIndex.StructureOf(tractorKey).Version == 2
+            && new[] { "root", "model", "driver", "head" }.All(tractorParts.Contains) && tractorParts.Count(p => p.StartsWith("wheel")) == 4,
+            $"rope tape {id}: the version-2 tractor has its four original parts and the four turning wheels ({legacyIndex.Count} parts, version {legacyIndex.StructureOf(tractorKey).Version}), without the rope");
         var car = new CarSim(new CarParams(), track); car.Reset(track.StartPos, track.StartYaw);
         if (!tow) car.Rot *= new Basis(Vector3.Forward, MathF.PI);
         var ghost = new Ghost(); var rec = new WorldTapeRecorder(); rec.Begin(index);

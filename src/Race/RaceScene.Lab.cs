@@ -11,7 +11,7 @@ namespace CCCPRacing.Race;
 /// <summary>
 /// LAB: sliders on the live parameters of the car (CarLab), while driving or in the paused menu. LAB MODE (SETTINGS) makes the NEXT run a lab run: it writes no
 /// record, ghost, lap, tape or ranking (a lab run is unranked and has no records), and carries the LAB mark. Without LAB MODE every run starts from the car's own
-/// defaults. F2 (pad Y) opens the panel over the race and slows the game; SETTINGS > LAB TUNING opens it over the paused game.
+/// defaults. F10 (pad Y) opens the panel over the race and slows the game; SETTINGS > LAB TUNING opens it over the paused game.
 /// Keys: PgUp/PgDn row, Home/End adjust, , and . group, Insert step (or run the action row), Delete resets the row; in the menu also the arrows and Enter.
 /// </summary>
 public partial class RaceScene
@@ -212,7 +212,7 @@ public partial class RaceScene
             : sel.Action == "RESET ALL" ? "Puts every parameter back to the car's own value." : sel.Action == "COPY DIFF" ? "Copies what differs from the defaults to the clipboard and writes lab-diff.txt." : "";
         _hud.LabHint = _padMode
             ? (_labLive ? "D-PAD ROW/ADJUST  LB/RB GROUP  A STEP  X RESET  Y CLOSE" : "D-PAD ROW/ADJUST  LB/RB GROUP  A STEP  X RESET  B BACK")
-            : (_labLive ? "PGUP/PGDN ROW  HOME/END ADJUST  , . GROUP  INS STEP  DEL RESET  F2 CLOSE" : "ARROWS ROW/ADJUST  , . GROUP  ENTER STEP  DEL RESET  ESC BACK");
+            : (_labLive ? "PGUP/PGDN ROW  HOME/END ADJUST  , . GROUP  INS STEP  DEL RESET  F10 CLOSE" : "ARROWS ROW/ADJUST  , . GROUP  ENTER STEP  DEL RESET  ESC BACK");
     }
 
     void LabMove(int rowDelta)
@@ -269,10 +269,10 @@ public partial class RaceScene
         var c = k.PhysicalKeycode;
         if (!_labOpen)
         {
-            if (c == Key.F2 && !k.Echo && _state is not (State.Title or State.Paused)) { LabToggleLive(); return true; }
+            if (c == Key.F10 && !k.Echo && _state is not (State.Title or State.Paused)) { LabToggleLive(); return true; }
             return false;
         }
-        if (!k.Echo && (c == Key.F2 || c == Key.Escape)) { LabClose(); return true; }
+        if (!k.Echo && (c == Key.F10 || c == Key.Escape)) { LabClose(); return true; }
         bool menu = !_labLive;
         switch (c)
         {
@@ -294,8 +294,8 @@ public partial class RaceScene
     {
         if (_lab == null) return Key.None;
         if (!_labOpen)
-            return racing && b == JoyButton.Y && _labMode && _state is not (State.Title or State.Paused) ? Key.F2 : Key.None;
-        if (b is JoyButton.Y or JoyButton.Start or JoyButton.Back && racing) return Key.F2;
+            return racing && b == JoyButton.Y && _labMode && _state is not (State.Title or State.Paused) ? Key.F10 : Key.None;
+        if (b is JoyButton.Y or JoyButton.Start or JoyButton.Back && racing) return Key.F10;
         return b switch
         {
             JoyButton.DpadUp => racing ? Key.Pageup : Key.Up,

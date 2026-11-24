@@ -583,7 +583,7 @@ public partial class CarSim
             // Water and deep mud push on the tyre itself (not through its grip) with the square of
             // speed: a splash at 20 km/h, a wall at 90. Applied per wheel, so a puddle under one
             // side pulls the car round.
-            float wetDrag = si.WetDrag + (g.Verge ? P.VergeDrag : 0f);
+            float wetDrag = si.WetDrag + g.ConcreteDrag + (g.Verge ? P.VergeDrag : 0f);
             if (wetDrag > 0f && wheelSpeed > 0.5f)
             {
                 var hvc = new Vector3(vc.X, 0, vc.Z);

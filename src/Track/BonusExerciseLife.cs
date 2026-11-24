@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CCCPRacing.Audio;
 using CCCPRacing.Car;
+using CCCPRacing.Race;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -25,7 +26,12 @@ public partial class BonusExerciseLife : Node3D
     Vector3 _shot;
     AudioStreamPlayer _radio;
     DieselSound _generator,_campGenerator;
-    Node3D _lid, _stoveGlow, _ladle, _cookSteam, _combineWheels, _combineReel;
+    Node3D _lid, _stoveGlow, _ladle, _cookSteam, _combineWheels, _combineReel, _glowReach, _steamReach, _kitchen, _combine;
+    float _reelTurned;      // the header reel's real, unwrapped turn (the world tape)
+    bool _kitchenDriven, _combineDriven;      // the world tape poses the field kitchen / the abandoned combine (the live motion of its parts is off)
+    public Node3D Kitchen => _kitchen; public Node3D Combine => _combine;
+    public void SetKitchenDriven(bool on) { _kitchenDriven=on; }
+    public void SetCombineDriven(bool on) { _combineDriven=on; }
     public event Action SoupUnshaken;
     static readonly Color Olive = new(.28f,.32f,.19f), Steel = new(.22f,.23f,.2f), Rust = new(.36f,.22f,.12f);
     internal static readonly Vector2 RadioOperatorPost = new(301,160);
@@ -38,6 +44,8 @@ public partial class BonusExerciseLife : Node3D
     public System.Collections.Generic.IEnumerable<int> InitSteps(TrackData track, TyreEffects fx)
     {
         _track=track; _fx=fx;
+        // The world tape (docs/replay-tape.md): the crew is an actor of its own that lives inside the sorties' tree (the index skips a nested root): each person's root (place, facing, knock-over's tilt), body, head, arm, legs and tool or flag.
+        Tape.Version(this,1); Tape.Part(this,"root");
         AddChild(BuildScenery());
         yield return 0;
         AddChild(BonusCampDetails.Build(track));
@@ -66,6 +74,35 @@ public partial class BonusExerciseLife : Node3D
         yield return 0;
     }
     void Person(Vector2 at,int job)
+    {
+        PersonCore(at,job);
+        var w=_workers[^1]; var f=w.Figure; string n=$"{_workers.Count-1}/";
+        Tape.Part(f.Root,n+"figure"); Tape.Part(f.Body,n+"body"); Tape.Part(f.Head,n+"head"); Tape.Part(f.ArmR,n+"armR"); Tape.Part(f.LegL,n+"legL"); Tape.Part(f.LegR,n+"legR");
+        if(w.Tool!=null) Tape.Part(w.Tool,n+"tool");
+        if(w.Flag!=null) Tape.Part(w.Flag,n+"flag");
+    }
+
+    /// <summary>The replay shows the crew's tape poses: they neither walk, duck, work nor fall over by themselves (the cook's kitchen parts, not on the tape yet, keep moving).</summary>
+    public bool TapeDriven { get; private set; }
+
+    /// <summary>Switches the live animation off (the tape poses the people) or on again: they stand at home at rest, as the world was built.</summary>
+    public void SetTapeDriven(bool on)
+    {
+        if(TapeDriven==on) return;
+        TapeDriven=on;
+        if(!on) Reset();
+    }
+
+    void KitchenTick(Worker w,float dt)
+    {
+        w.WorkPhase+=dt;
+        if(_kitchenDriven) return;      // (the tape poses the lid, the ladle and the flame)
+        _ladle.Rotation=new Vector3(0,0,MathF.Sin(w.WorkPhase*3)*.5f);
+        _lid.Rotation=new Vector3(.04f+MathF.Sin(w.WorkPhase*2.1f)*.035f,0,MathF.Sin(w.WorkPhase*1.7f)*.04f);
+        _glowReach.Scale=new Vector3(1,.72f+MathF.Sin(w.WorkPhase*7)*.18f,1);
+    }
+
+    void PersonCore(Vector2 at,int job)
     {
         var f=DrunkMen.BuildFigure(job==3?new Color(.72f,.7f,.61f):Olive);
         f.Bottle.Visible=false;
@@ -142,6 +179,7 @@ public partial class BonusExerciseLife : Node3D
         _time=_smoke=_alarm=_kitchenCooldown=_soupBubble=0;
         if(_combineWheels!=null) _combineWheels.Rotation=Vector3.Zero;
         if(_combineReel!=null) _combineReel.Rotation=Vector3.Zero;
+        _reelTurned=0;
         _radio?.Stop();
         foreach(var w in _workers) { w.Down.Reset(); w.Figure.Root.Position=w.Home; }
     }
@@ -171,11 +209,15 @@ public partial class BonusExerciseLife : Node3D
             if(taxi is Vector3 jet && jet.DistanceTo(Ground(_track,62,45))<45)
                 _fx.Smoke(jet+Vector3.Up*.2f,new Vector3(.5f,1,1),new Color(.5f,.44f,.32f),.25f,.8f,3,1.5f);
         }
-        if(_combineWheels!=null) _combineWheels.Rotation=new Vector3(MathF.Sin(_time*.13f)*.004f,0,MathF.Sin(_time*.17f)*.003f);
-        if(_combineReel!=null) _combineReel.RotateX(dt*1.1f);
-        if(_cookSteam!=null) _cookSteam.Scale=new Vector3(1,.8f+MathF.Sin(_time*3)*.16f,1);
+        if(!_combineDriven)
+        {
+            if(_combineWheels!=null) _combineWheels.Rotation=new Vector3(MathF.Sin(_time*.13f)*.004f,0,MathF.Sin(_time*.17f)*.003f);
+            if(_combineReel!=null) { _combineReel.RotateX(dt*1.1f); _reelTurned+=dt*1.1f; }
+        }
+        if(_steamReach!=null && !_kitchenDriven) _steamReach.Scale=new Vector3(1,.8f+MathF.Sin(_time*3)*.16f,1);
         foreach(var w in _workers)
         {
+            if(TapeDriven) { if(w.Job==3) KitchenTick(w,dt); continue; }      // (the tape poses the people)
             var f=w.Figure;
             if(car!=null && new Vector2(car.Pos.X-f.Root.Position.X,car.Pos.Z-f.Root.Position.Z).Length()<1.1f && car.Speed>2) w.Down.Hit(car.Vel);
             w.Down.Tick(dt);
@@ -215,13 +257,10 @@ public partial class BonusExerciseLife : Node3D
             }
             else if(w.Job==3)
             {
-                w.WorkPhase+=dt;
+                KitchenTick(w,dt);
                 f.Body.Position=new Vector3(0,MathF.Sin(w.WorkPhase*2)*.025f,0);
                 f.Body.Rotation=new Vector3(MathF.Sin(w.WorkPhase*1.5f)*.07f,0,MathF.Sin(w.WorkPhase*2)*.04f);
                 f.Head.Rotation=new Vector3(.18f+MathF.Sin(w.WorkPhase*1.3f)*.08f,MathF.Sin(w.WorkPhase*.8f)*.15f,0);
-                _ladle.Rotation=new Vector3(0,0,MathF.Sin(w.WorkPhase*3)*.5f);
-                _lid.Rotation=new Vector3(.04f+MathF.Sin(w.WorkPhase*2.1f)*.035f,0,MathF.Sin(w.WorkPhase*1.7f)*.04f);
-                _stoveGlow.Scale=new Vector3(1,.72f+MathF.Sin(w.WorkPhase*7)*.18f,1);
                 f.ArmR.Rotation=new Vector3(1.45f+MathF.Sin(w.WorkPhase*3)*.28f,0,-.22f);
             }
             else if(w.Job==5)
@@ -301,17 +340,24 @@ public partial class BonusExerciseLife : Node3D
         _lid.AddChild(Props.Part(Props.Cyl(.82f,.1f,12),new Color(.27f,.28f,.25f),Vector3.Zero));
         _lid.AddChild(Props.Part(Props.Cyl(.12f,.16f,8),Steel,new Vector3(0,.12f,0)));
         _stoveGlow=new Node3D { Position=new Vector3(0,.94f,0) }; kitchen.AddChild(_stoveGlow);
-        var flame=Props.Part(Props.Ball(.34f,8),new Color(1,.28f,.035f),Vector3.Zero); flame.Scale=new Vector3(1,.7f,1);_stoveGlow.AddChild(flame);
+        _glowReach=new Node3D { Name="Reach" }; _stoveGlow.AddChild(_glowReach);      // (the flame's flicker is the scale of this unrecorded child: the world tape carries no scale)
+        var flame=Props.Part(Props.Ball(.34f,8),new Color(1,.28f,.035f),Vector3.Zero); flame.Scale=new Vector3(1,.7f,1);_glowReach.AddChild(flame);
         _ladle=new Node3D { Position=new Vector3(0,1.82f,.1f) }; kitchen.AddChild(_ladle);
         _ladle.AddChild(Props.Part(Props.Cyl(.035f,.85f,6),new Color(.48f,.34f,.18f),new Vector3(.35f,.12f,0),new Vector3(0,0,-52)));
         _ladle.AddChild(Props.Part(Props.Ball(.12f,6),Steel,new Vector3(.7f,.28f,0)));
         _cookSteam=new Node3D { Position=new Vector3(0,3.45f,0) };kitchen.AddChild(_cookSteam);
+        _steamReach=new Node3D { Name="Reach" }; _cookSteam.AddChild(_steamReach);
         for(int puff=0;puff<4;puff++)
         {
             var wisp=Props.Part(Props.Ball(.16f+puff*.025f,7),new Color(.38f,.39f,.35f,.32f),
                 new Vector3(MathF.Sin(puff*2)*.1f,puff*.3f,MathF.Cos(puff)*.08f));
-            wisp.Scale=new Vector3(.6f,1.4f,.6f);_cookSteam.AddChild(wisp);
+            wisp.Scale=new Vector3(.6f,1.4f,.6f);_steamReach.AddChild(wisp);
         }
+        // The world tape: the field kitchen is an actor of its own inside the crew's tree (a nested root: the crew's structure is unchanged): the lid, the ladle, and the flame's and the steam's stretch (their scale) as a sound channel.
+        Tape.Version(kitchen,1); Tape.Part(kitchen,"root"); Tape.Part(_lid,"lid"); Tape.Part(_ladle,"ladle"); Tape.Part(_stoveGlow,"flame"); Tape.Part(_cookSteam,"steam");
+        Tape.Sound(_stoveGlow,TapeSoundChannel.LimbReach,()=>_glowReach.Scale.Y,v=>_glowReach.Scale=new Vector3(1,v,1));
+        Tape.Sound(_cookSteam,TapeSoundChannel.LimbReach,()=>_steamReach.Scale.Y,v=>_steamReach.Scale=new Vector3(1,v,1));
+        _kitchen=kitchen;
         kitchen.AddChild(Props.Part(Props.Cyl(.12f,2.2f,8),Steel,new Vector3(0,2.2f,0)));
         Box(kitchen,new(.6f,.08f,.5f),new(0,3.35f,0),Steel);
         Box(kitchen,new(2.5f,.12f,.8f),new(3,1,2),Rust);
@@ -417,6 +463,9 @@ public partial class BonusExerciseLife : Node3D
             }
         }
         var wheels=new Node3D { Name="CombineWheels" }; combine.AddChild(wheels); _combineWheels=wheels;
+        // The world tape: the abandoned combine is an actor of its own inside the crew's tree (a nested root): the header reel by its real, unwrapped turn and the wheels' small sway.
+        Tape.Version(combine,1); Tape.Part(combine,"root"); Tape.Part(_combineReel,"reel"); Tape.Spin(_combineReel,Vector3.Right,()=>_reelTurned); Tape.Part(wheels,"wheels");
+        _combine=combine;
         foreach(float x in new[]{-1.5f,1.5f}) foreach(float z in new[]{-1.1f,1.6f})
         {
             float radius=z<0?.75f:.45f, y=z<0?.6f:.35f;

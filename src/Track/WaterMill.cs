@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CCCPRacing.Race;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -155,6 +156,7 @@ public static class WaterMill
         n.AddChild(Props.Part(Props.Cyl(0.17f, 3.6f, 8), PlankDark, w, new Vector3(90, 0, 0)));
         n.AddChild(Props.Part(Props.Cyl(0.34f, 1.2f, 10), Plank, w, new Vector3(90, 0, 0)));
         var wheel = new MillWheel { Name = "MillWheel", Position = w };
+        wheel.SetProcess(false);      // (idle until the race has taken its world-tape index, with the spray: Begin())
         foreach (float z in new[] { -0.75f, 0.75f })
         {
             BuildKit.RimRing(wheel, new Vector3(0, 0, z), WheelR, 20, 0.14f, 0.26f, Plank);
@@ -302,14 +304,18 @@ public static class WaterMill
         n.AddChild(Props.Part(Props.Cyl(0.15f, 0.2f, 8), Iron, new Vector3(-7.9f, 0.45f, 1.35f)));
         for (int k = 0; k < 7; k++) n.AddChild(B(new Vector3(rs.RandfRange(0.4f, 0.8f), 0.02f, rs.RandfRange(0.15f, 0.3f)), new Color(0.88f, 0.92f, 0.92f), new Vector3(WheelCentre.X + rs.RandfRange(-1.4f, 1.0f), -1.2f + rs.RandfRange(-0.1f, 0.15f), rs.RandfRange(-0.8f, 0.8f))));
         DrunkTractor.BatchStatic(n, null, new[] { new DrunkTractor.TractorWheel(wheel, WheelR) });      // (the turning wheel is not merged into the mill)
-        n.AddChild(MillWheel.Spray(w));      // (after the merge: it is not a mesh)
+        var spray = MillWheel.Spray(w);
+        spray.SetProcess(false);
+        n.AddChild(spray);      // (after the merge: it is not a mesh)
+        // The world tape: the mill is an actor of its own (the race gives it the key None:WaterMill); the wheel is a spinner with its real, unwrapped turn, the spray is drawn from that turn.
+        Tape.Version(n, 1); Tape.Part(n, "root"); Tape.Part(wheel, "wheel"); Tape.Spin(wheel, new Vector3(0, 0, 1), () => wheel.Turned);
         return n;
     }
 }
 
 /// <summary>
-/// The mill's turning wheel: a slow, steady turn (one revolution in about 18 s; the top moves away from the building, so the buckets on the river side go down). A decorative ambient part like the
-/// beacons: it turns by its own time in the live game, in a replay and on a LAN replica alike (it is not a tape actor, nothing in it is gameplay), and the spray under it is a few pale streaks falling from the discharge side into the river.
+/// The mill's turning wheel: a slow, steady turn (one revolution in about 18 s; the top moves away from the building, so the buckets on the river side go down). Nothing in it is gameplay, but the world tape
+/// shows it (docs/replay-tape.md section 22): the wheel's real, unwrapped turn is recorded, the spray under it (a few pale streaks falling from the discharge side into the river) is drawn from that turn.
 /// </summary>
 public partial class MillWheel : Node3D
 {
@@ -317,9 +323,19 @@ public partial class MillWheel : Node3D
     public const float Rate = 0.35f;
     float _angle;
 
+    /// <summary>The wheel's real turn since it began (radians, never wrapped): what the world tape records.</summary>
+    public float Turned { get; private set; }
+    /// <summary>The tape poses the wheel (and the spray follows its turn); leaving it, the wheel turns on from where it stood.</summary>
+    public bool TapeDriven { get; private set; }
+    public void SetTapeDriven(bool on) { TapeDriven = on; }
+    /// <summary>The race has taken its world-tape index: the wheel turns from now on.</summary>
+    public void Begin() => SetProcess(true);
+
     public override void _Process(double delta)
     {
+        if (TapeDriven) return;
         _angle = (_angle + Rate * (float)delta) % Mathf.Tau;
+        Turned += Rate * (float)delta;
         Rotation = new Vector3(0, 0, _angle);
     }
 
@@ -346,9 +362,22 @@ public partial class MillSpray : Node3D
         }
     }
 
+    /// <summary>The tape poses the wheel: the spray falls at the wheel's turn (<see cref="ReplayTurn"/>), not by its own clock.</summary>
+    public bool TapeDriven { get; private set; }
+    public void SetTapeDriven(bool on) { TapeDriven = on; }
+    public void Begin() => SetProcess(true);
+    /// <summary>The spray's clock is the wheel's turn over its rate: the same time both began counting at (the race starts them together).</summary>
+    public void ReplayTurn(float turned) { _clock = turned / MillWheel.Rate; Place(); }
+
     public override void _Process(double delta)
     {
+        if (TapeDriven) return;
         _clock += (float)delta;
+        Place();
+    }
+
+    void Place()
+    {
         for (int i = 0; i < Streaks; i++)
         {
             float t = (_clock / Life + i / (float)Streaks * 1.7f) % 1f;      // each streak: its own phase, falling again and again

@@ -3,7 +3,7 @@
 Rally-Sport-inspired time trial on a Soviet kolkhoz. Power: ACCORDING TO PLAN. Suspension: NYET.
 
 Source code: [anders81fin/CCCP-Racing](https://github.com/anders81fin/CCCP-Racing).
-Source for version **0.918**: [v0.918](https://github.com/anders81fin/CCCP-Racing/tree/v0.918).
+Source for version **0.919**: [v0.919](https://github.com/anders81fin/CCCP-Racing/tree/v0.919).
 GitHub account: [anders81fin](https://github.com/anders81fin).
 
 Source code is offered under **GPL-3.0-or-later** and game models, images, track
@@ -55,7 +55,7 @@ LT brake (and reverse), left stick or D-pad steer, A handbrake, LB clutch, Y hor
 Back radio, D-pad up/down power (Stakhanov). Rumble on/off: LB in the pause menu.
 
 Controls: arrows/WASD drive, Space handbrake, Shift clutch, Ctrl horn, R rescue (voids the lap), Esc pause, Enter start,
-Alt+Enter / F11 fullscreen toggle, F1 engineer's view (wheel loads, roll, resolution), F3 watch the lap you just drove (a pad: Start, Down, A for WATCH LAST LAP).
+Alt+Enter / F11 fullscreen toggle, F9 engineer's view (wheel loads, roll, resolution), F2 watch the lap you just drove (a pad: Start, Down, A for WATCH LAST LAP). In the Party Meeting (Esc): F1 watch the current lap, F2 the last lap, F3 browse laps, F4 norms and medals (the Stakhanov laps: the leaderboards).
 Horn: hold Ctrl. It wakes the mechanic asleep on the first bus stop's bench (within ~60 m). Park by the
 shelter with a damaged car and he comes over and beats it with a sledgehammer for 10 seconds (the race
 clock keeps running): the engine's health climbs evenly meanwhile and the bodywork is straightened blow by blow, as new
@@ -80,7 +80,7 @@ TAB (X on a pad) turns off only the jokes.
 
 PARTY MEETING (Esc, Start): CONTINUE first and the default; then this run's laps to watch (none: no row; one lap: WATCH LAST LAP; two or more: WATCH LAST LAP and BROWSE LAPS), then
 LEADERBOARDS (Stakhanov laps) or NORMS AND MEDALS (the rally), DRIVING SCHOOL, SETTINGS, and last RESTART RACE and EXIT RACE. A few seconds after every real lap of a single-player rally or Stakhanov drive a hint
-("F3 > WATCH LAP 3", a pad: "START > WATCH LAST LAP") fades in at the bottom; F3 opens that lap in the replay viewer (the TV BROADCAST camera) while driving, at a stop card and at the end of a rally, and WATCH LAST LAP does the same from the
+("F2 > WATCH LAP 3", a pad: "START > WATCH LAST LAP") fades in at the bottom; F2 opens that lap in the replay viewer (the TV BROADCAST camera) while driving, at a stop card and at the end of a rally, and WATCH LAST LAP does the same from the
 Party Meeting. It is always the lap just driven, never an older one: if its recording is still being prepared or could not be saved, WATCH LAST LAP says so and nothing else opens. The race stands still while you watch and comes back exactly as it was
 (car, clock, norm, attempts), to the driving, the card or the Party Meeting's row you left.
 

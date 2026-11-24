@@ -54,6 +54,7 @@ public sealed class WorldTapeIndex : IWorldTapeIndex
     static void Walk(Node n, Action<Node3D> f, bool top = true)
     {
         if (!top && n.HasMeta(WorldTapeConst.KindMeta)) return;
+        if (!top && n.HasMeta(WorldTapeConst.PartMeta) && (string)n.GetMeta(WorldTapeConst.PartMeta) == "root") return;      // an actor of its own that lives inside this one's tree (the exercise crew inside the sorties): not this actor's part
         if (n is Node3D n3 && n.HasMeta(WorldTapeConst.PartMeta)) f(n3);
         foreach (var c in n.GetChildren()) Walk(c, f, false);
     }

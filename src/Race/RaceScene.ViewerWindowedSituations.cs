@@ -149,6 +149,18 @@ public partial class RaceScene
         VwGrab(GetViewport(), "sit-shortcut");
     }
 
+    IEnumerable VwSitConcreteCard()
+    {
+        foreach (var x in SitStart("atomgrad")) yield return x;
+        _autodrive = false;
+        StartConcreteRevenge();
+        foreach (var x in VrUntil(() => _stopCard?.Kind == "revenge_concrete", 600, "the mixer revenge card opens")) yield return x;
+        VwCheck(_stopCard?.Lines.Any(line => line.Contains("RIBBON")) == true, "the card explains the fresh concrete ribbon");
+        foreach (var x in VrUntil(() => _hud.StopCardReady, 600, "the card accepts dismissal")) yield return x;
+        foreach (var x in VrPad(JoyButton.B)) yield return x;
+        VwCheck(_stopCard == null && _ploughsAll.ConcreteRevengePending, "pad B dismisses the card and leaves the revenge armed");
+    }
+
     // ------------------------------------------------------------------ the slurry
     IEnumerable VwSitSlurry()
     {
@@ -239,10 +251,10 @@ public partial class RaceScene
                 _padMode = pad;
                 if (gulag) { _failReason = "TEST"; _failed = true; _state = State.Failed; EnterGulag(); } else { _state = State.Finished; EnterPlanScreen(); }
                 for (int i = 0; i < 20; i++) yield return null;
-                string want = pad ? "START > WATCH LAST LAP AS REPLAY" : "F3 > WATCH LAST LAP AS REPLAY";
+                string want = pad ? "START > WATCH LAST LAP AS REPLAY" : "F2 > WATCH LAST LAP AS REPLAY";
                 VwCheck(_hud.EndWatchHint == want, $"{which}, {(pad ? "pad" : "keyboard")}: the end screen offers '{_hud.EndWatchHint}'");
                 if (!pad) foreach (var x in VrShot($"sit-end-{(gulag ? "gulag" : "plan")}")) yield return x;
-                if (pad) foreach (var x in VrPad(JoyButton.Start)) yield return x; else foreach (var x in VrTap(Key.F3)) yield return x;
+                if (pad) foreach (var x in VrPad(JoyButton.Start)) yield return x; else foreach (var x in VrTap(Key.F2)) yield return x;
                 foreach (var x in VrUntil(() => ReplayViewer is { State: ReplayViewerState.Playing }, 60 * 30, $"{which}: the viewer plays the last lap")) yield return x;
                 VwCheck(ReplayViewer != null && (_gulag || _planScreen), $"{which}: the replay of the last lap opens over the end screen");
                 foreach (var x in VrTap(Key.Escape)) yield return x;
@@ -452,7 +464,7 @@ public partial class RaceScene
         LapArchiveCapture(45.0f, LapKind.Normal, true, false); string sputnikLap = _lastLapId;
         for (int i = 0; i < 90; i++) yield return null;
         VwCheck(sputnikLap != null && Meta(sputnikLap) == "KOSTIA|4", $"the Sputnik lap's metadata carries the livery ('{(sputnikLap == null ? "-" : Meta(sputnikLap))}')");
-        foreach (var x in VrTap(Key.F3)) yield return x;
+        foreach (var x in VrTap(Key.F2)) yield return x;
         foreach (var x in VrUntil(() => ReplayViewer is { State: ReplayViewerState.Playing }, 60 * 30, "the viewer plays")) yield return x;
         for (int i = 0; i < 20; i++) yield return null;
         VwCheck(ReplayViewer?.LapId == sputnikLap && EngineFuel == FuelGrade.Sputnik && _carVis.HasLivery && _carVis.LiveryName == "KOSTIA", $"the replay of that lap shows the livery on its own car ('{_carVis.LiveryName}')");
@@ -478,7 +490,7 @@ public partial class RaceScene
         LapArchiveCapture(47.0f, LapKind.Normal, true, false); string petrolLap = _lastLapId;
         for (int i = 0; i < 90; i++) yield return null;
         VwCheck(petrolLap != null && petrolLap != sputnikLap && Meta(petrolLap) == "", $"a petrol lap of the same profile has none ('{(petrolLap == null ? "-" : Meta(petrolLap))}')");
-        foreach (var x in VrTap(Key.F3)) yield return x;
+        foreach (var x in VrTap(Key.F2)) yield return x;
         foreach (var x in VrUntil(() => ReplayViewer is { State: ReplayViewerState.Playing }, 60 * 30, "the viewer plays")) yield return x;
         for (int i = 0; i < 20; i++) yield return null;
         VwCheck(ReplayViewer?.LapId == petrolLap && !_carVis.HasLivery, "its replay is a plain car");
@@ -489,7 +501,7 @@ public partial class RaceScene
         LapArchiveCapture(49.0f, LapKind.Normal, true, false); string bareLap = _lastLapId;
         for (int i = 0; i < 90; i++) yield return null;
         VwCheck(bareLap != null && Meta(bareLap) == "", "a Sputnik lap of a profile without the paint: no livery in the metadata (older laps are the same)");
-        foreach (var x in VrTap(Key.F3)) yield return x;
+        foreach (var x in VrTap(Key.F2)) yield return x;
         foreach (var x in VrUntil(() => ReplayViewer is { State: ReplayViewerState.Playing }, 60 * 30, "the viewer plays")) yield return x;
         for (int i = 0; i < 20; i++) yield return null;
         VwCheck(ReplayViewer?.LapId == bareLap && EngineFuel == FuelGrade.Sputnik && !_carVis.HasLivery, "its replay is a plain Sputnik");
@@ -688,7 +700,7 @@ public partial class RaceScene
         EnterGulag();
         for (int i = 0; i < 30; i++) yield return null;
         VwCheck(_hud.EndWatchHint != null, $"the GULAG screen offers it ('{_hud.EndWatchHint}')");
-        foreach (var x in VrTap(Key.F3)) yield return x;
+        foreach (var x in VrTap(Key.F2)) yield return x;
         foreach (var x in VrUntil(() => ReplayViewer is { State: ReplayViewerState.Playing }, 60 * 30, "the viewer plays")) yield return x;
         VwCheck(ReplayViewer?.LapId == _lastLapId && ReplayViewer.LapKindOf == LapKind.Void, "F3 opens the lap in the replay viewer");
         foreach (var x in VrShot("interrupted-lap-viewer")) yield return x;
@@ -862,7 +874,7 @@ public partial class RaceScene
         foreach (var x in VrUntil(() => _rec.Count > 60 * 14, 60 * 30, "a long enough ghost")) yield return x;
         LapArchiveCapture(_lapClock, LapKind.Normal, false, false);
         for (int i = 0; i < 120; i++) yield return null;
-        foreach (var x in VrTap(Key.F3)) yield return x;
+        foreach (var x in VrTap(Key.F2)) yield return x;
         foreach (var x in VrUntil(() => ReplayViewer is { State: ReplayViewerState.Playing }, 60 * 30, "the viewer plays")) yield return x;
         var vs = ReplayViewer.Scene; var vd = vs._poligonDust;
         VwCheck(vd != null && vd != dust, "the viewer's own world has its own dust");

@@ -25,8 +25,17 @@ public partial class PartyPondDuck : Node3D
     {
         var root = new PartyPondDuck { Name = "PondMallard", _track = track };
         if (track.Id != "ilyich" || float.IsNaN(track.WaterLevel)) { root.SetProcess(false); return root; }
-        root.BuildModel(); root.Animate(); return root;
+        root.BuildModel(); root.Animate();
+        // The world tape: the mallard's place and swim (the bonnet camera on its back is the player's own discovery, not the tape's).
+        Tape.Version(root, 1); Tape.Part(root, "root"); Tape.Part(root._duck, "duck");
+        root.SetProcess(false);      // (idle until the race has taken its world-tape index, together with the boat and the dacha's guards: Begin())
+        return root;
     }
+
+    /// <summary>The tape poses the mallard (its live swim is off); leaving it, the swim goes on from where it was.</summary>
+    public bool TapeDriven { get; private set; }
+    public void SetTapeDriven(bool on) { TapeDriven = on; }
+    public void Begin() { if (_duck != null) SetProcess(true); }
 
     void BuildModel()
     {
@@ -69,7 +78,7 @@ public partial class PartyPondDuck : Node3D
 
     public override void _Process(double delta)
     {
-        if (_duck == null) return;
+        if (_duck == null || TapeDriven) return;
         _clock += (float)delta; _tick += (float)delta;
         if (_tick < 1f / 12) return;
         _tick %= 1f / 12; Animate();

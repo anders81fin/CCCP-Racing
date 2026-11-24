@@ -9,14 +9,14 @@ namespace CCCPRacing.Tests;
 
 public partial class PhysicsTest
 {
-    /// <summary>The dosimetrist's check: he turns to the car where it stands, sweeps the probe, glances at the meter twice and goes back to rest; a restart, a rescue (the car far away) and a knock-over bring him back too.</summary>
+    /// <summary>The dosimetrist's check: he turns to the car where it stands, sweeps the probe, reads the meter once and goes back to rest; a restart, a rescue (the car far away) and a knock-over bring him back too.</summary>
     void ZoneDosimetristTest()
     {
         var track = TrackBuilder.Build(TrackDef.Load("res://tracks/atomgrad.json"));
         var man = ZoneDosimetrist.Build(track);
         AddChild(man);
         var figure = man.GetChild<Node3D>(0);
-        var probe = figure.GetNode<Node3D>("ProbeArm"); var meter = figure.GetNode<Node3D>("MeterArm"); var head = figure.GetNode<Node3D>("Head");
+        var probe = figure.GetNode<Node3D>("Torso/ProbeArm"); var meter = figure.GetNode<Node3D>("Torso/MeterArm"); var head = figure.GetNode<Node3D>("Torso/Head");
         Vector3 at = figure.GlobalPosition;
         Vector3 car = at + new Vector3(5f, 0, -3f);       // (a car on the road a few metres off)
         const float dt = 1f / 60f, total = 10f;
@@ -27,19 +27,19 @@ public partial class PhysicsTest
         {
             man.Inspect(e, total, car); man._Process(dt);
             if (e > 2f && e < 5f) { Vector2 front = new Vector2(figure.GlobalBasis.Z.X, figure.GlobalBasis.Z.Z).Normalized(), want = new Vector2(car.X - at.X, car.Z - at.Z).Normalized(); faced = Math.Max(faced, front.Dot(want)); }
-            probeMax = Math.Max(probeMax, probe.Rotation.X); meterMax = Math.Max(meterMax, -meter.Rotation.X); headMax = Math.Max(headMax, head.Rotation.X);
-            bool up = -meter.Rotation.X > 0.8f;
+            probeMax = Math.Max(probeMax, -probe.Rotation.X); meterMax = Math.Max(meterMax, -meter.Rotation.X); headMax = Math.Max(headMax, head.Rotation.X);
+            bool up = -meter.Rotation.X > 0.5f;
             if (up && !inGlance) glances++;
             inGlance = up;
         }
         for (float e = total; e < total + 1.5f; e += dt) { man.Inspect(e, total, car); man._Process(dt); }
         bool back = Math.Abs(probe.Rotation.X) < 0.05f && Math.Abs(meter.Rotation.X) < 0.05f && Math.Abs(head.Rotation.X) < 0.05f && new Vector2(figure.GlobalBasis.Z.X, figure.GlobalBasis.Z.Z).Normalized().Dot(restFront) > 0.999f;
-        Check(rest && faced > 0.9f && probeMax > 0.4f && meterMax > 1f && headMax > 0.4f && glances == 2 && back,
-            $"dosimetrist check: at rest, turns to the car ({faced:F2}), probe down {probeMax:F2} rad, two glances at the meter ({glances}, arm {meterMax:F2}, head {headMax:F2}), back to rest after the check ({back})");
+        Check(rest && faced > 0.9f && probeMax > 0.4f && meterMax > 0.5f && headMax > 0.15f && glances == 1 && back,
+            $"dosimetrist check: at rest, turns to the car ({faced:F2}), probe down {probeMax:F2} rad, one glance at the meter ({glances}, arm {meterMax:F2}, head {headMax:F2}), back to rest after the check ({back})");
 
         // A restart in the middle snaps him to rest; a car taken far away (a rescue) and a knock-over send him back to rest without any probe held out at nothing.
         for (float e = 0; e < 4f; e += dt) { man.Inspect(e, total, car); man._Process(dt); }
-        bool busy = probe.Rotation.X > 0.3f;
+        bool busy = -probe.Rotation.X > 0.3f;
         man.Reset();
         bool snapped = Math.Abs(probe.Rotation.X) < 1e-4f && Math.Abs(meter.Rotation.X) < 1e-4f;
         for (float e = 0; e < 4f; e += dt) { man.Inspect(e, total, car); man._Process(dt); }
@@ -53,6 +53,67 @@ public partial class PhysicsTest
         Check(busy && snapped && released && downQuiet, $"dosimetrist check: a restart snaps him to rest ({snapped}), a car taken away ({released}) or a knock-over ({downQuiet}) puts the probe down");
         man.QueueFree();
         ZoneDosimetristTapeTest(track);
+        MixerConcreteRevengeTest();
+    }
+
+    void MixerConcreteRevengeTest()
+    {
+        var def = TrackDef.Load("res://tracks/atomgrad.json");
+        var track = TrackBuilder.Build(def);
+        var fx = new TyreEffects();
+        AddChild(fx); fx.Init(track);
+        var mixers = new SnowPloughs();
+        AddChild(mixers);
+        mixers.Init(track, fx, def.Ploughs);
+        var events = new FxCollector();
+        mixers.ConcreteTape = events;
+
+        var car = new CarSim(new CarParams(), track);
+        var (at, forward) = SnowPloughs.RoadPose(track, def.Ploughs.Last().Start, false, .42f);
+        var behind = at - forward * 42f;
+        car.Reset(new Vector3(behind.X, 0, behind.Y), TrackData.YawFor(forward));
+        mixers.ArmConcreteRevenge();
+        for (int i = 0; i < 600; i++) mixers.Tick(1f / 60f, car);
+        var pours = events.Events.Where(e => e.Kind == TapeFxKind.MixerConcreteStrip).ToArray();
+        Check(pours.Length >= 15 && pours.Sum(e => e.Pos.DistanceTo(e.Dir)) >= 15f &&
+            pours.Zip(pours.Skip(1)).All(pair => pair.First.Pos == pair.Second.Dir) && !mixers.ConcreteRevengePending &&
+            pours.All(e => track.Sample(e.Pos.X, e.Pos.Z).ConcreteDrag > 0f),
+            $"mixer revenge lays a continuous strip and applies local resistance ({pours.Length})");
+
+        var replayRoot = new Node3D();
+        AddChild(replayRoot);
+        var player = new TapeFxPlayer(fx, track, null, replayRoot);
+        // A later lap starts with the earlier road effects already in its opening keyframe.
+        var tapeIndex = new WorldTapeIndex(new[] { ("None:Mixers", (Node3D)mixers) });
+        var recorder = new WorldTapeRecorder();
+        recorder.Begin(tapeIndex);
+        foreach (var e in pours) recorder.Event(e with { Time = -40f });
+        recorder.Record(0f);
+        recorder.Record(45f);
+        var tape = WorldTapeCodec.Decode(WorldTapeCodec.Encode(recorder.Finish(45f, 1UL)));
+        var replay = new WorldTapePlayer(tape, tapeIndex, new BreakChainSink(player));
+        replay.Seek(36f);
+        player.Update(36f);
+        int restored = replayRoot.GetChildCount();
+        replay.Seek(0f);
+        Check(restored == pours.Length && replayRoot.GetChildCount() == pours.Length,
+            $"carried concrete survives tape save/load, seek and rewind ({restored})");
+        Check(!mixers.ConcreteRevengeLapDone(), "the first finish leaves concrete in place");
+        int countAtFirstFinish = events.Events.Count;
+        for (int i = 0; i < 120; i++) mixers.Tick(1f / 60f, car);
+        Check(events.Events.Count > countAtFirstFinish, "mixer keeps pouring on the second lap");
+        Check(!mixers.ConcreteRevengeLapDone(), "the second finish leaves concrete in place");
+        int countAtStop = events.Events.Count;
+        for (int i = 0; i < 300; i++) mixers.Tick(1f / 60f, car);
+        Check(events.Events.Count == countAtStop && pours.All(e => track.Sample(e.Pos.X, e.Pos.Z).ConcreteDrag > 0f),
+            "concrete remains on the road throughout the third lap");
+        Check(mixers.ConcreteRevengeLapDone(), "mixer clears the concrete on the third finish");
+        Check(pours.All(e => track.Sample(e.Pos.X, e.Pos.Z).ConcreteDrag == 0f), "the third finish clears road resistance");
+        player.Free();
+        Check(replayRoot.GetChildCount() == 0, "leaving replay clears the concrete strips");
+        replayRoot.QueueFree();
+        mixers.QueueFree();
+        fx.QueueFree();
     }
 
     sealed class FxCollector : CCCPRacing.Race.ITapeFxHost
@@ -67,7 +128,7 @@ public partial class PhysicsTest
         const string key = "None:Dosimetrist";
         ZoneDosimetrist Make() { var m = ZoneDosimetrist.Build(track); AddChild(m); return m; }
         var source = Make();
-        var figure = source.GetChild<Node3D>(0); var probe = figure.GetNode<Node3D>("ProbeArm"); var meter = figure.GetNode<Node3D>("MeterArm");
+        var figure = source.GetChild<Node3D>(0); var probe = figure.GetNode<Node3D>("Torso/ProbeArm"); var meter = figure.GetNode<Node3D>("Torso/MeterArm");
         var rec = new CCCPRacing.Race.WorldTapeRecorder(); rec.Begin(new CCCPRacing.Race.WorldTapeIndex(new[] { (key, (Node3D)source) })); rec.Record(0);
         Vector3 car = figure.GlobalPosition + new Vector3(5f, 0, -3f);
         const float dt = 1f / 60f;
@@ -77,12 +138,14 @@ public partial class PhysicsTest
             float e = frame * dt;
             source.Inspect(e < 10f ? e : -1f, 10f, car); source._Process(dt);
             source.SetWash(e > 1f && e < 3f, car);
+            if (e >= 10f) source.PoseServiceWalk(source.Home + Vector2.Right * (e - 10f),
+                Vector2.Right, e - 10f, measuring: true);
             rec.Record(e);
             if (frame % 4 == 0) seen[frame] = (probe.Rotation.X, meter.Rotation.X, source.WashFlag.Visible);
         }
         var loaded = CCCPRacing.Race.WorldTapeCodec.Decode(CCCPRacing.Race.WorldTapeCodec.Encode(rec.Finish(12, 1UL)));
         var replay = Make();
-        var rProbe = replay.GetChild<Node3D>(0).GetNode<Node3D>("ProbeArm"); var rMeter = replay.GetChild<Node3D>(0).GetNode<Node3D>("MeterArm");
+        var rProbe = replay.GetChild<Node3D>(0).GetNode<Node3D>("Torso/ProbeArm"); var rMeter = replay.GetChild<Node3D>(0).GetNode<Node3D>("Torso/MeterArm");
         var player = new CCCPRacing.Race.WorldTapePlayer(loaded, new CCCPRacing.Race.WorldTapeIndex(new[] { (key, (Node3D)replay) }), new TapeSink());
         bool covered = player.Covers(key);
         int parkedBefore = track.Obstacles.Count(o => o.Center.X < -9000f);
@@ -94,12 +157,17 @@ public partial class PhysicsTest
             replay._Process(1.0);      // (tape-driven: this must not write a pose)
             var want = seen[frame - frame % 4];
             worst = Math.Max(worst, Math.Max(Math.Abs(want.probe - rProbe.Rotation.X), Math.Abs(want.meter - rMeter.Rotation.X)));
-            probeSeen = Math.Max(probeSeen, rProbe.Rotation.X);
+            probeSeen = Math.Max(probeSeen, -rProbe.Rotation.X);
             washRight &= want.wash == replay.WashFlag.Visible; if (want.wash) washShown++;
         }
+        player.Seek(11.5f);
+        bool walked = Math.Abs(replay.GetChild<Node3D>(0).Position.X - replay.Home.X - 1.5f) < .02f;
+        player.Seek(0f);
+        Check(walked && Math.Abs(replay.GetChild<Node3D>(0).Position.X - replay.Home.X) < .02f,
+            "the walking inspection restores on seek and returns to the post on rewind");
         replay.SetTapeDriven(false);
         bool released = Math.Abs(rProbe.Rotation.X) < 1e-4f && track.Obstacles.Count(o => o.Center.X < -9000f) == parkedBefore;      // (leaving the replay: at rest, his obstacle back)
-        var old = Make(); old.SetMeta(CCCPRacing.Race.WorldTapeConst.VersionMeta, 0);
+        var old = Make(); old.SetMeta(CCCPRacing.Race.WorldTapeConst.VersionMeta, 1);
         var stale = new CCCPRacing.Race.WorldTapePlayer(loaded, new CCCPRacing.Race.WorldTapeIndex(new[] { (key, (Node3D)old) }), new TapeSink());
         Check(covered && worst < 0.3f && probeSeen > 0.3f && washRight && washShown >= 1 && parked && released && !stale.Covers(key),
             $"dosimetrist tape: the check replays after a file round trip and seeks (worst {worst:F3} rad, probe down {probeSeen:F2}, wash flag matches in {washShown:F0} washing samples), his obstacle is parked ({parked}) and back after ({released}); an old-version actor is not covered ({!stale.Covers(key)})");

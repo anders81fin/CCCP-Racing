@@ -111,6 +111,8 @@ public partial class PhysicsTest : Node
         { try { CameraLeadTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--horse-scene-tests"))
         { try { HorseSceneTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--zone-robot-tests"))
+        { ZoneRobotTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--horse-tests"))
         { try { HorseTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; } GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--car-control-tests"))
@@ -173,6 +175,16 @@ public partial class PhysicsTest : Node
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--viewer-fidelity-tests"))
         {
             try { ViewerFidelityTests(); } catch (Exception e) { GD.PrintErr(e); _failures++; }
+            GetTree().Quit(_failures == 0 ? 0 : 1); return;
+        }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--tape-cover1-tests"))
+        {
+            try { CoverTape1Tests(); } catch (Exception e) { GD.PrintErr(e); _failures++; }
+            GetTree().Quit(_failures == 0 ? 0 : 1); return;
+        }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--tape-cover2-tests"))
+        {
+            try { CoverTape2Tests(); } catch (Exception e) { GD.PrintErr(e); _failures++; }
             GetTree().Quit(_failures == 0 ? 0 : 1); return;
         }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--rescue-rope-tape-tests"))
@@ -261,7 +273,7 @@ public partial class PhysicsTest : Node
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--horse-feet"))
         { HorseFeetMeasure(); GetTree().Quit(0); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--dosimetrist-tests"))
-        { ZoneDosimetristTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        { ZoneDosimetristTest(); ZoneRailsAndWalkTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--snowplough-turn-tests"))
         { SnowPloughTurnTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--siberia-terrain-tests"))
@@ -665,7 +677,7 @@ public partial class PhysicsTest : Node
         PartyDachaTest();
         BuildingVisibilityTest();
         GameplayCameraTest();
-        ZoneDosimetristTest();
+        ZoneDosimetristTest(); ZoneRailsAndWalkTest();
         WaterMillTest();
         CatfishTest();
         PrisonerKneeTest();

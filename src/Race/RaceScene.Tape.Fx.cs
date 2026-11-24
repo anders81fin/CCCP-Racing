@@ -54,6 +54,18 @@ public partial class RaceScene
             Radar = (e, age) => _trap?.RestoreTapeReading(e, age),
             Slurry = (at, revenge, age) => _slurryAll?.ReplayPatch(at, revenge, age),
             SlurryClear = () => _slurryAll?.ReplayClear(),
+            Shot = (e, age) => _rowing?.ReplayShot(e.Pos, e.Dir, e.Time),
+            ShotClear = () => _rowing?.ReplayShotClear(),
+            Strike = (e, age) => { if (_tapePlayer?.Covers("None:Weather") == true) _weather?.ReplayStrike(e.Param, age); },
+            StrikeClear = () => _weather?.ReplayStrikeClear(),
+            Engine = (e, age, rng) =>
+            {
+                if (_engineFx == null || _tapePlayer?.Covers("None:EngineEffects") != true) return;
+                var rot = TitleGhost != null ? TitleGhost.Sample(Math.Max(0f, e.Time)).Basis : Basis.Identity;
+                if (e.Kind == TapeFxKind.EngineSeize) _engineFx.ReplaySeize(e.Pos, rot, e.Velocity, age, rng);
+                else _engineFx.ReplayExplode(e.Pos, _carVis, age, rng);
+            },
+            EngineClear = () => _engineFx?.ReplayClear(),
         };
         _tapeFx.Wood = _wood;
         _tapeEmit = new TapeEmitters(_fx, _track);
@@ -61,7 +73,8 @@ public partial class RaceScene
         foreach (var (a, key) in _tapeKeys)
         {
             if (a.Node == null) continue;
-            if (a.Node == _hindsAll) _hindsAll.TapeFx = new TapeFxHost(this, key);
+            if (a.Node == _ploughsAll) _ploughsAll.ConcreteTape = new TapeFxHost(this, key);
+            else if (a.Node == _hindsAll) _hindsAll.TapeFx = new TapeFxHost(this, key);
             else if (a.Node == _tanksAll) _tanksAll.TapeFx = new TapeFxHost(this, key);
             else if (a.Node == _btrAll) _btrAll.TapeFx = new TapeFxHost(this, key);
             else if (a.Node == _jetsAll) _jetsAll.TapeFx = new TapeFxHost(this, key);
@@ -71,7 +84,11 @@ public partial class RaceScene
             else if (a.Node == _slurryAll) _slurryAll.TapeFx = new TapeFxHost(this, key);
             else if (a.Node == _trap) _trap.TapeFx = new TapeFxHost(this, key);
             else if (a.Node == _zoneAll) _zoneAll.TapeFx = new TapeFxHost(this, key);      // (the catfish's splashes)
+            else if (a.Node == _engineFx) _engineFx.TapeFx = new TapeFxHost(this, key);      // (the player's engine: seizure, explosion)
+            else if (a.Node == _weather) _weather.TapeFx = new TapeFxHost(this, key);      // (the lightning)
+            else if (a.Node == _rowing) _rowing.TapeFx = new TapeFxHost(this, key);      // (the dacha's shotgun)
         }
+        if (_engineFx != null) _engineFx.Cleared += () => _tapeFxLive.RemoveAll(x => x.E.Kind is TapeFxKind.EngineSeize or TapeFxKind.EngineExplode);
         if (_busAll != null) _busAll.TapeReset += () => _tapeFxLive.RemoveAll(x => x.E.Kind == TapeFxKind.BusFire);
         _wood.TapeBroken += (id, hit, velocity, state) => TapeFxEvent(new TapeEvent(0, TapeEventType.Effect,
             Source: "None:WoodFences", Kind: TapeFxKind.WoodBreak, Parent: state.ToString("X16", CultureInfo.InvariantCulture),
@@ -80,7 +97,8 @@ public partial class RaceScene
         _scenery.Broken += (id, vel, at) =>
         {
             _tapeBrokenHow[id] = (vel, at);
-            TapeFxEvent(new TapeEvent(0f, TapeEventType.Effect, Kind: TapeFxKind.Breakable, Effect: TapeEffect.BreakableBroken, Pos: at, Dir: vel, Param: id), null);
+            TapeFxEvent(new TapeEvent(0f, TapeEventType.Effect, Kind: TapeFxKind.Breakable, Effect: TapeEffect.BreakableBroken, Pos: at, Dir: vel, Param: id,
+                Parent: _scenery.WallState(id) is ulong wallState ? wallState.ToString("X16", CultureInfo.InvariantCulture) : null), null);      // (a wall's stones: the state they were thrown with)
         };
         _scenery.Restarted += () => _tapeBrokenHow.Clear();
     }

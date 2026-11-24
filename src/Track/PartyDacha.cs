@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CCCPRacing.Race;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -255,6 +256,7 @@ public static partial class PartyDacha
         // the batched mesh: hit by the car each falls over and gets up (KnockGroup, Guards' obstacles);
         // the pond and garden men walk their beats (DachaPatrol).
         var guards = new KnockGroup { Name = "DachaGuards" };
+        Tape.Version(guards, 1); Tape.Part(guards, "root");      // the world tape: the three security men (place, turn, tilt, legs)
         objects.AddChild(guards);
         for (int i = 0; i < Guards.Length; i++)
         {

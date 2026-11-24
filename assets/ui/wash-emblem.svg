@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- The decontamination station's emblem: the radiation trefoil with a water drop (washing the dose off). Bold shapes, readable small. -->
+  <circle cx="30" cy="30" r="26" fill="#381b23"/>
+  <path d="M26.5 23.9 L18.5 10.1 A23 23 0 0 1 41.5 10.1 L33.5 23.9 A7 7 0 0 0 26.5 23.9 Z M37.0 30.0 L53.0 30.0 A23 23 0 0 1 41.5 49.9 L33.5 36.1 A7 7 0 0 0 37.0 30.0 Z M26.5 36.1 L18.5 49.9 A23 23 0 0 1 7.0 30.0 L23.0 30.0 A7 7 0 0 0 26.5 36.1 Z" fill="#f4ce61" stroke="#381b23" stroke-width="1.5" stroke-linejoin="round"/>
+  <circle cx="30" cy="30" r="4.5" fill="#381b23"/>
+  <path d="M50 33 C50 33 40 45 40 52 A10 10 0 0 0 60 52 C60 45 50 33 50 33 Z" fill="#6fc4f2" stroke="#381b23" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M45.5 52 A5 5 0 0 0 50 57" fill="none" stroke="#e8f8ff" stroke-width="2" stroke-linecap="round"/>
+</svg>

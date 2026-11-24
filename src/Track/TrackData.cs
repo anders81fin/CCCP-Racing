@@ -12,6 +12,7 @@ public struct GroundSample
     public SurfaceType Surface;
     public float SlurryWetness;
     public float OilFilm;
+    public float ConcreteDrag;
     /// <summary>The strip of verge just outside the road's edge (dirt, or ploughed snow in winter).</summary>
     public bool Verge;
     /// <summary>How far the water stands over the bed here (m): rivers and ponds; 0 where there is none (a synthetic ground says 0 too). The car wades by it, flying or not.</summary>
@@ -54,6 +55,41 @@ public record PowerCable(int A, int B, Vector2[] Route);
 /// <summary>Generated, runtime form of a track: height grid, surface grid, centre line and props.</summary>
 public class TrackData : IGround
 {
+    /// <summary>A length of railway (the "rails" prop): its origin, its local X (across) and Z (along) and half its length. The rails are at +-RailX across.</summary>
+    public readonly record struct RailLine(Vector2 Origin, Vector2 Across, Vector2 Along, float Half);
+    public readonly List<RailLine> Rails = new();
+    const float RailX = 0.76f, RailRise = 0.10f, RailReach = 0.17f;
+
+    /// <summary>True when the point is on a railway: between its ends and within reach (m) of its middle line (the rails, their sleepers and the ballast; the mixer's wet concrete is not poured over them).</summary>
+    public bool OnRailway(Vector2 p, float reach)
+    {
+        foreach (var r in Rails)
+        {
+            var d = p - r.Origin;
+            if (MathF.Abs(d.Dot(r.Along)) <= r.Half && MathF.Abs(d.Dot(r.Across)) <= reach) return true;
+        }
+        return false;
+    }
+
+    /// <summary>The height the two rails of a railway add to the ground (m): a ridge about 0.34 m wide and 0.10 m high along each rail, so a wheel that crosses the line is lifted and dropped (the rail head itself is drawn 0.29 m high; a car does not run into a wall at the crossing).</summary>
+    public float RailHeight(float x, float z)
+    {
+        if (Rails.Count == 0) return 0f;
+        float best = 0f;
+        foreach (var r in Rails)
+        {
+            var d = new Vector2(x, z) - r.Origin;
+            float along = d.Dot(r.Along);
+            if (MathF.Abs(along) > r.Half) continue;
+            float u = MathF.Abs(MathF.Abs(d.Dot(r.Across)) - RailX);
+            if (u >= RailReach) continue;
+            best = MathF.Max(best, RailRise * 0.5f * (1f + MathF.Cos(MathF.PI * u / RailReach)));
+        }
+        return best;
+    }
+
+    public Func<Vector2, float> ConcreteDragAt;
+
     public SlurryTrail Slurry;
     public string Id;
     public string Name;
@@ -180,6 +216,8 @@ public class TrackData : IGround
         int ix = (int)MathF.Floor(x / Tile), iz = (int)MathF.Floor(z / Tile);
         SurfaceType s = TileSurface(ix, iz);
         float b = MicroBump(x, z, s, ix, iz);
+        float rail = RailHeight(x, z);
+        b += rail;
         Vector2 slope = Vector2.Zero;
         if (b != 0f || s is SurfaceType.Pothole or SurfaceType.Concrete)
         {
@@ -187,9 +225,10 @@ public class TrackData : IGround
             slope = new Vector2(
                 (MicroBump(x + e, z, s, ix, iz) - MicroBump(x - e, z, s, ix, iz)) / (2 * e),
                 (MicroBump(x, z + e, s, ix, iz) - MicroBump(x, z - e, s, ix, iz)) / (2 * e));
+            if (Rails.Count > 0) slope += new Vector2((RailHeight(x + e, z) - RailHeight(x - e, z)) / (2 * e), (RailHeight(x, z + e) - RailHeight(x, z - e)) / (2 * e));
         }
         float wet = s is SurfaceType.Water or SurfaceType.Shallow && !float.IsNaN(WaterLevel) ? MathF.Max(0f, WaterLevel - (h + b)) : 0f;
-        return new GroundSample { Height = h + b, WaterDepth = wet, Normal = n, Slope = slope, Surface = s, SlurryWetness = Slurry?.Wetness(new Vector2(x, z)) ?? 0, OilFilm=MaintenanceHall?.Oil(new(x,z)) ?? 0,
+        return new GroundSample { Height = h + b, WaterDepth = wet, Normal = n, Slope = slope, Surface = s, SlurryWetness = Slurry?.Wetness(new Vector2(x, z)) ?? 0, ConcreteDrag = ConcreteDragAt?.Invoke(new Vector2(x, z)) ?? 0f, OilFilm=MaintenanceHall?.Oil(new(x,z)) ?? 0,
             Verge = Verge != null && Verge[Math.Clamp(iz, 0, N - 1) * N + Math.Clamp(ix, 0, N - 1)] };
     }
 

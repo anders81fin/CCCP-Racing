@@ -4,7 +4,7 @@ Enable LAB MODE in SETTINGS before starting or restarting a run. It tunes car
 parameters during play and is separate from competitive record runs. LAN races
 use their normal parameters rather than LAB tuning.
 
-In a LAB run, **F2** (controller **Y**) opens tuning over the race in slow motion.
+In a LAB run, **F10** (controller **Y**) opens tuning over the race in slow motion.
 SETTINGS > LAB TUNING opens it over a paused race. The first group includes slow
 motion, RESET ALL and COPY DIFF. Other groups expose the car's parameters.
 

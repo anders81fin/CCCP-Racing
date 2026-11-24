@@ -76,7 +76,7 @@ public partial class RaceScene
     {
         if(InLanRace) {LanAuthorityPhysics(dt); return false;}
         GaiChaseTick(dt);
-        bool held = _state == State.Racing && (_drunks is { HoldsCar: true } || AutographHolds || DoseHolds);
+        bool held = _state == State.Racing && (_drunks is { HoldsCar: true } || AutographHolds);
         if (held)
         {
             // The mechanic is coming to or at work on the bonnet: the car stays where it is, engine idling.
@@ -93,6 +93,7 @@ public partial class RaceScene
     /// <summary>The world's own ticks before the car moves.</summary>
     void PreStepWorldTick(float dt)
     {
+        TapeCoverHook("force");
         _wood.Tick(dt);
         _scenery.Tick(dt, _car, !_rescue.Active);
         _cones?.Tick(dt, _rescue.Active ? null : _car);
@@ -205,24 +206,25 @@ public partial class RaceScene
     }
 
     /// <summary>The lap timer, the lap clock and the two recorders (the ghost and the world tape), the commentary. Runs only while racing outside the school.</summary>
-    void LapClockAndRecord(float dt, in CarStepResult step)
+    void LapClockAndRecord(float dt, in CarStepResult step, bool doseService = false)
     {
         float suspHit = step.SuspHit, pothole = step.Pothole;
         if (_state == State.Racing && !InSchool)      // the school has no laps, ghosts or commentary
         {
-            if (FakeLapDue(out float fakeTime))
+            if (doseService) _timer.AdvanceServiceTime(dt);
+            else if (FakeLapDue(out float fakeTime))
             {
                 _fakeLap = true;
                 _timer.CompleteLapForTest(fakeTime);
                 _fakeLap = false;
             }
             else _timer.Update(dt, new Vector2(_car.Pos.X, _car.Pos.Z));
-            WrongWayTick(dt);
+            if (!doseService) WrongWayTick(dt);
             if (_state != State.Racing) return;     // name entry: the new lap's clock waits too
             _lapClock += dt;
             _rec.Record(_lapClock, _car, _maxImpact, pothole, suspHit, _dayNight.Active ? _dayNight.Clock : -1, _impactMaterial, _impactBroke, _carVis.Damage);
             TapeRecord();
-            if (!PlanHasCar && !FateHasCar && !FuelHasCar) Commentary(dt);
+            if (!doseService && !PlanHasCar && !FateHasCar && !FuelHasCar) Commentary(dt);
         }
     }
 }

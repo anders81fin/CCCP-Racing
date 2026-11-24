@@ -11,6 +11,7 @@ public partial class Hud
     public float DoseMsv, DoseRate;
     /// <summary>The wash or the dosimetrist's check is on: WASHING over the gauge.</summary>
     public bool Washing;
+    public bool DoseAutopilot;
 
     void DrawDoseGauge(Rect2 speedo)
     {
@@ -37,5 +38,6 @@ public partial class Hud
         for (int i = 0; i < Segs; i++)
             DrawRect(new Rect2(r.Position.X + 3 + i * 5, r.Position.Y + 26, 4, 5), i < lit && (!over || blink) ? c : new Color(c, 0.18f));
         if (Washing) PixelFont.Draw(this, "WASHING", new Vector2(r.Position.X, r.Position.Y - 9), blink ? Gold : Paper);
+        else if (DoseAutopilot) PixelFont.DrawCentered(this, "AUTOPILOT", cx, r.Position.Y - 9, Gold);
     }
 }

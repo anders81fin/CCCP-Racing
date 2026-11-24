@@ -59,7 +59,8 @@ public sealed class LanWorld
     static IEnumerable<MeshInstance3D> Leaves(Node node)
     {
         // A rotating beacon is rebuilt by each client (its beam is a camera-facing shader, its pulse follows the viewer).
-        if(node is GroundImpactEffects or RotatingBeacon) yield break;
+        // The mixer's wet-concrete stream is a shader (the revenge is a single-player thing: never in a LAN race), so it is not sent.
+        if(node is GroundImpactEffects or RotatingBeacon || node.Name == "WetConcreteStream") yield break;
         if(node is MeshInstance3D m && m.Mesh!=null) yield return m;
         foreach(Node c in node.GetChildren()) foreach(var leaf in Leaves(c)) yield return leaf;
     }

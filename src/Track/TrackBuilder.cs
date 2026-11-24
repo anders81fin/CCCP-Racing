@@ -1357,6 +1357,9 @@ public static partial class TrackBuilder
                 t.Obstacles.Add(new Obstacle(p - ax * 3.5f, 0.15f));
                 break;
             case "radsign" or "crossing": t.Obstacles.Add(new Obstacle(p, 0.15f)); break;
+            case "rails":      // the railway is solid under the tyres: its two rails are ridges in the ground the wheels feel (TrackData.RailHeight)
+                t.Rails.Add(new TrackData.RailLine(p, ax, az, float.Parse(text ?? "100", System.Globalization.CultureInfo.InvariantCulture) / 2f));
+                break;
             case "wash":
                 AddBox(t, p + ax * 4f, rot, 0.8f, 16f);
                 AddBox(t, p - ax * 4f, rot, 0.8f, 16f);

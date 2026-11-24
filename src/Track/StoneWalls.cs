@@ -131,11 +131,24 @@ public partial class StoneWalls : Node3D
     }
 
     /// <summary>Knocks segment i (index into TrackData.WallSegments) down, hit at the point by something moving at vel.</summary>
-    public void Break(int i, Vector2 hit, Vector3 vel)
+    public void Break(int i, Vector2 hit, Vector3 vel, ulong? replayState = null)
     {
         var seg = _segs[i];
         if (seg.Broken) return;
         seg.Broken = true;
+        // The world tape: the generator's state this break began with is what the tape keeps (LastState), so the replay throws the very same stones; the replay's own break
+        // sets that state, throws, and puts the live generator back (the replay never changes what a live break throws next).
+        LastState = _rng.State;
+        ulong live = _rng.State;
+        if (replayState is ulong st) _rng.State = st;
+        try { BreakStones(seg, hit, vel); } finally { if (replayState != null) _rng.State = live; }
+    }
+
+    /// <summary>The generator's state at the start of the last live break (the tape's).</summary>
+    public ulong LastState { get; private set; }
+
+    void BreakStones(Segment seg, Vector2 hit, Vector3 vel)
+    {
         var hv = new Vector3(vel.X, 0, vel.Z);
         float speed = hv.Length();
         Vector3 fwd = speed > 0.1f ? hv / speed : Vector3.Forward;
@@ -180,11 +193,28 @@ public partial class StoneWalls : Node3D
         for (int i = 0; i < 900 && _loose.Exists(d => !d.Resting); i++) Tick(1f / 60f);
     }
 
+    /// <summary>Replay (a seek): the stones of wall segment <paramref name="seg"/> as they are <paramref name="age"/> s after it fell: stepped as the live tick steps them (fixed 1/60 s), the others untouched.</summary>
+    public void Advance(int seg, float age)
+    {
+        var s = _segs[seg];
+        for (float t = 0; t < age && t < 20f; t += 1f / 60f)
+        {
+            bool any = false;
+            foreach (var d in _loose)
+                if (!d.Resting && d.Index >= s.First && d.Index < s.First + s.Count) { Step(d, Math.Min(1f / 60f, age - t)); any = true; }
+            if (!any) break;
+        }
+    }
+
     public void Tick(float dt)
     {
-        foreach (var d in _loose)
+        foreach (var d in _loose) Step(d, dt);
+    }
+
+    void Step(Loose d, float dt)
+    {
         {
-            if (d.Resting) continue;
+            if (d.Resting) return;
             d.Vel.Y -= 9.81f * dt;
             d.Pos += d.Vel * dt;
             float w = d.AngVel.Length();

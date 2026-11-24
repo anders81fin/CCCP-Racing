@@ -59,9 +59,29 @@ public partial class Weather : Node3D
     float _level, _rainNow, _flashT = -1, _thunderIn = -1, _thunder, _nextStrike = 5f, _lp, _lp2, _rumble, _dbg;
     const float MixRate = 22050f;
 
+    /// <summary>The world tape's host: each strike is an effect event (the thunder's delay in Param, 0.4 s of flash and 3.2 s of rumble in its life).</summary>
+    public CCCPRacing.Race.ITapeFxHost TapeFx;
+    /// <summary>The tape knows the lightning: the storm makes no strike of its own (the replay shows the recorded ones); leaving it, the live storm goes on.</summary>
+    public bool TapeDriven { get; private set; }
+    public void SetTapeDriven(bool on) { if (on == TapeDriven) return; TapeDriven = on; ReplayStrikeClear(); }
+
+    /// <summary>A strike of the tape that began <paramref name="age"/> seconds ago, its thunder due <paramref name="thunderIn"/> s after the flash: the flash and the rumble as the live strike would be by now.</summary>
+    public void ReplayStrike(float thunderIn, float age)
+    {
+        _flashT = age < 0.4f ? age : -1f;
+        if (_flashT < 0) _flash.Visible = false;
+        float rumble = 1f - (age - thunderIn) / 3.2f;
+        if (age < thunderIn) { _thunderIn = thunderIn - age; _thunder = 0; }
+        else { _thunderIn = -1; _thunder = Math.Max(0f, rumble); }
+    }
+
+    /// <summary>A seek or the end of the replay: no flash, no thunder under way.</summary>
+    public void ReplayStrikeClear() { _flashT = -1; _flash.Visible = false; _flash.LightEnergy = 0f; _thunderIn = -1; _thunder = 0; }
+
     public static Weather Create(Node3D target)
     {
         var w = new Weather { Name = "Weather", Target = target };
+        Tape.Version(w, 1); Tape.Part(w, "root");      // (a marker actor: a tape that has it knows the lightning, a tape that has not leaves the live storm as it was)
         var streak = new QuadMesh { Size = new Vector2(0.03f, 0.75f) };
         streak.Material = new StandardMaterial3D
         {
@@ -119,7 +139,7 @@ public partial class Weather : Node3D
         }
 
         // The storm: a strike now and then, the thunder a moment after it.
-        if (StormAt(clock))
+        if (StormAt(clock) && !TapeDriven)
         {
             _nextStrike -= dt;
             if (_nextStrike <= 0)
@@ -127,6 +147,7 @@ public partial class Weather : Node3D
                 _nextStrike = _rng.RandfRange(6f, 14f);
                 _flashT = 0;
                 _thunderIn = _rng.RandfRange(0.4f, 2.2f);
+                TapeFx?.Fx(new CCCPRacing.Race.TapeEvent(0f, CCCPRacing.Race.TapeEventType.Effect, Kind: CCCPRacing.Race.TapeFxKind.Lightning, Effect: CCCPRacing.Race.TapeEffect.Smoke, Param: _thunderIn, Life: _thunderIn + 3.2f));
                 if (OS.HasEnvironment("WEATHERDBG")) GD.Print($"weather: lightning at clock {clock:F2}");
             }
         }

@@ -4,8 +4,8 @@ Completed single-player Socialist Rally and Stakhanov laps are recorded
 automatically. Recent session recordings are temporary; use **KEEP** to retain
 a recording on disk. PARTY OFFICE > KGB FILES > RECORDINGS opens the recording library.
 The lap you just drove: a few seconds after every real lap of a single-player rally or
-Stakhanov drive a hint ("F3  WATCH LAP 3"; a controller: "START > WATCH LAST LAP") fades in.
-F3 opens exactly that lap in the viewer's TV BROADCAST camera, also at a stop card and at the end of a
+Stakhanov drive a hint ("F2  WATCH LAP 3"; a controller: "START > WATCH LAST LAP") fades in.
+F2 opens exactly that lap in the viewer's TV BROADCAST camera, also at a stop card and at the end of a
 rally. PARTY MEETING shows this run's laps after CONTINUE: with one lap WATCH LAST LAP, with two
 or more WATCH LAST LAP and BROWSE LAPS (the list of the run's laps). WATCH LAST LAP is always
 the last lap driven, even when it is slower than a record, and never an older one: while its

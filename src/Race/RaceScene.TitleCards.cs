@@ -212,7 +212,7 @@ public partial class RaceScene
         return FuelLocked(g) ? FuelLockedLine(g) : FuelGrades.CardLine((int)g);
     }
 
-    string FuelLockedLine(FuelGrade g) => $"LOCKED: SILVER ON {FuelTracksText(g)} IN THE RALLY ON {FuelGrades.Names[(int)FuelKey(g).Value]} OPENS IT";
+    string FuelLockedLine(FuelGrade g) => $"LOCKED: SILVER ON {FuelTracksText(g)} REQUIRED";      // (the fuel and the rally are in the key fuel's own cards)
 
     /// <summary>The power the card's fuel starts this run on (taken once), or null: --power or 100 (NewRunPower).</summary>
     int? TakeLapsFuelStart()
@@ -231,7 +231,7 @@ public partial class RaceScene
     /// <summary>The tracks that need a rally silver on the key fuel to open this one: the three plan tracks for PETROL, all four for JET FUEL and SPUTNIK.</summary>
     static System.Collections.Generic.IEnumerable<string> FuelTracks(FuelGrade g) => Tracks.Select(t => t.id).Take(g == FuelGrade.Petrol ? 3 : Tracks.Length);
 
-    string FuelTracksText(FuelGrade g) => FuelGrade.Petrol == g ? "ALL THREE FIRST TRACKS" : "ALL FOUR TRACKS";
+    string FuelTracksText(FuelGrade g) { int n = FuelTracks(g).Count(); return n < Tracks.Length ? $"{n} FIRST TRACKS" : $"{n} TRACKS"; }
 
     /// <summary>The key fuel's silvers are all there (the cheat does not count).</summary>
     bool FuelOpenByMedals(FuelGrade g) => FuelKey(g) is not FuelGrade k || FuelTracks(g).All(t => _campaign.BestOn(t, k) >= NormPlan.Medal.Silver);

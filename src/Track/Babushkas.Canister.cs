@@ -45,6 +45,8 @@ public partial class Babushkas
 
     readonly List<FlyingCan> _cans = new();
     bool _canisters;
+    /// <summary>The world tape's view of the cans in the air (null: nothing records). Set by the race: a thrown can is a dynamic instance of kind "canister/red" or "canister/gold".</summary>
+    public ITapeInstanceHost TapeHost;
 
     /// <summary>The rally: carriers have their cans. Off: none (the title, Stakhanov).</summary>
     public bool Canisters
@@ -120,6 +122,23 @@ public partial class Babushkas
         n.AddChild(Props.Part(Props.Box(0.26f, 0.03f, 0.14f), CanDark, new Vector3(0, -0.14f, 0), new Vector3(0, 0, 45)));
         n.AddChild(Props.Part(Props.Box(0.26f, 0.03f, 0.14f), CanDark, new Vector3(0, -0.14f, 0), new Vector3(0, 0, -45)));
         return n;
+    }
+
+    /// <summary>The world tape: the can in the air is one part (its place and tumble); the model is the same in play and in the replay (BuildReplayCan).</summary>
+    static void MarkTapeCan(Node3D can, bool golden)
+    {
+        can.SetMeta(WorldTapeConst.KindMeta, golden ? "canister/gold" : "canister/red");
+        Tape.Part(can, "root");
+    }
+
+    /// <summary>The replay's can in the air: the same model and size as the live one, no flight of its own (the tape poses it).</summary>
+    public static Node3D BuildReplayCan(string colour)
+    {
+        bool golden = colour == "gold";
+        var can = BuildCan(golden);
+        can.Scale = Vector3.One * SizeScale;
+        MarkTapeCan(can, golden);
+        return can;
     }
 
     void ResetCan(Walker w)
@@ -214,8 +233,10 @@ public partial class Babushkas
             Target = target,
             Spin = new Vector3(_hornRng.RandfRange(-6f, 6f), _hornRng.RandfRange(-4f, 4f), _hornRng.RandfRange(-6f, 6f)) };
         fc.Node.Scale = Vector3.One * SizeScale;
+        MarkTapeCan(fc.Node, w.Golden);
         AddChild(fc.Node);
         fc.Node.GlobalPosition = fc.From;
+        TapeHost?.Born(fc.Node);      // (in the tree and placed: the first sample taken carries its first pose)
         _cans.Add(fc);
         LoseCan(w);
         return fc;
@@ -255,6 +276,7 @@ public partial class Babushkas
             n.GlobalPosition = fc.From.Lerp(to, u) + Vector3.Up * MathF.Sin(u * MathF.PI) * 1.4f;
             n.Rotation += fc.Spin * dt;
             if (u < 1f) continue;
+            TapeHost?.Gone(n);
             n.QueueFree();
             _cans.RemoveAt(i);
             if (FuelDebug) GD.Print($"canister: babushka {fc.Owner}'s can lands in the car");
@@ -265,7 +287,7 @@ public partial class Babushkas
 
     void ClearFlyingCans()
     {
-        foreach (var fc in _cans) fc.Node.QueueFree();
+        foreach (var fc in _cans) { TapeHost?.Gone(fc.Node); fc.Node.QueueFree(); }
         _cans.Clear();
     }
 

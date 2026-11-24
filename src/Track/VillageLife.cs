@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CCCPRacing.Race;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -91,8 +92,38 @@ public partial class VillageLife : Node3D
         if (hh != null) root.BuildHenYard(hh);
         var dh = House(t, DonkeyHouseAt);
         if (dh != null) root.BuildDonkey(dh);
+        root.MarkTape();
+        root.SetProcess(false);      // (idle until the race has taken its world-tape index: the yard's rest poses are the ones it was built in, in every session; Begin())
         return root;
     }
+
+    // ---------------------------------------------------------------- the world tape
+
+    /// <summary>The washing's swing, the hens' places, pecks and wings, the donkey's neck, ears, tail and kick: each moving part by its place in the yard (the yards' layout is fixed by the track).</summary>
+    void MarkTape()
+    {
+        Tape.Version(this, 1); Tape.Part(this, "root");
+        for (int i = 0; i < _clothes.Count; i++) Tape.Part(_clothes[i].Pivot, $"cloth/{i}");
+        for (int i = 0; i < _hens.Count; i++)
+        {
+            var h = _hens[i];
+            Tape.Part(h.Root, $"hen/{i}/root"); Tape.Part(h.Tilt, $"hen/{i}/tilt"); Tape.Part(h.Head, $"hen/{i}/head");
+            Tape.Part(h.WingL, $"hen/{i}/wingL"); Tape.Part(h.WingR, $"hen/{i}/wingR");
+        }
+        if (_donkey != null)
+        {
+            var d = _donkey;
+            Tape.Part(d.Root, "donkey/root"); Tape.Part(d.Neck, "donkey/neck"); Tape.Part(d.EarL, "donkey/earL"); Tape.Part(d.EarR, "donkey/earR");
+            Tape.Part(d.Tail, "donkey/tail"); Tape.Part(d.Hind, "donkey/hind");
+        }
+    }
+
+    /// <summary>The tape poses the yards (the washing, the hens and the donkey do not move by themselves); leaving it, they go on from the state they were in.</summary>
+    public bool TapeDriven { get; private set; }
+    public void SetTapeDriven(bool on) { TapeDriven = on; }
+
+    /// <summary>The race has taken its world-tape index: the yards live from now on.</summary>
+    public void Begin() { if (_t != null && _t.Id == "ilyich") SetProcess(true); }
 
     // ---------------------------------------------------------------- helpers
 
@@ -535,6 +566,7 @@ public partial class VillageLife : Node3D
 
     public override void _Process(double delta)
     {
+        if (TapeDriven) return;
         float dt = (float)delta;
         _clock += dt;
         _cam = GetViewport().GetCamera3D();

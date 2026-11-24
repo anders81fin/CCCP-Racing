@@ -1,4 +1,5 @@
 using System;
+using CCCPRacing.Race;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -28,6 +29,24 @@ public partial class CampSearchlight : Node3D
         tower.AddChild(lamp);
         lamp.Build();
         lamp.UpdateHead();
+        // The world tape: a lamp that sweeps is an actor of its own (the race gives it the key None:Searchlight<n>): its head's direction; the beam's length and width are derived from it.
+        if (lamp._a != lamp._b) { Tape.Version(lamp, 1); Tape.Part(lamp, "root"); Tape.Part(lamp._head, "head"); }
+        lamp.SetProcess(false);      // (idle until the race has taken its world-tape index: the head's rest is the one it was built in, in every session; Begin())
+    }
+
+    /// <summary>The tape poses the head: the beam is derived from its direction, the sweep's own clock is off; leaving it, the sweep goes on.</summary>
+    public bool TapeDriven { get; private set; }
+    public void SetTapeDriven(bool on) { TapeDriven = on; }
+    /// <summary>The race has taken its world-tape index: the lamp sweeps from now on.</summary>
+    public void Begin() => SetProcess(true);
+
+    /// <summary>The beam of a head posed by the tape: where the head's line meets the sweep's segment (the point the live sweep looked at), its haze cone from the lamp to there.</summary>
+    void DeriveBeam()
+    {
+        Vector3 d = -_head.Basis.Z.Normalized();
+        Vector3 e = _b - _a, ad = _a.Cross(d), ed = e.Cross(d);
+        float f = ed.LengthSquared() > 1e-9f ? Math.Clamp(-ad.Dot(ed) / ed.LengthSquared(), 0f, 1f) : .5f;
+        BeamTo(_a + e * f);
     }
 
     void Build()
@@ -65,6 +84,13 @@ public partial class CampSearchlight : Node3D
 
     public override void _Process(double delta)
     {
+        if (TapeDriven)
+        {
+            _beam.Visible = _light.Visible;
+            _haze.AlbedoColor = new Color(.67f, .79f, 1f, .025f * Math.Clamp(_light.LightEnergy / 12f, 0, 1));
+            if (_a != _b) DeriveBeam();
+            return;
+        }
         _step += (float)delta;
         if (_step < 1f / 12f) return;
         _time += _step;
@@ -78,6 +104,11 @@ public partial class CampSearchlight : Node3D
     {
         Vector3 target = _a.Lerp(_b, .5f + .5f * MathF.Sin(_time * MathF.Tau / 38f));
         _head.Basis = Basis.LookingAt(target.Normalized(), Vector3.Up);
+        BeamTo(target);
+    }
+
+    void BeamTo(Vector3 target)
+    {
         // Stop the visible haze at the ground, rather than letting a cone cut through the snow.
         float length = target.Length();
         float radius = length * MathF.Tan(Mathf.DegToRad(15));

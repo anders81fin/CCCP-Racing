@@ -168,6 +168,7 @@ public partial class RaceScene
                 if (_track.Props[index].Type == "barn") smallDoor = door;
                 if (_track.Props[index].Type == "bigbarn") bigDoor = door;
             }
+            _barnDoorSmall = smallDoor; _barnDoorBig = bigDoor;      // (the world tape poses their leaves: RaceScene.World.cs)
             if (smallDoor != null) _tractorAll?.ConfigureDeparture(smallDoor);
             if (bigDoor != null)
             {
@@ -286,6 +287,8 @@ public partial class RaceScene
             _ploughsAll = new SnowPloughs { Name = "SnowPloughs" };
             AddChild(_ploughsAll);
             _ploughsAll.Init(_track, _fx, def.Ploughs);
+            _ploughsAll.ConcreteWarning += () => _hud.Alert("MIXER DRIVER'S REVENGE",
+                "FRESH CONCRETE AHEAD • KEEP CLEAR OF THE CHUTE", 4f, Hud.Gold, urgent: true);
             if (_booting) await LoadingFrame();      // LOADSLICES
             _jetsAll.Ploughs = _ploughsAll;
         }
@@ -379,8 +382,8 @@ public partial class RaceScene
             else if (a.StartsWith("--title-rec="))
             {
                 _titleRec = true; start = true; intro = false; _noRecord = true;      // (never a record: the take goes to its own folder)
-                _tapeSessionLapsDir = a["--title-rec=".Length..]; _tapeQuitLaps = 1;
-                _rallyFuel = FuelGrade.Diesel; _powerStart = Training.PercentForKey(1); _trackId = "ilyich";
+                _tapeSessionLapsDir = a["--title-rec=".Length..]; _tapeQuitLaps = 1; _tapeSessionLapBase = NextTakeNumber(_tapeSessionLapsDir) - 1;      // (a folder with takes already: the new one is the next number)
+                _rallyFuel = FuelGrade.Diesel; _powerStart = Training.PercentForKey(1);      // (the track is the one --track= names, else Ilyich: TrackToBuild)
             }
             else if (a == "--no-record") _noRecord = true;                // test: ignore the saved record lap (and never save one)
             else if (a.StartsWith("--rng-seed=")) _rng.Seed = ulong.Parse(a["--rng-seed=".Length..]);   // test: the same backfires and sputters each run (a backfire's camera jolt can decide a babushka in the lens)

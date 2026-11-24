@@ -7,7 +7,7 @@ using Godot;
 
 namespace CCCPRacing.Race;
 
-// Windowed scenario "make-clip" (--viewer-windowed-only=makeclip): MAKE CLIP in the real viewer of an unkept F3 lap, through the production paths. A lap is captured, F3 opens it, the picture is stopped, M makes the
+// Windowed scenario "make-clip" (--viewer-windowed-only=makeclip): MAKE CLIP in the real viewer of an unkept F2 lap, through the production paths. A lap is captured, F2 opens it, the picture is stopped, M makes the
 // clip (8 s before, 4 s after, in the TV broadcast, looping), ENTER opens the export card on THE CUT with 60 FPS at normal speed, ESC drops the clip and gives the viewer's own plan back, V on a clip of a lap that
 // is not kept asks to KEEP FIRST, and a stop near the start clips from 0:00.
 public partial class RaceScene
@@ -19,7 +19,7 @@ public partial class RaceScene
         LapArchiveCapture(47.55f, LapKind.Normal, true, false);
         string lapId = _lastLapId;
         for (int i = 0; i < 90; i++) yield return null;
-        foreach (var x in VrTap(Key.F3)) yield return x;
+        foreach (var x in VrTap(Key.F2)) yield return x;
         foreach (var x in VrUntil(() => ReplayViewer is { State: ReplayViewerState.Playing }, 60 * 30, "the viewer plays")) yield return x;
         var v = ReplayViewer;
         VwCheck(v != null && v.LapId == lapId && v.ClipSpan == null, "F3 opened the lap, no clip yet");

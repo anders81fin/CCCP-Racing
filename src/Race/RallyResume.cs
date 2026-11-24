@@ -86,7 +86,7 @@ public static class RallyResume
         foreach (var token in (text ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             bool slurry = token.StartsWith("slurry:") && int.TryParse(token["slurry:".Length..], out int n) && n >= 1 && n <= 9;
-            if ((token is "jet" or "tanks" || slurry) && !kept.Contains(token)) kept.Add(token);
+            if ((token is "jet" or "tanks" or "concrete" || slurry) && !kept.Contains(token)) kept.Add(token);
         }
         return string.Join(",", kept);
     }

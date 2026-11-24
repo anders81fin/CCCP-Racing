@@ -96,7 +96,7 @@ public partial class PhysicsTest
             int N(string k) => ev.Count(e => TapeIsFx(e) && e.Kind == k);
             int jets = view.Kinds.Count(k => k.Kind == "jet"), missiles = view.Kinds.Count(k => k.Kind == "missile");
             TapeInfo($"scene 13 (Siberia): tape file {new FileInfo(TapeTapeFile(a, "siberia", 0)).Length / 1024} KB, {ev.Count} events, instances: {jets} jets, {missiles} missiles; effects [{TapeKinds(ev)}]");
-            TapeCheck(jets >= 3 && missiles >= 2 && ev.Where(e => e.Type == TapeEventType.Spawn).All(e => e.Parent == JetsKey && e.Kind is "jet" or "missile") && ev.Count(e => e.Type == TapeEventType.Despawn) >= jets + missiles - 3,
+            TapeCheck(jets >= 3 && missiles >= 2 && ev.Where(e => e.Type == TapeEventType.Spawn && e.Kind?.StartsWith("canister/") != true).All(e => e.Parent == JetsKey && e.Kind is "jet" or "missile") && ev.Count(e => e.Type == TapeEventType.Despawn) >= jets + missiles - 3,
                 $"scene 13 (same scene): the tape holds the lap's {jets} jets and {missiles} guided missiles as instances of the jets' actor, spawned and despawned during the lap ({ev.Count(e => e.Type == TapeEventType.Spawn)} spawns, {ev.Count(e => e.Type == TapeEventType.Despawn)} despawns)");
             TapeCheck(N(TapeFxKind.JetCrash) >= 1 && N(TapeFxKind.MissileBurst) >= 1 && ev.Where(e => TapeIsFx(e) && e.Kind is TapeFxKind.JetCrash or TapeFxKind.MissileBurst).All(e => e.Source == JetsKey && e.Life > 0),
                 $"scene 13 (same scene): the tape holds the jets' crashes ({N(TapeFxKind.JetCrash)}) and the missiles' bursts ({N(TapeFxKind.MissileBurst)}) as effect events of the jets' actor, with a life");
@@ -288,10 +288,14 @@ public partial class PhysicsTest
         // Everything else that moves in a lap and is not in that list is a row of its own, with the reason (checked against the live lists: it is in neither).
         var expectMarked = new Dictionary<string, string[]>
         {
-            ["ilyich"] = new[] { "None:WoodFences", "Tractor:DrunkTractor", "Slurry:SlurryTractor", "Bus:Bus", "Kozlik:Kozlik", "None:KgbOfficers", "Babushkas:Babushkas", "Drunks:DrunkMen", "None:RescueTractor" },
-            ["siberia"] = new[] { "None:WoodFences", "Ploughs:SnowPloughs", "Column:PrisonerColumn", "Kozlik:Kozlik", "Jets:BalalaikaSorties", "Details:SiberiaDetails", "None:KgbOfficers", "Babushkas:Babushkas", "Drunks:DrunkMen", "None:RescueTractor" },
-            ["atomgrad"] = new[] { "None:WoodFences", "Bus:Bus", "Ploughs:SnowPloughs", "Zone:ZoneLife", "None:Dosimetrist", "Kozlik:Kozlik", "None:KgbOfficers", "Babushkas:Babushkas", "Drunks:DrunkMen", "None:RescueTractor" },
-            ["bonus"] = new[] { "None:WoodFences", "Kozlik:Kozlik", "Jets:HindSorties", "None:KgbOfficers", "None:CampGate", "Btr:BtrPatrols", "Tanks:TankBattle", "Babushkas:Troopers", "Drunks:DrunkMen", "None:RescueTractor" },
+            ["ilyich"] = new[] { "None:WoodFences", "Tractor:DrunkTractor", "Slurry:SlurryTractor", "Bus:Bus", "Kozlik:Kozlik", "None:KgbOfficers", "Babushkas:Babushkas", "Drunks:DrunkMen", "None:RescueTractor",
+                "None:KolkhozWorkers", "None:BarnDoorsTractor", "None:BarnDoorsSlurry", "None:DachaGuards", "None:PartyOfficialRowing", "None:PondMallard", "None:VillageLife", "None:WaterMill", "None:EngineEffects" },
+            ["siberia"] = new[] { "None:WoodFences", "Ploughs:SnowPloughs", "Column:PrisonerColumn", "Kozlik:Kozlik", "Jets:BalalaikaSorties", "Details:SiberiaDetails", "None:KgbOfficers", "Babushkas:Babushkas", "Drunks:DrunkMen", "None:RescueTractor",
+                "None:TrafficCones", "None:Radar", "None:EngineEffects" },
+            ["atomgrad"] = new[] { "None:WoodFences", "Bus:Bus", "Ploughs:SnowPloughs", "Zone:ZoneLife", "None:Dosimetrist", "Kozlik:Kozlik", "None:KgbOfficers", "Babushkas:Babushkas", "Drunks:DrunkMen", "None:RescueTractor",
+                "None:Weather", "None:EngineEffects" },
+            ["bonus"] = new[] { "None:WoodFences", "Kozlik:Kozlik", "Jets:HindSorties", "None:KgbOfficers", "None:CampGate", "Btr:BtrPatrols", "Tanks:TankBattle", "Babushkas:Troopers", "Drunks:DrunkMen", "None:RescueTractor",
+                "Jets:ExerciseCrew", "Jets:FieldKitchen", "Jets:FieldCombine", "None:EngineEffects" },
         };
         var unmarkedWhy = new Dictionary<string, string>
         {
@@ -307,6 +311,9 @@ public partial class PhysicsTest
             {
                 var c = TapeGame(d, new[] { "--start", "--autodrive", "--track=" + track, "--tape-debug", "--tape-quit-at=2" }, 200);
                 var idx = c.Find("tape: index actors ["); var marked = TapeKeyList(idx, "index actors"); var unmarked = TapeKeyList(idx, "unmarked");
+                // (the beacons of the ploughs and mixers and the camp's sweeping searchlights are numbered in tree order: how many there are is the track's, that they are there is the rule)
+                var numbered = marked.Where(m => System.Text.RegularExpressions.Regex.IsMatch(m, @"^None:(Beacon|Searchlight)\d+$")).ToList(); marked = marked.Except(numbered).ToArray();
+                TapeCheck(track switch { "siberia" => numbered.Any(n => n.StartsWith("None:Beacon")) && numbered.Any(n => n.StartsWith("None:Searchlight")), "atomgrad" => numbered.Any(n => n.StartsWith("None:Beacon")), _ => numbered.Count == 0 }, $"scene 13 (inventory {track}): the beacons and searchlights the tape indexes ([{string.Join(", ", numbered)}]) are the ones of this track");
                 var want = expectMarked[track].Concat(new[] { "None:SpeedTrap", "Depot:FuelDepot", "None:RescueTowRope", "None:PlayerPower" }).ToArray();
                 TapeCheck(c.Exit == 0 && idx != null && marked.OrderBy(x => x).SequenceEqual(want.OrderBy(x => x)), $"scene 13 (inventory {track}): the tape indexes exactly [{string.Join(", ", want)}] (got [{string.Join(", ", marked)}])");
                 var missing = unmarked.Where(u => !unmarkedWhy.ContainsKey(u)).ToList();
@@ -321,18 +328,18 @@ public partial class PhysicsTest
         {
             ("GulagTruck", "all", false, "idle through every lap that can become a record: it is called only when the mission has failed (RaceScene.Fate), when the lap is lost; the lap report logs it idle", new[] { "GulagTruck" }),
             ("RescueTractor", "all", true, "indexed (None:RescueTractor): root, model, driver, head and engine sound; None:RescueTowRope separately records unscaled endpoints and visibility, reconstructing the stretched rope without changing legacy tractor compatibility", Array.Empty<string>()),
-            ($"KolkhozWorkers ({workers} workers)", "ilyich", false, "each worker is a skeleton animated from its own clock in _Process at 24 Hz (13 moving nodes: body, head, arms, hips, knees, feet, held work, rod, line) and knocked over by the live car; it is not a WorldActor, so a covered _Process cannot be skipped; wiring means ~" + (workers * 13) + " parts and a replay flag in the model", new[] { "KolkhozWorkers" }),
-            ("VillageLife", "ilyich", false, "ambient washing, a flock that flees the car and a donkey that kicks, all driven from _Process by the live car's position; decoration with no collision, no WorldActor, nothing to skip", new[] { "VillageLife" }),
+            ($"KolkhozWorkers ({workers} workers)", "ilyich", true, "indexed (None:KolkhozWorkers, coverage batch 1): each worker's place, body, head, arms, legs, held work, rod and line (the limbs' stretch as the LimbReach channel); the live update and the collision circle are off while the tape drives", Array.Empty<string>()),
+            ("VillageLife", "ilyich", true, "indexed (None:VillageLife, coverage batch 2): the washing's swing, each hen's place, tilt, head and wings, the donkey's body, neck, ears, tail and kick; the live update is off while the tape drives", Array.Empty<string>()),
             ("PartyDacha (building, yard)", "ilyich", false, "n/a (static): the building and the yard never move, so there is nothing to record", Array.Empty<string>()),
-            ("WaterMill wheel and spray", "ilyich", false, "a decorative ambient part: the wheel turns slowly by its own time (MillWheel._Process) and a few spray streaks fall at its discharge; nothing in it is gameplay, it is not a WorldActor and it looks the same live, in a replay and on a LAN replica (proposed deliberate exclusion, like the rotating beacons)", new[] { "MillWheel", "MillSpray" }),
-            ("PartyRowboat, PartyPondDuck, DachaPatrol", "ilyich", false, "ambient movers in _Process (the rowboat's hunt, the duck, three guards on a beat knocked over by the live car); not WorldActors; ~dozens of animated nodes", new[] { "PartyRowboat", "DachaPatrol" }),
+            ("WaterMill wheel and spray", "ilyich", true, "indexed (None:WaterMill, coverage batch 2): the wheel as a spinner with its real, unwrapped turn; the spray is drawn from that turn", Array.Empty<string>()),
+            ("PartyRowboat, PartyPondDuck, DachaPatrol", "ilyich", true, "indexed (None:PartyOfficialRowing, None:PondMallard, None:DachaGuards; coverage batches 1 and 2): the boat, the rower, the guest, the oars and the gun, the duck, the guards' places and strides; the shot is a dacha-shot event; the boat, the duck and the patrol start in one call", Array.Empty<string>()),
             ("ZoneDosimetrist", "atomgrad", true, "indexed (None:Dosimetrist): the figure (the turn and a knock-over's tilt), head, probe arm, meter arm and the wash flag; built with the world right after the speed trap, past every listed obstacle slot, with a parking hook for his soft obstacle; the hose over the car in the wash bay is made by the replay's emitters from the flag", Array.Empty<string>()),
             ("Buk21Battery body", "bonus", true, "indexed as parts of the Hind actor (version 3): both launchers' dishes (registered spinners), the loader truck's pose, crane, hoist, lifted round and six wheels; the turrets, racks and rounds were already; the replay no longer steps the battery", Array.Empty<string>()),
             ("Bus fire (burning wreck)", "ilyich, atomgrad", true, "persistent bus-fire event restores the wreck, charring, age-driven flame/smoke and crackle; sampled dynamic passengers and engine pause; version 2 suppresses native simulation", Array.Empty<string>()),
             ("WoodFences (breaking fences)", "ilyich", true, "indexed under None:WoodFences: geometry-versioned break events, retained broken spans and deterministic debris restored by age; compatible replay skips live fence collisions", Array.Empty<string>()),
             ("GAI chase effects (Kozlik's exhaust, the bear's breath)", "ilyich, siberia, atomgrad, bonus", false, "the patrol's poses, beacon and engine are indexed (Kozlik:Kozlik); its per-step exhaust smoke and the bear's breath puffs are emitted from KozlikPatrol.Tick and are not made by the replay", new[] { "KozlikChase" }),
             ("Hind landing-light beams and exhaust", "bonus", false, "the lights follow the recorded AircraftState (powered, beam allowed); the beams' own shading and the rotor exhaust are per-step and not made by the replay", new[] { "HindBeams" }),
-            ("BonusExerciseLife (marshal, battery crew, cook)", "bonus", false, "ticks live in the replay by design (the Hind actor's crew), animated from the replay car; its workers' skeletons are not recorded", new[] { "ExerciseCrew" }),
+            ("BonusExerciseLife (marshal, battery crew, cook, kitchen, combine)", "bonus", true, "indexed (Jets:ExerciseCrew, Jets:FieldKitchen, Jets:FieldCombine; coverage batches 1 and 2): the people, the kitchen's lid, ladle, flame and steam, the combine's header reel and wheels", Array.Empty<string>()),
         };
         foreach (var o in outside) rows.Add(new TapeInv(o.Actor, o.Track, o.Covered, o.Reason, o.Reason.StartsWith("n/a (static)") ? "n/a (static)" : null));
         // none of the rows outside the list may be one of the lists' keys (the claim "not an actor" is checked by the unmarked/marked sets above: they are exact)

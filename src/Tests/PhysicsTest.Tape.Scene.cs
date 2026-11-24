@@ -155,6 +155,8 @@ public partial class PhysicsTest
             Case("scene 11", TapeScene4);     // PhysicsTest.Tape.Scene4.cs: phase 2, the Hinds and missiles as dynamic instances (needs no data of the others)
             Case("scene 12", TapeScene5);     // PhysicsTest.Tape.Scene5.cs: phase 3, effects, projectiles and breakables (needs no data of the others)
             Case("scene 13", TapeScene6);     // PhysicsTest.Tape.Scene6.cs: T9, the jets and guided missiles, the battery body, the emitters, the collision policy, the inventory
+            Case("scene 16", TapeScene9);     // PhysicsTest.Tape.Scene8.cs: coverage batch 2: the dacha boat and duck, the village yards, the water mill, the radar, the beacons, the searchlights, the lightning, the kitchen and combine, the engine effects
+            Case("scene 15", TapeScene8);     // PhysicsTest.Tape.Scene8.cs: coverage batch 1: the cones, the barn doors, the workers, the dacha guards, the exercise crew, the cans in the air
             Case("scene 14", TapeScene7);     // PhysicsTest.Tape.Scene7.cs: T10, the async pair save held and faulted deterministically (the worker gate), the wait diagnostics
         }
         finally { TapeSceneRm(a); }

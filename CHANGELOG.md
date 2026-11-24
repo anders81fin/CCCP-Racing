@@ -3,6 +3,20 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.919
+
+- KEYS: the telemetry overlay is now F9 and the LAB panel F10. F2 watches the last lap, also while driving, at a stop card and at the end of a rally (it was F3). In the Party Meeting and while driving: F1 watches the current lap, F3 browses the laps, F4 opens the norms and medals (in the Stakhanov laps the leaderboards). While driving the race is paused first, as with Esc
+- MENUS: a locked fuel says LOCKED: SILVER ON 3 FIRST TRACKS REQUIRED or LOCKED: SILVER ON 4 TRACKS REQUIRED. The locked bonus track no longer starts its line with BONUS TRACK
+- MAIN MENU: the background lap is now recorded for every track, and the title plays the one of the track it is on
+- ATOMGRAD: the railway is solid. The rails are ridges under the tyres and the car feels them at the crossing
+- ATOMGRAD: over the radiation limit the dosimetrist stops the car and walks round it, measuring. Then the autopilot drives it through the wash and back to the start line. It steers like a driver now, with the front wheels turning, and the clock keeps running
+- ATOMGRAD: the wash station has its own sign over it, a radiation trefoil with a water drop. The warnings say WASH BEFORE THE FINISH LINE
+- ATOMGRAD: the mixer driver wants revenge when you hit his grandmother. His last mixer lowers its chute and pours a ribbon of fresh concrete into its lane for two laps. Driving over it slows you down. It is not poured over the railway. A line at the bottom, CONCRETE: 2 LAPS LEFT, reminds you while it lasts
+- ATOMGRAD: the Lunokhod stops now and then and surveys the ground with its probe arm and a lamp
+- REPLAY: the world tape now records the dacha boat with its rower, guest and duck, the village animals and washing, the water mill, the radar, the searchlights, the beacons of the ploughs and mixers, the lightning of Atomgrad, the field kitchen and the combine reel, the tank treads, the loose stones of the stone walls and the effects of a damaged engine. Older recordings still play
+- REPLAY: the workers, guards, cones, exercise crew, canisters and the rescue rope of the earlier recordings are on the tape too, and the tests that guard them are stronger
+- SMALL THINGS: LAN races no longer send the mixer concrete stream, which only the single-player revenge uses
+
 ## 0.918
 
 - POLIGON 17: its own look. A low, pale straw-yellow sun from the side shows the joints of the concrete and the forms of the ground, the dusk, the night and the dawn are as before. Now and then a soft gust of dust blows over the open gravel ridge, the way the windsock points, and it stops where the ground turns to mud. The grass is drier, a yellow-green, most of all on the worn left side of the start straight. Sparse hay leans in the wind on the ridge

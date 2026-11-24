@@ -42,6 +42,7 @@ public partial class RaceScene
             if (_hindsAll != null && a.Node == _hindsAll) _hindsAll.TapeHost = new TapeHost(this, key);
             if (_busAll != null && a.Node == _busAll) _busAll.TapeHost = new TapeHost(this, key);
             if (_jetsAll != null && a.Node == _jetsAll) _jetsAll.TapeHost = new TapeHost(this, key);
+            if (_babushkasAll != null && a.Node == _babushkasAll) _babushkasAll.TapeHost = new TapeHost(this, key);      // the cans they throw
         }
         foreach (var (key, root) in _tapeRoots)
             if (_tapeIndex.StructureOf(key).ParentPaths.ContainsKey("root")) Adopt(key, root);
@@ -131,6 +132,7 @@ public partial class RaceScene
             "buk-missile" => Track.Buk21Battery.BuildReplayMissile(),
             "jet" => Track.BalalaikaSorties.BuildReplayJet(fx),
             "missile" => Track.Missile.BuildReplay(fx),
+            "canister" => Track.Babushkas.BuildReplayCan(arg),
             _ => null,
         };
     }

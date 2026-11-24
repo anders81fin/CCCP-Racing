@@ -13,27 +13,27 @@ namespace CCCPRacing.Race;
 /// The zone's radiation (TrackDef.Radiation, ATOMGRAD-4). The dosimeter clicks on every run on the
 /// track (GeigerSound), faster in the hot spots (the red forest, by block 4) and off the hard road.
 /// In the rally the dose adds up (the DOSE gauge beside the fuel): over the limit, the dosimetrist at
-/// the checkpoint stops the car at the line for a check and a wash-down on the spot (DoseCheckTime);
-/// the decontamination station beside the birch avenue washes it off quicker: drive into its bay
+/// the checkpoint stops the car at the line for a check and sends it to the wash under autopilot;
+/// the decontamination station before the finish line washes it off quicker: drive into its bay
 /// slowly and the dose runs down while the clock runs. Tests: --dose=F (the rally starts at this
 /// share of the limit), --at-wash (the car starts at the wash, nose in); env DOSEDBG.
 /// </summary>
 public partial class RaceScene
 {
-    const float DoseCheckTime = 10f, WashRate = 8f, WashSpeed = 30f / 3.6f;
+    const float WashRate = 8f, WashSpeed = 30f / 3.6f;
     const float WashHalfX = 3.4f, WashHalfZ = 8f;
 
     RadiationDef _rad;
     ZoneDosimetrist _dosimetrist;      // the figure at the checkpoint, knocked over like the other people
     GeigerSound _geiger;
-    float _dose, _doseRate, _doseCheckT, _doseStart, _doseDbg;
+    float _dose, _doseRate, _doseStart, _doseDbg;
     bool _doseOn, _doseWarned, _doseOver, _washing, _atWash, _radEngineWarned;
     bool _doseSchoolMock;
 
     /// <summary>At GO: the zone's word in the rally; test --at-wash: the car at the bay's north end, pointing in (south).</summary>
     void StartDoseTests()
     {
-        if (_doseOn) _hud.Show("THE ZONE: WATCH YOUR DOSE", $"OVER {_rad.Limit:0} MSV THE DOSIMETRIST STOPS YOU. WASH AT THE BIRCHES", 4f, Hud.Gold, Prio.Important);
+        if (_doseOn) _hud.Show("THE ZONE: WATCH YOUR DOSE", $"OVER {_rad.Limit:0} MSV THE DOSIMETRIST STOPS YOU. WASH BEFORE THE FINISH LINE", 4f, Hud.Gold, Prio.Important);
         if (!_atWash || _rad == null) return;
         _car.Reset(new Vector3(_rad.WashX, _track.MeshHeight(_rad.WashX, _rad.WashZ - WashHalfZ - 4f) + 0.55f, _rad.WashZ - WashHalfZ - 4f), TrackData.YawFor(new Vector2(0, 1)));
     }
@@ -59,7 +59,10 @@ public partial class RaceScene
         if (_rad == null) return;
         _doseOn = rally;
         _dose = rally && !_raceRestart ? _doseStart * _rad.Limit : 0f;
-        _doseCheckT = 0;
+        _doseServicePhase = DoseServicePhase.None;
+        _inspectorReturning = false;
+        _dosimetrist?.EndServiceWalk();
+        _doseServicePath = null;
         _doseWarned = _doseOver = _washing = _radEngineWarned = false;
     }
 
@@ -90,7 +93,7 @@ public partial class RaceScene
         _geiger.Rate = live ? 1.2f + _doseRate * 55f : 0f;
         if (!_doseOn) return;
 
-        bool racing = _state == State.Racing, free = racing && !_wreck && !_rescue.Active && _doseCheckT <= 0;
+        bool racing = _state == State.Racing, free = racing && !_wreck && !_rescue.Active && !DoseServiceActive;
         if (free) _dose += _doseRate * dt;
         // The radiation eats the engine too, the more the stronger it is (EngineHealth.RadiationLoss).
         if (free && _health.Enabled && !_health.Dead)
@@ -125,26 +128,14 @@ public partial class RaceScene
         if (_dose >= 0.7f * _rad.Limit && !_doseWarned && racing)
         {
             _doseWarned = true;
-            _hud.Alert("DOSE HIGH: WASH AT THE BIRCHES", "SOAP IS FREE. THE CLOCK IS NOT.", 3.5f, Hud.Gold, stillValid: () => _dose >= 0.7f * _rad.Limit);      // (the action in the heading, the joke below)
+            _hud.Alert("DOSE HIGH: WASH BEFORE THE FINISH LINE", "SOAP IS FREE. THE CLOCK IS NOT.", 3.5f, Hud.Gold, stillValid: () => _dose >= 0.7f * _rad.Limit);      // (the action in the heading, the joke below)
         }
         if (_dose < 0.5f * _rad.Limit) _doseWarned = false;
         bool over = _dose >= _rad.Limit;
         if (over && !_doseOver && racing)
-            _hud.Alert("OVER THE NORM: WASH AT THE BIRCHES!", "THE DOSIMETRIST WILL STOP YOU AT THE CHECKPOINT", 3.5f, Hud.Red, Prio.Important, stillValid: () => _dose >= _rad.Limit);
+            _hud.Alert("OVER THE NORM: WASH BEFORE THE FINISH LINE!", "THE DOSIMETRIST WILL STOP YOU AT THE CHECKPOINT", 3.5f, Hud.Red, Prio.Important, stillValid: () => _dose >= _rad.Limit);
         _doseOver = over;
 
-        // The dosimetrist's check: the car is held, then washed down on the spot.
-        _dosimetrist?.Inspect(_doseCheckT > 0 ? DoseCheckTime - _doseCheckT : -1f, DoseCheckTime, _car.Pos);
-        if (_doseCheckT > 0)
-        {
-            _doseCheckT -= dt;
-            if (_doseCheckT <= 0)
-            {
-                _dose = 0;
-                _hud.Show("CHECKED AND WASHED", "DRIVE ON, TOVARISH", 2f, Hud.Paper, plain: "CHECKED AND WASHED");
-                if (DoseDebug) GD.Print($"dose: check done at {_clock:F1} s");
-            }
-        }
         _doseDbg -= dt;
         if (DoseDebug && _doseDbg <= 0)
         {
@@ -156,21 +147,18 @@ public partial class RaceScene
     /// <summary>The car crosses the line (a lap or a void lap): over the limit, the dosimetrist stops it.</summary>
     void DoseAtLine()
     {
-        if (!_doseOn || _dose < _rad.Limit || _doseCheckT > 0) return;
-        _doseCheckT = DoseCheckTime;
-        _hud.Show("DOSIMETRIC CHECK!", $"{_dose:0} mSv. {DoseCheckTime:0} SECONDS OF PAPERWORK AND A HOSE", 3.5f, Hud.Red, Prio.Critical, urgent: true);
+        if (!_doseOn || _dose < _rad.Limit || DoseServiceActive || InLanRace || InSchool) return;
+        BeginDoseService();
+        _hud.Show("BRAKE FOR DOSIMETRIC CHECK!", $"{_dose:0} mSv • WAIT FOR THE INSPECTOR", 3.5f, Hud.Red, Prio.Critical, urgent: true);
         if (DoseDebug) GD.Print($"dose: the dosimetrist stops the car at {_clock:F1} s, {_dose:F1} mSv");
     }
-
-    /// <summary>The car stands still while the dosimetrist checks it (as for the mechanic).</summary>
-    bool DoseHolds => _doseCheckT > 0 && _state == State.Racing;
 
     /// <summary>The dosimetrist's word over the checkpoint while he checks the car.</summary>
     IEnumerable<(Vector3 pos, string text)> DoseShouts()
     {
-        if (_doseCheckT <= 0) yield break;
+        if (_doseServicePhase is not (DoseServicePhase.Scan or DoseServicePhase.Order)) yield break;
         Vector3 at = _dosimetrist?.HeadAt ?? _car.Pos + _car.Right * 2.2f + Vector3.Up * 4.1f;
-        yield return (at, _doseCheckT > DoseCheckTime - 4f ? "ФОНИТ!" : _doseCheckT > 2f ? "ДЕЗАКТИВАЦИЯ" : "СВОБОДЕН");
+        yield return (at, _doseServicePhase == DoseServicePhase.Scan ? "ФОНИТ!" : "НА МОЙКУ!");
     }
 
     void DoseHud()
@@ -183,6 +171,7 @@ public partial class RaceScene
         _hud.Dose = _doseOn ? _dose / _rad.Limit : -1f;
         _hud.DoseMsv = _dose;
         _hud.DoseRate = _doseRate;
-        _hud.Washing = _washing || _doseCheckT > 0;
+        _hud.Washing = _washing;
+        _hud.DoseAutopilot = _doseServicePhase == DoseServicePhase.Wash;
     }
 }

@@ -235,13 +235,20 @@ public partial class Breakables : Node3D
         return true;
     }
 
-    void BreakWall(int seg, Vector2 hit, Vector3 vel)
+    /// <summary>The generator state the live break of this wall segment (its first obstacle id) threw its stones with: the world tape keeps it so a replay throws the same ones (null: not the last live wall break).</summary>
+    public ulong? WallState(int id) => id == _lastWallId ? _lastWallState : null;
+    int _lastWallId = -1; ulong _lastWallState;
+
+    void BreakWall(int seg, Vector2 hit, Vector3 vel, ulong? state = null, float age = -1f)
     {
         var ws = _t.WallSegments[seg];
         if (_removed.ContainsKey(ws.First)) return;
         for (int k = ws.First; k < ws.First + ws.Count; k++) Remove(k);
-        _walls.Break(seg, hit, vel);
-        if (!_replay) Broken?.Invoke(ws.First,vel,new Vector3(hit.X,_t.MeshHeight(hit.X,hit.Y),hit.Y));
+        _walls.Break(seg, hit, vel, state);
+        if (state != null && age >= 0f) _walls.Advance(seg, age);      // (a replay's seek: the stones as far into their fall as the tape's clock says)
+        if (_replay) return;
+        _lastWallId = ws.First; _lastWallState = _walls.LastState;
+        Broken?.Invoke(ws.First,vel,new Vector3(hit.X,_t.MeshHeight(hit.X,hit.Y),hit.Y));
     }
 
     // ---- the world tape's replay: what the recorded lap broke, and when (docs/replay-tape.md, phase 3) ----
@@ -276,14 +283,14 @@ public partial class Breakables : Node3D
 
     /// <summary>Replay: what was broken at <paramref name="id"/> breaks now, as it did then (the tree topples with its leaves, the wall crumbles). Nothing happens if it is broken or unknown.
     /// <paramref name="age"/> is how long ago it broke (the player fires an event up to one step late): the tree is that far into its fall, as a seek to the same clock would show it.</summary>
-    public void ReplayBreak(int id, Vector3 vel, Vector3 at, float age = 0f)
+    public void ReplayBreak(int id, Vector3 vel, Vector3 at, float age = 0f, ulong? wallState = null)
     {
         _replay = true;
         try
         {
             if (_removed.ContainsKey(id)) return;
             if (_byObstacle.TryGetValue(id, out var f)) { Fell(f, vel); if (age > 0f) FallTo(f, age); }
-            else if (_wallByObstacle.TryGetValue(id, out int seg) && _walls != null) BreakWall(seg, new Vector2(at.X, at.Z), vel);
+            else if (_wallByObstacle.TryGetValue(id, out int seg) && _walls != null) BreakWall(seg, new Vector2(at.X, at.Z), vel, wallState, age);
         }
         finally { _replay = false; }
     }
@@ -315,7 +322,7 @@ public partial class Breakables : Node3D
     /// <paramref name="how"/> says which way it went down and where it was hit, as the tape recorded, and everything else standing. Whatever the previous pass broke and is not in the set stands
     /// again. The fall of a tree is seekable (its angle, landing and wires follow the age, so a seek equals playing to the same clock); a wall that crumbled is not: it is rubble at once.
     /// </summary>
-    public void ReplaySet(IReadOnlyCollection<int> ids, IReadOnlyDictionary<int, (Vector3 Vel, Vector3 At)> how, IReadOnlyDictionary<int, float> ages = null)
+    public void ReplaySet(IReadOnlyCollection<int> ids, IReadOnlyDictionary<int, (Vector3 Vel, Vector3 At)> how, IReadOnlyDictionary<int, float> ages = null, IReadOnlyDictionary<int, ulong> wallStates = null)
     {
         if (_t == null) return;
         _replay = true;
@@ -331,7 +338,13 @@ public partial class Breakables : Node3D
                     Fell(f, how != null && how.TryGetValue(id, out var h) ? h.Vel : f.Orig.Basis.Z * -3f);
                     FallTo(f, ages != null && ages.TryGetValue(id, out float a) ? Math.Max(0f, a) : FallTime + BounceTime + 1f);
                 }
-                else if (_wallByObstacle.TryGetValue(id, out int seg) && _walls != null) { var c = how != null && how.TryGetValue(id, out var h) ? new Vector2(h.At.X, h.At.Z) : _t.Obstacles[id].Center; BreakWall(seg, c, how != null && how.TryGetValue(id, out h) ? h.Vel : Vector3.Zero); walls = true; }
+                else if (_wallByObstacle.TryGetValue(id, out int seg) && _walls != null) {
+                    var c = how != null && how.TryGetValue(id, out var h) ? new Vector2(h.At.X, h.At.Z) : _t.Obstacles[id].Center;
+                    ulong? ws = wallStates != null && wallStates.TryGetValue(id, out ulong st) ? st : null;
+                    float? wa = ages != null && ages.TryGetValue(id, out float wage) ? Math.Max(0f, wage) : null;
+                    BreakWall(seg, c, how != null && how.TryGetValue(id, out h) ? h.Vel : Vector3.Zero, ws, wa ?? -1f);
+                    if (ws == null || wa == null) walls = true;      // (an older tape: no stones' state or no time of the fall: the wall lies at once)
+                }
             }
             if (walls) _walls.Settle();
         }

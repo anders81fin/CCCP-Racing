@@ -1,5 +1,6 @@
 using System;
 using CCCPRacing.UI;
+using CCCPRacing.Race;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -306,6 +307,9 @@ public static class Buildings
         head.AddChild(Props.Part(Props.Box(2.4f, 1.8f, 2.2f), olive, new Vector3(0, 0.9f, 1.8f)));
         head.Beacon = NightGlow.Part(Props.Ball(0.3f), Red, new Color(1f, 0.1f, 0.05f), 2.5f, new Vector3(0, 8.4f, 0));
         head.AddChild(head.Beacon);
+        // The world tape: the radar station is an actor of its own (the race gives it the key None:Radar): the dish's head turns by its real, unwrapped angle and its red beacon blinks.
+        Tape.Version(n, 1); Tape.Part(n, "root"); Tape.Part(head, "head"); Tape.Spin(head, Vector3.Up, () => head.Turned); Tape.Part(head.Beacon, "beacon");
+        head.SetProcess(false);      // (idle until the race has taken its world-tape index: the head's rest is the one it was built in, in every session; Begin())
 
         // "KEEP OUT" plate on the bunker.
         n.AddChild(TextPanel("НЕ ВХОДИТЬ!", 5f, 1f, new Vector3(0, 2.6f, 3.56f), Red, Colors.White));
@@ -446,6 +450,13 @@ public partial class RadarHead : Node3D
 
     public MeshInstance3D Beacon;
     float _t;
+    /// <summary>The head's real turn (radians, never wrapped): what the world tape records.</summary>
+    public float Turned { get; private set; }
+    /// <summary>The tape poses the head and the beacon; leaving it, the head turns on from where it was.</summary>
+    public bool TapeDriven { get; private set; }
+    public void SetTapeDriven(bool on) { TapeDriven = on; }
+    /// <summary>The race has taken its world-tape index: the head turns from now on.</summary>
+    public void Begin() => SetProcess(true);
 
     /// <summary>Horizontal unit direction the dish is pointing (it faces the head's local -Z).</summary>
     public Vector2 Beam
@@ -458,8 +469,10 @@ public partial class RadarHead : Node3D
 
     public override void _Process(double delta)
     {
+        if (TapeDriven) return;
         _t += (float)delta;
         RotateY((float)delta * SpinRate);
+        Turned += (float)delta * SpinRate;
         if (Beacon != null) Beacon.Visible = (int)(_t * 1.6f) % 2 == 0;
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using CCCPRacing.Audio;
+using CCCPRacing.Race;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -74,6 +75,11 @@ public partial class PartyRowboat : Node3D
         var root = new PartyRowboat { Name = "PartyOfficialRowing", _track = t };
         if (t.Id != "ilyich" || float.IsNaN(t.WaterLevel)) { root.SetProcess(false); return root; }
         root.BuildModel(); root.BuildHuntEffects(); root.Animate(0);
+        // The world tape: the hull, the rower's body, the guest, the gun and its barrels, the flash and both oars (the shot's smoke and splash are an effect event, the ripples are drawn from the replay's clock).
+        Tape.Version(root, 1); Tape.Part(root, "root");
+        Tape.Part(root._boat, "boat"); Tape.Part(root._body, "body"); Tape.Part(root._passenger, "guest"); Tape.Part(root._gun, "gun"); Tape.Part(root._barrels, "barrels");
+        Tape.Part(root._flash, "flash"); Tape.Part(root._leftOar, "oarL"); Tape.Part(root._rightOar, "oarR");
+        root.SetProcess(false);      // (idle until the race has taken its world-tape index, together with the duck and the dacha's guards: Begin())
         return root;
     }
 
@@ -167,9 +173,36 @@ public partial class PartyRowboat : Node3D
         return guest;
     }
 
+    /// <summary>The world tape shows the boat, the guest, the oars and the shot's smoke and splash; the live row, aim and shooting are off. Leaving it: the live code goes on from the state it was in.</summary>
+    public bool TapeDriven { get; private set; }
+    bool _replayShot;
+    float _replayShotClock, _replayClock;
+    Vector3 _replayShotAt, _replayImpact;
+
+    public void SetTapeDriven(bool on)
+    {
+        if (TapeDriven == on) return;
+        TapeDriven = on;
+        _replayShot = false;
+        if (_boat == null) return;
+        if (on) { _smoke.Visible = false; _splash.Visible = false; }
+        else { _flash.Visible = false; _smoke.Visible = false; _splash.Visible = false; }      // (the live update decides them again, next frame)
+    }
+
+    /// <summary>The race has taken its world-tape index: the boat rows from now on (with the duck and the guards: they start together).</summary>
+    public void Begin() { if (_boat != null) SetProcess(true); }
+
+    /// <summary>A shot of the tape: the smoke from the muzzle and the splash where the pellets land, as the shot made them (the live functions of the formulas in <see cref="ReplayShotFx"/>).</summary>
+    public void ReplayShot(Vector3 muzzle, Vector3 impact, float shotClock) { _replayShot = true; _replayShotAt = muzzle; _replayImpact = impact; _replayShotClock = shotClock; ReplayShotFx(); }
+    public void ReplayShotClear() { _replayShot = false; if (_boat != null && TapeDriven) { _smoke.Visible = false; _splash.Visible = false; } }
+
+    /// <summary>The replay's clock (after the player posed the parts): the ripples and the shot's effects follow it.</summary>
+    public void ReplayDerive(float clock) { _replayClock = clock; if (_boat == null) return; Ripples(clock); ReplayShotFx(); }
+
     public override void _Process(double delta)
     {
         if (_boat == null || delta == 0) return;
+        if (TapeDriven) return;
         _clock += (float)delta;
         _recoil = Math.Max(0, _recoil - (float)delta * 5f);
         Animate(_clock);
@@ -215,6 +248,12 @@ public partial class PartyRowboat : Node3D
         _barrels.Rotation = new Vector3(-reload * 0.65f, 0, 0);
         _leftOar.Rotation = new Vector3(0, stroke * 0.40f, -0.19f - stroke * 0.07f);
         _rightOar.Rotation = new Vector3(0, -stroke * 0.40f, 0.19f + stroke * 0.07f);
+        Ripples(time);
+    }
+
+    /// <summary>The six ripples round the hull: a function of the time and the boat's pose.</summary>
+    void Ripples(float time)
+    {
         for (int i = 0; i < 6; i++)
         {
             float age = (time * 0.45f + (i / 2) / 3f) % 1f;

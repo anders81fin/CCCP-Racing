@@ -27,6 +27,7 @@ public sealed class WorldTapePlayer : IWorldTapePlayer
     readonly bool[] _inDirty;
     readonly List<int> _dirty = new(), _interp = new(), _prevInterp = new();
     readonly Dictionary<TapeSoundKey, byte> _snd = new();
+    readonly Dictionary<Node3D, float> _spinNow = new();      // the unwrapped angle each spinning part was last posed at (for what derives from a turn: the tank belts, the mill's spray)
     readonly HashSet<int> _broken = new();                 // the breakables broken at the clock a seek restored
     readonly Dictionary<int, float> _spawned = new();      // the instances this player made (id -> the tape time of their Spawn): its to destroy
     readonly Dictionary<int, (string Kind, string Parent)> _spawnInfo = new();      // what each of those is (a seek may keep an instance the tape wants again)
@@ -91,8 +92,11 @@ public sealed class WorldTapePlayer : IWorldTapePlayer
         _has = false;
     }
 
+    /// <summary>The unwrapped angle (radians) this spinning part was last posed at; false when the player has not posed it (it is not covered, or not a spinner).</summary>
+    public bool TrySpinAngle(Node3D node, out float angle) => _spinNow.TryGetValue(node, out angle);
+
     public bool Covers(string actorKey) => actorKey != null && _covers.TryGetValue(actorKey, out var c) && c;
-    bool EventCovered(in TapeEvent e) => (e.Source == null || Covers(e.Source)) && (e.Kind == TapeFxKind.WoodBreak || e.Parent == null || Covers(e.Parent));
+    bool EventCovered(in TapeEvent e) => (e.Source == null || Covers(e.Source)) && (e.Kind == TapeFxKind.WoodBreak || e.Kind == TapeFxKind.Breakable || e.Parent == null || Covers(e.Parent));
 
     int SampleIndex(float clock) => Math.Clamp((int)MathF.Floor(clock * WorldTapeConst.TapeRate + 1e-3f), 0, Math.Max(0, _d.Samples.Count - 1));
 
@@ -192,7 +196,7 @@ public sealed class WorldTapePlayer : IWorldTapePlayer
     void Set(int tp, Node3D node, in TapePartState a, in TapePartState b, float u)
     {
         var q = u == 0 ? a.Rot.Normalized() : a.Rot.Normalized().Slerp(b.Rot.Normalized(), u);
-        if (a.Spin && _spin[tp] is ITapeSpinner s) q = (q * new Quaternion(s.Axis, a.Angle + (b.Angle - a.Angle) * u)).Normalized();
+        if (a.Spin && _spin[tp] is ITapeSpinner s) { float turn = a.Angle + (b.Angle - a.Angle) * u; q = (q * new Quaternion(s.Axis, turn)).Normalized(); _spinNow[node] = turn; }
         var pos = u == 0 ? a.Pos : a.Pos.Lerp(b.Pos, u);
         var basis = new Basis(q);
         var sc = _scale[tp];

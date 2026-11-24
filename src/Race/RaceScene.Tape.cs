@@ -34,6 +34,7 @@ public partial class RaceScene
     readonly List<(int Sample, long Bytes)> _tapeAllocWorst = new();
     bool _tapeOn;                               // a lap is being recorded
     readonly TapeSlot[] _tapes = new TapeSlot[RecordStore.Sets];
+    int _tapeSessionLapBase;                    // --title-rec: the takes the folder already holds (the next one is lap-NNN after them)
     string _tapeSessionLapsDir;                 // opt-in trailer session: immutable pair for every completed lap
     TapePairSaves _tapeSessionSavesBox;
     TapePairSaves TapeSessionSaves => _tapeSessionSavesBox ??= new TapePairSaves(
@@ -147,7 +148,7 @@ public partial class RaceScene
         foreach (var a in _actors)
         {
             if (a.Node == null || !IsInstanceValid(a.Node)) continue;
-            var key = $"{a.Who}:{a.Node.Name}";
+            var key = a.Key ?? $"{a.Who}:{a.Node.Name}";
             if (!seen.Add(key)) continue;          // (a second actor under one key is never skipped: the tape cannot tell them apart)
             _tapeKeys[a] = key;
             // An actor whose root carries no "root" mark is never covered (it has no placement to record), so it is not indexed either: the
@@ -177,6 +178,25 @@ public partial class RaceScene
         }
         TapeAdoptInstances();      // (after the report: the instances made while the world was built are not static parts)
         TapeFxInit();
+        TapeCoverHook("index");
+        TapeBeginLiveAnimation();
+    }
+
+    /// <summary>
+    /// The people who animate in their own _Process (the kolkhoz workers, the dacha's patrolling guards) are held at the rest they were built in until the index has taken that rest, so
+    /// the tape's structure of them is the same in every session (a normal start, the viewer's sliced build, a reload): from here on they live.
+    /// </summary>
+    void TapeBeginLiveAnimation()
+    {
+        (FindChild("KolkhozWorkers", true, false) as KolkhozWorkers)?.Begin();
+        (FindChild("VillageLife", true, false) as VillageLife)?.Begin();
+        foreach (var b in _beaconsAll) b.Begin();
+        foreach (var l in _lightsAll) l.Begin();
+        foreach (var r in _radarsAll) r.Begin();
+        _millWheel?.Begin(); _millSpray?.Begin();
+        _rowing?.Begin(); _pondDuck?.Begin();      // (the boat, the mallard and the guards start in one call: the guard by the pond follows the boat's clock)
+        if (FindChild("DachaGuards", true, false) is KnockGroup guards)
+            foreach (var c in guards.GetChildren()) if (c is DachaPatrol patrol) patrol.Begin();
     }
 
     // ------------------------------------------------------------ recording
@@ -221,6 +241,7 @@ public partial class RaceScene
         if (_tapeOn && _tapeDebug) { if (_tapePosAt >= 0 || _tapePosEvery > 0) TapePosAt(); TapeTrack(true, _lapClock); }
         if (_tapeTestNode != null) _tapeTestNode.Rotation = new Vector3(0, 0.2f * MathF.Sin(0.7f * _lapClock), 0);      // test: a moving part with a scale
         TapeBlastTick();
+        TapeCoverHook("lap");
     }
 
     /// <summary>The lap has ended (before the recording is thrown away).</summary>
@@ -279,7 +300,7 @@ public partial class RaceScene
     {
         if (string.IsNullOrEmpty(_tapeSessionLapsDir)) return;
         if (!_tapeOn) { GD.PushWarning("Tape session lap has no world recording; nothing saved"); return; }
-        string folder = Path.Combine(_tapeSessionLapsDir, $"lap-{_tapeLaps + 1:D3}");
+        string folder = Path.Combine(_tapeSessionLapsDir, $"lap-{_tapeSessionLapBase + _tapeLaps + 1:D3}");
         if (Directory.Exists(folder)) { GD.PushWarning($"Tape session lap already exists: {folder}"); return; }
         Directory.CreateDirectory(folder);
         File.WriteAllText(Path.Combine(folder, $"track_{_track.Id}.sig"), _records.Signature + "\n");
@@ -293,7 +314,7 @@ public partial class RaceScene
             Path.Combine(folder, $"tape_{_track.Id}.bin"), ghost.ToBytes(), WorldTapeRealOps.Instance,
             tag: folder);
         TapeSessionSaves.Submit(job);
-        GD.Print($"tape session: completed lap {_tapeLaps + 1} in {time:F2} s, saving {folder}");
+        GD.Print($"tape session: completed lap {_tapeSessionLapBase + _tapeLaps + 1} in {time:F2} s, saving {folder}");
     }
 
     TapePairSaves _tapeSavesBox;
@@ -431,10 +452,14 @@ public partial class RaceScene
                 _tapeEmit.AddSoot(buk.TapeGenerator, TapeEmitters.Kind.Soot, Buk21Battery.GeneratorPipe, Buk21Battery.GeneratorSootPower, fixedThrottle: Buk21Battery.GeneratorThrottle);
                 _tapeEmit.AddSoot(buk.TapeLoader, TapeEmitters.Kind.Soot, Buk21Battery.LoaderPipe, Buk21Battery.LoaderSootPower, Buk21Battery.LoaderSpeedRef, minSpeed: Buk21Battery.LoaderMinSpeed);
             }
-            else if (a.Node == _dosimetrist) _tapeEmit.Add(_dosimetrist.WashFlag, TapeEmitters.Kind.Wash);      // (the hose over the car in the wash bay, from the flag)
+            else if (a.Node == _dosimetrist) _tapeEmit.Add(_dosimetrist.WashFlag, TapeEmitters.Kind.Wash);
             else if (a.Node == _rescue) _tapeEmit.AddSoot(_rescue.Model, TapeEmitters.Kind.Soot, DrunkTractor.SootPipe, 1.4f, 4f);
         }
         TapeLog($"replay of set {TitleSet} from tape: covers [{string.Join(", ", covered)}], live [{string.Join(", ", live)}]");
+        // Why an actor the tape does hold is not played from it (an older tape, a rebuilt actor): said visibly, once, with the first difference found; what the tape does not know at all is just live.
+        foreach (var key in live)
+            if (slot.Tape.ActorStructure.TryGetValue(key, out var recorded))
+                GD.Print($"World tape: {key} runs live in this replay: {TapeWhyNot(key, recorded)}. Source: {TapeSourceText()}.");
         if (!_tapePlayer.Covers("Kozlik:Kozlik") && slot.Tape.ActorStructure.TryGetValue("Kozlik:Kozlik",out var oldKozlik))
         {
             int now = _tapeIndex.StructureOf("Kozlik:Kozlik").Version;
@@ -445,7 +470,7 @@ public partial class RaceScene
             GD.Print($"Kozlik tape: {why}; patrol runs live at its current size. Source: {TapeSourceText()}.");
         }
         if (_zoneAll != null && !_tapePlayer.Covers("Zone:ZoneLife") && slot.Tape.ActorStructure.TryGetValue("Zone:ZoneLife", out var oldZone))
-            GD.Print($"Zone tape: recorded ZoneLife version {oldZone.Version} is incompatible with current version {_tapeIndex.StructureOf("Zone:ZoneLife").Version} (the horses have legs now); the horses, the train, the lunokhod and the catfish run live. Source: {TapeSourceText()}.");
+            GD.Print($"Zone tape: recorded ZoneLife version {oldZone.Version} is incompatible with current version {_tapeIndex.StructureOf("Zone:ZoneLife").Version}; the horses, the train, the survey rover and the catfish run live. Source: {TapeSourceText()}.");
         if (!_tapePlayer.Covers("None:PlayerPower"))
             GD.Print("Octane tape: player boost/power state is absent or incompatible; no missing booster is invented.");
         if (_fuelOnTrack && !_tapePlayer.Covers("Depot:FuelDepot"))
@@ -453,6 +478,26 @@ public partial class RaceScene
         if (!_tapePlayer.Covers("None:RescueTowRope"))
             GD.Print("Tow rope tape: endpoints are absent or incompatible; no rope is invented for this recording. Compatible tractor motion still replays.");
         return _tapePlayer;
+    }
+
+    /// <summary>The first difference between an actor as the tape recorded it and as it is built now.</summary>
+    string TapeWhyNot(string key, TapeActorStructure was)
+    {
+        if (!_tapeIndex.ActorKeys.Contains(key)) return "this world has no such actor in its tape index now";
+        var now = _tapeIndex.StructureOf(key);
+        if (was.Version != now.Version) return $"the tape recorded structure version {was.Version}, the actor is version {now.Version} now";
+        var onlyTape = was.ParentPaths.Keys.Except(now.ParentPaths.Keys).OrderBy(x => x, StringComparer.Ordinal).ToList();
+        var onlyNow = now.ParentPaths.Keys.Except(was.ParentPaths.Keys).OrderBy(x => x, StringComparer.Ordinal).ToList();
+        if (onlyTape.Count + onlyNow.Count > 0)
+            return $"its parts differ: {was.ParentPaths.Count} recorded, {now.ParentPaths.Count} now; only in the tape [{string.Join(", ", onlyTape.Take(4))}{(onlyTape.Count > 4 ? ", ..." : "")}], only now [{string.Join(", ", onlyNow.Take(4))}{(onlyNow.Count > 4 ? ", ..." : "")}]";
+        foreach (var part in was.ParentPaths.Keys.OrderBy(x => x, StringComparer.Ordinal))
+        {
+            if (was.ParentPaths[part] != now.ParentPaths[part]) return $"part '{part}' hangs elsewhere in the tree now ({was.ParentPaths[part]} recorded, {now.ParentPaths[part]} now)";
+            if (was.RestPoses.TryGetValue(part, out var a) && now.RestPoses.TryGetValue(part, out var b)
+                && (a.Origin.DistanceTo(b.Origin) > 0.002f || (a.Basis.X - b.Basis.X).Length() > 0.002f || (a.Basis.Y - b.Basis.Y).Length() > 0.002f || (a.Basis.Z - b.Basis.Z).Length() > 0.002f))
+                return $"part '{part}' has another rest pose or size now (recorded {a.Origin} scale {a.Basis.Scale}, now {b.Origin} scale {b.Basis.Scale})";
+        }
+        return "its rest poses relative to the actor's root differ";
     }
 
     string TapeFxState() => $"nodes {_tapeFx.Nodes} particles {_tapeFx.Particles} projectiles {_tapeFx.Projectiles} pieces {_tapeFx.PiecesAlive} broken {_scenery.BrokenCount} lying {_scenery.LyingCount}";
@@ -545,6 +590,13 @@ public partial class RaceScene
         else { p.Apply(_replayClock, dt); TapeRestoreDerivedParts(); _tapeFx.Update(_replayClock); }
         if (_tapePosed) _tapeEmit?.Tick(dt);
         if (_tapeDebug && _tapePosed) TapeTrack(false, _replayClock);
+        if (_tapePosed && _engineFx != null && TitleGhost != null && _tapePlayer.Covers("None:EngineEffects"))      // (the engine's smoke and fire at the recorded car's place)
+        {
+            float t = _replayClock;
+            var xf = TitleGhost.Sample(t);
+            _engineFx.ReplayTick(dt, xf, (TitleGhost.Sample(Math.Min(TitleGhost.Duration, t + .05f)).Origin - TitleGhost.Sample(Math.Max(0f, t - .05f)).Origin) * 10f);
+        }
+        if (_tapePosed) TapeCoverHook("replay");
         if (_tapeDebug && _tapePosed && (_scenery.BrokenCount != _tapeBrokenSeen || _scenery.LyingCount != _tapeLyingSeen)) { _tapeBrokenSeen = _scenery.BrokenCount; _tapeLyingSeen = _scenery.LyingCount; TapeLog($"replay broken {_tapeBrokenSeen} lying {_tapeLyingSeen} at {_replayClock:F2}"); }
         if (_tapeDebug)
             foreach (var (a, key) in _tapeKeys)
@@ -567,6 +619,9 @@ public partial class RaceScene
     {
         if (_tapePlayer?.Covers("Drunks:DrunkMen") == true) _drunksAll?.RestoreMechanicTapeTool();
         if (_tapePlayer?.Covers("None:RescueTowRope") == true) _rescue.RestoreTapeRope();
+        if (_tapePlayer != null && _tanksAll != null && _tapePlayer.Covers("Tanks:TankBattle")) _tanksAll.ReplayTreads(_tapePlayer);
+        if (_tapePlayer?.Covers("None:PartyOfficialRowing") == true) _rowing?.ReplayDerive(_replayClock);
+        if (_tapePlayer?.Covers("None:WaterMill") == true && _millWheel != null && _tapePlayer.TrySpinAngle(_millWheel, out float millTurn)) _millSpray?.ReplayTurn(millTurn);
     }
 
     /// <summary>Whether the replay skips this actor's live tick (the tape poses it).</summary>
@@ -609,6 +664,7 @@ public partial class RaceScene
         // The rest is the full world: actors the run has taken out (the driving school keeps only the babushkas, the mechanic, the liaison officer)
         // were shown again, with their collision circles back on the road (the bus parked across the school's bends). Take them out again.
         if (_worldNow != Actors.All) { var keep = _worldNow; _worldNow = Actors.All; ApplyWorld(keep); }
+        TapeCoverHook("release");
         if (_tapeDebug) TapeLog($"released: covered parts back at rest; replay instances {_tapeSink.Spawned} made, {_tapeSink.Despawned} removed, {_tapeSink.Live.Count} left, nodes {TapeKindCounts()}");
         if (_tapeDebug) TapeLog($"released fx: {TapeFxState()}");
     }

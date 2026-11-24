@@ -9,7 +9,7 @@ namespace CCCPRacing.Race;
 
 /// <summary>
 /// WATCH LAP (the owner's order, 2026-11-19). The lap that just ended in a single-player Socialist Rally or Stakhanov drive is remembered by its archive id (and the archive that holds it: a normal lap's or
-/// a record lap's), and three ways open exactly that lap in the replay viewer (the AUTO camera): the key F3 (while driving, at a result card, at the end of a rally), the result card's WATCH LAP, and
+/// a record lap's), and three ways open exactly that lap in the replay viewer (the AUTO camera): the key F2 (while driving, at a result card, at the end of a rally), the result card's WATCH LAP, and
 /// the Party Meeting's WATCH LAST LAP. Never an older lap: when the last lap's recording is still being prepared (or could not be saved) its state is shown and nothing else opens. The viewer suspends the
 /// live scene as it is (the car, the clock, the norm, the attempts) and gives it back, to the driving, the card or the Party Meeting's row it was opened from.
 /// </summary>
@@ -30,7 +30,7 @@ public partial class RaceScene
     float _watchHintClock = 99f;
     const float WatchHintSeconds = 9f;
 
-    /// <summary>The lap that just ended: the hint after it, and the target of F3 and WATCH LAST LAP.</summary>
+    /// <summary>The lap that just ended: the hint after it, and the target of F2 and WATCH LAST LAP.</summary>
     void NoteLastLap(string id, int number, float seconds, LapKind kind)
     {
         _lastLapId = id; _lastLapNumber = number; _lastLapSeconds = seconds; _lastLapKind = kind;
@@ -41,8 +41,8 @@ public partial class RaceScene
     /// <summary>A lap exists that can be asked for: the single-player drives with an archive (the same eligibility as the Party Meeting's laps), not the school, LAN or a viewer.</summary>
     bool WatchAvailable => _lastLapId != null && ReplayRowShown && _replayViewer == null && _watchTask == null && _sessionLapArchives.ContainsKey(_lastLapId);
 
-    /// <summary>The hint line after a lap: F3 for the keyboard, the Party Meeting's route for a pad (null: none now).</summary>
-    string WatchHintText => _lastLapId == null ? null : _padMode ? "START > WATCH LAST LAP" : $"F3 > WATCH LAP {_lastLapNumber}";
+    /// <summary>The hint line after a lap: F2 for the keyboard, the Party Meeting's route for a pad (null: none now).</summary>
+    string WatchHintText => _lastLapId == null ? null : _padMode ? "START > WATCH LAST LAP" : $"F2 > WATCH LAP {_lastLapNumber}";
 
     /// <summary>"PREPARING", "NOT SAVED", "OLD VERSION" for a lap that cannot be opened (yet); empty when it can.</summary>
     static string WatchStateText(LapEntryInfo i) => i.Openable ? "" : i.State switch
@@ -104,9 +104,9 @@ public partial class RaceScene
         bool offer = _lastLapId != null && ReplayRowShown && _sessionLapArchives.ContainsKey(_lastLapId);
         _hud.WatchHint = offer && _state == State.Racing && _watchHintClock < WatchHintSeconds && !PlanHasCar && !FateHasCar ? WatchHintText : null;
         _hud.WatchHintAlpha = Math.Clamp((WatchHintSeconds - _watchHintClock) / 2f, 0f, 1f);
-        string end = offer ? (_padMode ? "START > WATCH LAST LAP AS REPLAY" : "F3 > WATCH LAST LAP AS REPLAY") : null;      // (the end screens: the plan fulfilled, the gulag; the pad has START as on the stop card)
+        string end = offer ? (_padMode ? "START > WATCH LAST LAP AS REPLAY" : "F2 > WATCH LAST LAP AS REPLAY") : null;      // (the end screens: the plan fulfilled, the gulag; the pad has START as on the stop card)
         // The stop card offers the lap only when the card is about that lap (LAP NOT COUNTED): a radar trap, fuel or engine card comes in the middle of another lap, and "the last lap" would be an older one.
-        _hud.StopCardWatch = _stopCard is { Kind: "norm_missed" } && offer ? (_padMode ? "START > WATCH LAST LAP AS REPLAY" : "F3 > WATCH LAST LAP AS REPLAY") : null;
+        _hud.StopCardWatch = _stopCard is { Kind: "norm_missed" } && offer ? (_padMode ? "START > WATCH LAST LAP AS REPLAY" : "F2 > WATCH LAST LAP AS REPLAY") : null;
         _hud.EndWatchHint = _planScreen || _gulag ? end : null;
         if (_watchTask is not { IsCompleted: true } t) return;
         _watchTask = null;
@@ -133,7 +133,18 @@ public partial class RaceScene
         };
     }
 
-    /// <summary>The key F3 (and the same from a card or the end of the rally): while driving and in the Party Meeting's main list; the cards and the result screens call WatchLastLap themselves.</summary>
+    /// <summary>F1, F3 and F4: the Party Meeting's row of that name (WATCH CURRENT LAP, BROWSE LAPS, NORMS AND MEDALS or LEADERBOARDS) does what choosing it does, when the list has the row. In the main list at once; while driving the game is paused first, exactly as Esc pauses it (closing the screen lands in the Party Meeting). Nowhere else.</summary>
+    void PauseShortcut(PauseRowId id)
+    {
+        var before = _state;
+        if (before == State.Racing) _state = State.Paused;      // (the rows are judged as the Party Meeting has them: WATCH CURRENT LAP is a paused row)
+        bool menu = _state == State.Paused && (before == State.Racing || _hud.Mode == HudMode.Paused) && !_hud.SettingsOpen && !_hud.VisualOpen && !_hud.MixerOpen && !_hud.ReplayListOpen && !_hud.PauseNormsOpen && !_hud.RallyExitOpen && !_hud.StakhanovBoardOpen && !_labOpen;
+        if (!menu || !PauseRowsNow.Contains(id)) { _state = before; return; }
+        if (before == State.Racing) { _hud.Mode = HudMode.Paused; _hud.PauseSelection = PauseRowIndex(id); }
+        PauseChooseId(id);
+    }
+
+    /// <summary>The key F2 (and the same from a card or the end of the rally): while driving and in the Party Meeting's main list; the cards and the result screens call WatchLastLap themselves.</summary>
     void WatchKey()
     {
         if (!WatchAvailable) return;

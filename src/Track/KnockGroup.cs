@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using CCCPRacing.Race;
+using CCCPRacing.Car;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -13,6 +15,9 @@ public partial class KnockGroup : Node3D
 {
     readonly List<(Node3D Node, Knockdown Down, Transform3D Pose, int Obstacle)> _figures = new();
     TrackData _t;
+    readonly List<(int Index, Obstacle Was)> _tapeObstacles = new();
+    /// <summary>The replay shows the figures' tape poses (place, turn, the knock-over's tilt, the legs): none of their own, and their obstacles are parked.</summary>
+    public bool TapeDriven { get; private set; }
 
     /// <summary>A figure (already a child, posed) and its obstacle in t.Obstacles.</summary>
     public void Add(Node3D figure, TrackData t, int obstacle)
@@ -20,6 +25,7 @@ public partial class KnockGroup : Node3D
         _t = t;
         var down = new Knockdown();
         if (obstacle >= 0) down.Bind(t, obstacle);
+        Tape.Part(figure, $"{_figures.Count}/figure");      // the world tape (the group's owner marks the group's root, and what walks marks the legs)
         _figures.Add((figure, down, figure.Transform, obstacle));
     }
 
@@ -54,8 +60,27 @@ public partial class KnockGroup : Node3D
         }
     }
 
+    /// <summary>The replay's tape poses the figures (true), or lets go: they stand at their rest places again and their obstacles come back.</summary>
+    public void SetTapeDriven(bool on)
+    {
+        if (TapeDriven == on) return;
+        if (!on)
+        {
+            foreach (var (index, was) in _tapeObstacles) _t.Obstacles[index] = was;
+            _tapeObstacles.Clear();
+            TapeDriven = false;
+            ResetKnocks();
+            return;
+        }
+        ResetKnocks();
+        foreach (var f in _figures)
+            if (f.Obstacle >= 0) { _tapeObstacles.Add((f.Obstacle, _t.Obstacles[f.Obstacle])); _t.Obstacles[f.Obstacle] = new Obstacle(new Vector2(-1e4f, -1e4f), .1f); }
+        TapeDriven = true;
+    }
+
     public override void _Process(double delta)
     {
+        if (TapeDriven) return;
         foreach (var f in _figures)
         {
             if (!f.Down.Down) continue;

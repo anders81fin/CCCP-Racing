@@ -123,8 +123,8 @@ public partial class RaceScene
     bool CardInput(InputEvent e)
     {
         if (_stopCard == null) return false;
-        if (e is InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.F3 }) { if (_cardAge >= CardMinShow) WatchLastLap(WatchFrom.Card); return true; }      // WATCH LAP on the card (CONTINUE stays the default: any other key)
-        if (e is InputEventJoypadButton { Pressed: true, ButtonIndex: JoyButton.Start } && _hud.StopCardWatch != null) { if (_cardAge >= CardMinShow) WatchLastLap(WatchFrom.Card); return true; }      // the pad's START, as F3, when the card offers the lap (any other button continues)
+        if (e is InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.F2 }) { if (_cardAge >= CardMinShow) WatchLastLap(WatchFrom.Card); return true; }      // WATCH LAP on the card (CONTINUE stays the default: any other key)
+        if (e is InputEventJoypadButton { Pressed: true, ButtonIndex: JoyButton.Start } && _hud.StopCardWatch != null) { if (_cardAge >= CardMinShow) WatchLastLap(WatchFrom.Card); return true; }      // the pad's START, as F2, when the card offers the lap (any other button continues)
         bool press = e is InputEventKey { Pressed: true, Echo: false } or InputEventMouseButton { Pressed: true }
             or InputEventJoypadButton { Pressed: true };
         if (!press || _cardAge < CardMinShow) return true;
@@ -227,6 +227,16 @@ public partial class RaceScene
             "IT STAYS ON YOUR TYRES FOR A WHILE.",
             "A PUDDLE OF WATER WASHES THEM FASTER.",
             "IT STOPS AFTER THREE LAPS.");
+
+    void CardConcreteRevenge() =>
+        QueueCard("revenge_concrete", "THAT WAS THE MIXER DRIVER'S GRANDMA!", Hud.Red,
+            "THE MIXER DRIVER WANTS REVENGE!", "FRESH CONCRETE AHEAD. PASS ON THE CLEAR SIDE!",
+            "THE LAST MIXER WILL LOWER ITS CHUTE.",
+            "IT LEAVES A RIBBON OF FRESH CONCRETE IN ITS LANE.",
+            "IT POURS FOR TWO LAPS.",
+            "THE CONCRETE CLEARS AFTER THE THIRD LAP.",
+            "DRIVING OVER IT WILL SLOW YOU DOWN.",
+            "WATCH THE ONCOMING TRAFFIC WHEN YOU PASS.");
 
     /// <summary>A revenge has begun: what is coming and what to do about it.</summary>
     void CardRevenge(bool jet)

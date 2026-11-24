@@ -48,6 +48,10 @@ public enum TapeSoundChannel : byte
     PlayerBoostLeft, PlayerPower, PlayerOverdrive, PlayerGolden,
     /// <summary>The slurry tractor's spray: 0 off, 1 spreading, 2 spreading in the grandmother's revenge (the replay shows the fan and keeps the revenge's mark).</summary>
     SlurrySpray,
+    /// <summary>The Y scale of a limb's stretch node (a worker's arm reaching for his tool, the angler's rod and line): the tape carries no scale, so the stretch lives on an unrecorded child and travels as this channel.</summary>
+    LimbReach,
+    /// <summary>What the player's engine does to the air above the bonnet (0 nothing, .02 to .5 the smoke of a sick engine, .6 to .9 the steam of a seized one, 1 a burning wreck).</summary>
+    EngineFx,
 }
 
 /// <summary>A recorded sound value: the part (or the actor root) that owns the sound node, and which property.</summary>
@@ -76,6 +80,7 @@ public static class TapeSoundRange
         TapeSoundChannel.FuelLevel => (0f, 1f),
         TapeSoundChannel.FuelEnvelope => (0f, 1f),
         TapeSoundChannel.SlurrySpray => (0f, 2f),
+        TapeSoundChannel.LimbReach => (0f, 4f),             // 1/64 per step: an arm is 0.7 to 1.4, the angler's rod about 3.5
         _ => (0f, 1f),
     };
     public static byte ToByte(TapeSoundChannel c, float v) { var (lo, hi) = Of(c); return (byte)Math.Clamp((int)MathF.Round((v - lo) / (hi - lo) * 255f), 0, 255); }

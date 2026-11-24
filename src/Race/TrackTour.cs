@@ -90,7 +90,7 @@ sealed class TrackTour
             new("atom_tour_town", 790, "ATOMGRAD-4: TIGHT CITY CORNERS.",
                 new[] { new TourCaption(575, 635, "BRAKE FOR THE BRIDGE INTO TOWN."), new TourCaption(635, Open, "THE SQUARE AND THE FERRIS WHEEL.") },
                 new[] { new TourLandmark(650, 790, new TourSpot(716), new TourSpot(716), "ferris_wheel", true) }),
-            new("atom_tour_wash", -1, "THE BIRCH AVENUE LEADS TO THE CHECKPOINT.",
+            new("atom_tour_wash", -1, "THE CHECKPOINT ROAD PASSES THE WASH.",
                 new[] { new TourCaption(790, 850, "THE WASH STATION: CROSS SLOWLY."), new TourCaption(850, Open, "BACK TO THE CHECKPOINT. OUT OF THE ZONE.") },
                 new[] { new TourLandmark(790, 850, new TourSpot(At: new Vector2(68, 231)), new TourSpot(At: new Vector2(68, 231)), "wash_station", true) }),
         }

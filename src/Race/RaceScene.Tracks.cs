@@ -171,14 +171,15 @@ public partial class RaceScene
     {
         if (InstructionTrack != null) _trackId = InstructionTrack;
         if(InstructionTrack==null && _lanWorldRebuild && CCCPRacing.Net.LanSession.Current?.SelectedTrack is {} chosen) _trackId=chosen;
-        bool training = false;
+        bool training = false, titleRec = false;
         foreach (string a in InstructionTrack == null ? OS.GetCmdlineUserArgs() : Array.Empty<string>())
         {
             if (a.StartsWith("--track=") && _resume == null && _loadingRunMode == null && _previewResume < 0 && !_lanWorldRebuild) _trackId = TrackIds.FromCommandLine(a["--track=".Length..]);   // test: build this track
             // The school and LAN flags skip the menu that would take them to the bonus track: build it at once.
+            titleRec |= a.StartsWith("--title-rec=");
             training |= a.StartsWith("--school=") || a == "--lan-host" || a.StartsWith("--lan-join=");
         }
-        _trackId ??= training ? TrainingTrack : Tracks[0].id;
+        _trackId ??= titleRec ? "ilyich" : training ? TrainingTrack : Tracks[0].id;      // (--title-rec= without --track=: the kolkhoz, as before)
         // The world's registries are static: a rebuilt world starts them empty.
         RadarHead.All.Clear();
         NightGlow.Glows.Clear();
@@ -309,7 +310,7 @@ public partial class RaceScene
     string TrackCardSub()
     {
         int i = Math.Clamp(_cardSel, 0, Tracks.Length - 1);
-        if (Locked(i)) return (Tracks[i].requires == Bonus ? "BONUS TRACK. " : "") + $"LOCKED: {Opens(i)} OPENS IT";
+        if (Locked(i)) return $"LOCKED: {Opens(i)} OPENS IT";      // (the bonus track's too: no heading before the lock)
         if (_trackFor == MenuItem.Lan) return _lanTrackHosting == true
             ? "HOST A RACE ON A TRACK YOU HAVE OPENED"
             : "CHOOSE THE HOST'S TRACK - ALL TRACKS OPEN TO JOIN";

@@ -34,7 +34,7 @@ public partial class PhysicsTest
         var roots=new Node3D[]{ploughs,jets};
         var obstacles=new List<Obstacle>();
 
-        bool Excluded(Node n) {for(var p=n;p!=null;p=p.GetParent()) if(p is RotatingBeacon or GroundImpactEffects) return true;return false;}
+        bool Excluded(Node n) {for(var p=n;p!=null;p=p.GetParent()) if(p is RotatingBeacon or GroundImpactEffects || p.Name == "WetConcreteStream") return true;return false;}
         var hostLeaves=roots.SelectMany(r=>r.FindChildren("*","MeshInstance3D",true,false)).Cast<MeshInstance3D>().Where(m=>m.Mesh!=null && !Excluded(m)).ToList();
         var hostBeacons=ploughs.FindChildren("*","",true,false).OfType<RotatingBeacon>().ToList();
         int hostLights=roots.SelectMany(r=>r.FindChildren("*","",true,false)).Count(n=>n is SpotLight3D or OmniLight3D && !Excluded(n));

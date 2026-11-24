@@ -146,8 +146,11 @@ public static partial class Atomgrad
             n.AddChild(NightGlow.Part(Props.Box(0.9f, 0.14f, 0.4f), Steel, new Color(1f, 0.95f, 0.8f), 1.8f, new Vector3(0, H - 0.5f, z)));
         var sign = RadSign(null, new Vector3(-W / 2f - 2.4f, 0, -L / 2f - 1.5f));
         n.AddChild(sign);
+        n.AddChild(new ServiceMarker(WashIconPath) { Name = "WashMarker", Position = new Vector3(0, 9.4f, 0) });      // the radiation trefoil with a water drop over the station, as the mechanic's spanner is over his bay
         return n;
     }
+
+    public const string WashIconPath = "res://assets/ui/wash-emblem.svg";
 
     // ------------------------------------------------------------ the vehicle graveyard
 

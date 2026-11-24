@@ -64,6 +64,8 @@ public partial class HindSorties : Node3D
     Buk21Battery _battery;
     internal Buk21Battery Battery => _battery;
     BonusExerciseLife _life;
+    /// <summary>The Poligon's ground crew (an actor of its own for the world tape; it lives inside this one's tree).</summary>
+    public BonusExerciseLife ExerciseCrew => _life;
     public event Action<Vector3> AttackApproaching;
     public event Action SoupUnshaken;
     int _retaliationPasses;

@@ -1,4 +1,5 @@
 using System;
+using CCCPRacing.Race;
 using CCCPRacing.Track;
 using Godot;
 
@@ -51,12 +52,15 @@ public partial class EngineEffects : Node3D
             Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
             ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
         };
+        MarkTape();
     }
 
     /// <summary>A new run: clean car, no oil on the road.</summary>
     public void Reset()
     {
         _sinceDeath = _sinceBoom = -1;
+        TapeLevel = 0f;
+        Cleared?.Invoke();
         _slick.Visible = false;
         _slickSize = _slickTarget = 0;
         if (_blackened != null) SetOverlay(_blackened, null);
@@ -68,39 +72,77 @@ public partial class EngineEffects : Node3D
     {
         _sinceDeath = 0;
         Vector3 sump = car.Pos + car.Rot * Sump;
-        for (int i = 0; i < 26; i++)
-            _fx.Burst(sump, car.Vel * 0.5f + new Vector3(_rng.RandfRange(-3, 3), _rng.RandfRange(1, 4), _rng.RandfRange(-3, 3)),
-                OilCol, 1f, _rng.RandfRange(0.25f, 0.45f), 0.3f, _rng.RandfRange(0.8f, 1.4f), 14f, 0.3f, true);
-        Steam(car, 10);
+        SeizeFx(_fx, _rng, car.Pos, car.Rot, car.Vel);
         PlaceSlick(sump, 0.8f, 4.2f);
+        TapeFx?.Fx(new TapeEvent(0f, TapeEventType.Effect, Kind: TapeFxKind.EngineSeize, Effect: TapeEffect.Smoke, Pos: car.Pos, Velocity: car.Vel, Life: float.MaxValue));
     }
+
+    /// <summary>The world tape's host (null: not recording): the seizure and the explosion are effect events, the smoke and the fire after them are the <see cref="TapeLevel"/> channel.</summary>
+    public ITapeFxHost TapeFx;
+    /// <summary>What the engine is doing to the air now, for the tape (0 nothing, .02 to .5 the smoke of a sick engine, .6 to .9 the steam of a seized one, 1 a burning wreck).</summary>
+    public float TapeLevel { get; private set; }
+    /// <summary>The run was reset: the effects the tape remembers as going are over.</summary>
+    public event Action Cleared;
+
+    /// <summary>The gush of oil and the steam of a seizure at <paramref name="pos"/> (the live function: the live engine and the world tape's replay both make theirs with it, each with its own generator).</summary>
+    public static void SeizeFx(TyreEffects fx, RandomNumberGenerator rng, Vector3 pos, Basis rot, Vector3 vel)
+    {
+        Vector3 sump = pos + rot * Sump;
+        for (int i = 0; i < 26; i++)
+            fx.Burst(sump, vel * 0.5f + new Vector3(rng.RandfRange(-3, 3), rng.RandfRange(1, 4), rng.RandfRange(-3, 3)),
+                OilCol, 1f, rng.RandfRange(0.25f, 0.45f), 0.3f, rng.RandfRange(0.8f, 1.4f), 14f, 0.3f, true);
+        SteamFx(fx, rng, pos, rot, 10);
+    }
+
+    static void SteamFx(TyreEffects fx, RandomNumberGenerator rng, Vector3 pos, Basis rot, int n)
+    {
+        Vector3 bonnet = pos + rot * Bonnet;
+        for (int i = 0; i < n; i++)
+        {
+            bool white = rng.Randf() < 0.6f;
+            fx.Smoke(bonnet + RandIn(rng, 0.5f, 0.1f, 0.5f), new Vector3(rng.RandfRange(-1f, 1f), rng.RandfRange(2f, 3.5f), rng.RandfRange(-1f, 1f)),
+                white ? new Color(0.92f, 0.92f, 0.9f) : new Color(0.25f, 0.24f, 0.22f), 0.7f, 0.7f, 3f, rng.RandfRange(1.2f, 2.2f));
+        }
+    }
+
+    static Vector3 RandIn(RandomNumberGenerator rng, float x, float y, float z) => new(rng.RandfRange(-x, x), rng.RandfRange(-y, y), rng.RandfRange(-z, z));
 
     /// <summary>Direct hit: fireball, debris, the body burnt black.</summary>
     public void Explode(CarSim car, CarVisual vis, Vector3 at)
     {
         _sinceBoom = 0;
         _sinceDeath = 0;
-        Vector3 c = car.Pos + Vector3.Up * 0.4f;
-        for (int i = 0; i < 70; i++)
-            _fx.Burst(c + Rand(0.8f, 0.4f, 1.4f), new Vector3(_rng.RandfRange(-9, 9), _rng.RandfRange(2, 11), _rng.RandfRange(-9, 9)),
-                FireCols[i % 3], 1f, _rng.RandfRange(1.4f, 2.4f), 0.4f, _rng.RandfRange(0.4f, 0.8f), -1f, 2.2f, false);
-        for (int i = 0; i < 30; i++)
-            _fx.Burst(c, new Vector3(_rng.RandfRange(-10, 10), _rng.RandfRange(5, 14), _rng.RandfRange(-10, 10)),
-                i % 2 == 0 ? new Color(0.12f, 0.12f, 0.12f) : new Color(0.55f, 0.1f, 0.08f), 1f, _rng.RandfRange(0.2f, 0.4f), 0.3f,
-                _rng.RandfRange(1f, 1.8f), 16f, 0.2f, true);
-        for (int i = 0; i < 16; i++)
-            _fx.Smoke(c + Rand(1.5f, 1f, 1.5f), new Vector3(_rng.RandfRange(-1.5f, 1.5f), _rng.RandfRange(2f, 5f), _rng.RandfRange(-1.5f, 1.5f)),
-                new Color(0.08f, 0.07f, 0.07f), 0.85f, 1.5f, 5.5f, _rng.RandfRange(2.5f, 4f));
+        ExplodeFx(_fx, _rng, car.Pos);
         // The fuel goes too: a burning pool round the car.
         PlaceSlick(car.Pos, 3f, 6f);
         SetOverlay(vis, _burnt);
         _blackened = vis;
         _ = at;
+        TapeFx?.Fx(new TapeEvent(0f, TapeEventType.Effect, Kind: TapeFxKind.EngineExplode, Effect: TapeEffect.Smoke, Pos: car.Pos, Velocity: car.Vel, Life: float.MaxValue));
+    }
+
+
+    /// <summary>The fireball, the debris and the black smoke of a direct hit (the live function; see <see cref="SeizeFx"/>).</summary>
+    public static void ExplodeFx(TyreEffects fx, RandomNumberGenerator rng, Vector3 pos)
+    {
+        Vector3 c = pos + Vector3.Up * 0.4f;
+        for (int i = 0; i < 70; i++)
+            fx.Burst(c + RandIn(rng, 0.8f, 0.4f, 1.4f), new Vector3(rng.RandfRange(-9, 9), rng.RandfRange(2, 11), rng.RandfRange(-9, 9)),
+                FireCols[i % 3], 1f, rng.RandfRange(1.4f, 2.4f), 0.4f, rng.RandfRange(0.4f, 0.8f), -1f, 2.2f, false);
+        for (int i = 0; i < 30; i++)
+            fx.Burst(c, new Vector3(rng.RandfRange(-10, 10), rng.RandfRange(5, 14), rng.RandfRange(-10, 10)),
+                i % 2 == 0 ? new Color(0.12f, 0.12f, 0.12f) : new Color(0.55f, 0.1f, 0.08f), 1f, rng.RandfRange(0.2f, 0.4f), 0.3f,
+                rng.RandfRange(1f, 1.8f), 16f, 0.2f, true);
+        for (int i = 0; i < 16; i++)
+            fx.Smoke(c + RandIn(rng, 1.5f, 1f, 1.5f), new Vector3(rng.RandfRange(-1.5f, 1.5f), rng.RandfRange(2f, 5f), rng.RandfRange(-1.5f, 1.5f)),
+                new Color(0.08f, 0.07f, 0.07f), 0.85f, 1.5f, 5.5f, rng.RandfRange(2.5f, 4f));
     }
 
     /// <summary>Per physics tick: sick-engine smoke, post-mortem steam, and the fire of a wreck.</summary>
     public void Tick(float dt, CarSim car, EngineHealth h)
     {
+        TapeLevel = _sinceBoom >= 0 ? 1f : _sinceDeath >= 0 && _sinceDeath < 8f ? 0.6f + 0.3f * (1f - _sinceDeath / 8f)
+            : h.Smoking ? 0.02f + 0.48f * Math.Clamp((EngineHealth.SmokeAt - h.Health) / EngineHealth.SmokeAt, 0f, 1f) : 0f;      // (what the world tape records of the air above the bonnet)
         // Slick spreads over a few seconds; on a slope it is just a puddle, fine.
         if (_slick.Visible && _slickSize < _slickTarget)
         {

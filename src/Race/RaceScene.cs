@@ -827,6 +827,7 @@ public partial class RaceScene : Node3D
             _sessionGhost = _rec.CopyWithTime(time);       // the session's best lap: the next laps race it
         }
         LapArchiveCapture(time, record && !fake ? LapKind.Record : LapKind.Normal, _timer.LastLapRanked, fake);
+        if (!fake) ConcreteLapDone();
         _rec.Clear();
         TapeBegin();
         _rec.Record(0, _car, 0, 0, 0, _dayNight.Active ? _dayNight.Clock : -1, damage: _carVis.Damage);
@@ -864,6 +865,7 @@ public partial class RaceScene : Node3D
         _lapBoost = _boostLeft > 0;
         PlanLap(time, false);
         LapArchiveCapture(time, LapKind.Void, false, false);
+        if (!_fakeLap) ConcreteLapDone();
         _rec.Clear();     // a rescued lap never becomes the ghost
         TapeBegin();
         _lapClock = 0;
@@ -933,6 +935,7 @@ public partial class RaceScene : Node3D
     {
         if (!PhysicsGates(delta, out float dt)) return;
         if (Replaying) { ReplayPhysicsTick(dt); return; }
+        if (DoseServiceActive && _state == State.Racing) { DoseServiceStep(dt); return; }
         SelectCarControls(dt);                      // who drives the car this tick (RaceScene.CarControl.cs)
         if (!PreStepSpecials(dt)) return;           // the LAN authority takes the tick over from here
         PreStepWorldTick(dt);
@@ -1849,6 +1852,9 @@ public partial class RaceScene : Node3D
         }
         GameplayCameraInput();
         if (Input.IsActionJustPressed("watch_lap")) WatchKey();      // RaceScene.WatchLap.cs
+        if (Input.IsActionJustPressed("watch_this_lap")) PauseShortcut(PauseRowId.WatchThisLap);
+        if (Input.IsActionJustPressed("browse_laps")) PauseShortcut(PauseRowId.BrowseLaps);
+        if (Input.IsActionJustPressed("norms_board")) PauseShortcut(PauseRowList(_norms.Enabled, 0, StakhanovBoardAvailable).Contains(PauseRowId.Leaderboards) ? PauseRowId.Leaderboards : PauseRowId.Norms);
         if (Input.IsActionJustPressed("debug")) _hud.ShowDebug = !_hud.ShowDebug;
         if (_state is State.Countdown or State.Racing or State.Paused && Input.IsActionJustPressed("minimap") && !InSchool) ToggleMinimap();
         if (_state is State.Countdown or State.Racing or State.Paused && Input.IsActionJustPressed("comments"))

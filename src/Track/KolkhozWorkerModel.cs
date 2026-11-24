@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using CCCPRacing.Race;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -20,6 +22,10 @@ public partial class KolkhozWorkerModel : Node3D
     readonly Node3D _work = new() { Name = "HeldWork" };
     Node3D _rod;
     Node3D _line;
+    // The limbs' stretch lives on an unrecorded child ("Reach": an arm reaching for its tool, the angler's rod and line), so that the part the world tape records
+    // (the arm, the rod, the line) never changes scale; the stretch itself travels as the LimbReach sound channel (MarkTape).
+    Node3D _leftReach, _rightReach, _rodReach, _lineReach;
+    float[] _restReach;
     readonly Node3D _head = new() { Name = "Head", Position = Neck };
     readonly Node3D[] _hip = { new() { Name = "HipL" }, new() { Name = "HipR" } };
     readonly Node3D[] _knee = { new() { Name = "KneeL", Position = new Vector3(0, -0.37f, 0) }, new() { Name = "KneeR", Position = new Vector3(0, -0.37f, 0) } };
@@ -140,8 +146,10 @@ public partial class KolkhozWorkerModel : Node3D
         AddBatch(_work, work);
         _body.AddChild(_leftArm);
         _body.AddChild(_rightArm);
-        BuildArm(_leftArm, false, job, coat, coatLight);
-        BuildArm(_rightArm, true, job, coat, coatLight);
+        _leftArm.AddChild(_leftReach = new Node3D { Name = "Reach" });
+        _rightArm.AddChild(_rightReach = new Node3D { Name = "Reach" });
+        BuildArm(_leftReach, false, job, coat, coatLight);
+        BuildArm(_rightReach, true, job, coat, coatLight);
         for (int i = 0; i < 2; i++)
         {
             float x = i == 0 ? -0.115f : 0.115f;
@@ -218,17 +226,19 @@ public partial class KolkhozWorkerModel : Node3D
     {
         _rod = new Node3D { Name = "FishingRod" };
         _line = new Node3D { Name = "FishingLine" };
+        _rod.AddChild(_rodReach = new Node3D { Name = "Reach" });
+        _line.AddChild(_lineReach = new Node3D { Name = "Reach" });
         var gear = new Batch();
         // Long cane pole, fine hanging line and a red-and-cream float on the water.
         var rod = new Batch();
         rod.Segment(Vector3.Zero, Vector3.Up, 0.035f, Wood.Lightened(0.25f));
-        AddBatch(_rod, rod);
+        AddBatch(_rodReach, rod);
         AddChild(_rod);
         Vector3 bobber = new(0.05f, waterHeight + 0.045f, -3.5f);
         _fishingBobber = bobber;
         var line = new Batch();
         line.Segment(Vector3.Zero, Vector3.Up, 0.009f, new Color(0.65f, 0.64f, 0.51f));
-        AddBatch(_line, line);
+        AddBatch(_lineReach, line);
         AddChild(_line);
         gear.Ellipsoid(bobber, new Vector3(0.055f, 0.085f, 0.055f), new Color(0.8f, 0.16f, 0.08f));
         gear.Box(bobber + Vector3.Up * 0.07f, new Vector3(0.045f, 0.10f, 0.045f), new Color(0.92f, 0.85f, 0.65f));
@@ -304,10 +314,10 @@ public partial class KolkhozWorkerModel : Node3D
         return new ArmPose(new Quaternion(Vector3.Down, reach.Normalized()), Math.Clamp(reach.Length() / 0.65f, 0.7f, 1.4f));
     }
 
-    static void Apply(Node3D arm, ArmPose p)
+    static void Apply(Node3D arm, Node3D reach, ArmPose p)
     {
         arm.Quaternion = p.Q;
-        arm.Scale = new Vector3(1, p.S, 1);
+        reach.Scale = new Vector3(1, p.S, 1);
     }
 
     static float Smooth(float x) { x = Math.Clamp(x, 0f, 1f); return x * x * (3f - 2f * x); }
@@ -520,8 +530,8 @@ public partial class KolkhozWorkerModel : Node3D
                 float le = L * (1f - b);
                 Vector3 grip = new(0.14f, 0.96f + 0.38f * le, -0.38f);
                 Vector3 tip = new(0.05f + sweep * 0.14f * (1f - b), 2.30f + 0.65f * le, -3.0f + le * 0.25f);
-                SetSegment(_rod, grip, tip);
-                SetSegment(_line, tip, _fishingBobber);
+                SetSegment(_rod, _rodReach, grip, tip);
+                SetSegment(_line, _lineReach, tip, _fishingBobber);
                 rw = AimOf(rsh, grip);
                 lw = AimOf(lsh, grip + new Vector3(-0.10f, le * 0.18f, 0.13f));
                 rFree = false;
@@ -540,8 +550,8 @@ public partial class KolkhozWorkerModel : Node3D
         }
         if (r > 0f)
             rw = ArmPose.Lerp(rw, Eul(2.2f + 0.35f * MathF.Sin(_clock * 15f), 0, 0.18f), r);
-        Apply(_leftArm, lw);
-        Apply(_rightArm, rw);
+        Apply(_leftArm, _leftReach, lw);
+        Apply(_rightArm, _rightReach, rw);
     }
 
     /// <summary>The walkers' loop: pick up at the pile, carry to the cart, put down, (rest), walk back empty-handed.</summary>
@@ -616,12 +626,47 @@ public partial class KolkhozWorkerModel : Node3D
 
     void Next(int state) { _ws = state; _wt = 0; }
 
-    static void SetSegment(Node3D segment, Vector3 from, Vector3 to)
+    static void SetSegment(Node3D segment, Node3D reach, Vector3 from, Vector3 to)
     {
         Vector3 length = to - from;
         segment.Position = from;
         segment.Quaternion = new Quaternion(Vector3.Up, length.Normalized());
-        segment.Scale = new(1, length.Length(), 1);
+        reach.Scale = new(1, length.Length(), 1);
+    }
+
+    /// <summary>
+    /// The world tape (docs/replay-tape.md): this worker's moving parts under his number n (the model's own place and tilt, the body, head, both arms, the held work, both legs
+    /// in three joints, the angler's rod and line), and the limbs' stretch as the LimbReach sound channel. Called once, at build, after the first Animate (the rest the tape's structure hashes).
+    /// </summary>
+    public void MarkTape(int n)
+    {
+        string p = n + "/";
+        Tape.Part(this, p + "model"); Tape.Part(_body, p + "body"); Tape.Part(_head, p + "head"); Tape.Part(_work, p + "work");
+        Tape.Part(_leftArm, p + "armL"); Tape.Part(_rightArm, p + "armR");
+        for (int i = 0; i < 2; i++)
+        {
+            string side = i == 0 ? "L" : "R";
+            Tape.Part(_hip[i], p + "hip" + side); Tape.Part(_knee[i], p + "knee" + side); Tape.Part(_foot[i], p + "foot" + side);
+        }
+        var reaches = new List<(Node3D Owner, Node3D Reach)> { (_leftArm, _leftReach), (_rightArm, _rightReach) };
+        if (_rod != null) { Tape.Part(_rod, p + "rod"); Tape.Part(_line, p + "line"); reaches.Add((_rod, _rodReach)); reaches.Add((_line, _lineReach)); }
+        _restReach = new float[reaches.Count];
+        for (int i = 0; i < reaches.Count; i++)
+        {
+            var (owner, reach) = reaches[i];
+            _restReach[i] = reach.Scale.Y;
+            Tape.Sound(owner, TapeSoundChannel.LimbReach, () => reach.Scale.Y, v => reach.Scale = new Vector3(1, v, 1));
+        }
+        _reaches = reaches;
+    }
+
+    List<(Node3D Owner, Node3D Reach)> _reaches;
+
+    /// <summary>The replay is over: the limbs go back to the stretch they were built with.</summary>
+    public void RestoreReach()
+    {
+        if (_reaches == null) return;
+        for (int i = 0; i < _reaches.Count; i++) _reaches[i].Reach.Scale = new Vector3(1, _restReach[i], 1);
     }
 
     static readonly StandardMaterial3D WorkerMaterial = new()

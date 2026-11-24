@@ -30,8 +30,10 @@ public partial class PhysicsTest
                 {
                     var rod = model.GetNode<Node3D>("FishingRod");
                     var line = model.GetNode<Node3D>("FishingLine");
-                    fishingJoined &= (rod.Transform * Vector3.Up).DistanceTo(line.Position) < 0.001f;
-                    fishingJoined &= (line.Transform * Vector3.Up).DistanceTo(new(0.05f, 0.045f, -3.5f)) < 0.001f;
+                    // (the stretch of the rod and the line is the scale of their unrecorded "Reach" child, for the world tape)
+                    var rodReach = rod.GetNode<Node3D>("Reach"); var lineReach = line.GetNode<Node3D>("Reach");
+                    fishingJoined &= (rod.Transform * (rodReach.Transform * Vector3.Up)).DistanceTo(line.Position) < 0.001f;
+                    fishingJoined &= (line.Transform * (lineReach.Transform * Vector3.Up)).DistanceTo(new(0.05f, 0.045f, -3.5f)) < 0.001f;
                 }
             }
             Check((high - low).Length() > 0.25f && model.Position == Vector3.Zero,

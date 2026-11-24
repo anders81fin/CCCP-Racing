@@ -1,4 +1,5 @@
 using System;
+using CCCPRacing.Race;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -7,8 +8,8 @@ namespace CCCPRacing.Track;
 /// A road-service rotating beacon: a dome on a short mast, lit by a turning reflector. Seen from the camera it flashes once
 /// each time the beam sweeps past (two lobes, so about 1.7 flashes a second), dim in between. A halo grows with the
 /// distance so the lamp stays a few pixels across at 480x270, and shows over a crest before the truck does.
-/// The sweep runs on the wall clock and is decoration only: it is not on the world tape, so a replay turns the beam
-/// with its own phase. The truck's registered beacon part stays where it was, empty, so old tapes still fit.
+/// The sweep runs on the wall clock and is decoration only; the world tape still shows it (docs/replay-tape.md section 22): each beacon is a small actor of its own (a nested root inside the
+/// truck's tree, so the truck's structure and old tapes are unchanged) whose reflector's real, unwrapped turn is recorded. The truck's registered beacon part stays where it was, empty, so old tapes still fit.
 /// </summary>
 public partial class RotatingBeacon : Node3D
 {
@@ -44,8 +45,19 @@ public partial class RotatingBeacon : Node3D
         var b = new RotatingBeacon(phase) { Name = "RotatingBeacon", Position = oldSpot };
         model.AddChild(b);
         b.Build();
+        Tape.Version(b, 1); Tape.Part(b, "root"); Tape.Part(b._pivot, "pivot"); Tape.Spin(b._pivot, Vector3.Up, () => b.WallAngle());
+        b.SetProcess(false);      // (idle until the race has taken its world-tape index: the reflector's rest is the one it was built in; Begin())
         b.AddChild(new CCCPRacing.Audio.BeaconBeep { Phase = phase / Mathf.Tau, Moving = moving, Position = new Vector3(0, Mast, 0) });
     }
+
+    /// <summary>The reflector's real turn by the wall clock (radians, never wrapped).</summary>
+    internal static Func<double> Seconds = () => Time.GetTicksMsec() * 0.001;      // (the wall clock; a test sets its own)
+    float WallAngle() => (float)(Seconds() * RevPerSecond * Math.Tau) + _phase;
+    /// <summary>The tape poses the reflector (its live turn is off); leaving it, the beam turns by the clock again.</summary>
+    public bool TapeDriven { get; private set; }
+    public void SetTapeDriven(bool on) { TapeDriven = on; }
+    /// <summary>The race has taken its world-tape index: the beam turns from now on.</summary>
+    public void Begin() => SetProcess(true);
 
     void Build()
     {
@@ -179,8 +191,7 @@ void fragment() {
         _halo.AlbedoColor = new Color(1, 1, 1, 0);
         if (dist > FarLimit) { foreach (var l in _lamps) l.Visible = false; return; }
 
-        float angle = (float)(Time.GetTicksMsec() * 0.001 * RevPerSecond * Math.Tau) + _phase;
-        _pivot.Rotation = new Vector3(0, angle, 0);
+        if (!TapeDriven) _pivot.Rotation = new Vector3(0, WallAngle(), 0);
         // The beam leaves along the pivot's X axis, both ways: the flash is strongest when the camera is in line with it.
         Vector3 beam = _pivot.GlobalTransform.Basis.X.Normalized();
         Vector3 flat = new(toCam.X, 0, toCam.Z);

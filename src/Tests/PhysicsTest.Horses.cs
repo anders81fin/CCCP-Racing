@@ -24,6 +24,48 @@ public partial class PhysicsTest
         return (t, def, zone, prefix);
     }
 
+    void ZoneRobotTest()
+    {
+        var (track, def, zone, _) = HorseWorld();
+        var rover = zone.GetNode<Node3D>("Lunokhod");
+        var probe = rover.GetNode<Node3D>("SurveyProbe");
+        var lamp = rover.GetChildren().OfType<Node3D>().Single(n => n.HasMeta("tape_part") && (string)n.GetMeta("tape_part") == "robotSurveyLamp");
+        var index = new WorldTapeIndex(new[] { (HorseKey, (Node3D)zone) });
+        var route = def.Zone.Robot;
+        Vector2 home = new(route.X0, route.Z0), survey = new(route.X1, route.Z1);
+        Vector2 Spot() => new(rover.GlobalPosition.X, rover.GlobalPosition.Z);
+        var car = new CarSim(new CarParams(), track);
+        var near = home.Lerp(survey, .5f);
+        car.Pos = new Vector3(near.X, 0, near.Y);
+        for (int i = 0; i < 240; i++) zone.Tick(1f / 60f, car);
+        Check(Spot().DistanceTo(home) < .01f && !lamp.Visible, "survey rover waits at the dock for nearby traffic");
+
+        var recorder = new WorldTapeRecorder();
+        recorder.Begin(index);
+        recorder.Record(0f);
+        float measurement = 0f;
+        for (int frame = 1; frame <= 3000; frame++)
+        {
+            zone.Tick(1f / 60f, null);
+            float time = frame / 60f;
+            recorder.Record(time);
+            if (measurement == 0f && lamp.Visible && probe.Rotation.X < -.88f) measurement = time;
+        }
+        Check(measurement > 0f && Spot().DistanceTo(survey) > 4f, "survey rover lowers its probe and departs after measurement");
+        var loaded = WorldTapeCodec.Decode(WorldTapeCodec.Encode(recorder.Finish(50f, 1UL)));
+        var (_, _, replay, _) = HorseWorld();
+        var player = new WorldTapePlayer(loaded, new WorldTapeIndex(new[] { (HorseKey, (Node3D)replay) }), new TapeSink());
+        var replayRover = replay.GetNode<Node3D>("Lunokhod");
+        var replayProbe = replayRover.GetNode<Node3D>("SurveyProbe");
+        player.Seek(measurement);
+        Vector2 replayAt = new(replayRover.GlobalPosition.X, replayRover.GlobalPosition.Z);
+        bool measured = replayProbe.Rotation.X < -.83f && replayAt.DistanceTo(survey) < .02f;
+        player.Seek(0f);
+        Check(player.Covers(HorseKey) && measured && Math.Abs(replayProbe.Rotation.X) < .01f, "survey rover restores measurement and rewinds the probe from tape");
+        zone.QueueFree();
+        replay.QueueFree();
+    }
+
     /// <summary>The physical body (half width 0.36 m, spine from the tail tip to the muzzle) against every static obstacle near the herd, brute force and independent of the zone's grid; negative: the body overlaps something.</summary>
     static float HorsePhysicalClearance(List<Obstacle> near, Vector2 pos, Vector2 face)
     {
@@ -280,8 +322,8 @@ public partial class PhysicsTest
         var def = TrackDef.Load("res://tracks/atomgrad.json"); var track = TrackBuilder.Build(def);
         var ghost = Ghost.Load(lap + "/ghost_atomgrad.bin", new CarParams(), track);
         var tape = WorldTapeFile.Load(lap + "/tape_atomgrad.bin", ghost, WorldTapeCodec.Decode);
-        Check(tape != null && tape.ActorStructure.TryGetValue(HorseKey, out var st) && st.Version == 2 && st.ParentPaths.ContainsKey("1/legFL") && st.ParentPaths.ContainsKey("5/shinRR"),
-            "horses production: the saved lap pair holds Zone:ZoneLife version 2 with the horses' legs and knees");
+        Check(tape != null && tape.ActorStructure.TryGetValue(HorseKey, out var st) && st.Version == 4 && st.ParentPaths.ContainsKey("1/legFL") && st.ParentPaths.ContainsKey("5/shinRR"),
+            "horses production: the saved lap pair holds Zone:ZoneLife version 4 with the horses' legs and knees");
         // Playback of the saved lap into a fresh world: the legs of the recorded horses move, and the horses stay out of the yard's fence in the recording itself.
         var zone = new ZoneLife { Name = "ZoneLife" }; AddChild(zone); zone.Init(track, null, def.Zone);
         var near = HorseNeighbourhood(track, def, track.Obstacles.Count - 14 > 0 ? track.Obstacles.Count : 0).Where(o => o.Radius <= 0.25f).ToList();
@@ -364,7 +406,7 @@ public partial class PhysicsTest
         var index = new WorldTapeIndex(new[] { (HorseKey, (Node3D)zone) });
         var st = index.StructureOf(HorseKey);
         var names = new[] { "1/horse", "1/horseHead", "1/tail", "1/legFL", "1/legFR", "1/legRL", "1/legRR", "1/shinFL", "1/shinFR", "1/shinRL", "1/shinRR", "5/legRR", "5/shinRR", "catfish", "catfishRear", "catfishTail" };
-        Check(names.All(st.ParentPaths.ContainsKey) && st.Version == 3, $"horses tape: stable part names for the horse, head, tail and four hips and knees of all five horses (ZoneLife tape_ver {st.Version})");
+        Check(names.All(st.ParentPaths.ContainsKey) && st.Version == 4, $"horses tape: stable part names for the horse, head, tail and four hips and knees of all five horses (ZoneLife tape_ver {st.Version})");
         // Rest pose: the index built after any live history is the one built at world build, because Init/Reset pose the horses the same way.
         for (int k = 0; k < 400; k++) zone.Tick(1f / 120f, null);
         zone.Reset();

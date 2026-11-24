@@ -1127,6 +1127,23 @@ public partial class TankBattle : Node3D
 
     }
 
+    /// <summary>
+    /// The replay: each tank's track belts run with the road wheels the tape poses. The belts are not tape parts (so every older tank tape still fits): their place is a function of the track's travel,
+    /// and the wheels' recorded, unwrapped turn is that travel (<c>-travel / .43</c>), so the belts come out exactly as the live tick leaves them.
+    /// </summary>
+    public void ReplayTreads(WorldTapePlayer player)
+    {
+        foreach (var k in _tanks)
+        {
+            if (k.Wheels.Count < 12 || !player.TrySpinAngle(k.Wheels[0], out float left) || !player.TrySpinAngle(k.Wheels[6], out float right)) continue;
+            for (int run = 0; run < k.Belts.Count; run++)
+            {
+                float travel = (run < 2 ? left : right) * -.43f;
+                k.Belts[run].Position = new Vector3(0, 0, (run % 2 == 0 ? -1 : 1) * Mathf.PosMod(travel, .289f));
+            }
+        }
+    }
+
 
     /// <summary>The tank hulls' circles now (two per tank), for the BTR patrols: they wait for a tank in the way.</summary>
     public void HullCircles(List<(Vector2 p, float r)> into)

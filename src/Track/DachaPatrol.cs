@@ -1,4 +1,5 @@
 using System;
+using CCCPRacing.Race;
 using Godot;
 
 namespace CCCPRacing.Track;
@@ -33,6 +34,7 @@ public partial class DachaPatrol : Node
         _t = t;
         _guards = guards;
         Name = "DachaPatrol";
+        SetProcess(false);      // (idle until the race has taken its world-tape index: the guards' rest places are the ones they were built at, in every session)
         for (int i = 0; i < Math.Min(3, guards.Count); i++)
         {
             var f = guards.Figure(i);
@@ -48,6 +50,7 @@ public partial class DachaPatrol : Node
                     f.AddChild(hip);
                     m.Position = new Vector3(0, 0.39f - 0.58f, m.Position.Z);
                     hip.AddChild(m);
+                    Tape.Part(hip, $"{i}/hip{(leg == 0 ? "L" : "R")}");      // the world tape: the legs' stride
                     _legs[i, leg++] = hip;
                 }
         }
@@ -56,10 +59,13 @@ public partial class DachaPatrol : Node
     /// <summary>The boat of this patrol's own world (a second world, the replay viewer's, has its own pond).</summary>
     public override void _Ready() => _boat = WorldScope.Find(this, "PartyOfficialRowing") as PartyRowboat;
 
+    /// <summary>The guards walk their beats from now on.</summary>
+    public void Begin() => SetProcess(true);
+
     public override void _Process(double delta)
     {
         float dt = (float)delta;
-        if (dt <= 0 || _guards.Count < 3) return;
+        if (dt <= 0 || _guards.Count < 3 || _guards.TapeDriven) return;
         _clock += dt;
         var car = new Vector2(SeeThrough.Car.X, SeeThrough.Car.Z);
 

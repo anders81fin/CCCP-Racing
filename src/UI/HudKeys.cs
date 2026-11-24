@@ -58,7 +58,10 @@ public partial class Hud
     static readonly (string key, string action)[] KeyCard =
     {
         ("1 - 4", "DIESEL / PETROL / JET / SPUTNIK"),
-        ("F3", "WATCH THE LAST LAP"),
+        ("F1", "WATCH THE CURRENT LAP"),
+        ("F2", "WATCH THE LAST LAP"),
+        ("F3", "BROWSE LAPS"),
+        ("F4", "NORMS AND MEDALS, LEADERBOARDS"),
         ("ALT+ENTER", "WINDOW / FULLSCREEN"),
     };
 
