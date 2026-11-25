@@ -251,7 +251,7 @@ public partial class RaceScene
             FuelGrade.Rocket => "TURBO WHISTLE + BANGS",
             _ => "FIVE-POT WARBLE + ANTI-LAG",
         };
-        var ladder = NormPlan.LadderFor(TrackDef.Load($"res://tracks/{_trackId}.json").Norms, g);
+        var ladder = NormPlan.LadderFor(TrackSource.NormsOf(_trackId), g);
         var medal = _campaign.BestOn(_trackId, g);
         return new[]
         {

@@ -213,7 +213,7 @@ public partial class Hud : Control
         if (WatchHint != null && Mode == HudMode.Race && !Clean) DrawWatchHint();
         if (Mode == HudMode.Card && StopCard is var (title, lines, color)) DrawStopCard(title, lines, color);
         if (!Clean && School && Mode is HudMode.Race or HudMode.Countdown) DrawSchool();
-        if (CardTitle != null && Mode == HudMode.Title && !TitleMenuHidden) DrawCard();      // (a hidden menu hides the mode cards with it)
+        if (CardTitle != null && Mode == HudMode.Title && !TitleMenuHidden) { if (CustomRows != null) DrawCustomCard(); else DrawCard(); }      // (a hidden menu hides the mode cards with it)
         if (NameAsk && Mode is HudMode.Title or HudMode.Files) DrawNameAsk();
         if (ShowDebug) DrawDebug();
         if (Mode == HudMode.Keys) DrawKeys();
@@ -381,6 +381,9 @@ public partial class Hud : Control
 
     string _noteText, _noteSub;
     float _noteUntil = -1;
+
+    /// <summary>The menu note now showing (for the windowed tests): its text and sub line, "" when none.</summary>
+    public (string text, string sub) MenuNoteNow => _clock < _noteUntil ? (_noteText ?? "", _noteSub ?? "") : ("", "");
 
     /// <summary>A few words over the title menu (an item that is not ready yet).</summary>
     public void MenuNote(string text, string sub, float duration)
@@ -699,6 +702,9 @@ public partial class Hud : Control
     /// <summary>The Party Meeting's rows in order (RaceScene supplies them; the labels come from the ids).</summary>
     public PauseRowId[] PauseRowIds = { PauseRowId.Continue, PauseRowId.Instructions, PauseRowId.Settings, PauseRowId.Restart, PauseRowId.Exit };
 
+    /// <summary>The longest pause menu line in characters: the panel grows to hold it and still fits the narrowest screen (456 px).</summary>
+    internal const int PauseLineMax = 44;
+
     /// <summary>The pause menu's lines, top to bottom: one source for the drawing, the mouse hit test and the rows' tests (RaceScene maps a selected row to its action by the same order).</summary>
     public List<string> PauseLines(out string replayLine)
     {
@@ -721,6 +727,7 @@ public partial class Hud : Control
                 PauseRowId.Instructions => "       DRIVING SCHOOL",
                 _ => "       SETTINGS",
             };
+            if (line.Length > PauseLineMax) line = line[..(PauseLineMax - 2)] + "..";      // (a long notice from the last try: the row is cut to what the screen can hold)
             if (id == PauseRowId.WatchLastLap && PauseWatchState != "") replayLine = line;
             lines.Add(line);
         }
@@ -732,7 +739,10 @@ public partial class Hud : Control
         var s = Screen;
         var lines = PauseLines(out string replayLine);
         float h = 52 + lines.Count * 10 + (PadLost ? 12 : 0);
-        var r = new Rect2(s.X / 2 - 110, Mathf.Floor(s.Y / 2 - h / 2), 220, h);
+        float x = Mathf.Floor(s.X / 2 - PixelFont.Measure("       EXIT RACE") / 2f);
+        float lineW = 0; foreach (var l in lines) lineW = Math.Max(lineW, PixelFont.Measure(l));
+        float half = Math.Clamp(Math.Max(110f, x + lineW + 8f - s.X / 2), 110f, s.X / 2 - 4);      // (a row with a tail, WATCH LAST LAP - PREPARING, widens the panel on both sides)
+        var r = new Rect2(s.X / 2 - half, Mathf.Floor(s.Y / 2 - h / 2), half * 2, h);
         Panel(r, 0.85f);
         DrawHeading("PARTY MEETING", s.X / 2, r.Position.Y + 8, _menuTextClock);
         float y0 = r.Position.Y + 30;
@@ -741,7 +751,6 @@ public partial class Hud : Control
             if ((int)(_clock * 2) % 2 == 0) PixelFont.DrawCentered(this, "CONTROLLER DISCONNECTED", s.X / 2, y0, Red);
             y0 += 12;
         }
-        float x = Mathf.Floor(s.X / 2 - PixelFont.Measure("       EXIT RACE") / 2f);
         for (int i = 0; i < lines.Count; i++)
         {
             float y = y0 + i * 10;

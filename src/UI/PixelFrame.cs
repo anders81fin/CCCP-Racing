@@ -301,6 +301,7 @@ public static class InputSetup
         Add("keys", Key.K);                // the key card
         Add("tour", Key.T);                // CHOOSE TRACK: the track's scenic tour
         Add("track_boards", Key.L);        // CHOOSE TRACK: the highlighted track's leaderboards
+        Add("open_tracks_folder", Key.O);  // CUSTOM TRACKS: the folder of the player's own tracks in the file manager
         Add("comments", Key.Tab);          // centre-screen comments on/off
         Add("camera", Key.C);              // top-down / cinematic / bonnet
         Add("watch_this_lap", Key.F1);     // the Party Meeting's WATCH CURRENT LAP (RaceScene.WatchThisLap.cs)

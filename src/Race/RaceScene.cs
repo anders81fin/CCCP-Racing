@@ -242,10 +242,12 @@ public partial class RaceScene : Node3D
 
     public override async void _Ready()
     {
+        if (!ViewerMode && InstructionTrack == null && CCCPRacing.Track.TrackCheck.FromCommandLine() is int trackCheckExit) { SetProcess(false); SetPhysicsProcess(false); GetTree().Quit(trackCheckExit); return; }      // --validate-track=: a custom track's check for its author's agent, then out (Track/TrackCheck.cs)
         if (!ViewerMode && InstructionTrack == null) StallWatch.ContextProvider = () => $"state {_state}, card {_card}, menu {_menu}/{_menuParent}, hidden {_titleMenuHidden}, settings {_hud?.SettingsOpen}/{_hud?.VisualOpen}/{_hud?.MixerOpen}, booting {_booting}, loading card {TrackLoadingScreen.Active != null}";
         if (!ViewerMode && InstructionTrack == null) { StallWatch.Start(OS.GetUserDataDir()); AudioDiag.Install(this); }      // (the watchdog thread, once: StallWatch.cs)
         if (!ViewerMode && LanPlaybackSource == null && InstructionTrack == null && CCCPRacing.Race.ExportChild.Active) CCCPRacing.Race.ExportChild.Begin(this);      // the MP4 exporter child (ExportChild.cs)
         try { await BuildWorld(); }
+        catch (Exception e) when (!ViewerMode && LanPlaybackSource == null && TrackSource.IsCustom(_trackId) && e is not OperationCanceledException) { HandleCustomLoadFailure(e); }      // (RaceScene.CustomTracks.cs: a plain catch, the filter must not change state before the build's own cleanup has run)
         catch (OperationCanceledException) when (AudioMix.Closing) { }
         catch (OperationCanceledException) when (LanPlaybackSource!=null && _lanPlaybackClosing) {CCCPRacing.Audio.AudioMix.Quit(this);}
         catch (Exception e) when (LanPlaybackSource!=null) {GD.PushError("LAN replay build failed: "+e.Message);CCCPRacing.Audio.AudioMix.Quit(this, 2);}

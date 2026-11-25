@@ -101,12 +101,12 @@ public class TrackDef
     /// <summary>A drive-through barn over the start/finish line instead of the banner gate; null: the gate.</summary>
     public StartBarnDef StartBarn { get; set; }
 
-    public static TrackDef Load(string resPath)
-    {
-        string json = FileAccess.GetFileAsString(resPath);
-        return JsonSerializer.Deserialize<TrackDef>(json,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
-    }
+    /// <summary>How track files are read: any case, comments and trailing commas allowed (the validator reads custom tracks the same way).</summary>
+    public static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
+
+    public static TrackDef Load(string resPath) => Parse(FileAccess.GetFileAsString(resPath));
+
+    public static TrackDef Parse(string json) => JsonSerializer.Deserialize<TrackDef>(json, JsonOptions);
 }
 
 /// <summary>Centre-line control point. Values apply to the segment starting here.</summary>

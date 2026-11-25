@@ -93,7 +93,7 @@ public partial class RaceScene
             var src = archive.Open(id, out string reason);
             return (src, src == null ? ("CANNOT OPEN: " + (reason ?? "UNKNOWN")).ToUpperInvariant() : "", info);
         });
-        _watchNotice = "OPENING..."; _watchNoticeUntil = Time.GetTicksMsec() + 3500;
+        _watchNotice = "";      // (no "OPENING..." tail on the Party Meeting row: it ran past the menu's edge; the row stays as it is until the viewer opens)
     }
 
     /// <summary>Every frame: the opening's result (the viewer starts after this frame, never inside it), and the hint's clock (it runs while driving).</summary>

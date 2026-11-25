@@ -13,7 +13,7 @@ namespace CCCPRacing.Race;
 /// </summary>
 public partial class RaceScene
 {
-    enum TitleCard { None, Track, LapsTime, RallyFuel, RallyResume, LapsFuel }
+    enum TitleCard { None, Track, LapsTime, RallyFuel, RallyResume, LapsFuel, Custom }
 
     TitleCard _card;
     int _cardSel;
@@ -86,6 +86,7 @@ public partial class RaceScene
         _cardSel = c switch
         {
             TitleCard.Track => 0,
+            TitleCard.Custom => _customSel,
             TitleCard.LapsTime => (int)_lapsPhase,
             TitleCard.RallyFuel => (int)(_rallyFuel = OpenFuel(FuelGrades.Load(_records.Dir))),
             TitleCard.LapsFuel => (int)OpenFuel(_lapsFuelLast ?? Training.GradeOf(_powerStart) ?? FuelGrade.Petrol),
@@ -103,6 +104,7 @@ public partial class RaceScene
         if (FuelUnlockActive) { if (_fuelUnlockAge >= Hud.FuelUnlockBreak + 0.8f && (Input.IsActionJustPressed("start") || Input.IsActionJustPressed("pause"))) EndFuelUnlock(true); return true; }      // (the padlock; Enter or Esc skips the end of it)
         if (Engine.GetProcessFrames() <= _cardFrame) return true;
         if (_previewMovie) return true;      // --tour-movie: no menu controls
+        if (_card == TitleCard.Custom) return CustomCardInput();      // the list of the player's own tracks (RaceScene.CustomTracks.cs)
         if (CarTourInput()) return true;     // a car's tour is up (RaceScene.CarTour.cs)
         if (TourInput()) return true;        // a track's tour is up (RaceScene.TrackPreview.cs)
         if (_card == TitleCard.Track && _trackFor != MenuItem.Lan && Input.IsActionJustPressed("tour")) { OpenTour(); return true; }
@@ -254,7 +256,7 @@ public partial class RaceScene
         return _fuelLine.text;
     }
 
-    int CardCount => _card switch { TitleCard.Track => Tracks.Length, TitleCard.LapsTime => LapsPhases.Length, TitleCard.RallyFuel => FuelGrades.Count, TitleCard.LapsFuel => Training.LapsCount, _ => 2 };
+    int CardCount => _card switch { TitleCard.Custom => Math.Max(1, _customList.Count), TitleCard.Track => Tracks.Length, TitleCard.LapsTime => LapsPhases.Length, TitleCard.RallyFuel => FuelGrades.Count, TitleCard.LapsFuel => Training.LapsCount, _ => 2 };
 
     void CardHud()
     {
@@ -265,6 +267,7 @@ public partial class RaceScene
             TitleCard.LapsTime => "TIME OF DAY",
             TitleCard.RallyFuel or TitleCard.LapsFuel => "CHOOSE FUEL",
             TitleCard.RallyResume => "SAVED RALLY",
+            TitleCard.Custom => "CHOOSE TRACK",      // (the row above says CUSTOM TRACKS: its hint card, as for the other modes)
             _ => null,
         };
         _hud.CardSub = _card switch
@@ -290,6 +293,8 @@ public partial class RaceScene
             ? _padMode ? "D-PAD UP/DOWN SWITCHES FUEL WHILE DRIVING" : "KEYS 1-4 SWITCH FUEL WHILE DRIVING"
             : null;
         _hud.CardSelection = _cardSel;
+        _hud.CustomRows = null;
+        if (_card == TitleCard.Custom) CustomCardHud();      // the vertical list of the player's own tracks (RaceScene.CustomTracks.cs)
         _hud.CardLocked = _card == TitleCard.Track ? LockedNow() : null;
         if (_card == TitleCard.Track && _trackFor != MenuItem.Lan)
             for (int i = 1; i < Tracks.Length; i++)

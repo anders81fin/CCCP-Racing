@@ -67,7 +67,7 @@ public partial class RaceScene
         return page;
     }
 
-    static string TrackName(string id) => Array.Find(Tracks, t => t.id == id).name ?? id.ToUpperInvariant();
+    static string TrackName(string id) => Array.Find(Tracks, t => t.id == id).name ?? (TrackSource.IsCustom(id) ? CustomName(id) : id.ToUpperInvariant());
 
     /// <summary>The plan's next track after this one (null: none built yet).</summary>
     static string NextTrack(string id)
@@ -112,6 +112,7 @@ public partial class RaceScene
     /// <summary>After STAKHANOV LAPS are left (EXIT RACE, a failure screen): back to the laps' track card of the fuel they were started with (CHOOSE FUEL is one Esc back), the track card standing on the track just driven (not the main menu).</summary>
     void ReturnLapsToFuelSelect()
     {
+        if (TrackSource.IsCustom(_trackId)) { ReturnToCustomList(_trackId); return; }      // free laps on a custom track: back to the list of them (RaceScene.CustomTracks.cs)
         int index = Math.Max(0, Array.FindIndex(Tracks, t => t.id == _trackId));
         EnterTitle();
         OpenMenu(MenuItem.Single, MenuItem.Training);
@@ -174,7 +175,7 @@ public partial class RaceScene
         bool training = false, titleRec = false;
         foreach (string a in InstructionTrack == null ? OS.GetCmdlineUserArgs() : Array.Empty<string>())
         {
-            if (a.StartsWith("--track=") && _resume == null && _loadingRunMode == null && _previewResume < 0 && !_lanWorldRebuild) _trackId = TrackIds.FromCommandLine(a["--track=".Length..]);   // test: build this track
+            if (a.StartsWith("--track=") && _resume == null && _loadingRunMode == null && _previewResume < 0 && !_lanWorldRebuild && _customLoadError == null) _trackId = TrackIds.FromCommandLine(a["--track=".Length..]);   // test: build this track
             // The school and LAN flags skip the menu that would take them to the bonus track: build it at once.
             titleRec |= a.StartsWith("--title-rec=");
             training |= a.StartsWith("--school=") || a == "--lan-host" || a.StartsWith("--lan-join=");
@@ -227,6 +228,7 @@ public partial class RaceScene
     /// <summary>End of _Ready after a track change: back to where the player was going.</summary>
     void ResumeAfterReload()
     {
+        if (ShowCustomLoadError()) return;      // a custom track that did not build: the list, with the reason (RaceScene.CustomTracks.cs)
         if (_loadingRunMode is MenuItem loadingMode)
         {
             _loadingRunMode = null;

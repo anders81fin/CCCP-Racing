@@ -99,40 +99,46 @@ public partial class FuelDepot : Node3D
         var root = new Node3D { Name = "DepotTank", Position = new Vector3(tank.X, gy, tank.Y), Rotation = new Vector3(0, TrackData.YawFor(dir), 0) };
         AddChild(root);
         root.AddChild(new ServiceMarker(IconPath) { Name = "FuelMarker", Position = new Vector3(0, 8.4f, 0) });
+        var solid = new Node3D { Name = "TankSolid" };      // every stationary part of the tank: merged into one mesh below (the marker stays out of it)
+        root.AddChild(solid);
         foreach (float sx in new[] { -0.9f, 0.9f })
             foreach (float sz in new[] { -1.5f, 1.5f })
             {
-                root.AddChild(Props.Part(Props.Box(0.14f, 2.6f, 0.14f), Rust, new Vector3(sx, 1.3f, sz)));
-                root.AddChild(Props.Part(Props.Box(0.5f, 0.1f, 0.5f), Steel, new Vector3(sx, 0.05f, sz)));
+                solid.AddChild(Props.Part(Props.Box(0.14f, 2.6f, 0.14f), Rust, new Vector3(sx, 1.3f, sz)));
+                solid.AddChild(Props.Part(Props.Box(0.5f, 0.1f, 0.5f), Steel, new Vector3(sx, 0.05f, sz)));
             }
-        root.AddChild(Props.Part(Props.Box(1.9f, 0.1f, 0.1f), Rust, new Vector3(0, 1.2f, -1.5f), new Vector3(0, 0, 0)));   // cross braces
-        root.AddChild(Props.Part(Props.Box(1.9f, 0.1f, 0.1f), Rust, new Vector3(0, 1.2f, 1.5f)));
-        root.AddChild(Props.Part(Props.Box(1.6f, 0.2f, 3.6f), Rust, new Vector3(0, 2.62f, 0)));          // cradle
-        root.AddChild(Props.Part(Props.Cyl(1.05f, 4.4f, 10), TankGreen, new Vector3(0, 3.55f, 0), new Vector3(90, 0, 0)));
-        root.AddChild(Props.Part(Props.Cyl(1.07f, 0.35f, 10), Red, new Vector3(0, 3.55f, 0), new Vector3(90, 0, 0)));
-        root.AddChild(Props.Part(Props.Cyl(0.95f, 0.08f, 10), Steel, new Vector3(0, 3.55f, -2.22f), new Vector3(90, 0, 0)));   // end caps
-        root.AddChild(Props.Part(Props.Cyl(0.95f, 0.08f, 10), Steel, new Vector3(0, 3.55f, 2.22f), new Vector3(90, 0, 0)));
-        root.AddChild(Props.Part(Props.Cyl(0.22f, 0.25f, 8), Steel, new Vector3(0, 4.66f, 1.2f)));          // filler cap
+        solid.AddChild(Props.Part(Props.Box(1.9f, 0.1f, 0.1f), Rust, new Vector3(0, 1.2f, -1.5f), new Vector3(0, 0, 0)));   // cross braces
+        solid.AddChild(Props.Part(Props.Box(1.9f, 0.1f, 0.1f), Rust, new Vector3(0, 1.2f, 1.5f)));
+        solid.AddChild(Props.Part(Props.Box(1.6f, 0.2f, 3.6f), Rust, new Vector3(0, 2.62f, 0)));          // cradle
+        solid.AddChild(Props.Part(Props.Cyl(1.05f, 4.4f, 10), TankGreen, new Vector3(0, 3.55f, 0), new Vector3(90, 0, 0)));
+        solid.AddChild(Props.Part(Props.Cyl(1.07f, 0.35f, 10), Red, new Vector3(0, 3.55f, 0), new Vector3(90, 0, 0)));
+        solid.AddChild(Props.Part(Props.Cyl(0.95f, 0.08f, 10), Steel, new Vector3(0, 3.55f, -2.22f), new Vector3(90, 0, 0)));   // end caps
+        solid.AddChild(Props.Part(Props.Cyl(0.95f, 0.08f, 10), Steel, new Vector3(0, 3.55f, 2.22f), new Vector3(90, 0, 0)));
+        solid.AddChild(Props.Part(Props.Cyl(0.22f, 0.25f, 8), Steel, new Vector3(0, 4.66f, 1.2f)));          // filler cap
         // A white star on both sides, facing the road and the fields.
         foreach (float sx in new[] { -1.06f, 1.06f })
         {
-            root.AddChild(Props.Part(Props.Box(0.02f, 0.5f, 0.12f), new Color(0.9f, 0.88f, 0.8f), new Vector3(sx, 3.55f, -1.2f)));
-            root.AddChild(Props.Part(Props.Box(0.02f, 0.12f, 0.5f), new Color(0.9f, 0.88f, 0.8f), new Vector3(sx, 3.6f, -1.2f)));
+            solid.AddChild(Props.Part(Props.Box(0.02f, 0.5f, 0.12f), new Color(0.9f, 0.88f, 0.8f), new Vector3(sx, 3.55f, -1.2f)));
+            solid.AddChild(Props.Part(Props.Box(0.02f, 0.12f, 0.5f), new Color(0.9f, 0.88f, 0.8f), new Vector3(sx, 3.6f, -1.2f)));
         }
         // Ladder up the road-side end.
         for (int k = 0; k < 2; k++)
-            root.AddChild(Props.Part(Props.Box(0.05f, 3.4f, 0.05f), Steel, new Vector3(-0.25f + k * 0.5f, 1.7f, -2.35f)));
+            solid.AddChild(Props.Part(Props.Box(0.05f, 3.4f, 0.05f), Steel, new Vector3(-0.25f + k * 0.5f, 1.7f, -2.35f)));
         for (int k = 0; k < 7; k++)
-            root.AddChild(Props.Part(Props.Box(0.5f, 0.04f, 0.04f), Steel, new Vector3(0, 0.4f + k * 0.45f, -2.35f)));
-        if (t.Id == "siberia") SiberiaModelDetails.FuelTank(root);
+            solid.AddChild(Props.Part(Props.Box(0.5f, 0.04f, 0.04f), Steel, new Vector3(0, 0.4f + k * 0.45f, -2.35f)));
+        if (t.Id == "siberia") SiberiaModelDetails.FuelTank(solid);
+
+        DrunkTractor.BatchStatic(solid, null);
 
         // The outlet, a valve wheel and the hose down to a nozzle hung on a post by the zone.
+        var fixtures = new Node3D { Name = "HoseSolid" };      // post, valve, hose, nozzle and stain: merged too; the drip stays apart (it blinks and is on the tape)
+        AddChild(fixtures);
         Vector2 post = Zone + left * 3.4f;
         Vector3 outlet = root.Transform * new Vector3(0.9f, 2.7f, 0.4f);
         float py = t.MeshHeight(post.X, post.Y);
         var postTop = new Vector3(post.X, py + 1.5f, post.Y);
-        AddChild(Props.Part(Props.Box(0.14f, 1.6f, 0.14f), Rust, new Vector3(post.X, py + 0.8f, post.Y)));
-        AddChild(Props.Part(Props.Cyl(0.22f, 0.05f, 8), Red, outlet + Vector3.Down * 0.15f));
+        fixtures.AddChild(Props.Part(Props.Box(0.14f, 1.6f, 0.14f), Rust, new Vector3(post.X, py + 0.8f, post.Y)));
+        fixtures.AddChild(Props.Part(Props.Cyl(0.22f, 0.05f, 8), Red, outlet + Vector3.Down * 0.15f));
         // The hose sags between the outlet and the post: a few straight pieces.
         Vector3 prev = outlet;
         const int Pieces = 5;
@@ -140,17 +146,18 @@ public partial class FuelDepot : Node3D
         {
             float u = k / (float)Pieces;
             Vector3 p = outlet.Lerp(postTop, u) + Vector3.Down * MathF.Sin(u * MathF.PI) * 0.9f;
-            AddChild(Segment(prev, p, 0.07f, Rubber));
+            fixtures.AddChild(Segment(prev, p, 0.07f, Rubber));
             prev = p;
         }
-        AddChild(Segment(postTop, postTop + (new Vector3(Zone.X, py, Zone.Y) - postTop).Normalized() * 0.5f + Vector3.Down * 0.3f, 0.06f, Steel));   // nozzle
+        fixtures.AddChild(Segment(postTop, postTop + (new Vector3(Zone.X, py, Zone.Y) - postTop).Normalized() * 0.5f + Vector3.Down * 0.3f, 0.06f, Steel));   // nozzle
         // A drip under the nozzle while it pours; a dark stain on the ground.
         _drip = Props.Part(Props.Box(0.05f, 0.25f, 0.05f), new Color(0.75f, 0.62f, 0.3f), postTop + Vector3.Down * 0.8f);
         _drip.Visible = false;
         AddChild(_drip);
         Tape.Part(_drip, "stream");
         var stain = Props.Part(Props.Cyl(0.75f, 0.02f, 10), new Color(0.3f, 0.26f, 0.2f), new Vector3(post.X, py + 0.03f, post.Y));
-        AddChild(stain);
+        fixtures.AddChild(stain);
+        DrunkTractor.BatchStatic(fixtures, null);
 
         _gurgle = new GurgleSound();
         AddChild(_gurgle);

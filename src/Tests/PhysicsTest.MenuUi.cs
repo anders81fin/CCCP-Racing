@@ -32,7 +32,7 @@ public partial class PhysicsTest
             var lines = hud.PauseLines(out _);
             string tag = $"laps={laps} norms={norms} pad={pad}";
             bool ok = lines.Count == ids.Count;
-            string[] words = { "WATCH LAST LAP", "BROWSE LAPS", "NORMS AND MEDALS", "DRIVING SCHOOL", "SETTINGS", "CONTINUE", "RESTART RACE", "EXIT RACE", "LEADERBOARDS" };      // (by enum order)
+            string[] words = { "WATCH CURRENT LAP", "WATCH LAST LAP", "BROWSE LAPS", "NORMS AND MEDALS", "DRIVING SCHOOL", "SETTINGS", "CONTINUE", "RESTART RACE", "EXIT RACE", "LEADERBOARDS" };      // (by enum order)
             for (int i = 0; ok && i < ids.Count; i++) ok &= lines[i].Contains(words[(int)ids[i]]);
             Check(ok, $"pause labels follow the ids ({tag})");
             Check(ids[0] == PauseRowId.Continue && (laps == 0) == !ids.Contains(PauseRowId.WatchLastLap) && (laps >= 2) == ids.Contains(PauseRowId.BrowseLaps), $"CONTINUE first; 0 laps no replay row, 1 WATCH LAST LAP, 2+ WATCH LAST LAP and BROWSE LAPS ({tag})");

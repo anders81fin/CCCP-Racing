@@ -177,6 +177,7 @@ public partial class RaceScene
             "make-clip" => live.VwMakeClip(),
             "stakhanov-exit" => live.VwStakhanovExit(),
             "title-settings" => live.VwTitleSettings(),
+            "custom-tracks" => live.VwCustomTracks(),
             "reward-look" => live.VwRewardLook(),
             "sit-tractor" => live.VwSitTractor(),
             "sit-stuck" => live.VwSitStuck(),

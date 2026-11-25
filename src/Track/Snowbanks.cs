@@ -438,7 +438,7 @@ public partial class SnowPoles : Node3D
         poles.AddChild(Many(new BoxMesh { Size = new Vector3(Thick, Height, Thick) }, Height / 2f, Props.Mat(new Color(0.9f, 0.32f, 0.08f)), at));
         var shine = new StandardMaterial3D
         {
-            AlbedoColor = new Color(1f, 0.86f, 0.12f), Roughness = 0.12f, MetallicSpecular = 1f,
+            AlbedoColor = new Color(1f, 0.86f, 0.12f), ShadingMode = BaseMaterial3D.ShadingModeEnum.PerVertex, Roughness = 1f, SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled,
             EmissionEnabled = true, Emission = new Color(1f, 0.8f, 0.2f), EmissionEnergyMultiplier = 0f,
         };
         NightGlow.Glows.Add((shine, GlowAtNight));

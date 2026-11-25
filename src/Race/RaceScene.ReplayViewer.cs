@@ -33,7 +33,7 @@ public partial class RaceScene
         if (lap.Meta.Set < 0 || lap.Meta.Set >= RecordStore.Sets) { error = $"invalid record set {lap.Meta.Set}"; return null; }
         string track = lap.Meta.TrackId;
         TrackDef def;
-        try { def = TrackDef.Load($"res://tracks/{track}.json"); }
+        try { def = TrackSource.Load(track); }
         catch (Exception e) { error = $"unknown track '{track}': {e.Message}"; return null; }
         long tp = System.Diagnostics.Stopwatch.GetTimestamp();
         var check = LapPlayback.Prepare(lap, CarParams.ForTrack(def), null, track == _trackId ? _records.Signature : null, ghostOnly: true);      // (a read-only look: the real objects are built by the viewer itself)

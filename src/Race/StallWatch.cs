@@ -58,6 +58,8 @@ public static class StallWatch
     public static void Start(string userDir, int thresholdMs = 0, int repeatMs = 0)
     {
         if (_thread != null) return;
+        if (thresholdMs == 0 && int.TryParse(System.Environment.GetEnvironmentVariable("STALLMS"), out int envMs)) thresholdMs = envMs;      // (development: STALLMS=1500 STALLREPEAT=800 samples a long frame, not only a freeze)
+        if (repeatMs == 0 && int.TryParse(System.Environment.GetEnvironmentVariable("STALLREPEAT"), out int envRep)) repeatMs = envRep;
         if (thresholdMs > 0) ThresholdMs = thresholdMs;
         if (repeatMs > 0) RepeatMs = repeatMs;
         _path = Path.Combine(userDir, "stall.log");

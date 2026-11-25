@@ -416,6 +416,11 @@ public partial class PhysicsTest
                 VwJudge("recordings-restart", c2);
                 if (OS.GetCmdlineUserArgs().All(a => a != "--vw-keep")) foreach (var d in new[] { shared, shared + ".xdg" }) try { Directory.Delete(d, true); } catch { }
             }
+            if (On("customtracks"))
+            {
+                var (c, _) = VwChild("custom-tracks", false, new[] { "--viewer-windowed=custom-tracks", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 420);
+                VwJudge("custom-tracks", c);
+            }
             if (On("stakhanovstart"))
             {
                 var (c, _) = VwChild("stakhanov-start-ilyich", false, new[] { "--viewer-windowed=stakhanov-start", "--track=ilyich", "--no-intro" }.Concat(fxArgs).ToArray(), 300);

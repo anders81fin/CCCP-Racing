@@ -11,6 +11,7 @@ namespace CCCPRacing.Race;
 public partial class RaceScene
 {
     partial void CameraBoostProbe();
+    partial void CustomBuildHook(string id);      // custom tracks: the windowed test makes one named track fail to build (RaceScene.ViewerWindowedCustomTracks.cs)
     partial void TapeCoverHook(string when);      // --tape-force / --tape-cover-dump (RaceScene.ViewerTapeCoverTest.cs): forced hits and the new actors' poses written out, for the world-tape coverage scene tests
     partial void ViewerSpikeTick(float dt);
     partial void ViewerFreezeTick(float dt);

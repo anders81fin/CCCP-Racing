@@ -3,6 +3,14 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.920
+
+- CUSTOM TRACKS: you can make your own tracks, for example with an AI agent. A track is one data file in the game tracks folder, built from the buildings, trees, surfaces and road bumps of the game. SINGLE PLAYER > CUSTOM TRACKS lists your tracks with your best lap and starts free laps on one at once. The key O opens the tracks folder
+- CUSTOM TRACKS: the game checks every track before it is built and says what is wrong, with the place in the file. Run the game with --validate-track=NAME to check one, and --track-schema to list every field. The guide docs/public/custom-tracks.md in the source has the folders, the fields, two example tracks and a prompt for your agent
+- CUSTOM TRACKS: your laps, ghost and recordings belong to the exact file. If you change a track, the old ones are kept as an archive and the new version starts its own. A track that cannot be built takes you back to the list with the reason
+- MENUS: in the Party Meeting, WATCH LAST LAP no longer says OPENING... while the replay loads, and a long notice is cut so that it stays inside the menu
+- SMALL THINGS: the fuel depot is built from fewer parts, and the gold bands of the snow poles are matte like the rest of the world
+
 ## 0.919
 
 - KEYS: the telemetry overlay is now F9 and the LAB panel F10. F2 watches the last lap, also while driving, at a stop card and at the end of a rally (it was F3). In the Party Meeting and while driving: F1 watches the current lap, F3 browses the laps, F4 opens the norms and medals (in the Stakhanov laps the leaderboards). While driving the race is paused first, as with Esc

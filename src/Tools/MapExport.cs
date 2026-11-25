@@ -24,7 +24,7 @@ public partial class MapExport : Node
             if (a.StartsWith("--out=")) _out = a["--out=".Length..];
             else if (a.StartsWith("--track=")) _track = a["--track=".Length..];
 
-        var def = TrackDef.Load($"res://tracks/{_track}.json");
+        var def = TrackSource.Load(_track);
         _t = TrackBuilder.Build(def);
         if (System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--data-only") >= 0)
         { ExportData(); return; }
@@ -96,7 +96,7 @@ public partial class MapExport : Node
         var centre = new float[_t.Center.Length][];
         for (int i = 0; i < _t.Center.Length; i++)
             centre[i] = new[] { _t.Center[i].X, _t.Center[i].Y, _t.CenterH[i], _t.HalfWidth[i], (float)_t.CenterSurf[i] };
-        var def = TrackDef.Load($"res://tracks/{_track}.json");
+        var def = TrackSource.Load(_track);
         var props = new System.Collections.Generic.List<object>();
         foreach (var p in _t.Props)
             props.Add(new { type = p.Type, x = p.Position.X, z = p.Position.Z, text = p.Text });

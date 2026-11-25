@@ -272,6 +272,57 @@ public partial class RaceScene
         for (int i = 0; i < 6; i++) yield return null;
         PadButton(JoyButton.B, true, false); PadButton(JoyButton.B, false, false);
         for (int i = 0; i < 8; i++) yield return null;
+        VwCardTextWidths();      // (last: it opens medals on this temporary profile)
+    }
+
+    /// <summary>Every title card's texts fit the narrowest screen the game is drawn on (1366x768 is 456 px wide): the card is as wide as its longest text plus 40 px and never wider than the
+    /// screen less 8 px, and it does not wrap, so a longer text would be cut off. Every card, every highlighted row, the keyboard's and the pad's words, the track card of the rally, the laps and
+    /// the LAN, locked and open (HudSchool.cs draws the card).</summary>
+    void VwCardTextWidths()
+    {
+        const int Screen = 456, Room = Screen - 48, KeysRoom = Screen - 8 - 16;      // (the text room inside the card; the key line's room when the leaderboards are offered)
+        var saved = (_card, _cardSel, _padMode, _trackFor, _hud.Pad, _savedRallyFuel);
+        int cases = 0, worst = 0; string worstText = "";
+        var over = new System.Collections.Generic.List<string>();
+        void Look(string what, string text, int limit)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            int w = PixelFont.Measure(text); cases++;
+            if (w > worst) { worst = w; worstText = $"{what}: {text}"; }
+            if (w > limit && over.Count < 8) over.Add($"{what} ({w} px of {limit}): {text}");
+        }
+        void Sweep(string state)
+        {
+            foreach (TitleCard c in Enum.GetValues(typeof(TitleCard)))
+            {
+                if (c == TitleCard.None) continue;
+                foreach (var forWhat in c == TitleCard.Track ? new[] { MenuItem.Race, MenuItem.Training, MenuItem.Lan } : new[] { MenuItem.Race })
+                foreach (bool pad in new[] { false, true })
+                foreach (var resumeFuel in c == TitleCard.RallyResume ? new[] { FuelGrade.Diesel, FuelGrade.Petrol, FuelGrade.Rocket, FuelGrade.Sputnik } : new[] { FuelGrade.Diesel })
+                {
+                    _card = c; _trackFor = forWhat; _padMode = pad; _hud.Pad = pad; _savedRallyFuel = resumeFuel;
+                    for (int sel = 0; sel < CardCount; sel++)
+                    {
+                        _cardSel = sel; CardHud();
+                        string what = $"{state} {c}{(c == TitleCard.Track ? "/" + forWhat : "")} row {sel}{(pad ? " pad" : "")}";
+                        Look(what + " title", _hud.CardTitle, Room);
+                        Look(what + " sub", _hud.CardSub, Room);
+                        Look(what + " note", _hud.CardNote, Room);
+                        Look(what + " keys", _hud.CardBoards ? _hud.CardKeysLine() : null, KeysRoom);
+                        int opts = 0; foreach (var o in _hud.CardOptions) opts += PixelFont.Measure(o) + 28;      // (the smallest letters and gaps the card falls back to)
+                        if (opts > Room && over.Count < 8) over.Add($"{what} options ({opts} px of {Room})");
+                    }
+                }
+            }
+        }
+        Sweep("fresh");
+        foreach (var t in FuelTracks(FuelGrade.Petrol)) _campaign.Award(t, NormPlan.Medal.Silver, FuelGrade.Diesel);
+        foreach (var t in FuelTracks(FuelGrade.Rocket)) _campaign.Award(t, NormPlan.Medal.Silver, FuelGrade.Petrol);
+        foreach (var t in Tracks) { _campaign.PresentLaps(t.id, false); _campaign.PresentLaps(t.id, true); }
+        Sweep("medals");
+        (_card, _cardSel, _padMode, _trackFor, _hud.Pad, _savedRallyFuel) = saved; CardHud();
+        VwLog("card-text-widths", ("texts", cases), ("widest_px", worst), ("widest", worstText));
+        VwCheck(cases > 60 && over.Count == 0, $"every title card text fits the narrowest screen ({cases} texts, widest {worst} px of {Room}: {worstText}){(over.Count > 0 ? "; TOO WIDE: " + string.Join(" | ", over) : "")}");
     }
 
 }

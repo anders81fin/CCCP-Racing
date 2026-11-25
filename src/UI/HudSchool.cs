@@ -347,6 +347,10 @@ public partial class Hud
     /// <summary>The card's top: under the mode's hint card (DrawTitle sets it).</summary>
     float _cardTop;
 
+    /// <summary>The key line under a title card (the card test measures it: RaceScene.ViewerWindowedTitleSettings.cs).</summary>
+    internal string CardKeysLine() => string.Join("   ", new[] { "< > CHOOSE", P("ENTER OK", "A OK"), CardTour ? P("T TOUR", "Y TOUR") : null, CardBoards ? P("L LEADERBOARDS", "X LEADERBOARDS") : null, P("ESC BACK", "B BACK") }.Where(k => k != null));
+
+
     /// <summary>
     /// The title's card before a run (the track, the Stakhanov laps' time of day and light): under the
     /// selected mode's hint card, above the credits line. Where that room is short the card is compact:
@@ -367,7 +371,7 @@ public partial class Hud
         int titleScale = compact ? 1 : 2;
         // The keys line: T TOUR and L LEADERBOARDS (the pad's Y and X) in gold where the card offers them.
         string tour = P("T TOUR", "Y TOUR"), boards = P("L LEADERBOARDS", "X LEADERBOARDS");
-        string keys = string.Join("   ", new[] { "< > CHOOSE", P("ENTER OK", "A OK"), CardTour ? tour : null, CardBoards ? boards : null, P("ESC BACK", "B BACK") }.Where(k => k != null));
+        string keys = CardKeysLine();
         float w = Math.Min(s.X - 8, Math.Max(Math.Max(PixelFont.Measure(CardTitle, titleScale), opts), Math.Max(PixelFont.Measure(CardSub ?? ""), PixelFont.Measure(CardNote ?? ""))) + 40);
         if (CardBoards) w = Math.Min(s.X - 8, Math.Max(w, PixelFont.Measure(keys) + 16));      // (the longer keys line stays inside the card)
         float h = compact ? Math.Min(note ? 66 : 56, room) : note ? 93 : 82;

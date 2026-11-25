@@ -29,7 +29,8 @@ public partial class RaceScene
         InputSetup.Ensure();
         AudioMix.Setup(this);   // Master limiter: nothing ever clips
 
-        var def = TrackDef.Load($"res://tracks/{TrackToBuild()}.json");   // RaceScene.Tracks.cs
+        var def = TrackSource.Load(TrackToBuild());   // RaceScene.Tracks.cs
+        if (TrackSource.IsCustom(def.Id)) { CustomNames[def.Id] = def.Name; CustomBuildHook(def.Id); }      // (a custom track started from the command line: its name for the boards)
         NormPlan.UseTrack(def.Norms);                                      // the track's norms and medals
         return def;
     }

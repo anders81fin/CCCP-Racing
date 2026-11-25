@@ -55,7 +55,7 @@ public sealed class LanBoardStore : ILanBoardStore
         lock(FreshSignatures) {
             if(FreshSignatures.TryGetValue(track,out var saved))return saved;
             var watch=System.Diagnostics.Stopwatch.StartNew();
-            var sig=TrackSignature.Compute(TrackBuilder.Build(TrackDef.Load("res://tracks/"+track+".json")));
+            var sig=TrackSignature.Compute(TrackBuilder.Build(TrackSource.Load(track)));
             FreshSignatures[track]=sig;
             GD.Print($"LAN boards: verified {track} geometry in {watch.Elapsed.TotalMilliseconds:F0} ms (cached)");
             return sig;

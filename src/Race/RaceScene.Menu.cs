@@ -17,17 +17,17 @@ namespace CCCPRacing.Race;
 /// </summary>
 public partial class RaceScene
 {
-    enum MenuItem { Race, Training, Lan, Board, Single, Multi, Quit, School, Files, Office, Credits, Recordings, Personnel, Settings }
+    enum MenuItem { Race, Training, Lan, Board, Single, Multi, Quit, School, Files, Office, Credits, Recordings, Personnel, Settings, Custom }
 
     static readonly MenuItem[] TopItems = { MenuItem.Single, MenuItem.Multi, MenuItem.Settings, MenuItem.Office };
-    static readonly MenuItem[] SingleItems = { MenuItem.School, MenuItem.Race, MenuItem.Training };
+    static readonly MenuItem[] SingleItems = { MenuItem.School, MenuItem.Race, MenuItem.Training, MenuItem.Custom };
     static readonly MenuItem[] MultiItems = { MenuItem.Lan };
     static readonly MenuItem[] OfficeItems = { MenuItem.Files, MenuItem.Credits, MenuItem.Quit };
     static readonly MenuItem[] FilesItems = { MenuItem.Personnel, MenuItem.Board, MenuItem.Recordings };     // PARTY OFFICE > KGB FILES
     static readonly string[] TopLabels = { "SINGLE PLAYER", "MULTIPLAYER", "SETTINGS", "PARTY OFFICE" }, TopShort = { "1 PLAYER", "MULTI", "SETTINGS", "OFFICE" };
     static readonly string[] OfficeLabels = { "KGB FILES", "CREDITS", "RESIGN" }, OfficeShort = { "FILES", "CREDITS", "RESIGN" };
     static readonly string[] FilesLabels = { "PERSONNEL", "LEADERBOARDS", "RECORDINGS" }, FilesShort = { "PERSONNEL", "TOP 10", "REC" };
-    static readonly string[] SingleLabels = { "DRIVING SCHOOL", Hud.RaceLabel, Hud.TrainingLabel }, SingleShort = { "SCHOOL", Hud.RaceShort, Hud.TrainingShort };
+    static readonly string[] SingleLabels = { "DRIVING SCHOOL", Hud.RaceLabel, Hud.TrainingLabel, Hud.CustomLabel }, SingleShort = { "SCHOOL", Hud.RaceShort, Hud.TrainingShort, Hud.CustomShort };
     static readonly string[] MultiLabels = { Hud.LanLabel }, MultiShort = { Hud.LanShort };
 
     MenuItem _menu = MenuItem.Single;      // a first launch: SINGLE PLAYER, and in it SOCIALIST RALLY (the owner's order, 2026-11-19)
@@ -40,7 +40,7 @@ public partial class RaceScene
 
     static MenuItem ParentOf(MenuItem m) => m switch
     {
-        MenuItem.Training or MenuItem.Race or MenuItem.School => MenuItem.Single,
+        MenuItem.Training or MenuItem.Race or MenuItem.School or MenuItem.Custom => MenuItem.Single,
         MenuItem.Lan => MenuItem.Multi,
         MenuItem.Personnel or MenuItem.Board or MenuItem.Recordings => MenuItem.Files,
         MenuItem.Files or MenuItem.Credits or MenuItem.Quit => MenuItem.Office,
@@ -86,6 +86,7 @@ public partial class RaceScene
             case MenuItem.Single or MenuItem.Office or MenuItem.Files:
                 OpenMenu(_menu, _menu switch { MenuItem.Office => MenuItem.Files, MenuItem.Files => MenuItem.Personnel, _ => null });
                 break;
+            case MenuItem.Custom: OpenCustomTracks(); break;      // RaceScene.CustomTracks.cs: no fuel or time card, no medals
             case MenuItem.Board: EnterBoard(); break;
             case MenuItem.Personnel: EnterFiles(); break;     // RaceScene.Files.cs
             case MenuItem.Recordings: EnterRecordings(); break;     // RaceScene.Recordings.cs
@@ -167,6 +168,12 @@ public partial class RaceScene
             "BEAT LAP NORMS TO EARN MEDALS.",
             "BRUTAL QUALIFYING. THE WINNER TAKES IT ALL.",
             "THE GULAG HAS ROOM FOR THE REST.",
+        }),
+        MenuItem.Custom => (Hud.CustomLabel, new[]
+        {
+            "TRACKS MADE BY PLAYERS AND THEIR AI AGENTS.",
+            "FREE LAPS: NO MEDALS, NO NORMS.",
+            "SEE CUSTOM-TRACKS.MD TO MAKE ONE.",
         }),
         MenuItem.School => ("DRIVING SCHOOL", new[]
         {

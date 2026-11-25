@@ -302,6 +302,8 @@ public partial class PhysicsTest : Node
         { string name = ps["--print-setting=".Length..]; GD.Print($"SETTING {name} = {(ProjectSettings.HasSetting(name) ? ProjectSettings.GetSetting(name).ToString() : "<not set>")}");GetTree().Quit();return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--norm-card-tests"))
         { NormCardTest();GetTree().Quit(_failures==0?0:1);return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--custom-track-tests"))
+        { CustomTracksTest(); CustomTrackCliTest(); CustomTrackFailureLoopTest(); CustomTrackRecordsTest(); CustomTrackDriveTest(); GetTree().Quit(_failures==0?0:1);return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--pause-rows-tests"))
         { PauseRowsTest();GetTree().Quit(_failures==0?0:1);return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--tape-recycle-tests"))
@@ -678,6 +680,7 @@ public partial class PhysicsTest : Node
         BuildingVisibilityTest();
         GameplayCameraTest();
         ZoneDosimetristTest(); ZoneRailsAndWalkTest();
+        CustomTracksTest(); CustomTrackCliTest(); CustomTrackFailureLoopTest(); CustomTrackRecordsTest(); CustomTrackDriveTest();
         WaterMillTest();
         CatfishTest();
         PrisonerKneeTest();

@@ -3,7 +3,7 @@
 Rally-Sport-inspired time trial on a Soviet kolkhoz. Power: ACCORDING TO PLAN. Suspension: NYET.
 
 Source code: [anders81fin/CCCP-Racing](https://github.com/anders81fin/CCCP-Racing).
-Source for version **0.919**: [v0.919](https://github.com/anders81fin/CCCP-Racing/tree/v0.919).
+Source for version **0.920**: [v0.920](https://github.com/anders81fin/CCCP-Racing/tree/v0.920).
 GitHub account: [anders81fin](https://github.com/anders81fin).
 
 Source code is offered under **GPL-3.0-or-later** and game models, images, track
@@ -42,6 +42,7 @@ without the excluded music; the radio has no music stations and missing music
 loads may be reported. Models, tracks and synthesized game sounds are included.
 
 User and developer documentation: [docs/public/README.md](docs/public/README.md).
+You can make your own tracks, for example with an AI agent: they are data files, checked by the game, and listed under SINGLE PLAYER > CUSTOM TRACKS ([guide](docs/public/custom-tracks.md)).
 Internal development notes are excluded from the public source. Reviewed source
 archives are made with `tools/source/export_public.py` using the explicit file
 list `public-source-files.txt`. Do not push the original development history

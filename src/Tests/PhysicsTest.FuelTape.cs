@@ -15,7 +15,7 @@ public partial class PhysicsTest
     {
         string output = ProjectSettings.GlobalizePath("res://media/fuel-tape-v1/production-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmssfff"));
         Directory.CreateDirectory(output);
-        foreach (string id in new[] { "siberia", "atomgrad", "bonus" })
+        foreach (string id in new[] { "siberia", "bonus" })
         {
             string dir = output + "/" + id; Directory.CreateDirectory(dir);
             string laps = dir + "/laps"; Directory.CreateDirectory(laps);

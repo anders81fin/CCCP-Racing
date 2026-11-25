@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using CCCPRacing.Race;
 using CCCPRacing.UI;
@@ -42,6 +43,15 @@ public partial class PhysicsTest
             var hud = new Hud { PauseRowIds = RaceScene.PauseRowList(true, 2).ToArray(), PauseWatchState = "PREPARING" };
             var lines = hud.PauseLines(out string watchLine);
             Check(watchLine != null && ReferenceEquals(watchLine, lines[1]) && lines[1].Contains("WATCH LAST LAP - PREPARING") && lines[2].Contains("BROWSE LAPS") && !lines[2].Contains("PREPARING"), "a last lap still being prepared: WATCH LAST LAP says so, BROWSE LAPS stays plain");
+            hud.Free();
+        }
+        {
+            // a long notice from the last try (CANNOT OPEN: <reason>) is cut to what the narrowest screen holds, with two dots; a short state is left as it is
+            var hud = new Hud { PauseRowIds = RaceScene.PauseRowList(true, 2).ToArray(), PauseWatchState = "CANNOT OPEN: THE TAPE'S SIGNATURE DOES NOT MATCH THE TRACK ANY MORE" };
+            var lines = hud.PauseLines(out string watchLine);
+            Check(lines[1].Length == Hud.PauseLineMax && lines[1].EndsWith("..") && lines[1].Contains("WATCH LAST LAP - CANNOT OPEN") && ReferenceEquals(watchLine, lines[1]) && lines.All(l => l.Length <= Hud.PauseLineMax), $"a long WATCH LAST LAP notice is cut to {Hud.PauseLineMax} characters ({lines[1].Length}: '{lines[1]}')");
+            hud.PauseWatchState = "OLD VERSION";
+            Check(hud.PauseLines(out _)[1].EndsWith("WATCH LAST LAP - OLD VERSION"), "a short state is not cut");
             hud.Free();
         }
         Check(bad == 0, $"every row of the Party Meeting is in the owner's order and carries the label of its id, in all {combos} combinations of norms, laps (0, 1, 2, 5), board and label set");

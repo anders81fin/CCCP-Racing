@@ -263,7 +263,7 @@ void fragment() {
             NightGlow.Glows.Clear(); NightGlow.Glows.AddRange(glows);
             NightGlow.Lamps.Clear(); NightGlow.Lamps.AddRange(lamps);
             Surfaces.Wetness = wetness;
-            NormPlan.UseTrack(TrackDef.Load($"res://tracks/{raceTrack}.json").Norms);
+            NormPlan.UseTrack(TrackSource.NormsOf(raceTrack));
             NormPlan.UseFuel(_run == RunMode.Rally ? _rallyFuel : FuelGrade.Petrol);
             AudioMix.MuteSfx(false);
         };

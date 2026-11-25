@@ -7,6 +7,7 @@ the reference for exact constants and file formats.
 - [LAN multiplayer](networking.md)
 - [Recordings, replay editing and MP4 export](recordings.md)
 - [LAB mode](lab-mode.md)
+- [Making your own tracks](custom-tracks.md) with the [field reference](custom-tracks-reference.md)
 - [World-tape integration](world-tape.md)
 
 Game code is offered under GPL-3.0-or-later and game content under CC BY-SA 4.0,
