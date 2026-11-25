@@ -3,6 +3,10 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.921
+
+- CUSTOM TRACKS: the list now says that the keys 1-4 switch the fuel while driving, on a pad the d-pad up and down. They work as in STAKHANOV LAPS, with the fuels you have opened in the SOCIALIST RALLY. The tests now cover it on a custom track
+
 ## 0.920
 
 - CUSTOM TRACKS: you can make your own tracks, for example with an AI agent. A track is one data file in the game tracks folder, built from the buildings, trees, surfaces and road bumps of the game. SINGLE PLAYER > CUSTOM TRACKS lists your tracks with your best lap and starts free laps on one at once. The key O opens the tracks folder

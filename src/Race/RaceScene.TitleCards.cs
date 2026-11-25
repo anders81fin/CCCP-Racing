@@ -289,7 +289,7 @@ public partial class RaceScene
             TitleCard.RallyResume => new[] { "CONTINUE", "NEW RALLY" },
             _ => Array.Empty<string>(),
         };
-        _hud.CardNote = _card == TitleCard.LapsFuel     // the laps' keys still switch the fuel on the move (RaceScene.cs PowerKey, RaceScene.Pad.cs PadPower)
+        _hud.CardNote = (_card == TitleCard.LapsFuel || _card == TitleCard.Custom && _customList.Count > 0)     // the laps' keys still switch the fuel on the move (RaceScene.cs PowerKey, RaceScene.Pad.cs PadPower): on a custom track too, with the fuels opened in the rally
             ? _padMode ? "D-PAD UP/DOWN SWITCHES FUEL WHILE DRIVING" : "KEYS 1-4 SWITCH FUEL WHILE DRIVING"
             : null;
         _hud.CardSelection = _cardSel;

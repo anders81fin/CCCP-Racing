@@ -65,6 +65,7 @@ public partial class RaceScene
         for (int i = 0; i < 8; i++) yield return null;
         VwCheck(_card == TitleCard.Custom && _hud.CustomRows.SequenceEqual(new[] { "BROKEN-ONE", "FAILS BUILD", "OVAL TEST" }) && _hud.CustomBad.SequenceEqual(new[] { true, false, false }), $"the list reads the folder again: three tracks, the broken one marked ({string.Join(" | ", _hud.CustomRows ?? Array.Empty<string>())}; bad {string.Join(",", _hud.CustomBad ?? Array.Empty<bool>())})");
         VwCheck(_hud.CardSub != null && _hud.CardSub.StartsWith("ERROR: ") && _hud.CardSub.Length <= 42 && _hud.CardSub.All(PixelFont.CanDraw), $"the broken track's line says why ('{_hud.CardSub}')");
+        VwCheck(_hud.CardNote == "KEYS 1-4 SWITCH FUEL WHILE DRIVING" && PixelFont.Measure(_hud.CardNote) <= 408, $"the list says that keys 1-4 switch the fuel while driving ('{_hud.CardNote}')");
         for (int i = 0; i < 4; i++) yield return null;
         VwCheck(_hud.CustomKeysDrawn == _hud.CustomKeysLine(false) && PixelFont.Measure(_hud.CustomKeysDrawn) <= 408, "the keys line of the full list fits");
         foreach (var x in VrShot("customtracks-list")) yield return x;
@@ -138,6 +139,31 @@ public partial class RaceScene
         VwCheck(VwEngineIs(FuelGrade.Diesel) && !_track.Id.StartsWith("ilyich"), $"DIESEL, as the list starts them ({VwEngineNow()})");
         VwCheck(_dayNight.LapOffset == DayNight.FirstLap(DayNight.Phase.Day) - 1, $"in daylight (offset {_dayNight.LapOffset})");
         foreach (var x in VrShot("customtracks-racing")) yield return x;
+        // ---- keys 1-4 and the d-pad switch the fuel as in the Stakhanov laps, with the fuels the rally has opened (the medals of the campaign, not of this track)
+        VwCheck(VwEngineIs(FuelGrade.Diesel), $"the run starts on DIESEL ({VwEngineNow()})");
+        foreach (var x in VrTap(Key.Key2)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(VwEngineIs(FuelGrade.Diesel), $"key 2 with PETROL still closed: refused, DIESEL stays ({VwEngineNow()})");
+        foreach (var t in FuelTracks(FuelGrade.Petrol)) _campaign.Award(t, NormPlan.Medal.Silver, FuelGrade.Diesel);      // (silver on the three first tracks in the rally on DIESEL opens PETROL; the same on PETROL opens JET FUEL)
+        foreach (var t in FuelTracks(FuelGrade.Rocket)) _campaign.Award(t, NormPlan.Medal.Silver, FuelGrade.Petrol);
+        foreach (FuelGrade g in new[] { FuelGrade.Diesel, FuelGrade.Petrol, FuelGrade.Rocket, FuelGrade.Sputnik }) { _campaign.PresentFuel(g); _campaign.ShowFuelUnlock(g); }      // (the opening ceremonies of the new fuels and tracks are seen: EXIT RACE then goes straight to the list; a ceremony comes first otherwise)
+        foreach (var t in Tracks) { _campaign.PresentLaps(t.id, false); _campaign.PresentLaps(t.id, true); }
+        VwCheck(!FuelLocked(FuelGrade.Petrol) && !FuelLocked(FuelGrade.Rocket) && FuelLocked(FuelGrade.Sputnik), "the rally's medals open PETROL and JET FUEL, SPUTNIK stays closed");
+        foreach (var x in VrTap(Key.Key2)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(_state == State.Racing && VwEngineIs(FuelGrade.Petrol) && _trackId == "custom-oval-test", $"key 2 on the custom track: PETROL's engine ({VwEngineNow()})");
+        foreach (var x in VrTap(Key.Key3)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(VwEngineIs(FuelGrade.Rocket), $"key 3: JET FUEL's engine ({VwEngineNow()})");
+        foreach (var x in VrTap(Key.Key4)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(VwEngineIs(FuelGrade.Rocket), $"key 4: the closed SPUTNIK is refused, JET FUEL stays ({VwEngineNow()})");
+        foreach (var x in VrPad(JoyButton.DpadDown)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(VwEngineIs(FuelGrade.Petrol), $"pad D-pad down: one step down to PETROL ({VwEngineNow()})");
+        foreach (var x in VrTap(Key.Key1)) yield return x;
+        for (int i = 0; i < 10; i++) yield return null;
+        VwCheck(VwEngineIs(FuelGrade.Diesel), $"key 1: back on DIESEL ({VwEngineNow()})");
         // ---- F4 while driving: the Stakhanov board of this track, under the track's own name, with the lap that is on file
         foreach (var x in VrTap(Key.F4)) yield return x;
         for (int i = 0; i < 12; i++) yield return null;

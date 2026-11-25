@@ -3,7 +3,7 @@
 Rally-Sport-inspired time trial on a Soviet kolkhoz. Power: ACCORDING TO PLAN. Suspension: NYET.
 
 Source code: [anders81fin/CCCP-Racing](https://github.com/anders81fin/CCCP-Racing).
-Source for version **0.920**: [v0.920](https://github.com/anders81fin/CCCP-Racing/tree/v0.920).
+Source for version **0.921**: [v0.921](https://github.com/anders81fin/CCCP-Racing/tree/v0.921).
 GitHub account: [anders81fin](https://github.com/anders81fin).
 
 Source code is offered under **GPL-3.0-or-later** and game models, images, track

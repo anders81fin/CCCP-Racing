@@ -39,7 +39,7 @@ autumn). Copy one into a new folder and change it.
    map export are developer tools in the source repository).
 4. **Drive** it: in the game choose SINGLE PLAYER > CUSTOM TRACKS. The list shows your tracks with your best lap on each
    (`ERROR` on a track that does not pass the check; select it to see why). Up and down choose (the d-pad too), Enter or A
-   starts free laps at once (DIESEL, daylight: a custom track has no medals, norms or fuel), `O` opens the tracks folder in your
+   starts free laps at once (DIESEL, daylight: a custom track has no medals or norms). While driving, the keys 1-4 (on a pad the d-pad up and down) switch the fuel as in STAKHANOV LAPS, with the fuels you have opened in the SOCIALIST RALLY, `O` opens the tracks folder in your
    file manager, Esc or B goes back. EXIT RACE brings you back to the list on the track you drove. A track that passes the check
    but still cannot be built (this should not happen) takes you back to the first track with `COULD NOT LOAD THIS TRACK` and the
    reason, and the list opens again. From the command line: `cccp-racing -- --track=custom-NAME --start --training`.

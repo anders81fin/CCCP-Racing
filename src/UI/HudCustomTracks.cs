@@ -31,7 +31,7 @@ public partial class Hud
         float top = Mathf.Floor(_cardTop), room = s.Y - 14 - top;
         bool empty = CustomRows.Length == 0;
         int titleScale = room >= 120 ? 2 : 1;
-        float headH = titleScale == 2 ? 28 : 17, keysH = 14, subH = 14;
+        float headH = titleScale == 2 ? 28 : 17, keysH = 14, subH = 14 + (CardNote != null && !empty ? 10 : 0);
         int visible = Math.Max(1, Math.Min(Math.Min(CustomRows.Length, CustomVisible), (int)((room - headH - keysH - subH - 6) / 11)));
         float bodyH = empty ? CustomEmpty.Length * 10 + 6 : visible * 11 + subH;
         float h = Math.Min(room, headH + bodyH + keysH + 4);
@@ -63,6 +63,7 @@ public partial class Hud
                 PixelFont.Draw(this, pos, new Vector2(r.End.X - 8 - PixelFont.Measure(pos), r.Position.Y + 5), Grey);
             }
             if (CardSub != null) PixelFont.DrawCentered(this, CardSub, cx, y0 + visible * 11 + 3, IsBad(CustomSelection) ? new Color(0.95f, 0.45f, 0.4f) : Grey);
+            if (CardNote != null) PixelFont.DrawCentered(this, CardNote, cx, y0 + visible * 11 + 13, Paper);
         }
         PixelFont.DrawCentered(this, keys, cx, r.End.Y - 12, Grey);
         CustomKeysDrawn = keys;
