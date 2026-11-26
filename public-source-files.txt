@@ -86,6 +86,8 @@ scenes/tests/RallyStartChoiceTest.tscn
 scenes/tests/ReplayCameraIntegrationTest.tscn
 scenes/tests/TrackDump.tscn
 scenes/tools/MapExport.tscn
+src/Audio/AntiLagPattern.cs
+src/Audio/AntiLagPattern.cs.uid
 src/Audio/AudioMix.cs
 src/Audio/AudioMix.cs.uid
 src/Audio/BeaconBeep.cs
@@ -703,6 +705,8 @@ src/Tests/DrunkTractor.TestAccess.cs
 src/Tests/DrunkTractor.TestAccess.cs.uid
 src/Tests/IdleAudioSceneTest.cs
 src/Tests/IdleAudioSceneTest.cs.uid
+src/Tests/KozlikPatrol.TestHooks.cs
+src/Tests/KozlikPatrol.TestHooks.cs.uid
 src/Tests/LanSession.BoardFixture.cs
 src/Tests/LanSession.BoardFixture.cs.uid
 src/Tests/LanSession.Fixture.cs
@@ -785,6 +789,8 @@ src/Tests/PhysicsTest.FuelTape.cs
 src/Tests/PhysicsTest.FuelTape.cs.uid
 src/Tests/PhysicsTest.GaiGaze.cs
 src/Tests/PhysicsTest.GaiGaze.cs.uid
+src/Tests/PhysicsTest.GaiStopTraffic.cs
+src/Tests/PhysicsTest.GaiStopTraffic.cs.uid
 src/Tests/PhysicsTest.GameplayCamera.cs
 src/Tests/PhysicsTest.GameplayCamera.cs.uid
 src/Tests/PhysicsTest.GearSweep.cs
@@ -812,6 +818,8 @@ src/Tests/PhysicsTest.IlyichTerrain.cs
 src/Tests/PhysicsTest.IlyichTerrain.cs.uid
 src/Tests/PhysicsTest.Kozlik.cs
 src/Tests/PhysicsTest.Kozlik.cs.uid
+src/Tests/PhysicsTest.KozlikRam.cs
+src/Tests/PhysicsTest.KozlikRam.cs.uid
 src/Tests/PhysicsTest.KozlikScale.cs
 src/Tests/PhysicsTest.KozlikScale.cs.uid
 src/Tests/PhysicsTest.Lab.cs
@@ -890,6 +898,8 @@ src/Tests/PhysicsTest.PauseRows.cs
 src/Tests/PhysicsTest.PauseRows.cs.uid
 src/Tests/PhysicsTest.Plan.cs
 src/Tests/PhysicsTest.Plan.cs.uid
+src/Tests/PhysicsTest.PloughSurface.cs
+src/Tests/PhysicsTest.PloughSurface.cs.uid
 src/Tests/PhysicsTest.Power.cs
 src/Tests/PhysicsTest.Power.cs.uid
 src/Tests/PhysicsTest.PowerCorner.cs
@@ -998,6 +1008,8 @@ src/Tests/PhysicsTest.Traction.cs
 src/Tests/PhysicsTest.Traction.cs.uid
 src/Tests/PhysicsTest.TractorReset.cs
 src/Tests/PhysicsTest.TractorReset.cs.uid
+src/Tests/PhysicsTest.TurboSound.cs
+src/Tests/PhysicsTest.TurboSound.cs.uid
 src/Tests/PhysicsTest.ViewerFidelity.cs
 src/Tests/PhysicsTest.ViewerFidelity.cs.uid
 src/Tests/PhysicsTest.ViewerFreeze.cs

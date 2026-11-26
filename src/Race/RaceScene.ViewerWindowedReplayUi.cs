@@ -259,11 +259,15 @@ public partial class RaceScene
         var seen = new List<ViewerCameraMode> { s.Scene.ViewerCamera };
         for (int k = 0; k < 4; k++) { foreach (var x in VrTap(Key.C)) yield return x; seen.Add(s.Scene.ViewerCamera); }   // locked ring: DIRECTED, CLASSIC, ROAD-ALIGNED, TV BROADCAST
         VwLog("locked-cycle", ("modes", string.Join(",", seen)));
-        VwCheck(seen.SequenceEqual(new[] { ViewerCameraMode.Auto, ViewerCameraMode.TopDown, ViewerCameraMode.Classic, ViewerCameraMode.RoadAligned, ViewerCameraMode.Auto }), $"locked: C cycles from the TV BROADCAST the viewer opens on: DIRECTED, CLASSIC, ROAD-ALIGNED, TV BROADCAST again ({string.Join(",", seen)})");
+        bool hidesRoad = CCCPRacing.Track.CameraSecrets.HidesRoadAligned(track);      // (Ilyich hides its road-aligned camera by the mill)
+        var lockedRing = hidesRoad ? new[] { ViewerCameraMode.Auto, ViewerCameraMode.TopDown, ViewerCameraMode.Classic, ViewerCameraMode.Auto, ViewerCameraMode.TopDown }
+            : new[] { ViewerCameraMode.Auto, ViewerCameraMode.TopDown, ViewerCameraMode.Classic, ViewerCameraMode.RoadAligned, ViewerCameraMode.Auto };
+        VwCheck(seen.SequenceEqual(lockedRing), $"locked: C cycles from the TV BROADCAST the viewer opens on: DIRECTED, CLASSIC, {(hidesRoad ? "" : "ROAD-ALIGNED, ")}TV BROADCAST again ({string.Join(",", seen)})");
         s.Close();
         foreach (var x in VrUntil(() => ReplayViewer == null && s.State == ReplayViewerState.Closed, 60 * 30, "locked viewer closed")) yield return x;
 
         // ---- unlock through the game's own API, on the temporary profile
+        if (hidesRoad) _cameraDiscoveries.Discover(track, GameplayView.RoadAligned);
         VwCheck(_cameraDiscoveries.Discover(track, GameplayView.Bonnet) && _cameraDiscoveries.Discover(track, GameplayView.Cinematic), "BONNET and CINEMATIC unlocked on the temporary profile through the discovery API");
         for (int i = 0; i < 10; i++) yield return null;
         s = null;

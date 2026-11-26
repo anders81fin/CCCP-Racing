@@ -18,9 +18,12 @@ public partial class PhysicsTest
         string one = PlayerFiles.Dir(root, 1), two = PlayerFiles.Dir(root, 2);
         var settings = new ConfigFile(); settings.SetValue("driver", "name", "TEST DRIVER"); settings.Save(one + "settings.cfg");
         var discoveries = new CameraDiscoveries(one);
-        Check(discoveries.Next("ilyich", GameplayView.TopDown) == GameplayView.Classic && discoveries.Next("ilyich", GameplayView.Classic) == GameplayView.RoadAligned && discoveries.Next("ilyich", GameplayView.RoadAligned) == GameplayView.TopDown
-            && discoveries.Has("ilyich", GameplayView.TopDown) && discoveries.Has("ilyich", GameplayView.Classic) && !discoveries.HasAlternative("ilyich"),
-            "camera discoveries: new files have directed and classic without finding anything, and no found camera");
+        Check(discoveries.Next("ilyich", GameplayView.TopDown) == GameplayView.Classic && discoveries.Next("ilyich", GameplayView.Classic) == GameplayView.TopDown
+            && discoveries.Has("ilyich", GameplayView.TopDown) && discoveries.Has("ilyich", GameplayView.Classic) && !discoveries.Has("ilyich", GameplayView.RoadAligned) && !discoveries.HasAlternative("ilyich"),
+            "camera discoveries: new files have directed and classic without finding anything, and no found camera; Ilyich hides its road-aligned view");
+        Check(discoveries.Next("custom-test-track", GameplayView.Classic) == GameplayView.RoadAligned && discoveries.Next("custom-test-track", GameplayView.RoadAligned) == GameplayView.TopDown
+            && !discoveries.HasAlternative("custom-test-track") && !discoveries.Discover("custom-test-track", GameplayView.RoadAligned),
+            "camera discoveries: a custom track (no hidden cameras) has the road-aligned view from the start");
         settings.SetValue("tutorial", "rally_seen", true); settings.Save(one + "settings.cfg");
         Check(discoveries.Discover("ilyich", GameplayView.Bonnet) && !discoveries.Discover("ilyich", GameplayView.Bonnet),
             "camera discoveries: a secret is awarded once");
@@ -29,9 +32,11 @@ public partial class PhysicsTest
         Check(reloaded.Has("ilyich", GameplayView.Bonnet) && !reloaded.Has("siberia", GameplayView.Bonnet)
             && settings.GetValue("driver", "name").AsString() == "TEST DRIVER" && settings.GetValue("tutorial", "rally_seen").AsBool(),
             "camera discoveries: survive reload, stay on their track and preserve other profile settings");
-        Check(reloaded.Next("ilyich", GameplayView.Classic) == GameplayView.Bonnet && reloaded.Next("ilyich", GameplayView.Bonnet) == GameplayView.RoadAligned && reloaded.Next("ilyich", GameplayView.RoadAligned) == GameplayView.TopDown,
-            "camera discoveries: camera switching skips a locked cinematic view");
+        Check(reloaded.Next("ilyich", GameplayView.Classic) == GameplayView.Bonnet && reloaded.Next("ilyich", GameplayView.Bonnet) == GameplayView.TopDown,
+            "camera discoveries: camera switching skips the locked cinematic and road-aligned views");
         reloaded.Discover("ilyich", GameplayView.Cinematic);
+        Check(reloaded.Next("ilyich", GameplayView.CinematicFar) == GameplayView.TopDown, "camera discoveries: Ilyich's road-aligned view stays locked until the mill camera is found");
+        Check(reloaded.Discover("ilyich", GameplayView.RoadAligned) && new CameraDiscoveries(one).Has("ilyich", GameplayView.RoadAligned), "camera discoveries: the mill camera opens the road-aligned view and it survives reload");
         Check(reloaded.Next("ilyich", GameplayView.Classic) == GameplayView.Bonnet && reloaded.Next("ilyich", GameplayView.Bonnet) == GameplayView.CinematicClose && reloaded.Next("ilyich", GameplayView.CinematicClose) == GameplayView.Cinematic
             && reloaded.Next("ilyich", GameplayView.Cinematic) == GameplayView.CinematicFar && reloaded.Next("ilyich", GameplayView.CinematicFar) == GameplayView.RoadAligned && reloaded.Next("ilyich", GameplayView.RoadAligned) == GameplayView.TopDown
             && reloaded.Has("ilyich", GameplayView.CinematicClose) && reloaded.Has("ilyich", GameplayView.CinematicFar) && !reloaded.Has("siberia", GameplayView.CinematicFar),
@@ -47,7 +52,7 @@ public partial class PhysicsTest
             "follow-behind rigs: close, medium and far hang at clearly different distances and heights");
         PlayerFiles.Activate(root, 2);
         var other = new CameraDiscoveries(two); other.Discover("siberia", GameplayView.Cinematic);
-        Check(!other.Has("ilyich", GameplayView.Bonnet) && PlayerFiles.Read(root, 1).Cameras == 2 && PlayerFiles.Read(root, 2).Cameras == 1,
+        Check(!other.Has("ilyich", GameplayView.Bonnet) && PlayerFiles.Read(root, 1).Cameras == 3 && PlayerFiles.Read(root, 2).Cameras == 1,
             "camera discoveries: each personnel file owns and displays its own finds");
         PlayerFiles.Erase(root, 1);
         Check(!new CameraDiscoveries(one).HasAlternative("ilyich") && new CameraDiscoveries(two).Has("siberia", GameplayView.Cinematic),

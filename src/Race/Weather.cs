@@ -58,6 +58,9 @@ public partial class Weather : Node3D
     readonly RandomNumberGenerator _rng = new() { Seed = 1986 };
     float _level, _rainNow, _flashT = -1, _thunderIn = -1, _thunder, _nextStrike = 5f, _lp, _lp2, _rumble, _dbg;
     const float MixRate = 22050f;
+    const float LeadTime = 0.5f, MaxLead = 25f;
+    Vector3 _lastPos, _lead;
+    bool _hasLast;
 
     /// <summary>The world tape's host: each strike is an effect event (the thunder's delay in Param, 0.4 s of flash and 3.2 s of rumble in its life).</summary>
     public CCCPRacing.Race.ITapeFxHost TapeFx;
@@ -101,7 +104,7 @@ public partial class Weather : Node3D
                 Preprocess = 1.1f,
                 LocalCoords = false,
                 EmissionShape = CpuParticles3D.EmissionShapeEnum.Box,
-                EmissionBoxExtents = new Vector3(30f, 1f, 24f),
+                EmissionBoxExtents = new Vector3(30f, 7f, 24f),
                 Direction = new Vector3(0.12f, -1f, 0.05f),
                 Spread = 4f,
                 InitialVelocityMin = 15f,
@@ -131,10 +134,25 @@ public partial class Weather : Node3D
     public void Tick(float clock, float dt)
     {
         _rainNow = RainAt(clock);
+        // The drops stay in the world while the car drives on: a box that only starts 14 m up and sits on the car leaves a fast car without drops
+        // near the road. It spans from the car's level up to 14 m and leads the car by half a second of driving (smoothed, so a seek does not throw it).
+        if (Target != null)
+        {
+            var pos = Target.GlobalPosition;
+            var want = Vector3.Zero;
+            if (_hasLast && dt > 0)
+            {
+                want = (pos - _lastPos) / dt * LeadTime;
+                want.Y = 0;
+                if (want.Length() > MaxLead) want = want.Normalized() * MaxLead;
+            }
+            _lastPos = pos; _hasLast = true;
+            _lead = _lead.Lerp(want, Mathf.Min(1f, dt * 3f));
+        }
         Surfaces.Wetness = _wet = WetAt(clock);
         for (int k = 0; k < 3; k++)
         {
-            if (Target != null) _rain[k].GlobalPosition = Target.GlobalPosition + Vector3.Up * 14f;
+            if (Target != null) _rain[k].GlobalPosition = Target.GlobalPosition + _lead + Vector3.Up * 7f;
             _rain[k].Emitting = _rainNow > LayerFrom[k];
         }
 

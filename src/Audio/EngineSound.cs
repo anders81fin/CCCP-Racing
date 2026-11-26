@@ -46,9 +46,24 @@ public partial class EngineSound : Node
     public bool Boosted;
     // The fuels' voices: the diesel's knock, the turbo and the nitro.
     bool _blowArmed;
-    float _blowAge;
-    double _blowPhase, _blowTonePhase;
-    float _knock, _tick, _tickLp, _knockLp, _boost, _blow, _blowLp, _nitro, _nitroLp, _whomp, _dieselLp, _prevThrottle;
+    // The turbo's three voices, kept apart: the shaft's whistle (it spins down slowly, with the shaft's inertia), the intake side's blow-off (a short vent of the charge pipe's pressure, once, at a lift) and,
+    // on the Sputnik, the wastegate (the exhaust side, held open by the boost at full throttle).
+    float _shaft, _liftTime, _vent, _ventDecay, _ventAttack = 1f, _ventLp, _ventTop, _wastegate, _wastegateLp;
+    /// <summary>The Sputnik's anti-lag is running (the pedal up, the revs high: the pipe crackles): the shaft is kept spinning, so the whistle does not die away. Set by the scene, which makes the bangs.</summary>
+    public bool AntiLag;
+    /// <summary>The shaft's spin-down time (s), against the boost's 0.18 s that the engine's power follows: a compressor wheel coasts.</summary>
+    public const float ShaftSpoolDown = 0.7f;
+    /// <summary>How much of the shaft's speed anti-lag keeps (the share of the revs' own, 0..1).</summary>
+    public const float AntiLagShaft = 0.6f;
+    /// <summary>A lift's vent is heard when the pressure left to vent is at least this (0..1); below it the pedal came up with hardly any boost on.</summary>
+    public const float VentMin = 0.07f;
+    // The turbo's voices of the last sample and the shaft's speed (offline tests and auditions only).
+    internal float VoiceWhistle, VoiceVent, VoiceWastegate;
+    /// <summary>The bangs and the explosions asked of this voice so far (tests count them to see when a car crackles).</summary>
+    internal int Reports, Explosions;
+    internal float Shaft => _shaft;
+    internal float BoostNow => _boost;
+    float _knock, _tick, _tickLp, _knockLp, _boost, _blowLp, _nitro, _nitroLp, _whomp, _dieselLp;
     double _dieselKnockPhase, _whistlePhase, _whistle2Phase, _whompPhase;
     bool _wasBoosted;
     // Mix calibration, not driving state. Keep internal so offline auditions can use the old mix.
@@ -262,6 +277,7 @@ public partial class EngineSound : Node
     /// <summary>Exhaust backfire: sharp crack, a body of noise and a low boom (0..1).</summary>
     public void Bang(float strength)
     {
+        Reports++;
         float a = Math.Clamp(strength, 0.3f, 1f);
         _bangCrack = a;
         _bangBody = a;
@@ -274,6 +290,7 @@ public partial class EngineSound : Node
     /// <summary>The rocket fuel's turbo-lift detonation: a Bang with a big low thump and a fat burst of noise behind it, nearly an explosion (0..1).</summary>
     public void Explosion(float strength)
     {
+        Explosions++;
         float a = Math.Clamp(strength, 0.4f, 1f);
         Bang(1f);
         _expl = a;
@@ -453,6 +470,9 @@ public partial class EngineSound : Node
         return _gBand;
     }
 
+    /// <summary>0 below e0, 1 above e1, a smooth step between.</summary>
+    static float Smooth01(float e0, float e1, float x) { float t = Math.Clamp((x - e0) / (e1 - e0), 0f, 1f); return t * t * (3f - 2f * t); }
+
     /// <summary>The next sample of the car's sound (the tests render it offline, no audio server).</summary>
     public float NextSample()
     {
@@ -598,38 +618,68 @@ public partial class EngineSound : Node
                 engine = Mathf.Lerp(engine, _dieselLp, .75f);
                 engine = MathF.Tanh(engine * 1.5f) * .75f;
             }
-            // Rocket fuel: the turbo spools up with the throttle and the revs (about half a second), whistles higher the more boost, blows off when the throttle lifts;
+            // Rocket fuel: the turbo spools up with the throttle and the revs (about half a second), whistles higher the more boost and vents its pressure when the throttle lifts;
             // and the OCTANE BOOSTER's nitro: a whomp as it lights, then a hiss over a deeper roar.
+            // The voices are kept apart. The boost (0.18 s down) is the pressure in the charge pipe and what the engine's power follows; the shaft (0.7 s down) is what whistles, so the whistle
+            // outlives the boost; the vent is one short, smooth rush of air (no flutter: a lift does not make the compressor surge) whose length and loudness follow the pressure there is to
+            // vent: a quick lift off full boost is a clear "psht", a pedal let up slowly has already let the pressure into the engine and vents little, and a lift with hardly any boost nearly nothing.
             float turbo = 0, nitro = 0;
+            VoiceWhistle = VoiceVent = VoiceWastegate = 0;
             if (Grade == 2)
             {
-                float want = Math.Clamp(Throttle, 0f, 1f) * Math.Clamp((_rpmSmooth - 2500f) / 3500f, 0f, 1f);
+                float rpmShare = Math.Clamp((_rpmSmooth - 2500f) / 3500f, 0f, 1f);
+                float want = Math.Clamp(Throttle, 0f, 1f) * rpmShare;
                 _boost += (want - _boost) * (want > _boost ? 1f / (TurboSpool * MixRate) : 1f / (0.18f * MixRate));
-                // The lift-off: the pedal was down (armed above 0.6) and is now nearly up (below 0.3), however fast or in however many steps, with some boost on.
-                if (Throttle > .6f) _blowArmed = true;
-                else if (Throttle < .3f && _blowArmed)
+                float shaftWant = FiveCylinder && AntiLag ? Math.Max(want, AntiLagShaft * rpmShare) : want;
+                _shaft += (shaftWant - _shaft) * (shaftWant > _shaft ? 1f / (TurboSpool * MixRate) : 1f / (ShaftSpoolDown * MixRate));
+                // The lift-off: the pedal was down (armed above 0.6) and is now nearly up (below 0.3), however fast or in however many steps; the time it spent between the two says how fast.
+                if (Throttle > .6f) { _blowArmed = true; _liftTime = 0; }
+                else if (_blowArmed)
                 {
-                    _blowArmed = false;
-                    if (_boost > .3f) { _blow = Math.Max(_blow, .5f + .5f * _boost); _blowAge = 0; _blowPhase = 0; _blowTonePhase = 0; }
+                    _liftTime += 1f / MixRate;
+                    if (Throttle < .3f)
+                    {
+                        _blowArmed = false;
+                        float quick = 1f - Smooth01(.06f, .30f, _liftTime);      // a pedal that came off in under 60 ms is 1, one that took 0.3 s (a second all the way) is 0
+                        float left = _boost * (.3f + .7f * quick);               // the pressure there is still to vent
+                        if (left >= VentMin)
+                        {
+                            _vent = Math.Max(_vent, left);
+                            float ventTau = (.05f + .07f * left) * (FiveCylinder ? .7f : 1f);
+                            _ventDecay = MathF.Exp(-1f / (ventTau * MixRate));
+                            _ventAttack = 0;
+                        }
+                    }
                 }
-                _prevThrottle = Throttle;
-                float b2 = _boost * _boost;
-                _whistlePhase += (1800.0 + 2800.0 * _boost) / MixRate;
-                _whistle2Phase += (3650.0 + 5600.0 * _boost) / MixRate;
+                float b2 = _shaft * _shaft;
+                _whistlePhase += (1800.0 + 2800.0 * _shaft) / MixRate;
+                _whistle2Phase += (3650.0 + 5600.0 * _shaft) / MixRate;
                 _blowLp += (noise - _blowLp) * .35f;
-                turbo = ((float)Math.Sin(_whistlePhase * Math.Tau) + .25f * (float)Math.Sin(_whistle2Phase * Math.Tau)) * b2 * .14f
-                    + (noise - _blowLp) * b2 * .06f;
-                if (_blow > .001f)
+                VoiceWhistle = ((float)Math.Sin(_whistlePhase * Math.Tau) + .25f * (float)Math.Sin(_whistle2Phase * Math.Tau)) * b2 * .14f;
+                float airflow = (noise - _blowLp) * _boost * _boost * .06f;      // the rush of air through the compressor under load: the pressure's, not the shaft's
+                if (_vent > .001f)
                 {
-                    // The blow-off: a rush of air that flutters, "fh-ty-ty-ty-ty" (the compressor surging against the closed throttle) and settles into a hiss, with a falling whistle in it.
-                    _blowAge += 1f / MixRate;
-                    float settle = Math.Clamp(1f - _blowAge / .9f, 0f, 1f);
-                    _blowPhase += (24.0 - 10.0 * (1f - settle)) / MixRate;
-                    float gate = Mathf.Lerp(1f, (_blowPhase % 1.0) < .5 ? 1f : .15f, settle);
-                    _blowTonePhase += (3200.0 - 1700.0 * Math.Min(1f, _blowAge / .8f)) / MixRate;
-                    turbo += ((noise - _blowLp) * .38f + (float)Math.Sin(_blowTonePhase * Math.Tau) * .07f) * _blow * gate;
+                    _ventAttack = Math.Min(1f, _ventAttack + 1f / (.004f * MixRate));
+                    // The intake side's vent: a high-passed rush of air, brighter at high pressure and softer as it falls; the Sputnik's is duller and lower.
+                    _ventLp += (noise - _ventLp) * (FiveCylinder ? .09f + .07f * Math.Min(1f, _vent * 1.5f) : .22f + .13f * Math.Min(1f, _vent * 1.5f));
+                    float rush = noise - _ventLp;
+                    if (FiveCylinder) { _ventTop += (rush - _ventTop) * .5f; rush = _ventTop * .85f; }
+                    VoiceVent = rush * (FiveCylinder ? .30f : .38f) * _vent * _ventAttack;
+                    _vent *= _ventDecay;
                 }
-                _blow *= .99994f;      // the blow-off: ~0.75 s
+                if (FiveCylinder)
+                {
+                    // The wastegate: the exhaust side, open while the boost is held at its limit with the pedal down; a rasp of the exhaust that beats with the five's own uneven firings (never at a lift).
+                    float wgWant = Throttle > .6f ? Smooth01(.8f, 1f, _boost) : 0f;
+                    _wastegate += (wgWant - _wastegate) * (wgWant > _wastegate ? 1f / (.05f * MixRate) : 1f / (.05f * MixRate));
+                    if (_wastegate > .001f)
+                    {
+                        _wastegateLp += (noise - _wastegateLp) * .30f;
+                        float chuff = .12f + .88f * Math.Max(0f, MathF.Sin(angle));
+                        VoiceWastegate = (noise - _wastegateLp) * chuff * _wastegate * _fiveAmp * .05f;
+                    }
+                }
+                turbo = VoiceWhistle + airflow + VoiceVent + VoiceWastegate;
             }
             if (Boosted && !_wasBoosted) { _whomp = 1f; _whompPhase = 0; }
             _wasBoosted = Boosted;

@@ -30,13 +30,14 @@ public interface IGround
 /// BreakAt: impact speed (m/s) at which it gives way (trees, poles, stone walls, see Breakables); 0 never.
 /// Crumbles: when it gives way the car goes on through (stone walls) instead of bouncing off.
 /// Loss: the speed (m/s) a crumbling obstacle takes off the car going through; below 0 a stone wall's.
+/// Source / Part: a moving vehicle that must be told what hit it (the duty officer's UAZ: his id and which of his circles); 0 for scenery. The car notes a contact for every obstacle that has a Source (CarSim.Contacts).
 /// </summary>
 /// <summary>Acoustic contact type; Unknown is the safe fallback for old recordings
 /// and obstacles without an authored material. This does not affect physics.</summary>
 public enum ImpactMaterial : byte { Unknown, Metal, Wood, Stone, Snow, Ground, Soft }
 
 public readonly record struct Obstacle(Vector2 Center, float Radius, Vector2 Velocity = default, bool Birch = false, float BreakAt = 0, bool Crumbles = false, float Loss = -1f,
-    ImpactMaterial Material = ImpactMaterial.Unknown);
+    ImpactMaterial Material = ImpactMaterial.Unknown, int Source = 0, int Part = 0);
 
 /// <summary>About 2 m of dry-stone wall: points Seg..Seg+1 of fence run Run, owning obstacles [First, First + Count).</summary>
 public readonly record struct WallSegment(int Run, int Seg, int First, int Count);

@@ -10,13 +10,17 @@ public static class CameraSecrets
     public readonly record struct Spot(GameplayView View, Vector2 Position, float Yaw = 0f);
     /// <summary>The yaw that turns a camera's lens (-Z) towards a point.</summary>
     static float Facing(Vector2 from, Vector2 to) => Mathf.Atan2(from.X - to.X, from.Y - to.Y);
+    /// <summary>The yaw for a compass heading in degrees as the free camera shows it (0 = -Z, 90 = +X).</summary>
+    static float Heading(float degrees) => Mathf.DegToRad(-degrees);
+    /// <summary>True when this track hides its road-aligned camera somewhere; elsewhere that view is always there.</summary>
+    public static bool HidesRoadAligned(string track) => System.Linq.Enumerable.Any(Layout(track), s => s.View == GameplayView.RoadAligned);
     public static IReadOnlyList<Spot> Layout(string track) => track switch
     {
-        // (The monument's camera looks at the church; Ilyich's bonnet camera belongs to the live duck and stands on its back.)
-        "ilyich" => new[] { new Spot(GameplayView.Cinematic, new(56, 164), Facing(new(56, 164), new(49, 191))) },
-        "siberia" => new[] { new Spot(GameplayView.Bonnet, new(188, 265)), new Spot(GameplayView.Cinematic, new(260, 156)) },
-        "atomgrad" => new[] { new Spot(GameplayView.Bonnet, new(155, 249)), new Spot(GameplayView.Cinematic, new(86, 145)) },
-        "bonus" => new[] { new Spot(GameplayView.Bonnet, new(94, 48)), new Spot(GameplayView.Cinematic, new(266, 159)) },
+        // (Ilyich's bonnet camera belongs to the live duck and stands on its back; every track hides a road-aligned camera too.)
+        "ilyich" => new[] { new Spot(GameplayView.Cinematic, new(61, 169), Heading(180)), new Spot(GameplayView.RoadAligned, new(290, 260), Heading(211)) },
+        "siberia" => new[] { new Spot(GameplayView.Bonnet, new(188, 265), Heading(180)), new Spot(GameplayView.Cinematic, new(260, 156), Heading(180)), new Spot(GameplayView.RoadAligned, new(140, 12), Heading(180)) },
+        "atomgrad" => new[] { new Spot(GameplayView.Bonnet, new(155, 249), Heading(180)), new Spot(GameplayView.Cinematic, new(86, 145)), new Spot(GameplayView.RoadAligned, new(303, 173), Heading(180)) },
+        "bonus" => new[] { new Spot(GameplayView.Bonnet, new(94, 47), Heading(180)), new Spot(GameplayView.Cinematic, new(240, 122), Heading(180)), new Spot(GameplayView.RoadAligned, new(221, 219), Heading(180)) },
         _ => System.Array.Empty<Spot>()
     };
     public static Node3D Build(TrackData track)

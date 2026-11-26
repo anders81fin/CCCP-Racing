@@ -174,6 +174,21 @@ public partial class CarSim
         new(-0.72f, 0.9f, 0.6f),    new(0.72f, 0.9f, 0.6f),
     };
     public static readonly float[] CollisionCircleZ = { -1.3f, 0f, 1.3f };
+    /// <summary>The collision circle at the tail (CollisionCircleZ is along the car's local Z, and the nose is -Z): index 2. The nose is index 0.</summary>
+    public const int RearCircle = 2, NoseCircle = 0;
+
+    /// <summary>
+    /// One contact of a car's circle with an obstacle that has a Source (a moving vehicle that wants to know what touched it): which source and part, which circle of the car, how fast they were closing (m/s),
+    /// the impulse the collision response gave (N s, the response of CollideObstacles itself) and the contact normal, from the obstacle towards the car, in the car's own frame and in the world (x, z).
+    /// Serial counts up for ever; a reader keeps the last one it has seen.
+    /// </summary>
+    public readonly record struct ObstacleContact(long Serial, int Source, int Part, int Obstacle, int CarCircle, float Closing, float Impulse, Vector3 LocalNormal, Vector2 WorldNormal);
+    const int MaxContacts = 16;
+    readonly List<ObstacleContact> _contacts = new();
+    long _contactSerial;
+    /// <summary>The most recent contacts (at most 16; the oldest drop out) with obstacles that have a Source.</summary>
+    public IReadOnlyList<ObstacleContact> Contacts => _contacts;
+    public long ContactSerial => _contactSerial;
     public const float CollisionRadius = 0.92f;
     const float G = 9.81f;
     /// <summary>Seconds of driving that wipe slurry or oil off a tyre completely (CarSim: Wheel.Slick).</summary>
@@ -1191,8 +1206,9 @@ public partial class CarSim
         if (Pos.Z < WorldMin) { Pos.Z = WorldMin; Vel.Z = Math.Abs(Vel.Z) * 0.3f; }
         if (Pos.Z > WorldMax) { Pos.Z = WorldMax; Vel.Z = -Math.Abs(Vel.Z) * 0.3f; }
 
-        foreach (float cz in CollisionCircleZ)
+        for (int circle = 0; circle < CollisionCircleZ.Length; circle++)
         {
+            float cz = CollisionCircleZ[circle];
             Vector3 rel = Rot * new Vector3(0, 0, cz);
             Vector2 c = new(Pos.X + rel.X, Pos.Z + rel.Z);
             // Indexed: a breaking obstacle is replaced in the list while we go.
@@ -1228,6 +1244,11 @@ public partial class CarSim
                 Vector3 before = Vel;
                 float rxn = rel.Cross(n).Y;
                 float j = -(1f + 0.25f) * vn / (1f / P.Mass + rxn * rxn / P.Inertia.Y);
+                if (o.Source != 0)
+                {
+                    if (_contacts.Count >= MaxContacts) _contacts.RemoveAt(0);
+                    _contacts.Add(new ObstacleContact(++_contactSerial, o.Source, o.Part, i, circle, -vn, j, Rot.Transposed() * n, n2));
+                }
                 Vel += n * j / P.Mass;
                 AngVel.Y += rxn * j / P.Inertia.Y;
                 // Scrape along the obstacle.

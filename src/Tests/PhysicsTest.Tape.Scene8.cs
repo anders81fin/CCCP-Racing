@@ -88,7 +88,7 @@ public partial class PhysicsTest
     {
         new("ilyich", new[] { "None:PartyOfficialRowing", "None:PondMallard", "None:VillageLife", "None:WaterMill" }, new string[0], new string[0], false),
         new("siberia", new[] { "None:Radar", "None:Beacon0" }, new string[0], new string[0], false),
-        new("atomgrad", new[] { "None:Weather", "None:Beacon0" }, new[] { "--time-of-day=0.55" }, new string[0], false),
+        new("atomgrad", new[] { "None:Weather", "None:FerrisWheel", "None:Beacon0" }, new[] { "--time-of-day=0.55" }, new string[0], false),
         new("bonus", new[] { "Jets:FieldKitchen", "Jets:FieldCombine", "None:EngineEffects" }, new string[0], new[] { "engine@10" }, false),
     };
 
@@ -96,7 +96,7 @@ public partial class PhysicsTest
     {
         string only = OS.GetCmdlineUserArgs().FirstOrDefault(x => x.StartsWith("--cover-track="))?["--cover-track=".Length..];
         foreach (var t in CoverTracks2) if (only == null || only == t.Id) TapeScene8Track(t, "scene 16");
-        string[] fresh = { "None:PartyOfficialRowing", "None:PondMallard", "None:VillageLife", "None:WaterMill", "None:Radar", "None:Beacon0", "None:Weather", "Jets:FieldKitchen", "Jets:FieldCombine", "None:EngineEffects" };
+        string[] fresh = { "None:PartyOfficialRowing", "None:PondMallard", "None:VillageLife", "None:WaterMill", "None:Radar", "None:Beacon0", "None:Weather", "None:FerrisWheel", "Jets:FieldKitchen", "Jets:FieldCombine", "None:EngineEffects" };
         foreach (var (id, covered) in CoverOlderTapes) if (only == null || only == id) TapeScene8Older(id, covered, fresh, "scene 16");
     }
 

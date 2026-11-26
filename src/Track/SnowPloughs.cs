@@ -208,12 +208,32 @@ public partial class SnowPloughs : Node3D
                 float gap = (o.Pos - p.Pos).Dot(p.Fwd);
                 if (gap > -12f && gap < 70f && (o.Pos - p.Pos).Length() < 75f) lane = PassShare;
             }
+            float wasS = p.S, wasLane = p.Lane;
             p.Lane = Mathf.MoveToward(p.Lane, lane, 0.35f * dt);
             p.Speed = Mathf.MoveToward(p.Speed, target, (target < p.Speed ? 4f : 1.2f) * dt);
             p.S = ((p.S + sign * p.Speed * dt) % n + n) % n;
+            // The last word: a car or a held Kozlik that turned up too late for the braking above (MoverBlockers, GulagTruck.Solids) is never driven into. The plough
+            // stops where it is; a move that only gets it further out of one (the car parked into its blade) is still allowed.
+            float deeper = BlockerOverlap(p, p.S, p.Lane);
+            if (deeper > 0f && deeper > BlockerOverlap(p, wasS, wasLane) + 1e-4f) { p.S = wasS; p.Lane = wasLane; p.Speed = 0f; }
             p.Odo += p.Speed * dt;
             Place(p, dt);
         }
+    }
+
+    /// <summary>How deep (m) the plough's circles at road metre s and lane would be in the cars, the held Kozlik or the gulag truck and its people (0: clear).</summary>
+    float BlockerOverlap(Plough p, float s, float laneShare)
+    {
+        var (pos, fwd) = RoadPose(_t, s, p.Against, laneShare);
+        Vector2 right = new(-fwd.Y, fwd.X);
+        float worst = 0f;
+        foreach (var (x, z, r) in p.Mixer ? MixerCircles : Circles)
+        {
+            Vector2 at = pos + (right * x - fwd * z) * Size;
+            foreach (var b in GulagTruck.Solids)
+                worst = Math.Max(worst, r * Size + b.Radius + 0.1f - at.DistanceTo(b.Centre));
+        }
+        return worst;
     }
 
     /// <summary>One of the ploughs' own obstacle circles (they keep clear of each other by their convoy and lane rules).</summary>

@@ -46,6 +46,9 @@ public partial class PhysicsTest : Node
     public override void _Ready()
     {
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--kozlik-overtake-test")){KozlikOvertakeTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--plough-surface-tests")){PloughSurfaceTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--kozlik-ram-tests")){KozlikRamTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--kozlik-steering-tests")){KozlikSteeringTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--kozlik-gulag-test")){KozlikGulagTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--tank-roam-test")){TankRoamTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--atomgrad-solid-test")){AtomgradSolidTest();GetTree().Quit(_failures==0?0:1);return;}
@@ -262,6 +265,8 @@ public partial class PhysicsTest : Node
         { TrackDigest(); GetTree().Quit(0); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--mover-contact-tests"))
         { MoverContactTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--gai-stop-traffic-tests"))
+        { GaiStopTrafficTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--sputnik-program-tests"))
         { SputnikProgramTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--prisoner-knee-tests"))
@@ -302,6 +307,8 @@ public partial class PhysicsTest : Node
         { string name = ps["--print-setting=".Length..]; GD.Print($"SETTING {name} = {(ProjectSettings.HasSetting(name) ? ProjectSettings.GetSetting(name).ToString() : "<not set>")}");GetTree().Quit();return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--norm-card-tests"))
         { NormCardTest();GetTree().Quit(_failures==0?0:1);return; }
+        if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--turbo-sound-tests"))
+        { TurboSoundTest();GetTree().Quit(_failures==0?0:1);return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--custom-track-tests"))
         { CustomTracksTest(); CustomTrackCliTest(); CustomTrackFailureLoopTest(); CustomTrackRecordsTest(); CustomTrackDriveTest(); GetTree().Quit(_failures==0?0:1);return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--pause-rows-tests"))
@@ -524,6 +531,7 @@ public partial class PhysicsTest : Node
             GulagWalkingTest();
             SchoolFramingTest();
             KozlikSteeringTest();
+            KozlikRamTest();
             GetTree().Quit(_failures == 0 ? 0 : 1);
             return;
         }
@@ -607,6 +615,9 @@ public partial class PhysicsTest : Node
         ClutchCoast();
         ClutchDump();
         AirborneEngineTest();
+        TurboSoundTest();
+        KozlikRamTest();
+        PloughSurfaceTest();
         Launch(SurfaceType.Gravel);
         Launch(SurfaceType.Mud);
         OffRoadSurfaces();
@@ -686,6 +697,7 @@ public partial class PhysicsTest : Node
         PrisonerKneeTest();
         SputnikProgramTest();
         MoverContactTest();
+        GaiStopTrafficTest();
         BonusTreeTest();
         ExportCardDefaultsTest();
         RoadWarningsTest();

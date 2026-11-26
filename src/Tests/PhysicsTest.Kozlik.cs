@@ -73,9 +73,18 @@ public partial class PhysicsTest
                 patrol.StopChase(); patrol.GuardAtTrap(); patrol.StartChase();
                 bool caught = false; float kissDistance = 99f;
                 patrol.Caught += () => { caught = true; kissDistance = patrol.Position2D.DistanceTo(new Vector2(car.Pos.X, car.Pos.Z)); };
+                // The fine is a real rear-end collision now: the car stands with its brake on and is stepped (its collision response against the track's obstacles, where his circles are), he comes in and strikes it.
+                car.Obstacles = track.Obstacles;
                 SchoolScript.SetRolling(car, track, SchoolScript.RoadPoint(track, 185, -3), track.CenterDir(185), 0);
-                for (int frame = 0; frame < 60 * 30 && !caught; frame++) patrol.Tick(1f / 60, car, 0);
-                Check(caught && kissDistance < 4.7f && kissDistance > 3.2f, $"Kozlik: the duty officer catches the car by kissing its rear bumper (centres {kissDistance:F2} m apart), driven into at speed, not from a follow distance");
+                for (int frame = 0; frame < 60 * 30 && !caught; frame++)
+                {
+                    car.SetControls(false, false, 0f, true); car.Brake = 1f; car.Neutral = true;
+                    float hit = 0f; for (int sub = 0; sub < 2; sub++) { car.Step(1f / 120f); hit = Math.Max(hit, car.LastImpact); }
+                    patrol.Tick(1f / 60, car, hit);
+                }
+                Check(caught && kissDistance < 5.2f && kissDistance > 3.2f, $"Kozlik: the duty officer catches the car by driving into its rear bumper (centres {kissDistance:F2} m apart), a real collision at speed, not from a follow distance");
+                car.Vel = Vector3.Zero; car.AngVel = Vector3.Zero;      // (the car was shoved by the blow and is held from here on: the real game brakes it for the autograph)
+                for (int frame = 0; frame < 60 * 3; frame++) patrol.Tick(1f / 60, car, 0);      // (the autograph: he brakes behind the held car, as in the game, before it ends)
                 patrol.EndAutograph();
                 for (int frame = 0; frame < 60; frame++) patrol.Tick(1f / 60, car, 0);
                 Vector2 parkedAt = patrol.Position2D, parkedForward = patrol.Forward2D;

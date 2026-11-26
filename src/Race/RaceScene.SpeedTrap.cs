@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CCCPRacing.Car;
 using CCCPRacing.Track;
 using CCCPRacing.UI;
 using Godot;
@@ -88,7 +89,14 @@ public partial class RaceScene
     void GaiChaseTick(float dt)
     {
         if (_kozlik == null) return;
-        if (_autographT > 0)
+        _kozlik.WaitAtCrossing = KozlikWaitsAtCrossing(_zone, _kozlik);
+        // Never held on the rails (Atomgrad's level crossing, a ram right on it): the train keeps its timetable, so the car is the player's to drive off and the
+        // autograph's clock waits until the car and the Kozlik behind it are both clear of the train's way.
+        bool onRails = _autographT > 0 && _state == State.Racing && AutographOnRails();
+        if (!onRails) _kozlik.BackOffRails = false;
+        if (onRails != _autographOnRails) Log(onRails ? $"on the rails at {_clock:F1} s: the car is not held, the autograph waits" : $"clear of the rails at {_clock:F1} s");
+        _autographOnRails = onRails;
+        if (_autographT > 0 && !_autographOnRails)
         {
             float was = _autographT;
             _autographT -= dt;
@@ -109,12 +117,42 @@ public partial class RaceScene
     }
 
     /// <summary>The car stands still while the bear asks (as for the mechanic).</summary>
-    bool AutographHolds => _autographT > 0 && _state == State.Racing;
+    bool AutographHolds => _autographT > 0 && _state == State.Racing && !_autographOnRails;
+    bool _autographOnRails;
+
+    /// <summary>The car or the Kozlik (front, middle, back) stands where the train runs.</summary>
+    bool AutographOnRails() => AutographRailsTick(_zone, _kozlik, _car);
+
+    /// <summary>One tick of the autograph's rails rule: whether the car or the Kozlik is on the rails (the car is then not held and the clock waits). The Kozlik is never
+    /// left there: when the car is not driving away from him (it stopped too close past the line, or it stands on it), he is told to back off them.</summary>
+    internal static bool AutographRailsTick(ZoneLife zone, KozlikPatrol kozlik, CarSim car)
+    {
+        bool kozlikOn = KozlikOnRails(zone, kozlik.Position2D, kozlik.Forward2D);
+        kozlik.BackOffRails = kozlikOn && car.Speed < 1f;
+        return kozlikOn || CarOnRails(zone, new Vector2(car.Pos.X, car.Pos.Z));
+    }
+
+    /// <summary>After the autograph the Kozlik stands aside a while (KozlikPatrol's pause); by a level crossing that blinks it waits for the train to pass (a ram on the rails leaves him there).</summary>
+    internal static bool KozlikWaitsAtCrossing(ZoneLife zone, KozlikPatrol kozlik) =>
+        zone is { CrossingWarns: true } && zone.OnRails(kozlik.Position2D, KozlikPatrol.HalfLength + KozlikPatrol.BodyRadius + 8f);
+
+    internal static bool CarOnRails(ZoneLife zone, Vector2 car) => zone != null && zone.OnRails(car, CarSim.CollisionRadius + 1.3f);      // (the car's three circles, 1.3 m either side of its centre)
+
+    internal static bool KozlikOnRails(ZoneLife zone, Vector2 kozlik, Vector2 kozlikForward)
+    {
+        if (zone == null) return false;
+        for (int k = -1; k <= 1; k++)
+            if (zone.OnRails(kozlik + kozlikForward * (k * KozlikPatrol.HalfLength), KozlikPatrol.BodyRadius)) return true;
+        return false;
+    }
+
+    internal static bool AutographOnRails(ZoneLife zone, Vector2 car, Vector2 kozlik, Vector2 kozlikForward) => CarOnRails(zone, car) || KozlikOnRails(zone, kozlik, kozlikForward);
 
     void ResetGaiChase()
     {
         _chaseLap = -1;
         _autographT = 0;
+        _autographOnRails = false;
     }
 
     /// <summary>Per frame while racing: a pass through the radar, its reading, the book and the comment.</summary>

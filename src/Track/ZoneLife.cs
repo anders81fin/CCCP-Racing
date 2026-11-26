@@ -390,6 +390,18 @@ public partial class ZoneLife : Node3D
                 }
     }
 
+    /// <summary>Whether a body (a circle at p) stands where the train runs: the train's own 1.7 m circles along x = Train.X, north to the buffer, with half a metre to spare.
+    /// The GAI's autograph never holds a car here (RaceScene.SpeedTrap): the train keeps its timetable and stops for nothing.</summary>
+    public bool OnRails(Vector2 p, float radius)
+    {
+        var tr = _def?.Train;
+        if (tr == null || _train == null) return false;
+        return MathF.Abs(p.X - tr.X) < 1.7f + radius + 0.5f && p.Y > tr.End - 2f - radius;
+    }
+
+    /// <summary>The crossing's lamps blink: the train is coming, or on it.</summary>
+    public bool CrossingWarns => _train != null && _warned;
+
     /// <summary>The train runs on the rails along Z at x = Train.X, from off the map's south edge up
     /// to the siding's buffer (Train.End) and back, then waits a while; its front is the loco.</summary>
     void TickTrain(float dt, CarSim car)

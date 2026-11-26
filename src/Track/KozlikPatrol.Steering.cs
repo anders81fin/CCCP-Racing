@@ -21,7 +21,7 @@ public partial class KozlikPatrol
         float distance = to.Length();
         // A tight parking approach can require backing up. Stop before selecting the other
         // direction; neither changing gear nor steering may rotate a stationary vehicle.
-        bool parking = _mode is Mode.ToGuard or Mode.Back || _mode == Mode.Chase && _chaseOut;
+        bool parking = _mode is Mode.ToGuard or Mode.Back || _mode == Mode.Chase && _chaseOut || _mode == Mode.Autograph && (BackOffRails || _reverse);      // (backing off the rails in the autograph)
         float ahead = distance > 0.1f ? Forward2D.Dot(to / distance) : 0;
         bool wantReverse = parking && (ahead < -0.3f || _reverse && ahead < 0.3f);
         bool changeGear = wantReverse != _reverse;

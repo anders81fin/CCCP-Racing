@@ -1260,7 +1260,7 @@ public partial class RaceScene : Node3D
     void ClearCarFeedback()
     {
         _snd.ClearCollision(); _cam.ClearCollision(); _snd.ClearDrivetrain(); _snd.ClearBackfire();
-        _collisionQuiet = 0; _pops = 0; _popTimer = 0; _prevThrottle = 0; _popArmed = false;
+        _collisionQuiet = 0; _pops = 0; _popTimer = 0; _prevThrottle = 0; _popArmed = false; _antiLagWas = false;
         _heardPowerUpshifts = _car?.PowerUpshifts ?? 0;
     }
 
@@ -1301,41 +1301,64 @@ public partial class RaceScene : Node3D
         _prevThrottle = throttle;
 
         // The Sputnik's anti-lag: with the pedal up and the turbo still spinning or the revs high, the pipe keeps crackling, small bangs, now and then a bigger one with a flame.
-        if (EngineFuel == FuelGrade.Sputnik && !Replaying && (_state == State.Racing || CarTourActive) && throttle < 0.15f && rpm > _params.Redline * 0.4f && _pops == 0)
+        bool antiLag = AntiLagActive(throttle, rpm) && _pops == 0;
+        bool replayed = Replaying || ViewerMode;
+        if (antiLag)
         {
+            // A replay's crackle is the same every time: it starts at the beginning of the beat and draws from a generator seeded by the replay's clock at that moment.
+            if (!_antiLagWas && replayed) { SeedReplayBackfire(2); _antiLagBeat = 0; }
+            var rng = BackfireRng;
             _antiLagTimer -= dt;
             if (_antiLagTimer <= 0)
             {
                 float load = Math.Clamp((rpm / _params.Redline - 0.4f) / 0.5f, 0f, 1f);
                 _antiLagBeat = (_antiLagBeat + 1) % 5;      // the five-cylinder's beat: four quick ones and a longer breath
-                bool big = _rng.Randf() < (_antiLagBeat == 4 ? 0.5f : 0.08f);
-                float s = Math.Clamp(0.3f + 0.4f * load * _rng.RandfRange(0.5f, 1f), 0.3f, 0.7f);
-                if (big) { _snd.Explosion(0.55f + 0.25f * load); _fx.ExhaustFlame(_car, 1f, FuelGrades.PipeXs(EngineFuel)); _cam.Shake(0.05f * load); }
-                else { _snd.Bang(s); if (_rng.Randf() < 0.5f) _fx.ExhaustFlame(_car, 0.5f, FuelGrades.PipeXs(EngineFuel)); }
-                _antiLagTimer = AntiLagBeats[_antiLagBeat] * (1.5f - 0.6f * load) * _rng.RandfRange(0.85f, 1.15f);
+                bool big = rng.Randf() < (_antiLagBeat == 4 ? 0.5f : 0.08f);
+                float s = Math.Clamp(0.3f + 0.4f * load * rng.RandfRange(0.5f, 1f), 0.3f, 0.7f);
+                if (big) { _snd.Explosion(0.55f + 0.25f * load); _fx?.ExhaustFlame(_car, 1f, FuelGrades.PipeXs(EngineFuel)); if (!replayed) _cam?.Shake(0.05f * load); }      // (a replay's camera is not shaken by it)
+                else { _snd.Bang(s); if (rng.Randf() < 0.5f) _fx?.ExhaustFlame(_car, 0.5f, FuelGrades.PipeXs(EngineFuel)); }
+                _antiLagTimer = AntiLagPattern.Gap(_antiLagBeat, load, rng.RandfRange(0.85f, 1.15f));
             }
         }
         else _antiLagTimer = 0.05f;
+        _antiLagWas = antiLag;
 
         if (_pops <= 0) { _popBoom = false; return; }
         if (throttle > 0.5f) { _pops = 0; _popBoom = false; return; }
         _popTimer -= dt;
         if (_popTimer > 0) return;
-        float strength = _popStrength * _rng.RandfRange(0.6f, 1f);
+        var popRng = BackfireRng;
+        float strength = _popStrength * popRng.RandfRange(0.6f, 1f);
         if (_popBoom) _snd.Explosion(strength); else _snd.Bang(strength);
-        if (_popBoom) { _fx.ExhaustFlame(_car, 1f, FuelGrades.PipeXs(EngineFuel)); _cam.Shake(0.12f * strength); }
+        if (_popBoom) { _fx?.ExhaustFlame(_car, 1f, FuelGrades.PipeXs(EngineFuel)); _cam?.Shake(0.12f * strength); }
         if (_pops == 1) _popBoom = false;
         if (OS.HasEnvironment("DAMAGEDBG")) GD.Print($"feedback: exhaust pop at {(Replaying ? _replayClock : _raceClock):F3}");
-        _cam.Shake(0.06f * strength);
-        _fx.ExhaustFlame(_car, strength, FuelGrades.PipeXs(EngineFuel));
+        _cam?.Shake(0.06f * strength);
+        _fx?.ExhaustFlame(_car, strength, FuelGrades.PipeXs(EngineFuel));
         _pops--;
-        _popTimer = _rng.RandfRange(0.06f, 0.22f);
+        _popTimer = popRng.RandfRange(0.06f, 0.22f);
     }
+
+    bool SputnikOverrun(float throttle, float rpm) =>
+        EngineFuel == FuelGrade.Sputnik && _collisionQuiet <= 0 && throttle < 0.15f && rpm > _params.Redline * 0.4f;
+
+    bool AntiLagActive(float throttle, float rpm) =>
+        (Replaying || ViewerMode || _state == State.Racing || CarTourActive) && SputnikOverrun(throttle, rpm);
+
+    /// <summary>The generator of the exhaust's bangs: the scene's own in live play (its draws are what they always were), a generator of the replay's own in a replay and the viewer.</summary>
+    /// <summary>The engine's held whistle (the sound's AntiLag): the anti-lag's own rule, never in a pause.</summary>
+    bool AntiLagWhistle(bool paused) => !paused && AntiLagActive(_car.Throttle, _car.Rpm);
+
+    RandomNumberGenerator BackfireRng => Replaying || ViewerMode ? _replayBackfireRng : _rng;
+    readonly RandomNumberGenerator _replayBackfireRng = new();
+    bool _antiLagWas;
+
+    /// <summary>Seeds the replay's generator from the replay's clock (to the millisecond) and a salt for the kind of burst: a physics tick is fixed, so the same replay gives the same seed every time it plays.</summary>
+    void SeedReplayBackfire(int salt) => _replayBackfireRng.Seed = unchecked((ulong)(long)MathF.Round(_replayClock * 1000f) * 0x9E3779B97F4A7C15UL ^ (ulong)salt * 0xC2B2AE3D27D4EB4FUL);
 
     bool _popArmed;
     float _antiLagTimer;
     int _antiLagBeat;
-    static readonly float[] AntiLagBeats = { 0.06f, 0.06f, 0.07f, 0.09f, 0.26f };
 
     /// <summary>The SPUTNIK's wastegate: a puff of white from the thin pipe beside the fat one, as the throttle is lifted with the turbo spinning (the blow-off's sound is the engine's).</summary>
     void WastegatePuff()
@@ -1344,16 +1367,20 @@ public partial class RaceScene : Node3D
         if (boost < 0.2f) return;
         Vector3 tip = _car.Pos + _car.Rot * new Vector3(0.60f, -0.30f, 2.02f);
         for (int i = 0; i < 4; i++)
-            _fx.Smoke(tip, _car.Vel * 0.6f + _car.Rot * new Vector3(_rng.RandfRange(-0.3f, 0.5f), _rng.RandfRange(0.2f, 0.6f), _rng.RandfRange(2.5f, 4.5f)),
+            _fx?.Smoke(tip, _car.Vel * 0.6f + _car.Rot * new Vector3(_rng.RandfRange(-0.3f, 0.5f), _rng.RandfRange(0.2f, 0.6f), _rng.RandfRange(2.5f, 4.5f)),
                 new Color(0.9f, 0.92f, 0.95f), 0.5f + 0.3f * boost, 0.12f, 0.8f + 0.5f * boost, _rng.RandfRange(0.35f, 0.6f));
     }
     void PopBurst(float rpm)
     {
-        _pops = _rng.RandiRange(2, 5);
-        _popTimer = _rng.RandfRange(0.03f, 0.12f);
-        _popStrength = Math.Clamp(rpm / (_params.Redline * 0.93f), 0.5f, 1f);
         if (EngineFuel == FuelGrade.Sputnik) WastegatePuff();
-        if (EngineFuel is FuelGrade.Rocket or FuelGrade.Sputnik && _car.TurboGain > 0f) { _pops += 2; _popStrength = 1f; _popBoom = true; }      // the lift on the turbo: detonations, with the blow-off
+        // On a full lift, let Sputnik's anti-lag supply the exhaust crackle instead of queuing an explosion burst ahead of it.
+        if (AntiLagActive(0f, rpm)) return;
+        if (Replaying || ViewerMode) SeedReplayBackfire(1);      // (a replay's pops are the same every time: seeded by the replay's clock at the lift)
+        var rng = BackfireRng;
+        _pops = rng.RandiRange(2, 5);
+        _popTimer = rng.RandfRange(0.03f, 0.12f);
+        _popStrength = Math.Clamp(rpm / (_params.Redline * 0.93f), 0.5f, 1f);
+        if (EngineFuel == FuelGrade.Rocket && _car.Boost > 0.2f) { _pops += 2; _popStrength = 1f; _popBoom = true; }
     }
     float _popStrength = 1f;
     bool _popBoom;      // this burst is the rocket fuel's: every pop an explosion
@@ -2030,6 +2057,8 @@ public partial class RaceScene : Node3D
         if (_engineFuelApplied != EngineFuel) ApplyFuelEngine();      // (a replay, the viewer or the title shows the car of the lap's fuel: its redline on the tachometer too)
         _snd.TurboSpool = _params.TurboSpool;
         _snd.FiveCylinder = EngineFuel == FuelGrade.Sputnik;
+        // A replay provides the recorded throttle and revs for the held whistle and the crackle (AntiLagActive).
+        _snd.AntiLag = AntiLagWhistle(paused);
         // The five-cylinder shows: the whole car trembles in a beat of five at idle and the fat pipe glows under boost (cosmetic only: RaceScene.cs, CarVisual.cs).
         bool five = EngineFuel == FuelGrade.Sputnik && !paused;
         _carVis.Shudder = paused ? 0f : Math.Clamp(1f - (_car.Rpm - _params.IdleRpm) / 2500f, 0f, 1f) * (_car.Throttle < 0.4f ? 1f : 0.35f) * FuelGrades.IdleShudder(EngineFuel);      // (every engine trembles at idle, the others half as hard as the Sputnik's five)

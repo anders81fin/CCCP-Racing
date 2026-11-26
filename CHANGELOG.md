@@ -3,6 +3,18 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.922
+
+- GAI: the officer now catches you with a real rear-end collision. The fine comes only when the front of his Kozlik hits the back of your car, with the game´s normal crash response, and a hard hit is allowed. Driving past him, a side hit or a hit on another obstacle gives no fine, and he does not hit you again during the autograph
+- GAI: while the officer holds you, the traffic no longer drives through your car or through him. The snow ploughs, the BTRs and the gulag truck stop short. At the level crossing of Atomgrad the stop is not held on the rails
+- TURBO SOUND: Jet Fuel and Sputnik have a new turbo. A quick lift from full boost gives one short blow-off that matches the pressure, a slow lift or little boost gives a gentle one, and the shaft whistle keeps spinning down after the boost. Sputnik keeps its five cylinder voice, its anti-lag is a series of exhaust pops with the whistle held, and the wastegate is heard from the exhaust side. Diesel and Petrol sound as before
+- REPLAY: the exhaust pops and the anti-lag crackle are now in every replay and always the same. The anti-lag whistle of Sputnik is there too
+- SIBERIA: the snowfall now reaches the road also at speed. Before, a driving car left the flakes no time to fall, and at 60 km/h the snow began about 4 m above the road. Road snow keeps a light tyre track under a rolling wheel
+- SIBERIA: a snowplough on the frozen river throws small chips of ice instead of a snow cloud, and on the bare runway the blade throws sparks. The replay shows the same
+- ATOMGRAD: the rain now reaches the road at any speed, also at 180 km/h
+- ATOMGRAD: the ferris wheel of the square turns slowly, a round in about a minute, and its gondolas hang straight. It is on the world tape too. An earlier recording shows the wheel turning live
+- CAMERAS: the hidden camera views of Siberia, the bonus track and Atomgrad have new places and look the other way. On Ilyich the road-aligned view is now found like the bonnet and follow-behind ones
+
 ## 0.921
 
 - CUSTOM TRACKS: the list now says that the keys 1-4 switch the fuel while driving, on a pad the d-pad up and down. They work as in STAKHANOV LAPS, with the fuels you have opened in the SOCIALIST RALLY. The tests now cover it on a custom track

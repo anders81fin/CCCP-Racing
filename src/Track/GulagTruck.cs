@@ -608,6 +608,21 @@ public partial class GulagTruck : Node3D
             float room = along - Nose - o.Radius - Gap;
             cap = Math.Min(cap, room <= 0f ? 0f : MathF.Sqrt(2f * 4f * room));
         }
+        // The cars and the vehicles that are solid only to the traffic (MoverBlockers: the Kozlik held behind a car for the autograph) are in its way too:
+        // all but the car it has come for, which it passes by its own path (it would wait behind it for ever: waiting for traffic stops the give-up clock).
+        void Other(Vector2 centre, float radius)
+        {
+            Vector2 rel = centre - _pos;
+            float along = rel.Dot(fwd);
+            if (along < 0f || along > Nose + 18f) return;
+            if (MathF.Abs(rel.X * fwd.Y - rel.Y * fwd.X) > HalfWidth + radius) return;
+            float room = along - Nose - radius - Gap;
+            cap = Math.Min(cap, room <= 0f ? 0f : MathF.Sqrt(2f * 4f * room));
+        }
+        Vector2? mine = _arrestCar != null ? new Vector2(_arrestCar.Pos.X, _arrestCar.Pos.Z) : null;
+        foreach (var c in MoverBlockers.Cars)
+            if (mine is not { } m || c.Centre.DistanceSquaredTo(m) > 2.5f * 2.5f) Other(c.Centre, c.Radius);
+        foreach (var gh in MoverBlockers.Ghosts) foreach (var c in gh.Value) Other(c.Centre, c.Radius);
         return cap;
     }
 

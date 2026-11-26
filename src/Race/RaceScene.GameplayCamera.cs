@@ -65,7 +65,7 @@ public partial class RaceScene
             var p = secret.Position;
             if (!_cameraDiscoveries.Has(_track.Id, secret.View)
                 && CameraDiscoveries.Touches(before, _car.Pos, _car.Rot, new Vector3(p.X, _track.MeshHeight(p.X, p.Y) + 0.6f, p.Y), 0.4f))
-                DiscoverCamera(secret.View, secret.View == GameplayView.Bonnet ? "BONNET CAMERA FOUND" : "FOLLOW-BEHIND CAMERA FOUND");
+                DiscoverCamera(secret.View, secret.View switch { GameplayView.Bonnet => "BONNET CAMERA FOUND", GameplayView.RoadAligned => "ROAD-ALIGNED CAMERA FOUND", _ => "FOLLOW-BEHIND CAMERA FOUND" });
         }
     }
     void DiscoverCamera(GameplayView view, string message)
@@ -101,7 +101,7 @@ public partial class RaceScene
     {
         if (_lanLeaveAsk || !GameplayCameraAllowed || !Input.IsActionJustPressed("camera")) return;
         CycleGameplayCamera();
-        _hud.ShowAlways(GameplayCameraName, null, 1.5f, !CameraDiscoveries.AlwaysOpen(_gameplayView) ? UI.Hud.Gold : UI.Hud.Paper);
+        _hud.ShowAlways(GameplayCameraName, null, 1.5f, !CameraDiscoveries.AlwaysOpen(_track.Id, _gameplayView) ? UI.Hud.Gold : UI.Hud.Paper);
     }
 
     /// <summary>The overhead views differ in the look-ahead only (ChaseCamera.DirectedLead): the camera is cut to the car's framing when it changes, so neither starts from the other's state.</summary>

@@ -27,6 +27,8 @@ public partial class KozlikPatrol : Node3D
     const float Cruise = 15.5f, BendSpeed = 8.5f, DetourSpeed = 6.5f;
     const float Lane = 0.45f, LaneAside = 0.72f; // lateral offset (share of half width) normal / giving way to a Balalaika
     const float ObsRadius = Width * .5f;
+    /// <summary>Its body for the others: a circle this big at the middle and HalfLength ahead and behind (the rails check of the autograph).</summary>
+    public const float BodyRadius = ObsRadius, HalfLength = Length * .5f;
     const float GroundHalfTrack = .78f * ModelScale;
 
     enum Mode { Road, ToGuard, Guard, Back, Chase, Autograph }
@@ -103,6 +105,49 @@ public partial class KozlikPatrol : Node3D
     public bool HitThisTick { get; private set; }
 
     float _warnCd, _hitCd;
+
+    // The fine is a rear-end collision: the car's own collision response reports each contact with one of our three circles (CarSim.Contacts, told apart by Source and Part), and only a contact of OUR FRONT with the
+    // car's REAR, while we are driving into it, counts. Nothing else does: not the distance, not a side, not a head-on, not a tree the car hit with us beside it.
+    static int _nextSource = 1000;
+    readonly int _source = ++_nextSource;
+    long _lastSerial = -1;
+    bool _serialUnknown = true;
+    CarSim.ObstacleContact? _ram;
+    float _ramDelta = RamDelta;      // how much faster than the car he closes in (the test hook lowers it for a light rear-end)
+    /// <summary>The id the obstacles of this vehicle carry (Obstacle.Source), and the part of its front circle (Obstacle.Part).</summary>
+    public int Source => _source;
+    public const int FrontPart = 2;
+    /// <summary>The contact that caught the car (null until it does): the collision response's own figures.</summary>
+    public CarSim.ObstacleContact? LastRam { get; private set; }
+
+    // A rear-end collision, as the contact reports it: the car's tail circle, the contact normal pointing along the car's travel (from us to it), our nose pointing at the car, us driving into it
+    // and a closing speed that is a collision and not a brush of the paint.
+    const float RamNormal = 0.75f, RamAim = 0.7f, RamMinClosing = 0.3f, RamMinSpeed = 0.5f;
+
+    /// <summary>
+    /// A contact of our front circle with the car's rear, with us driving forward into it: the one thing that is a fine. `forward` is our heading, `speed` our speed along it (negative reversing).
+    /// </summary>
+    public static bool IsRearRam(in CarSim.ObstacleContact c, Vector2 forward, float speed)
+    {
+        if (c.Part != FrontPart || c.CarCircle != CarSim.RearCircle) return false;
+        if (-c.LocalNormal.Z < RamNormal) return false;                  // the car's nose is -Z: struck from behind, the normal points forward
+        float aim = c.WorldNormal.Dot(forward);
+        if (aim < RamAim) return false;
+        return c.Closing >= RamMinClosing && speed * aim >= RamMinSpeed;
+    }
+
+    /// <summary>Reads the car's new contacts: while chasing, the first rear-end ram is kept for DriveChase.</summary>
+    void ConsumeContacts(CarSim car)
+    {
+        if (_serialUnknown) { _lastSerial = car.ContactSerial; _serialUnknown = false; return; }      // (the history is not ours: only what comes after the chase began)
+        bool listening = _mode == Mode.Chase && !_chaseOut && _ram == null;
+        foreach (var c in car.Contacts)
+        {
+            if (c.Serial <= _lastSerial) continue;
+            if (listening && c.Source == _source && IsRearRam(c, Forward2D, _reverse ? -_speed : _speed)) { _ram = c; listening = false; }
+        }
+        _lastSerial = Math.Max(_lastSerial, car.ContactSerial);
+    }
     readonly CCCPRacing.Race.EncounterGate _gate = new();
     RoadWarnings.PatrolState _patrolStateNow;      // RoadWarnings.cs: once per encounter
 
@@ -207,7 +252,7 @@ public partial class KozlikPatrol : Node3D
         _drinkCd = 11f;
         _warnCd = _hitCd = 0;
         _chaseT = _caughtT = _askT = _pause = 0;
-        _chaseOut = false;
+        _chaseOut = false; _ram = null; _serialUnknown = true; _ramDelta = RamDelta;
         Siren(false);
         foreach (var g in _spots) g.Passes = 0;
         PlaceOnRoad(n);
@@ -453,6 +498,7 @@ public partial class KozlikPatrol : Node3D
         {
             _carTopSeen = Math.Max(_carTopSeen, car.Speed);
             _carPullSeen = Math.Max(_carPullSeen - 0.05f * dt, car.DriveAcceleration);      // (the peak pull, forgotten slowly)
+            ConsumeContacts(car);
         }
         int n = _t.Center.Length;
         switch (_mode)
@@ -502,11 +548,11 @@ public partial class KozlikPatrol : Node3D
         foreach (var w in _wheels) w.Rotation = new Vector3(_wheelSpin, w.Position.Z < 0 ? -_steer : 0, 0);
 
         Vector2 vel = _velocity;
-        // On the car's tail (or stopped behind it for the autograph) the Kozlik is not solid: when the
-        // car stops dead (a jump's landing, a spin) it must not shunt it on.
-        bool ghost = Chasing && _gapToCar < 12f;
+        // Solid, as any vehicle, until the fine: the chase ends in a real rear-end collision (the car's own response). Once the car is caught (the autograph) he is not solid to it:
+        // the car held and shoved ahead must not be hit again, and again, while he signs.
+        bool ghost = _mode == Mode.Autograph;
         for (int k = 0; k < _obs.Length; k++)
-            _t.Obstacles[_obs[k]] = ghost ? new Obstacle(new Vector2(-1e4f, -1e4f), 0.1f) : new Obstacle(pos + fwd * (k - 1) * (Wheelbase*.5f), ObsRadius, vel, Material: ImpactMaterial.Metal);
+            _t.Obstacles[_obs[k]] = ghost ? new Obstacle(new Vector2(-1e4f, -1e4f), 0.1f) : new Obstacle(pos + fwd * (k - 1) * (Wheelbase*.5f), ObsRadius, vel, Material: ImpactMaterial.Metal, Source: _source, Part: k);
         // Not solid to the car, but a vehicle like any other to the traffic: the bus, the tractors, the ploughs, the BTRs and the tanks stop for it (MoverBlockers.Ghosts)
         if (ghost)
         {
@@ -517,7 +563,7 @@ public partial class KozlikPatrol : Node3D
         else MoverBlockers.SetGhost(this, null);
 
         HitThisTick = false;
-        if (car != null && dt > 0 && impact > 2f && pos.DistanceTo(new Vector2(car.Pos.X, car.Pos.Z)) < Length * 0.5f + 3f)
+        if (car != null && dt > 0 && !Chasing && impact > 2f && pos.DistanceTo(new Vector2(car.Pos.X, car.Pos.Z)) < Length * 0.5f + 3f)
         {
             HitThisTick = true;
             _angry = 3f;
@@ -551,8 +597,9 @@ public partial class KozlikPatrol : Node3D
         int i = (int)_s % n;
         if (_pause > 0)
         {
-            // After the autograph: stand aside a moment and let the car get away first.
+            // After the autograph: stand aside a moment and let the car get away first (and, at a level crossing, until its lamps stop blinking: WaitAtCrossing).
             _pause -= dt;
+            if (WaitAtCrossing) _pause = Math.Max(_pause, 0.1f);
             _speed = 0;
             _lat = Mathf.MoveToward(_lat, LaneAside * _t.HalfWidth[i], 1.5f * dt);
             PlaceOnRoad(n);
@@ -625,9 +672,9 @@ public partial class KozlikPatrol : Node3D
     bool Due(GuardSpot g) => !CentreLine && (AlwaysGuard || g == _trapSpot || (g.Passes + g.Parity) % 2 == 0);
 
     /// <summary>Position and heading from the road metre and the lateral offset.</summary>
-    void PlaceOnRoad(int n)
+    void PlaceOnRoad(int n, bool back = false)
     {
-        float aim = (_s + (_driveDt > 0 ? SteeringLookAhead : 0)) % n;
+        float aim = ((_s + (_driveDt > 0 ? (back ? -SteeringLookAhead : SteeringLookAhead) : 0)) % n + n) % n;
         int i = (int)aim % n;
         float f = aim - MathF.Floor(aim);
         Vector2 c = _t.Center[i].Lerp(_t.Center[(i + 1) % n], f);
@@ -665,7 +712,7 @@ public partial class KozlikPatrol : Node3D
         SetPath(Hermite(_cur.Spot, _cur.Face, _t.Center[_chaseJoin] + new Vector2(-rd.Y, rd.X) * (Lane * _t.HalfWidth[_chaseJoin]), rd));
         _carK = -1;
         _chaseOut = true;
-        _chaseT = _caughtT = 0; _kissing = false;
+        _chaseT = _caughtT = 0; _kissing = false; _ram = null; LastRam = null; _serialUnknown = true;
         _waiting = false;
         Siren(true);
         SetMode(Mode.Chase);
@@ -689,6 +736,8 @@ public partial class KozlikPatrol : Node3D
     void EndChase()
     {
         _kissing = false;
+        _keepGap = 0f; BackOffRails = false;
+        _ram = null;
         Siren(false);
         if (_chaseOut)
         {
@@ -767,7 +816,7 @@ public partial class KozlikPatrol : Node3D
         if (_kissing)
         {
             // The Russian way to stop a car: on its tail he does not touch it, he rams it. No braking at all: he closes at RamDelta m/s over the car's speed and drives into its rear bumper.
-            if (gap > KissGap) target = Math.Min(chaseMax, carSpeed + RamDelta);
+            if (gap > KissGap) target = Math.Min(chaseMax, carSpeed + _ramDelta);
             else target = Math.Max(0f, carSpeed);
         }
         else if (gap < TailGap) target = Math.Max(0f, carSpeed - 2f);
@@ -779,10 +828,13 @@ public partial class KozlikPatrol : Node3D
         _lat = Mathf.MoveToward(_lat, gap < 40f ? Math.Clamp(clat, -0.8f * hw, 0.8f * hw) : Lane * hw, 3f * dt);
         PlaceOnRoad(n);
 
-        if (_kissing && gap > 0f && gap <= KissGap + 0.15f && MathF.Abs(clat - _lat) < 1.6f)
+        if (_ram is { } ram)
         {
+            // The fine begins here, on the tick of the collision and not before: his front has struck the car's rear.
+            _ram = null; LastRam = ram;
             _kissing = false;
             _askT = 0;
+            _keepGap = 0f; BackOffRails = false;
             SetMode(Mode.Autograph);
             Caught?.Invoke();
             return;
@@ -808,11 +860,27 @@ public partial class KozlikPatrol : Node3D
             if (gap > n * 0.5f) gap -= n;
         }
         _gapToCar = MathF.Abs(gap);
-        float target = Math.Max(0f, Math.Min(car?.Speed ?? 0f, (gap - TailGap) * 0.9f));
-        _speed = Mathf.MoveToward(_speed, target, 8f * dt);
-        _s = (_s + _speed * dt) % n;
-        PlaceOnRoad(n);
+        if (BackOffRails)
+        {
+            // Stopped on the rails behind a car that has stopped too close past them (RaceScene.SpeedTrap): he backs off the line, slowly, and keeps that gap
+            // for the rest of the stop. The train stops for nobody.
+            _keepGap = Math.Max(_keepGap, gap + 0.5f);
+            _speed = Mathf.MoveToward(_speed, 2.5f, 8f * dt);
+            PlaceOnRoad(n, back: true);
+            return;
+        }
+        float target = Math.Max(0f, Math.Min(car?.Speed ?? 0f, (gap - Math.Max(TailGap, _keepGap)) * 0.9f));
+        _speed = Mathf.MoveToward(_speed, _reverse ? 0f : target, 8f * dt);
+        if (!_reverse) _s = (_s + _speed * dt) % n;
+        PlaceOnRoad(n, back: _reverse && _speed > 0.15f);
     }
+
+    /// <summary>Set by the race: he stands right by a level crossing whose lamps blink, so the pause after the autograph lasts until the train has gone.</summary>
+    public bool WaitAtCrossing { get; set; }
+
+    /// <summary>Set by the race each tick of the autograph: he is on the rails and the car is not moving away, so he backs off them.</summary>
+    public bool BackOffRails { get; set; }
+    float _keepGap;
 
     void DrivePath(float dt, bool toGuard)
     {

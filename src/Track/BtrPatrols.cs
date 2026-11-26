@@ -208,7 +208,10 @@ public partial class BtrPatrols : Node3D
             Vector2 before=At(p,p.S,out _);
             Drive(p,dt);
             Fire(p,dt,car);
-            p.S=Mathf.PosMod(p.S+p.Speed*dt,p.Length);
+            float next=Mathf.PosMod(p.S+p.Speed*dt,p.Length);
+            // The last word: a car or a held Kozlik that turned up too late for the braking in Drive is never driven into; the BTR stops where it is (a move out of one is allowed).
+            float deeper=BlockerOverlap(p,next);
+            if(deeper>0f && deeper>BlockerOverlap(p,p.S)+1e-4f) p.Speed=0f; else p.S=next;
             p.Spin+=p.Speed*dt/.64f;
             Vector2 after=At(p,p.S,out _);
             Vector2 velocity=(after-before)/dt;
@@ -264,6 +267,17 @@ public partial class BtrPatrols : Node3D
     public void HullCircles(List<(Vector2 p,float r)> into)
     {
         foreach(var p in _patrols) for(int i=0;i<3;i++) {var o=_track.Obstacles[p.Slot+i]; if(o.Center.X>-9000f) into.Add((o.Center,o.Radius));}
+    }
+    /// <summary>How deep (m) the hull's three circles at path metre s would be in the cars, the held Kozlik or the gulag truck and its people (0: clear).</summary>
+    static float BlockerOverlap(Patrol p,float s)
+    {
+        Vector2 at=At(p,s,out Vector2 forward);float worst=0f;
+        for(int i=0;i<3;i++)
+        {
+            Vector2 c=at+forward*((i-1)*2.2f);
+            foreach(var b in GulagTruck.Solids) worst=Math.Max(worst,1.45f+b.Radius+.1f-c.DistanceTo(b.Centre));
+        }
+        return worst;
     }
     void Drive(Patrol p,float dt)
     {

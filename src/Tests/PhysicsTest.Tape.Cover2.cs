@@ -26,6 +26,7 @@ public partial class PhysicsTest
         CoverCase("ilyich dacha boat, guest and duck", CoverBoatRig, 24f, new[] { 6.6f, 17.5f, 19f }, "None:PartyOfficialRowing");
         CoverCase("ilyich village yards (washing, hens, donkey)", CoverVillageRig, 12f, new[] { 3.5f, 5f, 8f }, "None:VillageLife");
         CoverCase("ilyich water mill", CoverMillRig, 14f, new[] { 1f, 5f, 9f }, "None:WaterMill");
+        CoverCase("atomgrad ferris wheel", CoverFerrisRig, 14f, new[] { 1f, 5f, 9f }, "None:FerrisWheel");
         CoverCase("siberia radar", CoverRadarRig, 16f, new[] { 1f, 5f, 9f }, "None:Radar");
         CoverCase("snowplough beacon", CoverBeaconRig, 8f, new[] { 1f, 3f, 5f }, "None:Beacon0");
         CoverCase("siberia camp searchlight (sweeping)", CoverSearchlightRig, 50f, new[] { 8f, 20f, 38f }, "None:Searchlight0");
@@ -33,6 +34,7 @@ public partial class PhysicsTest
         CoverTankTreads();
         CoverShotFx();
         CoverMillSpray();
+        CoverFerrisGondolas();
         CoverSearchlightBeam();
         CoverLightning();
         CoverWallStones();
@@ -93,6 +95,47 @@ public partial class PhysicsTest
             Drive = on => { wheel.SetTapeDriven(on); spray.SetTapeDriven(on); },
             Free = () => mill.QueueFree(),
         };
+    }
+
+    CoverRig CoverFerrisRig()
+    {
+        var ferris = Atomgrad.FerrisWheel(); AddChild(ferris);
+        var wheel = ferris.GetChildren().OfType<FerrisWheelTurn>().Single();
+        return new CoverRig
+        {
+            Actors = new[] { ("None:FerrisWheel", (Node3D)ferris) },
+            Step = (dt, _) => wheel._Process(dt),
+            Idle = dt => wheel._Process(dt),
+            Drive = wheel.SetTapeDriven,
+            Free = () => ferris.QueueFree(),
+        };
+    }
+
+    /// <summary>The ferris wheel turns slowly (about a minute a revolution), its gondolas hang straight down all the way round, and the gondolas drawn from the recorded turn equal the live ones.</summary>
+    void CoverFerrisGondolas()
+    {
+        var ferris = Atomgrad.FerrisWheel(); AddChild(ferris);
+        var wheel = ferris.GetChildren().OfType<FerrisWheelTurn>().Single();
+        var other = Atomgrad.FerrisWheel(); AddChild(other);
+        var owheel = other.GetChildren().OfType<FerrisWheelTurn>().Single();
+        var pivots = wheel.GetChildren().OfType<Node3D>().Where(c => c.Name.ToString().StartsWith("Gondola")).ToArray();
+        var opivots = owheel.GetChildren().OfType<Node3D>().Where(c => c.Name.ToString().StartsWith("Gondola")).ToArray();
+        float worstUp = 0, worstTape = 0, startUp = 0;
+        foreach (var g in pivots) startUp = Math.Max(startUp, 1f - g.GlobalTransform.Basis.Y.Normalized().Y);
+        for (int n = 0; n < 1200; n++)
+        {
+            wheel._Process(1f / 60f);
+            foreach (var g in pivots) worstUp = Math.Max(worstUp, 1f - g.GlobalTransform.Basis.Y.Normalized().Y);
+            if (n % 97 == 0)
+            {
+                owheel.Hang(wheel.Turned);
+                for (int i = 0; i < pivots.Length; i++) worstTape = Math.Max(worstTape, (pivots[i].Basis.Z - opivots[i].Basis.Z).Length() + (pivots[i].Basis.X - opivots[i].Basis.X).Length());
+            }
+        }
+        float seconds = Mathf.Tau / FerrisWheelTurn.Rate;
+        Check(wheel.Gondolas == 12 && pivots.Length == 12 && startUp < 1e-5f && worstUp < 1e-4f && worstTape < 1e-3f && seconds > 50f && seconds < 90f && MathF.Abs(wheel.Turned - 20f * FerrisWheelTurn.Rate) < 1e-3f,
+            $"cover3 ferris wheel: {pivots.Length} gondolas hang upright through {wheel.Turned:F2} rad (worst tilt {worstUp:F6}), the gondolas drawn from the recorded turn equal the live ones (worst {worstTape:F5}), one revolution in {seconds:F0} s");
+        ferris.QueueFree(); other.QueueFree();
     }
 
     CoverRig CoverRadarRig()

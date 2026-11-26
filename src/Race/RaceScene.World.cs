@@ -46,7 +46,7 @@ public partial class RaceScene
     PrisonerColumn _columnAll;              // ...the labour detail on the march
     ZoneLife _zoneAll;                      // ATOMGRAD-4's horses, lunokhod and train (the catfish too)
     readonly List<RotatingBeacon> _beaconsAll = new(); readonly List<CampSearchlight> _lightsAll = new(); readonly List<RadarHead> _radarsAll = new();      // the decorations the world tape poses
-    MillWheel _millWheel; MillSpray _millSpray;
+    MillWheel _millWheel; MillSpray _millSpray; FerrisWheelTurn _ferrisWheel;
     PartyRowboat _rowing; PartyPondDuck _pondDuck;      // the dacha's rowboat (rower, guest, oars, shotgun) and the mallard: the world tape poses them
     BarnDoors _barnDoorSmall, _barnDoorBig; // Ilyich's two tractor barns' doors (the drunk tractor's, the slurry tractor's): the world tape poses their leaves
     DrunkTractor _tractor => InWorld(Actors.Tractor) ? _tractorAll : null;
@@ -162,7 +162,7 @@ public partial class RaceScene
         Add(_rowing != null && _rowing.HasMeta(WorldTapeConst.PartMeta) ? _rowing : null, () => new() { Who = Actors.None, Node = _rowing, TapeDrive = _rowing.SetTapeDriven });
         Add(_pondDuck != null && _pondDuck.HasMeta(WorldTapeConst.PartMeta) ? _pondDuck : null, () => new() { Who = Actors.None, Node = _pondDuck, TapeDrive = _pondDuck.SetTapeDriven });
         // The decorations that turn and sweep (nothing in them is gameplay): each its own small actor, in tree order, so the key of one is the same in every build of the track.
-        _beaconsAll.Clear(); _lightsAll.Clear(); _radarsAll.Clear(); _millWheel = null; _millSpray = null;
+        _beaconsAll.Clear(); _lightsAll.Clear(); _radarsAll.Clear(); _millWheel = null; _millSpray = null; _ferrisWheel = null;
         foreach (var n in FindChildren("*", "", true, false))
             switch (n)
             {
@@ -171,6 +171,7 @@ public partial class RaceScene
                 case RadarHead r when r.GetParent() is Node3D rp && rp.HasMeta(WorldTapeConst.PartMeta): _radarsAll.Add(r); break;
                 case MillWheel w: _millWheel ??= w; break;
                 case MillSpray sp: _millSpray ??= sp; break;
+                case FerrisWheelTurn fw: _ferrisWheel ??= fw; break;
             }
         for (int i = 0; i < _beaconsAll.Count; i++) { var b = _beaconsAll[i]; _actors.Add(new() { Who = Actors.None, Key = $"None:Beacon{i}", Node = b, TapeDrive = b.SetTapeDriven }); }
         int sweeping = 0;      // (a lamp that holds one direction is no tape actor; it is only started with the others)
@@ -178,6 +179,8 @@ public partial class RaceScene
         if (_radarsAll.Count > 0) { var r = _radarsAll[0]; _actors.Add(new() { Who = Actors.None, Key = "None:Radar", Node = (Node3D)r.GetParent(), TapeDrive = r.SetTapeDriven }); }
         if (_millWheel?.GetParent() is Node3D mill && mill.HasMeta(WorldTapeConst.PartMeta))
             _actors.Add(new() { Who = Actors.None, Key = "None:WaterMill", Node = mill, TapeDrive = on => { _millWheel.SetTapeDriven(on); _millSpray?.SetTapeDriven(on); } });
+        if (_ferrisWheel?.GetParent() is Node3D ferris && ferris.HasMeta(WorldTapeConst.PartMeta))
+            _actors.Add(new() { Who = Actors.None, Key = "None:FerrisWheel", Node = ferris, TapeDrive = _ferrisWheel.SetTapeDriven });
         Add(_engineFx != null && _engineFx.HasMeta(WorldTapeConst.PartMeta) ? _engineFx : null, () => new() { Who = Actors.None, Node = _engineFx, TapeDrive = _engineFx.SetTapeDriven });
         Add(_weather != null && _weather.HasMeta(WorldTapeConst.PartMeta) ? _weather : null, () => new() { Who = Actors.None, Node = _weather, TapeDrive = _weather.SetTapeDriven });
         var village = FindChild("VillageLife", true, false) as VillageLife;
@@ -199,6 +202,7 @@ public partial class RaceScene
         if(!afterCar && InWorld(Actors.Jets | Actors.Tanks)) _bonusExercise?.Tick(dt);
         // The cars the vehicles must not drive through (MoverBlockers.cs): the player's, and on a LAN host every driver's. The title's replay has none (its actors are on the tape).
         MoverBlockers.Clear();
+        if(replay) MoverBlockers.ClearGhosts();      // (a chase runs only live: a ghost in a replay is the live world's, left while it is paused, and would stop the replay's own traffic)
         if(!replay) { MoverBlockers.AddCar(_car); if(InLanRace) foreach(var d in _lanDrivers.Values) if(d.Car!=_car) MoverBlockers.AddCar(d.Car); }
         var own=_car;float ownImpact=_maxImpact;
         try {

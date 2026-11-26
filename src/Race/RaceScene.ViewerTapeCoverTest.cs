@@ -20,7 +20,7 @@ namespace CCCPRacing.Race;
 public partial class RaceScene
 {
     static readonly string[] CoverKeys = { "None:KolkhozWorkers", "None:BarnDoorsTractor", "None:BarnDoorsSlurry", "None:DachaGuards", "None:TrafficCones", "Jets:ExerciseCrew", "Babushkas:Babushkas", "Babushkas:Troopers",
-        "None:PartyOfficialRowing", "None:PondMallard", "None:VillageLife", "None:WaterMill", "None:Radar", "None:Beacon0", "None:Beacon1", "None:Beacon2", "None:Searchlight0", "None:Searchlight1", "None:Weather", "Jets:FieldKitchen", "Jets:FieldCombine", "None:EngineEffects" };
+        "None:PartyOfficialRowing", "None:PondMallard", "None:VillageLife", "None:WaterMill", "None:Radar", "None:Beacon0", "None:Beacon1", "None:Beacon2", "None:Searchlight0", "None:Searchlight1", "None:Weather", "None:FerrisWheel", "Jets:FieldKitchen", "Jets:FieldCombine", "None:EngineEffects" };
     bool _cvInit;
     string _cvDump;
     int[] _cvAt = Array.Empty<int>();

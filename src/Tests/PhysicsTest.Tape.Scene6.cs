@@ -293,7 +293,7 @@ public partial class PhysicsTest
             ["siberia"] = new[] { "None:WoodFences", "Ploughs:SnowPloughs", "Column:PrisonerColumn", "Kozlik:Kozlik", "Jets:BalalaikaSorties", "Details:SiberiaDetails", "None:KgbOfficers", "Babushkas:Babushkas", "Drunks:DrunkMen", "None:RescueTractor",
                 "None:TrafficCones", "None:Radar", "None:EngineEffects" },
             ["atomgrad"] = new[] { "None:WoodFences", "Bus:Bus", "Ploughs:SnowPloughs", "Zone:ZoneLife", "None:Dosimetrist", "Kozlik:Kozlik", "None:KgbOfficers", "Babushkas:Babushkas", "Drunks:DrunkMen", "None:RescueTractor",
-                "None:Weather", "None:EngineEffects" },
+                "None:Weather", "None:FerrisWheel", "None:EngineEffects" },
             ["bonus"] = new[] { "None:WoodFences", "Kozlik:Kozlik", "Jets:HindSorties", "None:KgbOfficers", "None:CampGate", "Btr:BtrPatrols", "Tanks:TankBattle", "Babushkas:Troopers", "Drunks:DrunkMen", "None:RescueTractor",
                 "Jets:ExerciseCrew", "Jets:FieldKitchen", "Jets:FieldCombine", "None:EngineEffects" },
         };
@@ -332,6 +332,7 @@ public partial class PhysicsTest
             ("VillageLife", "ilyich", true, "indexed (None:VillageLife, coverage batch 2): the washing's swing, each hen's place, tilt, head and wings, the donkey's body, neck, ears, tail and kick; the live update is off while the tape drives", Array.Empty<string>()),
             ("PartyDacha (building, yard)", "ilyich", false, "n/a (static): the building and the yard never move, so there is nothing to record", Array.Empty<string>()),
             ("WaterMill wheel and spray", "ilyich", true, "indexed (None:WaterMill, coverage batch 2): the wheel as a spinner with its real, unwrapped turn; the spray is drawn from that turn", Array.Empty<string>()),
+            ("FerrisWheelTurn (the town's wheel)", "atomgrad", true, "indexed (None:FerrisWheel): the wheel as a spinner with its real, unwrapped turn; the gondolas hang from that turn (an older tape does not know it and the wheel turns live)", Array.Empty<string>()),
             ("PartyRowboat, PartyPondDuck, DachaPatrol", "ilyich", true, "indexed (None:PartyOfficialRowing, None:PondMallard, None:DachaGuards; coverage batches 1 and 2): the boat, the rower, the guest, the oars and the gun, the duck, the guards' places and strides; the shot is a dacha-shot event; the boat, the duck and the patrol start in one call", Array.Empty<string>()),
             ("ZoneDosimetrist", "atomgrad", true, "indexed (None:Dosimetrist): the figure (the turn and a knock-over's tilt), head, probe arm, meter arm and the wash flag; built with the world right after the speed trap, past every listed obstacle slot, with a parking hook for his soft obstacle; the hose over the car in the wash bay is made by the replay's emitters from the flag", Array.Empty<string>()),
             ("Buk21Battery body", "bonus", true, "indexed as parts of the Hind actor (version 3): both launchers' dishes (registered spinners), the loader truck's pose, crane, hoist, lifted round and six wheels; the turrets, racks and rounds were already; the replay no longer steps the battery", Array.Empty<string>()),

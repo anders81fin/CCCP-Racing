@@ -1,5 +1,6 @@
 using System;
 using Godot;
+using CCCPRacing.Race;
 
 namespace CCCPRacing.Track;
 
@@ -142,7 +143,7 @@ public static partial class Atomgrad
         n.AddChild(P(Props.Box(4f, 0.3f, 0.7f), Concrete, x0, 0.15f, D / 2f + 1.2f));
     }
 
-    /// <summary>The ferris wheel the town never opened: a yellow ring of gondolas on an A-frame, the wheel in the XY plane.</summary>
+    /// <summary>The town's ferris wheel on its A-frame, the wheel in the XY plane. It never carried a passenger, but it turns, slowly (<see cref="FerrisWheelTurn"/>): the ring, the spokes and the gondolas are one turning part, the gondolas hang from the rim and stay upright.</summary>
     public static Node3D FerrisWheel()
     {
         var n = new Node3D();
@@ -153,21 +154,28 @@ public static partial class Atomgrad
             n.AddChild(P(Props.Box(0.7f, Hub + 1f, 0.7f), Steel, 5f, Hub / 2f, z * 2f, 0, 0, 18f));
         }
         n.AddChild(P(Props.Cyl(0.8f, 4.8f, 8, 0.8f), Steel, 0, Hub, 0, 90, 0, 0));
+        var wheel = new FerrisWheelTurn { Name = "FerrisWheel", Position = new Vector3(0, Hub, 0) };
+        wheel.SetProcess(false);      // (idle until the race has taken its world-tape index: Begin())
         const int Seg = 24;
         for (int k = 0; k < Seg; k++)
         {
             float a = k * MathF.Tau / Seg, a2 = (k + 0.5f) * MathF.Tau / Seg;
             foreach (float z in new[] { -1.4f, 1.4f })
-                n.AddChild(P(Props.Box(0.35f, R * MathF.Tau / Seg + 0.2f, 0.35f), Yellow, MathF.Cos(a2) * R, Hub + MathF.Sin(a2) * R, z, 0, 0, Mathf.RadToDeg(a2)));
+                wheel.AddChild(P(Props.Box(0.35f, R * MathF.Tau / Seg + 0.2f, 0.35f), Yellow, MathF.Cos(a2) * R, MathF.Sin(a2) * R, z, 0, 0, Mathf.RadToDeg(a2)));
             if (k % 2 == 0)
             {
-                n.AddChild(P(Props.Box(0.18f, R, 0.18f), Steel, MathF.Cos(a) * R / 2f, Hub + MathF.Sin(a) * R / 2f, 0, 0, 0, Mathf.RadToDeg(a) - 90f));
-                // A gondola hanging under the rim: a yellow tub under a little roof.
-                float gx = MathF.Cos(a) * R, gy = Hub + MathF.Sin(a) * R - 1.6f;
-                n.AddChild(P(Props.Box(1.8f, 1.1f, 1.6f), Yellow, gx, gy, 0));
-                n.AddChild(P(Props.Box(2f, 0.2f, 1.8f), Red, gx, gy + 1.3f, 0));
+                wheel.AddChild(P(Props.Box(0.18f, R, 0.18f), Steel, MathF.Cos(a) * R / 2f, MathF.Sin(a) * R / 2f, 0, 0, 0, Mathf.RadToDeg(a) - 90f));
+                // A gondola hanging under the rim: a yellow tub under a little roof, on a pivot at the rim that turns against the wheel.
+                var pivot = new Node3D { Name = "Gondola" + k, Position = new Vector3(MathF.Cos(a) * R, MathF.Sin(a) * R, 0) };
+                pivot.AddChild(P(Props.Box(1.8f, 1.1f, 1.6f), Yellow, 0, -1.6f, 0));
+                pivot.AddChild(P(Props.Box(2f, 0.2f, 1.8f), Red, 0, -0.3f, 0));
+                wheel.AddChild(pivot);
+                wheel.AddGondola(pivot);
             }
         }
+        n.AddChild(wheel);
+        // The world tape: the wheel is an actor of its own (the race gives it the key None:FerrisWheel); its real, unwrapped turn is recorded, the gondolas hang from that turn.
+        Tape.Version(n, 1); Tape.Part(n, "root"); Tape.Part(wheel, "wheel"); Tape.Spin(wheel, new Vector3(0, 0, 1), () => wheel.Turned);
         return n;
     }
 
@@ -440,5 +448,42 @@ public static partial class Atomgrad
         n.AddChild(new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = mat, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
         if (OS.HasEnvironment("DOSEDBG")) GD.Print($"dose: {xfs.Count} glowing blots round {rad.HotSpots.Count} hot spots");
         return n;
+    }
+}
+
+/// <summary>
+/// The ferris wheel's turning part: a slow, steady turn (one revolution in about 63 s) with the gondolas hanging upright from the rim. Nothing in it is gameplay, but the world tape shows it
+/// (docs/replay-tape.md section 23): the real, unwrapped turn is recorded and the gondolas are drawn from that turn.
+/// </summary>
+public partial class FerrisWheelTurn : Node3D
+{
+    /// <summary>Radians a second.</summary>
+    public const float Rate = 0.1f;
+    float _angle;
+    readonly System.Collections.Generic.List<Node3D> _gondolas = new();
+
+    /// <summary>The wheel's real turn since it began (radians, never wrapped): what the world tape records.</summary>
+    public float Turned { get; private set; }
+    /// <summary>The tape poses the wheel (and the gondolas follow its turn); leaving it, the wheel turns on from where it stood.</summary>
+    public bool TapeDriven { get; private set; }
+    public void SetTapeDriven(bool on) { TapeDriven = on; }
+    /// <summary>The race has taken its world-tape index: the wheel turns from now on.</summary>
+    public void Begin() => SetProcess(true);
+    public int Gondolas => _gondolas.Count;
+    public void AddGondola(Node3D pivot) => _gondolas.Add(pivot);
+
+    public override void _Process(double delta)
+    {
+        if (TapeDriven) return;
+        _angle = (_angle + Rate * (float)delta) % Mathf.Tau;
+        Turned += Rate * (float)delta;
+        Rotation = new Vector3(0, 0, _angle);
+        Hang(_angle);
+    }
+
+    /// <summary>Each gondola turns against the wheel's turn <paramref name="turn"/> (radians) so that it hangs straight down (the live turn, or the tape's recorded one).</summary>
+    public void Hang(float turn)
+    {
+        foreach (var g in _gondolas) g.Rotation = new Vector3(0, 0, -turn);
     }
 }

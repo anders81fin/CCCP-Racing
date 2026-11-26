@@ -622,6 +622,7 @@ public partial class RaceScene
         if (_tapePlayer != null && _tanksAll != null && _tapePlayer.Covers("Tanks:TankBattle")) _tanksAll.ReplayTreads(_tapePlayer);
         if (_tapePlayer?.Covers("None:PartyOfficialRowing") == true) _rowing?.ReplayDerive(_replayClock);
         if (_tapePlayer?.Covers("None:WaterMill") == true && _millWheel != null && _tapePlayer.TrySpinAngle(_millWheel, out float millTurn)) _millSpray?.ReplayTurn(millTurn);
+        if (_tapePlayer?.Covers("None:FerrisWheel") == true && _ferrisWheel != null && _tapePlayer.TrySpinAngle(_ferrisWheel, out float ferrisTurn)) _ferrisWheel.Hang(ferrisTurn);
     }
 
     /// <summary>Whether the replay skips this actor's live tick (the tape poses it).</summary>

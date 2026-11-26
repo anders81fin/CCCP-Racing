@@ -58,6 +58,7 @@ public partial class TyreEffects : Node3D
     static readonly Color[] GrassCols = { new(0.3f, 0.5f, 0.2f), new(0.4f, 0.3f, 0.18f) };
     static readonly Color[] SnowCols = { new(0.96f, 0.97f, 1f), new(0.88f, 0.91f, 0.96f), new(1f, 1f, 1f) };
     static readonly Color SnowRut = new(0.55f, 0.6f, 0.7f);
+    static readonly Color SnowTrack = new(0.66f, 0.72f, 0.83f);     // packed road snow under a rolling tyre: a light blue-grey track
     static readonly Color IceScratch = new(0.92f, 0.96f, 1f);
     static readonly Color Water = new(0.75f, 0.82f, 0.9f);
 
@@ -166,8 +167,10 @@ public partial class TyreEffects : Node3D
                 AddMark(i, w.ContactPoint, new Color(Rubber, 0.3f + 0.4f * intensity));
             else if (s == SurfaceType.Ice && intensity > 0.25f)
                 AddMark(i, w.ContactPoint, new Color(IceScratch, 0.25f + 0.3f * intensity));     // studs scratch the ice white
-            else if (s is SurfaceType.Snow or SurfaceType.DeepSnow && (intensity > 0.2f || s == SurfaceType.DeepSnow && speed > 2f))
-                AddMark(i, w.ContactPoint, new Color(SnowRut, s == SurfaceType.DeepSnow ? 0.5f : 0.3f));
+            else if (s is SurfaceType.Snow or SurfaceType.DeepSnow && (intensity > 0.2f || speed > 2f))
+                AddMark(i, w.ContactPoint, s == SurfaceType.DeepSnow ? new Color(SnowRut, 0.5f)
+                    : intensity > 0.2f ? new Color(SnowRut, 0.3f)
+                    : new Color(SnowTrack, 0.22f));     // rolling on road snow: a light track; sliding or spinning: the darker rut
             else if (soft && (intensity > 0.25f || (s is SurfaceType.Mud or SurfaceType.Field && speed > 2f)))
                 AddMark(i, w.ContactPoint, new Color(Rut, s == SurfaceType.Mud ? 0.55f : 0.35f));
             else
@@ -314,14 +317,50 @@ public partial class TyreEffects : Node3D
         }
     }
 
-    /// <summary>A snowplough's wing throwing snow out sideways at speed (m/s): a thick arc of chunks and a cloud. acc: the caller's emission accumulator.</summary>
+    static readonly Color[] IceChips = { new(0.86f, 0.94f, 1f), new(0.7f, 0.85f, 0.98f), new(1f, 1f, 1f) };
+    static readonly Color[] PloughSparks = { new(1f, 0.95f, 0.6f), new(1f, 0.75f, 0.3f), new(0.8f, 0.9f, 1f) };
+
+    /// <summary>The surface under a plough's wing: it decides what the blade throws (snow, ice chips, or sparks off the bare runway).</summary>
+    public SurfaceType PloughGround(Vector3 at) =>
+        _track == null ? SurfaceType.Snow : _track.TileSurface((int)Math.Floor(at.X / _track.Tile), (int)Math.Floor(at.Z / _track.Tile));
+
+    /// <summary>A snowplough's wing throwing snow out sideways at speed (m/s): a thick arc of chunks and a cloud. acc: the caller's emission accumulator.
+    /// On the frozen river there is no loose snow: the steel shaves small hard chips of ice and a little fine mist. On the bare runway the blade scrapes the asphalt:
+    /// sparks, and only a few flakes of what is left.</summary>
     public void PloughSpray(Vector3 at, Vector3 outward, Vector3 vel, float speed, ref float acc, float dt)
     {
-        acc += speed * 14f * dt;
+        SurfaceType ground = PloughGround(at);
+        bool ice = ground == SurfaceType.Ice, runway = ground == SurfaceType.Runway;
+        acc += speed * (ice ? 7f : runway ? 10f : 14f) * dt;
         while (acc >= 1f)
         {
             acc -= 1f;
+            if (runway)
+            {
+                if (_rng.Randf() < 0.15f)
+                {
+                    Vector3 f = vel * 0.6f + outward * _rng.RandfRange(2f, 3f) + Rand(0.8f, 0, 0.8f) + Vector3.Up * _rng.RandfRange(2f, 3f);
+                    Add(at, f, _rng.RandfRange(0.5f, 0.9f), 0.35f, 0.3f, 13f, 0.35f, Pick(SnowCols), 1f, false);
+                }
+                else
+                {
+                    // Sparks fly back along the blade's own motion, low and fast, and die in a moment.
+                    Vector3 f = vel * 0.8f + outward * _rng.RandfRange(2f, 5f) + Rand(1.5f, 0, 1.5f) + Vector3.Up * _rng.RandfRange(0.5f, 2.5f);
+                    Add(at, f, _rng.RandfRange(0.2f, 0.5f), 0.16f, 0.04f, 12f, 0.5f, PloughSparks[_rng.RandiRange(0, PloughSparks.Length - 1)], 1f, false);
+                }
+                continue;
+            }
             Vector3 v = vel * 0.6f + outward * _rng.RandfRange(3f, 4f + speed * 0.5f) + Rand(1.2f, 0, 1.2f) + Vector3.Up * _rng.RandfRange(3f, 5f + speed * 0.3f);
+            if (ice)
+            {
+                // Hard chips fly low and fast; the odd puff of ice dust hangs behind them.
+                if (_rng.Randf() < 0.12f)
+                    Add(at, v * 0.3f, _rng.RandfRange(0.8f, 1.4f), 0.5f, 1.8f, -0.3f, 1.4f, IceChips[0], 0.4f, false);
+                else
+                    Add(at, vel * 0.6f + outward * _rng.RandfRange(4f, 5f + speed * 0.5f) + Rand(1f, 0, 1f) + Vector3.Up * _rng.RandfRange(1.2f, 2.5f),
+                        _rng.RandfRange(0.4f, 0.8f), 0.2f, 0.12f, 14f, 0.25f, Pick(IceChips), 1f, false);
+                continue;
+            }
             if (_rng.Randf() < 0.3f)
                 Add(at, v * 0.4f, _rng.RandfRange(1.4f, 2.4f), 1.0f, 4.2f, -0.3f, 1.2f, SnowCols[0], 0.75f, false);
             else

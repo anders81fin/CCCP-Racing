@@ -84,7 +84,7 @@ public partial class RaceScene
 
         List<ViewerCameraMode> AvailableCameras()
         {
-            // The game's own order (CameraDiscoveries.Order), then the TV broadcast: directed, classic, the found bonnet and the three found follow-behind ones, the road-aligned one (always there).
+            // The game's own order (CameraDiscoveries.Order), then the TV broadcast: directed, classic, the found bonnet and the three found follow-behind ones, the road-aligned one (found on the four tracks, always there on custom tracks).
             var list = new List<ViewerCameraMode> { ViewerCameraMode.TopDown, ViewerCameraMode.Classic };
             var found = _live._cameraDiscoveries;
             if (found != null)
@@ -92,7 +92,7 @@ public partial class RaceScene
                 if (found.Has(_track, GameplayView.Bonnet)) list.Add(ViewerCameraMode.Bonnet);
                 if (found.Has(_track, GameplayView.Cinematic)) { list.Add(ViewerCameraMode.CinematicClose); list.Add(ViewerCameraMode.Cinematic); list.Add(ViewerCameraMode.CinematicFar); }
             }
-            list.Add(ViewerCameraMode.RoadAligned);
+            if (found == null || found.Has(_track, GameplayView.RoadAligned)) list.Add(ViewerCameraMode.RoadAligned);
             list.Add(ViewerCameraMode.Auto);
             return list;
         }
