@@ -46,6 +46,8 @@ public partial class PhysicsTest : Node
     public override void _Ready()
     {
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--kozlik-overtake-test")){KozlikOvertakeTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--tank-crush-tests")){TankCrushTest();GetTree().Quit(_failures==0?0:1);return;}
+        if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--radio-last-norm-tests")){RadioLastNormTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--plough-surface-tests")){PloughSurfaceTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--kozlik-ram-tests")){KozlikRamTest();GetTree().Quit(_failures==0?0:1);return;}
         if(Array.Exists(OS.GetCmdlineUserArgs(),a=>a=="--kozlik-steering-tests")){KozlikSteeringTest();GetTree().Quit(_failures==0?0:1);return;}
@@ -618,6 +620,8 @@ public partial class PhysicsTest : Node
         TurboSoundTest();
         KozlikRamTest();
         PloughSurfaceTest();
+        RadioLastNormTest();
+        TankCrushTest();
         Launch(SurfaceType.Gravel);
         Launch(SurfaceType.Mud);
         OffRoadSurfaces();

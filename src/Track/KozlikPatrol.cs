@@ -39,7 +39,7 @@ public partial class KozlikPatrol : Node3D
     public const float ChasePerformance = 2.5f;
     float _carTopSeen, _carPullSeen;
     const float ChaseBrake = 9f;
-    const float ChaseMax = 40f, ChaseBend = 13f, ChaseOut = 12f, TailGap = 6.5f, KissGap = 4.35f, RamDelta = 9.5f, CatchTime = 1.5f, GiveUpTime = 30f, GiveUpGap = 170f;
+    const float ChaseMax = 40f, ChaseBend = 13f, ChaseOut = 12f, TailGap = 6.5f, KissGap = 4.35f, RamDelta = 9.5f, CatchTime = 1.5f, GiveUpTime = 75f, GiveUpGap = 425f;      // (2.5 times the old 30 s and 170 m, the owner's order of 2026-11-26)
 
     class GuardSpot
     {
@@ -119,6 +119,11 @@ public partial class KozlikPatrol : Node3D
     public const int FrontPart = 2;
     /// <summary>The contact that caught the car (null until it does): the collision response's own figures.</summary>
     public CarSim.ObstacleContact? LastRam { get; private set; }
+    /// <summary>The last fine was not a collision: he had been behind the car and drove past it (his centre PassGap metres ahead of the car's along the road).</summary>
+    public bool LastWasPass { get; private set; }
+    bool _wasBehind;      // this chase: the car has been ahead of him
+    /// <summary>How far ahead of the car's centre (road metres) his centre is when he is past it.</summary>
+    public const float PassGap = 1.5f;
 
     // A rear-end collision, as the contact reports it: the car's tail circle, the contact normal pointing along the car's travel (from us to it), our nose pointing at the car, us driving into it
     // and a closing speed that is a collision and not a brush of the paint.
@@ -252,7 +257,7 @@ public partial class KozlikPatrol : Node3D
         _drinkCd = 11f;
         _warnCd = _hitCd = 0;
         _chaseT = _caughtT = _askT = _pause = 0;
-        _chaseOut = false; _ram = null; _serialUnknown = true; _ramDelta = RamDelta;
+        _chaseOut = false; _ram = null; _serialUnknown = true; _ramDelta = RamDelta; _wasBehind = false; LastWasPass = false;
         Siren(false);
         foreach (var g in _spots) g.Passes = 0;
         PlaceOnRoad(n);
@@ -712,7 +717,7 @@ public partial class KozlikPatrol : Node3D
         SetPath(Hermite(_cur.Spot, _cur.Face, _t.Center[_chaseJoin] + new Vector2(-rd.Y, rd.X) * (Lane * _t.HalfWidth[_chaseJoin]), rd));
         _carK = -1;
         _chaseOut = true;
-        _chaseT = _caughtT = 0; _kissing = false; _ram = null; LastRam = null; _serialUnknown = true;
+        _chaseT = _caughtT = 0; _kissing = false; _ram = null; LastRam = null; _serialUnknown = true; _wasBehind = false; LastWasPass = false;
         _waiting = false;
         Siren(true);
         SetMode(Mode.Chase);
@@ -828,10 +833,12 @@ public partial class KozlikPatrol : Node3D
         _lat = Mathf.MoveToward(_lat, gap < 40f ? Math.Clamp(clat, -0.8f * hw, 0.8f * hw) : Lane * hw, 3f * dt);
         PlaceOnRoad(n);
 
-        if (_ram is { } ram)
+        bool passed = _wasBehind && gap < -PassGap;
+        if (gap > PassGap) _wasBehind = true;
+        if (_ram is { } ram || passed)
         {
-            // The fine begins here, on the tick of the collision and not before: his front has struck the car's rear.
-            _ram = null; LastRam = ram;
+            // The fine begins here: on the tick of the collision (his front has struck the car's rear), or on the tick he has driven past the car without touching it.
+            LastWasPass = _ram == null; LastRam = _ram; _ram = null;
             _kissing = false;
             _askT = 0;
             _keepGap = 0f; BackOffRails = false;

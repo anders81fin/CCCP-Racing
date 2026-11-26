@@ -41,6 +41,13 @@ public partial class EngineEffects
         if (vis != null) { SetOverlay(vis, _burnt); _blackened = vis; }
     }
 
+    /// <summary>A tank's crush of the tape: the dust, and the car's body pressed flat (the dust is restored by age through the tagged particles).</summary>
+    public void ReplayCrush(Vector3 pos, CarVisual vis, float age, RandomNumberGenerator rng)
+    {
+        CrushFx(_fx, rng, pos);
+        if (vis != null) { vis.Flatten = CrushedFlatten; _flattened = vis; }
+    }
+
     void ReplaySlick(Vector3 at, float size, float target, float age)
     {
         _slickPos = new Vector3(at.X, _track.MeshHeight(at.X, at.Z) + 0.08f, at.Z);
@@ -96,5 +103,6 @@ public partial class EngineEffects
         _replayLevel = _replaySmokeAcc = _replayFireAcc = 0;
         _slick.Visible = false; _slickSize = _slickTarget = 0;
         if (_blackened != null) { SetOverlay(_blackened, null); _blackened = null; }
+        if (_flattened != null) { _flattened.Flatten = 1f; _flattened = null; }
     }
 }

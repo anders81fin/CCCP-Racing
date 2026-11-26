@@ -73,10 +73,34 @@ public partial class RaceScene
         if (_norms.Enabled && (PlanHasCar || _norms.Finished)) return;
         if (OS.HasEnvironment("PLANDBG"))
             GD.Print($"plan: RESTART REQUEST at {_clock:F2} s, norm {_norms.Step + 1}, left {_norms.Left}, wrecks {_wrecks}, health {_health.Health * 100:F0}%, dented {_carVis.Damage?.IsDamaged ?? false}, laps done {_timer.LapsDone}");
+        // A restart costs a lap of the norm's window (the owner's order of 2026-11-26: otherwise a track could be played over and over). A wreck's and a tow's laps were paid when they happened.
+        _planRestartPaid = RestartCharge(_norms, _wreck || _rescue.Active, out bool outOfLaps);
+        if (_planRestartPaid)
+        {
+            if (outOfLaps) { PauseChooseId(PauseRowId.Continue); PlanOutOfLaps(alert: true); return; }      // (no lap left for the one that would be driven: the Party Meeting closes and the plan has run out)
+        }
         _planRestart = _norms.Enabled;
         _raceRestart = true;
         try { EnterCountdown(); }
         finally { _planRestart = _raceRestart = false; }
+        if (_planRestartPaid)
+            _goAlert = ("RESTART: ONE LAP LOST", $"{_norms.Left} LAP{(_norms.Left == 1 ? "" : "S")} LEFT, TOVARISH");
+    }
+
+    /// <summary>The laps a restart request takes from the norm's window.</summary>
+    public const int RestartLaps = 1;
+    bool _planRestartPaid;
+
+    /// <summary>
+    /// A rally's restart request takes RestartLaps laps from the window, unless a wreck or a tow already paid for this restart (paid). True when a lap was charged; outOfLaps: that left no lap for the one
+    /// to be driven, so the plan has run out (as after a wreck).
+    /// </summary>
+    internal static bool RestartCharge(NormPlan norms, bool paid, out bool outOfLaps)
+    {
+        outOfLaps = false;
+        if (!norms.Enabled || norms.Finished || paid) return false;
+        outOfLaps = norms.Penalize(RestartLaps);
+        return true;
     }
 
     /// <summary>The run's first countdown: the liaison officer hands out the first norm (the alert after GO).</summary>
@@ -126,13 +150,27 @@ public partial class RaceScene
         return true;
     }
 
+    bool _lastNormSong;
+    /// <summary>
+    /// The rally's last norm (the Stakhanovite one) is all that is left: the radio, if it is on, goes to the menu's theme song "He katsoivat länteen" and plays it on repeat
+    /// until the player changes the song or switches the radio off, or the game ends (gold, the gulag, leaving the game). Once per run; a radio that is off stays off.
+    /// </summary>
+    void LastNormRadio()
+    {
+        if (_lastNormSong || _carRadio == null || _run != RunMode.Rally || !_norms.Enabled || _norms.Finished || Replaying || ViewerMode) return;
+        if (_norms.Step != NormPlan.Steps - 1) return;
+        _lastNormSong = true;
+        _carRadio.PlayThemeOnRepeat();
+    }
+
     /// <summary>A new run (or the title): the first norm in a real race, none otherwise.</summary>
     void ResetPlan(bool enabled)
     {
         if (_planRestart) return;     // a restart request: the plan goes on
         _norms.Reset(enabled, _normStepTest >= 0 ? _normStepTest : 0, _lapsLeftTest);
+        _lastNormSong = false; _carRadio?.StopRepeat();      // (a new run: the radio plays as usual again)
         _fileAlert = enabled;
-        _hud.ResetMedalCelebration();
+        _hud?.ResetMedalCelebration();
         _runMedal = NormPlan.Medal.None;
         _goAlert = null;
         if (enabled && OS.HasEnvironment("PLANDBG")) GD.Print($"plan: new rally run from norm {_norms.Step + 1} {NormText(_norms.Norm)}, {_norms.Left} laps");

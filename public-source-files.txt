@@ -908,6 +908,8 @@ src/Tests/PhysicsTest.PrisonerKnees.cs
 src/Tests/PhysicsTest.PrisonerKnees.cs.uid
 src/Tests/PhysicsTest.Probe.cs
 src/Tests/PhysicsTest.Probe.cs.uid
+src/Tests/PhysicsTest.RadioLastNorm.cs
+src/Tests/PhysicsTest.RadioLastNorm.cs.uid
 src/Tests/PhysicsTest.RallyResume.cs
 src/Tests/PhysicsTest.RallyResume.cs.uid
 src/Tests/PhysicsTest.RearWing.cs
@@ -956,6 +958,8 @@ src/Tests/PhysicsTest.StakhanovFuelBoards.cs
 src/Tests/PhysicsTest.StakhanovFuelBoards.cs.uid
 src/Tests/PhysicsTest.StartHillAssist.cs
 src/Tests/PhysicsTest.StartHillAssist.cs.uid
+src/Tests/PhysicsTest.TankCrush.cs
+src/Tests/PhysicsTest.TankCrush.cs.uid
 src/Tests/PhysicsTest.Tape.Async.cs
 src/Tests/PhysicsTest.Tape.Async.cs.uid
 src/Tests/PhysicsTest.Tape.Bus.cs

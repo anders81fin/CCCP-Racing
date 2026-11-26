@@ -467,6 +467,31 @@ public partial class PhysicsTest
         replay.ReplayClear();
         Check(!slick.Visible && Priv<float>(replay, "_slickSize") == 0f, "cover2 engine: clearing (a seek, the exit) takes the slick away");
         replay.QueueFree(); engine.QueueFree(); fx.QueueFree();
+        CoverEngineCrush(track);
+    }
+
+    /// <summary>A tank has rolled over the car (the owner's order of 2026-11-26): the live crush is one engine-crush event at the car and presses the body flat; the replay makes the same from the event and clears it at a seek or the exit.</summary>
+    void CoverEngineCrush(TrackData track)
+    {
+        var fx = new TyreEffects(); AddChild(fx); fx.Init(track);
+        var engine = new EngineEffects(); AddChild(engine); engine.Init(track, fx);
+        var host = new DetailRecordHost { Recorder = new WorldTapeRecorder(), Source = "None:EngineEffects" }; engine.TapeFx = host;
+        var car = new CarSim(new CarParams(), track); car.Reset(new Vector3(50, 0, 50), 0.7f);
+        var vis = new CarVisual(); AddChild(vis);
+        int before = fx.ParticleCount;
+        engine.Crush(car, vis);
+        Check(host.Events.Count == 1 && host.Events[0].Kind == TapeFxKind.EngineCrush && host.Events[0].Pos == car.Pos && Math.Abs(vis.Flatten - EngineEffects.CrushedFlatten) < 1e-6f && fx.ParticleCount > before + 10 && engine.TapeLevel == 0f,
+            $"cover2 crush: a crush is one {TapeFxKind.EngineCrush} event at the car, the body pressed flat ({vis.Flatten:F2}) and a cloud of dust ({fx.ParticleCount - before} puffs), no fire");
+        engine.Reset();
+        Check(vis.Flatten == 1f, "cover2 crush: a new car (the engine's reset) is whole again");
+        var replay = new EngineEffects(); AddChild(replay); replay.Init(track, fx); replay.SetTapeDriven(true);
+        var vis2 = new CarVisual(); AddChild(vis2);
+        var rrng = new RandomNumberGenerator { Seed = 9 }; int b2 = fx.ParticleCount;
+        replay.ReplayCrush(host.Events[0].Pos, vis2, 1.0f, rrng);
+        Check(Math.Abs(vis2.Flatten - EngineEffects.CrushedFlatten) < 1e-6f && fx.ParticleCount > b2 + 10, $"cover2 crush: the replayed crush presses the replay car flat ({vis2.Flatten:F2}) with the same dust");
+        replay.ReplayClear();
+        Check(vis2.Flatten == 1f, "cover2 crush: clearing (a seek, the exit) makes the replay car whole");
+        vis.QueueFree(); vis2.QueueFree(); replay.QueueFree(); engine.QueueFree(); fx.QueueFree();
     }
 
     /// <summary>The actors batch 1 and the older tapes covered keep their structure: the new parts live in actors of their own (nested roots) and the belts are derived, so the hashes are the build before this batch's.</summary>

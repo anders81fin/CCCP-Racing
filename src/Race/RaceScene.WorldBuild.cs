@@ -223,6 +223,7 @@ public partial class RaceScene
                 if (_booting) await LoadingFrame();
             _tanksAll.Exercise=_bonusExercise;
             _tanksAll.ShellLanded += OnShell;
+            _tanksAll.CarCrushed += (at, _) => { if (_tanks == _tanksAll) DestroyCar(at, "TANK TRACKS", crush: true); };      // (a tank rolled onto the car: the pancake, RaceScene.Fate.cs)
             _tanksAll.Fired += muzzle =>
             {
                 _hindsAll?.GroundShot(muzzle,_state == State.Racing ? _car : null);

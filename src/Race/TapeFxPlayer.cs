@@ -170,7 +170,7 @@ public sealed partial class TapeFxPlayer
                     Shot?.Invoke(e, age);
                     break;
                 case TapeFxKind.Lightning: Strike?.Invoke(e, age); break;
-                case TapeFxKind.EngineSeize: case TapeFxKind.EngineExplode: Engine?.Invoke(e, age, _rng); break;
+                case TapeFxKind.EngineSeize: case TapeFxKind.EngineExplode: case TapeFxKind.EngineCrush: Engine?.Invoke(e, age, _rng); break;
                 case TapeFxKind.RunWarning: Warning(e, age); break;
                 case TapeFxKind.BukLaunch: Buk21Battery.LaunchFx(_fx, _track, SoundParent(age), e.Pos, e.Dir); break;
                 case TapeFxKind.BukTrail: Buk21Battery.TrailFx(_fx, e.Pos); break;

@@ -54,6 +54,38 @@ public partial class CarRadio : Node
     public bool On => _on;
     public int Volume => _volume;
 
+    /// <summary>The menu's theme song is playing on repeat (the last norm of a rally): the player has not changed the song.</summary>
+    public bool RepeatTheme { get; private set; }
+    int ThemeIndex => _stations.Count > 0 && _stations[^1].path == ThemePath ? _stations.Count - 1 : -1;
+    /// <summary>The station now tuned (0-based, -1: none yet).</summary>
+    public int CurrentStation => _current;
+
+    /// <summary>
+    /// Tune to the theme song, "He katsoivat länteen", and keep it playing on repeat (the song loops without a gap) until the player changes the song
+    /// (StepStation), switches the radio off or the run ends (StopRepeat). Only when the radio is on: a radio the player has switched off stays off.
+    /// False when nothing was done.
+    /// </summary>
+    public bool PlayThemeOnRepeat()
+    {
+        int theme = ThemeIndex;
+        if (theme < 0 || !_on) return false;
+        RepeatTheme = true;
+        _radio.LoopSongs = true;
+        if (_current == theme) { if (StationStream(theme) is AudioStreamMP3 mp3) mp3.Loop = true; }      // (already on it: no new tuning, no restart)
+        else Select(theme);
+        return true;
+    }
+
+    /// <summary>The repeat ends: the song plays out and the radio moves on as it always does.</summary>
+    public void StopRepeat()
+    {
+        if (!RepeatTheme) return;
+        RepeatTheme = false;
+        _radio.LoopSongs = false;
+        int theme = ThemeIndex;
+        if (theme >= 0 && StationStream(theme) is AudioStreamMP3 mp3) mp3.Loop = false;
+    }
+
     public override void _Ready()
     {
         _radio = new RadioMusic { TrackPath = "", LoopSongs = false, VolumeDb = VolumeToDb(_volume) };
@@ -98,6 +130,7 @@ public partial class CarRadio : Node
         if (_stations.Count == 0) { Announce?.Invoke("RADIO: NO STATIONS"); return; }
         if (_on)
         {
+            StopRepeat();
             _on = false;
             _radio.PowerOff();
             Announce?.Invoke("RADIO OFF");
@@ -115,6 +148,7 @@ public partial class CarRadio : Node
     {
         if (on == _on || _stations.Count == 0) return;
         if (on) { Select(Math.Max(0, _current)); return; }
+        StopRepeat();
         _on = false;
         _radio.PowerOff();
         if (announce) Announce?.Invoke("RADIO OFF");
@@ -138,6 +172,7 @@ public partial class CarRadio : Node
     {
         int count = _stations.Count;
         if (count == 0) return;
+        StopRepeat();      // (the player changed the song)
         int current = _current < 0 ? (step < 0 ? 0 : -1) : _current;
         Select(((current + step) % count + count) % count);
     }

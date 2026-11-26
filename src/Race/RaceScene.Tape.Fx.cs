@@ -63,6 +63,7 @@ public partial class RaceScene
                 if (_engineFx == null || _tapePlayer?.Covers("None:EngineEffects") != true) return;
                 var rot = TitleGhost != null ? TitleGhost.Sample(Math.Max(0f, e.Time)).Basis : Basis.Identity;
                 if (e.Kind == TapeFxKind.EngineSeize) _engineFx.ReplaySeize(e.Pos, rot, e.Velocity, age, rng);
+                else if (e.Kind == TapeFxKind.EngineCrush) _engineFx.ReplayCrush(e.Pos, _carVis, age, rng);
                 else _engineFx.ReplayExplode(e.Pos, _carVis, age, rng);
             },
             EngineClear = () => _engineFx?.ReplayClear(),
@@ -88,7 +89,7 @@ public partial class RaceScene
             else if (a.Node == _weather) _weather.TapeFx = new TapeFxHost(this, key);      // (the lightning)
             else if (a.Node == _rowing) _rowing.TapeFx = new TapeFxHost(this, key);      // (the dacha's shotgun)
         }
-        if (_engineFx != null) _engineFx.Cleared += () => _tapeFxLive.RemoveAll(x => x.E.Kind is TapeFxKind.EngineSeize or TapeFxKind.EngineExplode);
+        if (_engineFx != null) _engineFx.Cleared += () => _tapeFxLive.RemoveAll(x => x.E.Kind is TapeFxKind.EngineSeize or TapeFxKind.EngineExplode or TapeFxKind.EngineCrush);
         if (_busAll != null) _busAll.TapeReset += () => _tapeFxLive.RemoveAll(x => x.E.Kind == TapeFxKind.BusFire);
         _wood.TapeBroken += (id, hit, velocity, state) => TapeFxEvent(new TapeEvent(0, TapeEventType.Effect,
             Source: "None:WoodFences", Kind: TapeFxKind.WoodBreak, Parent: state.ToString("X16", CultureInfo.InvariantCulture),

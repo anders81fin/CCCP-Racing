@@ -35,5 +35,5 @@ public static class TapeFxKind
         BusFire = "bus-fire", WoodBreak = "wood-break", Breakable = "breakable", JetCrash = "jet-crash", MissileBurst = "missile-burst", BabushkaLaunch = "babushka-launch", CanisterBurst = "canister-burst",
         BabushkaLens = "babushka-lens", MechanicWhack = "mechanic-whack", RadarReading = "radar-reading", SlurryPatch = "slurry-patch",
         CatfishLaunch = "catfish-launch", CatfishSplash = "catfish-splash",
-        DachaShot = "dacha-shot", Lightning = "lightning", EngineSeize = "engine-seize", EngineExplode = "engine-explode";
+        DachaShot = "dacha-shot", Lightning = "lightning", EngineSeize = "engine-seize", EngineExplode = "engine-explode", EngineCrush = "engine-crush";
 }

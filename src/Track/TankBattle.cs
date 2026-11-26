@@ -46,7 +46,7 @@ public partial class TankBattle : Node3D
         public DieselSound Sound;
         public Vector2 Pos;
         public float Yaw, TurretYaw, Speed, ReloadLeft, Recoil;
-        public int ObsBase;
+        public int ObsBase, Index;
         public int Side;                  // 0: inside the road's U, 1: outside it
         public Phase Phase;
         public int At = -1;               // firing position it holds or heads for
@@ -116,6 +116,13 @@ public partial class TankBattle : Node3D
 
     /// <summary>(impact point, distance to the car) for every shell landing, and direct hits.</summary>
     public event Action<Vector3, float> ShellLanded;
+    /// <summary>A tank has rolled onto the car (the point of the contact, the hull's speed along the push in m/s): the car is crushed.</summary>
+    public event Action<Vector3, float> CarCrushed;
+    /// <summary>A hull's obstacle circles carry this source id plus the tank's index (CarSim notes every contact with them).</summary>
+    public const int SourceBase = 5000;
+    /// <summary>A hull must be rolling at least this fast (m/s) along its push into the car to crush it: a car that drives into a standing tank, or scrapes along a moving one, only collides.</summary>
+    public const float CrushSpeed = 1.0f;
+    long _lastSerial; bool _serialUnknown = true;
     /// <summary>The world tape's view of the effects made here (null: nothing records). Set by the race.</summary>
     public ITapeFxHost TapeFx;
 
@@ -154,6 +161,7 @@ public partial class TankBattle : Node3D
         for (int i = 0; i < count; i++)
         {
             var tank = new Tank { ObsBase = t.Obstacles.Count, Side = i % 2 };
+            tank.Index = i;
             for (int k = 0; k < ObstacleSlotsPerTank; k++) t.Obstacles.Add(new Obstacle(new Vector2(-1e4f, -1e4f), 0.1f));
             Build(tank, numbers[i % numbers.Length]);
             MarkTape(tank, i + 1);
@@ -354,7 +362,7 @@ public partial class TankBattle : Node3D
         var carPos = car != null ? car.Pos : new Vector3(-1e4f, 0, -1e4f);
         _car = car;
         _movers.Clear(); Movers?.Invoke(_movers);
-        foreach (var s in GulagTruck.Solids) _movers.Add((s.Centre, s.Radius));      // (the player's car, the gulag truck and its people: a tank rolls through none of them)
+        foreach (var s in GulagTruck.SolidsFor(null, cars: false)) _movers.Add((s.Centre, s.Radius));      // (the gulag truck and its people, and the held Kozlik: a tank rolls through none of them. NOT the player's car, the owner's order of 2026-11-26: a tank does not mind if the car is crushed under it, see ConsumeContacts)
         // Rearm only after leaving the exercise, never while waiting for a tank to pass.
         if (car != null && !_area.Grow(60f).HasPoint(new Vector2(car.Pos.X, car.Pos.Z)) &&
             !_tanks.Exists(k => k.Crossing || k.AcrossRoad))
@@ -377,15 +385,38 @@ public partial class TankBattle : Node3D
         }
         if (_chasing) RevengeFire(dt);
         UpdateShells(dt, carPos);
+        if (car != null && dt > 0) ConsumeContacts(car);
         // Obstacles: three circles along each hull, moving with it.
         foreach (var k in _tanks)
         {
             Vector2 f = new(-MathF.Sin(k.Yaw), -MathF.Cos(k.Yaw));
             for (int s = 0; s < ObstacleSlotsPerTank; s++)
-                _t.Obstacles[k.ObsBase + s] = new Obstacle(k.Pos + f * (-2.2f + s * 2.2f), 1.8f, f * k.Speed, Material: ImpactMaterial.Metal);
+                _t.Obstacles[k.ObsBase + s] = new Obstacle(k.Pos + f * (-2.2f + s * 2.2f), 1.8f, f * k.Speed, Material: ImpactMaterial.Metal, Source: SourceBase + k.Index, Part: s);
         }
         if (TankDbg) Report(dt);
         Exercise?.GroundBusy(_shells.Count>0 || _tanks.Exists(k=>k.Crossing || k.AcrossRoad));
+    }
+
+    /// <summary>
+    /// The car's new contacts with the hulls: a tank that is rolling onto the car (its own velocity along the contact's push, from the hull into the car, is CrushSpeed or more) crushes it.
+    /// The tanks still yield to the car where they can (MoverBlockers); this is for the one that could not stop, or that backs, or turns, onto it.
+    /// </summary>
+    void ConsumeContacts(CarSim car)
+    {
+        if (_serialUnknown) { _lastSerial = car.ContactSerial; _serialUnknown = false; return; }
+        foreach (var c in car.Contacts)
+        {
+            if (c.Serial <= _lastSerial) continue;
+            int i = c.Source - SourceBase;
+            if (i < 0 || i >= _tanks.Count) continue;
+            var k = _tanks[i];
+            Vector2 f = new(-MathF.Sin(k.Yaw), -MathF.Cos(k.Yaw));
+            float rolling = (f * k.Speed).Dot(c.WorldNormal);
+            if (rolling < CrushSpeed) continue;
+            CarCrushed?.Invoke(car.Pos, rolling);
+            break;
+        }
+        _lastSerial = Math.Max(_lastSerial, car.ContactSerial);
     }
 
     /// <summary>Stop here and fire two or three rounds once the gun is laid.</summary>

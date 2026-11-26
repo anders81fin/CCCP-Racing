@@ -383,9 +383,18 @@ public partial class CarVisual : Node3D
         Add(this, new BoxMesh { Size = new Vector3(0.1f, 0.1f, 0.3f) }, dark, new Vector3(0.45f, -0.25f, 2.1f)); // exhaust
     }
 
+    /// <summary>1: the car as it is; below 1 a tank has rolled over it: the body is pressed flat (the Y scale) and a little wider, on the ground.</summary>
+    public float Flatten { get; set; } = 1f;
+
     public void Sync(CarSim car, IGround ground)
     {
         Transform = car.Transform;
+        if (Flatten < 0.999f)
+        {
+            float g = ground.Sample(car.Pos.X, car.Pos.Z).Height;
+            var b = Transform.Basis * Basis.FromScale(new Vector3(1.08f, Flatten, 1.08f));
+            Transform = new Transform3D(b, new Vector3(car.Pos.X, g + Math.Max(0f, car.Pos.Y - g) * Flatten, car.Pos.Z));
+        }
         Transform3D shudder = Transform3D.Identity;
         if (Shudder > 0.01f)
         {

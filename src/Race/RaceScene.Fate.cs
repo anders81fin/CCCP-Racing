@@ -94,6 +94,7 @@ public partial class RaceScene
         if (!_planRestart) _wrecks = 0;
         _snd.EngineLevel = 1f;
         _snd.Misfire = 0;
+        if (_carVis != null) _carVis.Flatten = 1f;
         ApplyTrainingPower();
     }
 
@@ -102,7 +103,7 @@ public partial class RaceScene
     /// new one costs two laps of the plan. Only in a real race; training laps shrug it off, and
     /// just after a respawn it only dents and shoves the car.
     /// </summary>
-    public void DestroyCar(Vector3 hitPoint, string cause)
+    public void DestroyCar(Vector3 hitPoint, string cause, bool crush = false)
     {
         if (_state != State.Racing || _failed || _wreck) return;
         if (_grace > 0 && _health.Enabled)
@@ -117,6 +118,19 @@ public partial class RaceScene
         }
         if (_health.Destroy(cause) != EngineHealth.Change.Destroyed) return;
         bool gulag = WreckIsTheEnd;
+        if (crush)
+        {
+            // A tank has rolled over the car: no fire and no blast, the body is pressed flat (a pancake) in a cloud of dust, with a crunch of steel under the tracks.
+            _car.Vel = Vector3.Zero;
+            _engineFx.Crush(_car, _carVis);      // (EngineEffects.cs: the dust and the flat body, on the tape as engine-crush)
+            AddChild(new ClangSound { Strength = 1f });
+            _snd.Impact(14f);
+            _snd.EngineLevel = 0;
+            _cam.Shake(2f);
+            _hud.Show("CRUSHED!", $"{cause} - THE PYATYORKA IS A PANCAKE", 3.5f, Hud.Red, Prio.Critical);
+        }
+        else
+        {
         _car.Blast(hitPoint, 2.2f, 8f);
         _car.Vel += Vector3.Up * 3f;
         _engineFx.Explode(_car, _carVis, hitPoint);
@@ -127,8 +141,9 @@ public partial class RaceScene
         _snd.EngineLevel = 0;
         _cam.Shake(2.2f);
         _hud.Show("DIRECT HIT!", $"{cause} - THE PYATYORKA IS NO MORE", 3.5f, Hud.Red, Prio.Critical);
+        }
         // A tank that got the car has made its point: the revenge is over.
-        if (cause == "TANK SHELL" && _tanks is { Chasing: true }) _tanks.EndRevenge();
+        if ((cause == "TANK SHELL" || crush) && _tanks is { Chasing: true }) _tanks.EndRevenge();
         if (gulag) WreckToGulag(ReasonDestroyed);
         else EnterWreck(DestroyedLaps, "THE PEOPLE'S PYATYORKA WAS DESTROYED");
     }
@@ -226,6 +241,7 @@ public partial class RaceScene
         _car.Neutral = false;
         _health.Reset(true);
         _carVis.Damage?.Reset();
+        _carVis.Flatten = 1f;
         _engineFx.Reset();
         _snd.EngineLevel = 1f;
         _snd.Misfire = 0;

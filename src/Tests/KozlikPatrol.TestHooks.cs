@@ -14,7 +14,7 @@ public partial class KozlikPatrol
         Vector2 c = _t.Center[i].Lerp(_t.Center[(i + 1) % n], f), d = _t.CenterDir(i);
         Position2D = c + new Vector2(-d.Y, d.X) * lat; Forward2D = d; _velocity = d * speed;
         _cur = null; _path = null; _waiting = false; _reverse = false; _chaseOut = false; _kissing = true; _steer = 0;
-        _chaseT = _caughtT = 0; _ram = null; LastRam = null; _serialUnknown = true; _carK = -1;
+        _chaseT = _caughtT = 0; _ram = null; LastRam = null; _serialUnknown = true; _carK = -1; _wasBehind = false; LastWasPass = false;
         Siren(true);
         SetMode(Mode.Chase);
     }

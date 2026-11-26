@@ -1756,6 +1756,7 @@ public partial class RaceScene : Node3D
             TitleGhost.ApplyDamage(_replayClock, _carVis.Damage, _fx);
         _carVis.Sync(_car, _track);
         _carRadio.CarPos = _car.Pos;
+        LastNormRadio();
         PrepareReplayCamera();
         PrepareGameplayCamera();
         if (_followTank && _tanks?.FirstTank is Vector2 tp0)

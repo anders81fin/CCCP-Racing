@@ -65,6 +65,7 @@ public partial class EngineEffects : Node3D
         _slickSize = _slickTarget = 0;
         if (_blackened != null) SetOverlay(_blackened, null);
         _blackened = null;
+        if (_flattened != null) { _flattened.Flatten = 1f; _flattened = null; }
     }
 
     /// <summary>Engine seized: a gush of oil under the car and a cloud of steam.</summary>
@@ -121,6 +122,27 @@ public partial class EngineEffects : Node3D
         TapeFx?.Fx(new TapeEvent(0f, TapeEventType.Effect, Kind: TapeFxKind.EngineExplode, Effect: TapeEffect.Smoke, Pos: car.Pos, Velocity: car.Vel, Life: float.MaxValue));
     }
 
+
+    /// <summary>The Y scale of a car a tank has rolled over: a pancake.</summary>
+    public const float CrushedFlatten = 0.14f;
+    CarVisual _flattened;
+
+    /// <summary>A tank has rolled over the car (the owner's order of 2026-11-26): no fire, the body is pressed flat in a cloud of dust. The tape shows it (the event engine-crush).</summary>
+    public void Crush(CarSim car, CarVisual vis)
+    {
+        _sinceBoom = -1;
+        CrushFx(_fx, _rng, car.Pos);
+        if (vis != null) { vis.Flatten = CrushedFlatten; _flattened = vis; }
+        TapeFx?.Fx(new TapeEvent(0f, TapeEventType.Effect, Kind: TapeFxKind.EngineCrush, Effect: TapeEffect.Smoke, Pos: car.Pos, Velocity: car.Vel, Life: float.MaxValue));
+    }
+
+    /// <summary>The dust of a car pressed flat (the live function; the replay makes the same).</summary>
+    public static void CrushFx(TyreEffects fx, RandomNumberGenerator rng, Vector3 pos)
+    {
+        for (int i = 0; i < 26; i++)
+            fx.Smoke(pos + new Vector3(rng.RandfRange(-1.8f, 1.8f), 0.2f, rng.RandfRange(-2.2f, 2.2f)), new Vector3(rng.RandfRange(-2.5f, 2.5f), rng.RandfRange(0.6f, 2.2f), rng.RandfRange(-2.5f, 2.5f)),
+                new Color(0.55f, 0.5f, 0.42f), 0.8f, 1.0f, 4.2f, rng.RandfRange(1.6f, 3f));
+    }
 
     /// <summary>The fireball, the debris and the black smoke of a direct hit (the live function; see <see cref="SeizeFx"/>).</summary>
     public static void ExplodeFx(TyreEffects fx, RandomNumberGenerator rng, Vector3 pos)

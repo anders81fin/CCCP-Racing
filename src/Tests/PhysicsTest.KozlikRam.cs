@@ -19,7 +19,7 @@ public partial class PhysicsTest
         public readonly List<(int Tick, CarSim.ObstacleContact Contact)> Contacts = new();
         public float SpeedBefore, SpeedAfter, ImpactAtContact, PatrolGapAtObstacle = -1f, PatrolBehindSecond;
         public float MinSep = 1e9f;
-        public bool WasBehind, CarPassedPatrol, AutographAtEnd;
+        public bool WasBehind, CarPassedPatrol, AutographAtEnd, FinePassed;
         public float MinAhead = 1e9f;      // the closest he came behind the car along the road (m): the old fine's distance was 4.5
         public int ContactsAfterCaught, GhostObstacles;
         public Vector2 CarAt;
@@ -76,7 +76,7 @@ public partial class PhysicsTest
             if (ahead < -3f) res.WasBehind = true;
             if (OS.HasEnvironment("RAMDBG") && tick % 15 == 0) GD.Print($"RAM t{tick} patrol {patrol.Position2D} spd {patrol.Speed:F2} car {carPos} v {car.Speed:F2} sep {(patrol.Position2D - carPos).Length():F2} ahead {(carPos - patrol.Position2D).Dot(track.CenterDir(At)):F2} gap {patrol.TestGap:F2} s {patrol.TestS:F2} steer {patrol.TestSteer:F3} lat {patrol.TestLat:F2} guide {patrol.TestGuide}");
         }
-        res.AutographAtEnd = patrol.TestAutograph;
+        res.AutographAtEnd = patrol.TestAutograph; res.FinePassed = patrol.LastWasPass;
         res.CarAt = new Vector2(car.Pos.X, car.Pos.Z);
         foreach (int o in patrol.TestObstacleIndices) if (track.Obstacles[o].Center.X < -1000f) res.GhostObstacles++;
         patrol.Reset();      // (lets go of the ghost circles he has handed to the traffic: they are static)
@@ -129,6 +129,11 @@ public partial class PhysicsTest
         var hwTrack = TrackBuilder.Build(TrackDef.Load("res://tracks/bonus.json")); float hw = hwTrack.HalfWidth[RamStraight(hwTrack)];
         var pass = RamRun("bonus", 15f, .8f * hw + 5f, -30f, 9.5f, 60 * 5);
         Check(pass.CarPassedPatrol && pass.Contacts.Count == 0 && pass.CaughtCount == 0, $"Kozlik ram: a car driving past him 5 m clear is no contact and no fine (passed {pass.CarPassedPatrol}, contacts {pass.Contacts.Count}, fines {pass.CaughtCount})");
+        // 4b. He passes the car: a car rolling slowly 5 m aside (out of his reach), he comes in 9.5 m/s faster and cannot stop in time: his centre goes past the car's without a touch, and that is the fine, on that tick.
+        var overtake = RamRun("bonus", 3f, .8f * hw + 5f, 14f, 9.5f, 60 * 6);
+        Check(overtake.CaughtCount == 1 && overtake.Contacts.Count == 0 && overtake.FinePassed && overtake.CaughtTick > 0,
+            $"Kozlik ram: he drives past the car without a touch: the fine is a pass (fines {overtake.CaughtCount}, pass {overtake.FinePassed}, contacts {overtake.Contacts.Count}, tick {overtake.CaughtTick})");
+        Check(hard.CaughtCount == 1 && !hard.FinePassed, "Kozlik ram: a rear-end is not marked as a pass");
         var aside = RamRun("bonus", 0f, .8f * hw + 5f, 14f, 9.5f, 60 * 8, hold: 0);
         Check(aside.Contacts.Count == 0 && aside.CaughtCount == 0 && !aside.AutographAtEnd && aside.MinAhead < 4.6f,
             $"Kozlik ram: close is not enough: he came to {aside.MinAhead:F1} m behind a car 5 m aside (the old fine's distance was 4.5) and nothing happened");

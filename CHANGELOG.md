@@ -3,6 +3,13 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.923
+
+- SOCIALIST RALLY: when only the last norm, the Stakhanovite one, is left, the radio changes to the song HE KATSOIVAT LANTEEN and plays it on repeat. It goes on until you change the song or switch the radio off, or the game ends with gold, the gulag or leaving the game. A radio that is off stays off
+- SOCIALIST RALLY: RESTART RACE in the Party Meeting now costs one lap of the norm window, like a wreck or a tow. With one lap left it ends the plan. Before, a track could be played over and over by restarting. The R key while driving is still the rescue and a void lap
+- GAI: the duty officer also fines you if he drives past your car without touching it, after he had been behind it. The chase lasts 2.5 times longer before he gives up, 75 seconds or 425 m
+- BONUS TRACK: the tanks no longer steer clear of your car. A tank that rolls onto it crushes it flat, in a cloud of dust, and the run ends as after a missile hit, with the death and the gulag. A car that drives into a standing tank only collides. The crush is on the world tape, so the replay shows it too
+
 ## 0.922
 
 - GAI: the officer now catches you with a real rear-end collision. The fine comes only when the front of his Kozlik hits the back of your car, with the game´s normal crash response, and a hard hit is allowed. Driving past him, a side hit or a hit on another obstacle gives no fine, and he does not hit you again during the autograph
