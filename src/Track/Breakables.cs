@@ -434,6 +434,7 @@ public partial class Breakables : Node3D
             foreach (int i in _breakable)
             {
                 var o = _t.Obstacles[i];
+                if (o.Height > 0f && car.Clears(cz, o)) continue;      // the replay's car in the air above a low thing (a bale, a stump): it did not touch it
                 Vector2 d = c - o.Center;
                 float reach = CarSim.CollisionRadius + o.Radius;
                 float d2 = d.LengthSquared();
@@ -612,6 +613,8 @@ public partial class Breakables : Node3D
                 {
                     bool isFront = axle == 0;
                     if (!Crosses(isFront ? _prevFront : _prevRear, isFront ? front : rear, a, b)) continue;
+                    bool rolling = false; foreach (var w in car.Wheels) if (w.Front == isFront && w.Contact) rolling = true;
+                    if (!rolling) continue;      // an axle in the air (a jump) does not bump over the trunk below it
                     float k = Math.Clamp(speed * h * 0.35f, 0.2f, 2.2f);
                     car.Vel = new Vector3(car.Vel.X * (1f - 0.1f * h), car.Vel.Y + k * 0.5f, car.Vel.Z * (1f - 0.1f * h));
                     car.AngVel += car.Rot * new Vector3(isFront ? k * 0.8f : -k * 0.6f, 0, _rng.RandfRange(-0.3f, 0.3f) * k);

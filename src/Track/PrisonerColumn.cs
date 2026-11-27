@@ -134,7 +134,7 @@ public partial class PrisonerColumn : Node3D
             w.Gait = Mathf.MoveToward(w.Gait, quick && !w.Down.Down ? 1f : 0f, 4f * dt);
             w.Phase += dt * (w.Down.Down ? 0f : quick ? 11f : 6.5f);
             Pose(w, pos, dir, right);
-            if (!w.Down.Down) _t.Obstacles[w.Obs] = new Obstacle(pos, Radius, dir * Walk);      // (a man knocked over has his obstacle out of the way)
+            if (!w.Down.Down) _t.Obstacles[w.Obs] = new Obstacle(pos, Radius, dir * Walk, Height: ObstacleHeights.Person);      // (a man knocked over has his obstacle out of the way)
         }
         // The guard at the back hurries them along when a car is about.
         if (carNear && _barkCd <= 0) { _bark = 1.8f; _barkCd = 7f; _barkText = Barks[(int)(_clock * 7f) % Barks.Length]; }

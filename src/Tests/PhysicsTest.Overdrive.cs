@@ -192,6 +192,12 @@ public partial class PhysicsTest
                     Vector3 c = car.Pos + car.Rot * new Vector3(0, 0, cz);
                     foreach (var o in track.Obstacles)
                     {
+                        if (o.Height > 0f)
+                        {
+                            // A low or movable body under a car in the air: the car clears it (the collision's own rule), or has just come down onto its upper half and is eased off sideways, not thrown (CarSim.MaxTopPush).
+                            float ob = float.IsNaN(o.Base) ? track.Sample(o.Center.X, o.Center.Y).Height : o.Base;
+                            if (car.Clears(cz, o) || car.LowestY(cz) > ob + 0.5f * o.Height) continue;
+                        }
                         float d = new Vector2(c.X, c.Z).DistanceTo(o.Center), minD = o.Radius + 0.92f;
                         if (d < minD) deepest = Math.Max(deepest, (minD - d) / minD);
                         if (d < o.Radius) why = $"inside an obstacle (r {o.Radius}) at {o.Center}";

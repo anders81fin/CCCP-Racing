@@ -153,7 +153,7 @@ public partial class DrunkMen : Node3D
                     m.Pos = new Vector2(p.X, p.Z);
                     m.Yaw = stop.Yaw + _rng.RandfRange(-0.6f, 0.6f);
                     m.Obstacle = t.Obstacles.Count;
-                    t.Obstacles.Add(new Obstacle(m.Pos, Radius, default, false, 0.5f, true, 2.5f, Material: ImpactMaterial.Soft));     // knocked over, not a wall
+                    t.Obstacles.Add(new Obstacle(m.Pos, Radius, default, false, 0.5f, true, 2.5f, Material: ImpactMaterial.Soft, Height: ObstacleHeights.Person));     // knocked over, not a wall
                     m.Down.Bind(t, m.Obstacle);
                 }
                 Build(m);
@@ -390,7 +390,7 @@ public partial class SovietBus : Node3D
         for (int k = 0; k < _obs.Length; k++)
         {
             _obs[k] = t.Obstacles.Count;
-            t.Obstacles.Add(new Obstacle(Vector2.Zero, 1.3f));
+            t.Obstacles.Add(new Obstacle(Vector2.Zero, 1.3f, Height: ObstacleHeights.Bus));
         }
         for (int k = 0; k < _wreckObs.Length; k++)
         {
@@ -719,7 +719,7 @@ public partial class SovietBus : Node3D
         _doorR.Position = new Vector3(Width / 2f + (open ? 0.15f : 0.01f), 1.4f, open ? 2.4f : 1.9f);
 
         for (int k = 0; k < _obs.Length; k++)
-            _t.Obstacles[_obs[k]] = new Obstacle(pos + fwd * (-3.2f + k * 1.6f), 1.3f, vel, Material: ImpactMaterial.Metal);
+            _t.Obstacles[_obs[k]] = new Obstacle(pos + fwd * (-3.2f + k * 1.6f), 1.3f, vel, Material: ImpactMaterial.Metal, Height: ObstacleHeights.Bus);
 
         if (dt > 0)
         {

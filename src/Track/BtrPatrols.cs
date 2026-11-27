@@ -383,7 +383,7 @@ public partial class BtrPatrols : Node3D
         Vector3 f=new(forward.X,0,forward.Y);f=(f-normal*f.Dot(normal)).Normalized();
         Vector3 right=f.Cross(normal).Normalized();
         p.Model.Transform=new Transform3D(new Basis(right,(-f).Cross(right).Normalized(),-f),new(at.X,_track.MeshHeight(at.X,at.Y),at.Y));
-        for(int i=0;i<3;i++) _track.Obstacles[p.Slot+i]=new Obstacle(at+forward*((i-1)*2.2f),1.45f,velocity, Material: ImpactMaterial.Metal);
+        for(int i=0;i<3;i++) _track.Obstacles[p.Slot+i]=new Obstacle(at+forward*((i-1)*2.2f),1.45f,velocity, Material: ImpactMaterial.Metal, Height: ObstacleHeights.Btr);
     }
     public void SetAudioPaused(bool paused) {foreach(var p in _patrols) {p.Sound.StreamPaused=paused;if(paused) p.Gun.Firing=false;}}
 

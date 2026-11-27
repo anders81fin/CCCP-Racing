@@ -122,7 +122,7 @@ public partial class SiberiaDetails : Node3D
             root.AddChild(model);
             model.MarkTape(spec.Id + "/");
             int index = t.Obstacles.Count;
-            t.Obstacles.Add(new Obstacle(spec.A, BodyRadius));
+            t.Obstacles.Add(new Obstacle(spec.A, BodyRadius, Height: ObstacleHeights.Person));
             root._workers.Add(new Worker { Spec = spec, Model = model, Obstacle = index });
             yield return null;
         }
@@ -205,7 +205,7 @@ public partial class SiberiaDetails : Node3D
         worker.Model.Carrying = worker.Spec.A == worker.Spec.B || journey is >= .08f and < .46f;
         var signal = _jets?.GroundSignal() ?? (Moving: false, Waiting: false);
         worker.Model.Animate(worker.Spec.Job == WinterJob.Saw ? _clock + worker.Spec.Phase : worker.Time, signal.Moving, signal.Waiting);
-        _track.Obstacles[worker.Obstacle] = new Obstacle(pos, BodyRadius, velocity);
+        _track.Obstacles[worker.Obstacle] = new Obstacle(pos, BodyRadius, velocity, Height: ObstacleHeights.Person);
     }
 
     static Vector3 Ground(TrackData t, Vector2 p) => new(p.X, t.MeshHeight(p.X, p.Y), p.Y);

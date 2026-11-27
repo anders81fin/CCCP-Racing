@@ -114,7 +114,7 @@ public partial class SlurryTractor : Node3D
         _bodySlot = t.Obstacles.Count;
         t.Obstacles.Add(new Obstacle(Vector2.Zero, 1.3f));
         _tankSlot = t.Obstacles.Count;
-        t.Obstacles.Add(new Obstacle(Vector2.Zero, 1.5f));
+        t.Obstacles.Add(new Obstacle(Vector2.Zero, 1.5f, Height: ObstacleHeights.SlurryTank));
         _tractor = new Node3D { Name = "GreenMTAgro" };
         AddChild(_tractor);
         DrunkTractor.BuildMtAgro(_tractor, false, out _, out _head, new Color(0.30f, 0.39f, 0.22f), true, _wheels);
@@ -362,8 +362,8 @@ public partial class SlurryTractor : Node3D
         Ground(_tractor, _pos, forward);
         Ground(_tank, _trailer, _pos - _trailer);
         _head.Rotation = new Vector3(0, 0.10f * MathF.Sin(_clock), 0);
-        _track.Obstacles[_bodySlot] = new Obstacle(_pos, 1.3f, forward.Normalized() * speed, Material: ImpactMaterial.Metal);
-        _track.Obstacles[_tankSlot] = new Obstacle(_trailer, 1.5f, forward.Normalized() * speed, Material: ImpactMaterial.Metal);
+        _track.Obstacles[_bodySlot] = new Obstacle(_pos, 1.3f, forward.Normalized() * speed, Material: ImpactMaterial.Metal, Height: ObstacleHeights.SlurryBody);
+        _track.Obstacles[_tankSlot] = new Obstacle(_trailer, 1.5f, forward.Normalized() * speed, Material: ImpactMaterial.Metal, Height: ObstacleHeights.SlurryTank);
         _sound.Speed = speed;
         if (Fx != null && _sootDt > 0)
         {

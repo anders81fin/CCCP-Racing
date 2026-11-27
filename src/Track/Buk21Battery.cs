@@ -68,7 +68,7 @@ public partial class Buk21Battery : Node3D
             for (int circle = -1; circle <= 1; circle++)
             {
                 Vector3 local = new Basis(Vector3.Up, heading) * new Vector3(0, 0, circle * 2.5f);
-                track.Obstacles.Add(new Obstacle(at + new Vector2(local.X, local.Z), 2));
+                track.Obstacles.Add(new Obstacle(at + new Vector2(local.X, local.Z), 2, Height: ObstacleHeights.BukLauncher));
             }
             model.AddChild(Props.Part(Props.Cyl(.09f,.4f,6),new Color(.1f,.1f,.09f),LauncherPipe-new Vector3(0,.2f,0)));      // the engine's exhaust stub, rear deck
             var launcher = new Launcher { Model = model, Turret = model.GetNode<Node3D>("Turret"),
@@ -104,7 +104,7 @@ public partial class Buk21Battery : Node3D
         support.AddChild(Props.Part(Props.Box(.08f,3,.08f),new Color(.28f,.29f,.22f),new Vector3(1,1.5f,0)));
         var work=new MilitaryLights {Name="BatteryWorkLight"};support.AddChild(work);
         work.Lamp(new(1,3,0),new(1,.8f,.5f),.12f);work.Beam(new(1,3,0),-85,10,2,48);
-        track.Obstacles.Add(new Obstacle(new Vector2(support.Position.X,support.Position.Z),1.7f));
+        track.Obstacles.Add(new Obstacle(new Vector2(support.Position.X,support.Position.Z),1.7f, Height: ObstacleHeights.BukSupport));
         // One shared crane truck services the two launchers, then returns to its waiting bay.
         _loader=LoaderModel(); AddChild(_loader);
         _loaderHome=new Vector3(300,track.MeshHeight(300,175),175);
@@ -114,7 +114,7 @@ public partial class Buk21Battery : Node3D
         Tape.Part(_loader,"loader"); Tape.Part(_crane,"crane"); Tape.Part(_hoist,"hoist"); Tape.Part(_liftedLoad,"lifted");
         for(int w=0;w<_wheels.Count;w++) { Tape.Part(_wheels[w],"wheel"+w); Tape.Spin(_wheels[w],Vector3.Right,()=>_wheelAngle); }
         _loaderObstacle=track.Obstacles.Count;
-        track.Obstacles.Add(new Obstacle(new Vector2(300,175),2));
+        track.Obstacles.Add(new Obstacle(new Vector2(300,175),2, Height: ObstacleHeights.BukLoader));
         Reset();
     }
     public void Reset()
@@ -124,7 +124,7 @@ public partial class Buk21Battery : Node3D
         _loading=null; _loadingTime=0;
         if(_loader!=null) { _loader.Position=_loaderHome; _loader.Rotation=Vector3.Zero; _crane.Rotation=Vector3.Zero; _lastLoaderPosition=_loaderHome; if(_liftedLoad!=null)_liftedLoad.Visible=false;
             foreach(var wheel in _wheels) wheel.Rotation=Vector3.Zero;
-            _track.Obstacles[_loaderObstacle]=new Obstacle(new Vector2(_loaderHome.X,_loaderHome.Z),2); }
+            _track.Obstacles[_loaderObstacle]=new Obstacle(new Vector2(_loaderHome.X,_loaderHome.Z),2, Height: ObstacleHeights.BukLoader); }
         foreach(var child in GetChildren()) if(child is AudioStreamPlayer3D sound) { sound.Stop(); sound.QueueFree(); }
         foreach(var l in _launchers)
         {
@@ -278,7 +278,7 @@ public partial class Buk21Battery : Node3D
         if(dt>0) _loaderSpeed=travelDistance/dt;
         Vector3 direction=to-from;
         _loader.Rotation=new Vector3(0,TrackData.YawFor(new Vector2(direction.X,direction.Z)),0);
-        _track.Obstacles[_loaderObstacle]=new Obstacle(new Vector2(_loader.Position.X,_loader.Position.Z),2);
+        _track.Obstacles[_loaderObstacle]=new Obstacle(new Vector2(_loader.Position.X,_loader.Position.Z),2, Height: ObstacleHeights.BukLoader);
         float lift=_loadingTime>10 && _loadingTime<22?MathF.Sin((_loadingTime-10)/12*MathF.PI):0;
         _crane.Rotation=new Vector3(0,MathF.Sin(_loadingTime*.22f)*.12f,-lift*.65f);
         _hoist.Position=new Vector3(3.4f,1.55f-lift*.72f,0);

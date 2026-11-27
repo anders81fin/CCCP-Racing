@@ -1380,7 +1380,7 @@ public partial class RaceScene : Node3D
         _pops = rng.RandiRange(2, 5);
         _popTimer = rng.RandfRange(0.03f, 0.12f);
         _popStrength = Math.Clamp(rpm / (_params.Redline * 0.93f), 0.5f, 1f);
-        if (EngineFuel == FuelGrade.Rocket && _car.Boost > 0.2f) { _pops += 2; _popStrength = 1f; _popBoom = true; }
+        if ((EngineFuel == FuelGrade.Rocket && _car.Boost > 0.2f) || (EngineFuel == FuelGrade.Sputnik && _car.TurboGain > 0f)) { _pops += 2; _popStrength = 1f; _popBoom = true; }      // (the Sputnik's lift always detonates again: the owner's order of 2026-11-27)
     }
     float _popStrength = 1f;
     bool _popBoom;      // this burst is the rocket fuel's: every pop an explosion

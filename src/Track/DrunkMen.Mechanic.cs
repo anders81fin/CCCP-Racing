@@ -91,7 +91,7 @@ public partial class DrunkMen
     {
         if (_mech.Obstacle < 0 || _mech.Down.Down) return;
         bool up = _mechPhase is not (Mech.Asleep or Mech.Servicing) && !_mech.Lying;
-        _t.Obstacles[_mech.Obstacle] = up ? new Obstacle(_mech.Pos, Radius, default, false, 0.5f, true, 2.5f, Material: ImpactMaterial.Soft) : new Obstacle(new Vector2(-1e4f, -1e4f), 0.1f);
+        _t.Obstacles[_mech.Obstacle] = up ? new Obstacle(_mech.Pos, Radius, default, false, 0.5f, true, 2.5f, Material: ImpactMaterial.Soft, Height: ObstacleHeights.Person) : new Obstacle(new Vector2(-1e4f, -1e4f), 0.1f);
     }
 
     public event Action Woke, RepairStarted, Repaired, NothingToFix, RepairInterrupted;

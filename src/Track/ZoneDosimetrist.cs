@@ -102,7 +102,7 @@ public partial class ZoneDosimetrist : Node3D
         d.AddChild(d._wash);
         d._rest = d._figure.Transform;
         d._obstacle = t.Obstacles.Count;
-        t.Obstacles.Add(new Obstacle(new Vector2(d._figure.Position.X, d._figure.Position.Z), 0.4f * Atomgrad.DosimetristScale, default, false, 0.5f, true, 2.5f));     // a man: 9 km/h off the car
+        t.Obstacles.Add(new Obstacle(new Vector2(d._figure.Position.X, d._figure.Position.Z), 0.4f * Atomgrad.DosimetristScale, default, false, 0.5f, true, 2.5f, Height: ObstacleHeights.Dosimetrist));     // a man: 9 km/h off the car
         d._down.Bind(t, d._obstacle);
         // The world tape (docs/replay-tape.md): his figure (with the knock-over's tilt and the turn), head and both arms, and the wash flag (visible, at the car, while it is washed).
         Tape.Version(d, 2);

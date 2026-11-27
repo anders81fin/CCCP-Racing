@@ -278,7 +278,7 @@ public partial class VillageLife : Node3D
             n.AddChild(P(Props.Box(0.35f, 0.3f, 0.8f), plank.Darkened(0.1f), new Vector3(-0.85f, 0.95f, 0)));
             n.AddChild(P(Props.Box(0.42f, 0.04f, 0.9f), dark, new Vector3(-0.85f, 1.12f, 0), new Vector3(0, 0, -8)));
         });
-        _t.Obstacles.Add(new Obstacle(cw, CoopObstacleRadius));      // solid: the car cannot drive through the coop (the hens flee round it)
+        _t.Obstacles.Add(new Obstacle(cw, CoopObstacleRadius, Height: ObstacleHeights.Coop));      // solid: the car cannot drive through the coop (the hens flee round it)
         coop.Position = new Vector3(cw.X, Ground(cw), cw.Y);
         coop.Rotation = new Vector3(0, h.Rotation, 0);
         coop.Scale = Vector3.One * Size;

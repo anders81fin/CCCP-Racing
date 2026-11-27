@@ -65,6 +65,9 @@ public partial class PhysicsTest
         var jp = new CarParams(); FuelGrades.ApplyEngine(jp, FuelGrade.Rocket);
         Check(Math.Abs(sp.DriveFront - 0.4f) < 1e-6f && jp.DriveFront == 0f && FuelGrades.PhysicsPercent(FuelGrade.Sputnik) == 140
               && FuelGrades.TurboGainFor(FuelGrade.Sputnik) == FuelGrades.RocketTurboGain, "the Sputnik: 40 % of the force to the front, the jet fuel's 140 % and turbo");
+        { var sj = FuelGrades.Spec(FuelGrade.Rocket); var ss = FuelGrades.Spec(FuelGrade.Sputnik); var sp0 = FuelGrades.Spec(FuelGrade.Petrol);
+          Check(sj.Nm == 230 && sj.TurboNm == 300 && sp0.Nm == 200 && ss.Nm == 280 && ss.TurboNm == 400 && FuelGrades.CardLine((int)FuelGrade.Rocket).Contains("230 NM (300 NM TURBO)"),
+              $"jet fuel 230 Nm and 300 Nm on full turbo (the owner's order of 2026-11-27), petrol 200, the Sputnik prototype keeps its 280 and 400 ({sj.Nm}/{sj.TurboNm}, {sp0.Nm}, {ss.Nm}/{ss.TurboNm})"); }
         var jet = MeasurePower(140, FuelGrade.Rocket);
         var spu = MeasurePower(140, FuelGrade.Sputnik);
         GD.Print($"  jet fuel 0-100 {jet.T100:F2} s, wheelspin {jet.SpinShare * 100:F0}%; Sputnik 0-100 {spu.T100:F2} s, wheelspin {spu.SpinShare * 100:F0}%");

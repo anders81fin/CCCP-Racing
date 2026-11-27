@@ -391,7 +391,7 @@ public partial class TankBattle : Node3D
         {
             Vector2 f = new(-MathF.Sin(k.Yaw), -MathF.Cos(k.Yaw));
             for (int s = 0; s < ObstacleSlotsPerTank; s++)
-                _t.Obstacles[k.ObsBase + s] = new Obstacle(k.Pos + f * (-2.2f + s * 2.2f), 1.8f, f * k.Speed, Material: ImpactMaterial.Metal, Source: SourceBase + k.Index, Part: s);
+                _t.Obstacles[k.ObsBase + s] = new Obstacle(k.Pos + f * (-2.2f + s * 2.2f), 1.8f, f * k.Speed, Material: ImpactMaterial.Metal, Source: SourceBase + k.Index, Part: s, Height: ObstacleHeights.Tank);
         }
         if (TankDbg) Report(dt);
         Exercise?.GroundBusy(_shells.Count>0 || _tanks.Exists(k=>k.Crossing || k.AcrossRoad));

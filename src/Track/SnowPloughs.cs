@@ -281,7 +281,7 @@ public partial class SnowPloughs : Node3D
         {
             var (x, z, r) = circles[k];
             Vector2 at = pos + (right * x - fwd * z) * Size;      // the model's front is -Z: -z is forward
-            _t.Obstacles[p.Obs + k] = new Obstacle(at, r * Size, vel, Material: ImpactMaterial.Metal);
+            _t.Obstacles[p.Obs + k] = new Obstacle(at, r * Size, vel, Material: ImpactMaterial.Metal, Height: p.Mixer ? ObstacleHeights.Mixer : ObstacleHeights.Plough);
         }
 
         if (_fx != null && dt > 0)

@@ -55,7 +55,7 @@ public static class FuelGrades
     public const float JetMass = 1000f;
 
     /// <summary>The engine's power as the physics gets it (percent): the diesel's character is its torque curve, so it has the whole of it.</summary>
-    public static int PhysicsPercent(FuelGrade g) => g switch { FuelGrade.Diesel => 100, FuelGrade.Rocket or FuelGrade.Sputnik => 140, _ => Percent[(int)g] };
+    public static int PhysicsPercent(FuelGrade g) => g switch { FuelGrade.Diesel => 100, FuelGrade.Rocket => JetPercent, FuelGrade.Sputnik => 140, _ => Percent[(int)g] };
 
     /// <summary>
     /// The rocket fuel's engine in the rally: 40 % more power than petrol before the turbo comes in (PhysicsPercent 140) and 100 % more at full boost (2 times petrol):
@@ -63,8 +63,15 @@ public static class FuelGrades
     /// </summary>
     public const float RocketTurboGain = 2.0f / 1.4f - 1f;
 
+    /// <summary>
+    /// The JET FUEL's engine (the owner's order of 2026-11-27): 230 Nm before the turbo comes in (115 % of the petrol car's 200 Nm) and 300 Nm at full boost. The Sputnik keeps the 140 % and the 2 times of
+    /// <see cref="RocketTurboGain"/>: it is the secret prototype.
+    /// </summary>
+    public const int JetPercent = 115;
+    public const float JetTurboGain = 300f / 230f - 1f;
+
     /// <summary>The turbo's gain for the car on this fuel (the rocket fuel's, otherwise none).</summary>
-    public static float TurboGainFor(FuelGrade g) => g is FuelGrade.Rocket or FuelGrade.Sputnik ? RocketTurboGain : 0f;
+    public static float TurboGainFor(FuelGrade g) => g == FuelGrade.Rocket ? JetTurboGain : g == FuelGrade.Sputnik ? RocketTurboGain : 0f;
 
     /// <summary>
     /// The gears of each fuel (the diesel four, the others five), found by a sweep of the first gear and the spacing against the 0-100, the 80-140 and the 400 m (PhysicsTest --gear-sweep, 8 November). The top gear and

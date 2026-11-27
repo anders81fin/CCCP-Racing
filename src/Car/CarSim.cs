@@ -1198,6 +1198,45 @@ public partial class CarSim
         return Math.Clamp(1f - P.TorqueCurveFalloff * x * x, 0.3f, 1f);
     }
 
+    /// <summary>How far the lowest point of the tyres hangs below the car's origin when the suspension is fully out (m).</summary>
+    float BottomDrop => P.RestLength + P.WheelRadius - P.AttachY;
+
+    /// <summary>The height of the underside of the tyres at the body circle <paramref name="cz"/> along the car (world Y): a car over a low obstacle clears it when this is above its top.</summary>
+    public float LowestY(float cz) => Pos.Y + (Rot * new Vector3(0, -BottomDrop, cz)).Y;
+
+    /// <summary>The most (m per step) a car above the middle of a low or movable obstacle is pushed sideways out of it.</summary>
+    public const float MaxTopPush = 0.15f;
+
+    /// <summary>The roof above the car's origin (m): the glb's top at the roof rack and the rear wing (PhysicsTest ModelBounds measures it from the model).</summary>
+    public const float RoofRise = 1.34f;
+    /// <summary>The height of the roof at the body circle <paramref name="cz"/> (world Y).</summary>
+    public float TopY(float cz) => Pos.Y + (Rot * new Vector3(0, RoofRise, cz)).Y;
+    /// <summary>The lowest tyre underside over the three body circles (world Y).</summary>
+    public float LowestAnyY() { float m = float.MaxValue; foreach (float cz in CollisionCircleZ) m = MathF.Min(m, LowestY(cz)); return m; }
+    /// <summary>The highest roof point over the three body circles (world Y).</summary>
+    public float TopAnyY() { float m = float.MinValue; foreach (float cz in CollisionCircleZ) m = MathF.Max(m, TopY(cz)); return m; }
+
+    /// <summary>
+    /// The one vertical rule of every contact: two bodies that overlap on the ground do not touch when one is wholly above the other. The car's tyres' underside <paramref name="carLow"/> and roof
+    /// <paramref name="carTop"/> against the other's bottom and top; a top that is not above its bottom (height 0) is a body of no known height and never cleared. NaN bounds are unknown: no clearing.
+    /// </summary>
+    public static bool VerticallyClear(float carLow, float carTop, float otherBase, float otherTop)
+    {
+        if (float.IsNaN(otherBase) || float.IsNaN(otherTop) || otherTop <= otherBase) return false;
+        return carLow > otherTop || carTop < otherBase;
+    }
+
+    /// <summary>The ground height under a point (the base of an obstacle that stands on it).</summary>
+    public float GroundHeightAt(Vector2 p) => Ground.Sample(p.X, p.Y).Height;
+
+    /// <summary>Whether the car's body circle <paramref name="cz"/> is wholly above or below this obstacle (Height 0: never).</summary>
+    public bool Clears(float cz, in Obstacle o)
+    {
+        if (o.Height <= 0f) return false;
+        float b = float.IsNaN(o.Base) ? GroundHeightAt(o.Center) : o.Base;
+        return VerticallyClear(LowestY(cz), TopY(cz), b, b + o.Height);
+    }
+
     void CollideObstacles(float dt)
     {
         // Map bounds.
@@ -1219,6 +1258,7 @@ public partial class CarSim
                 Vector2 d = c - o.Center;
                 float dist2 = d.LengthSquared();
                 if (dist2 >= minD * minD || dist2 < 1e-6f) continue;
+                if (o.Height > 0f && Clears(cz, o)) continue;      // a low wall or post under a car in the air (or a thing that flies over a car): they do not touch
                 float dist = MathF.Sqrt(dist2);
                 Vector2 n2 = d / dist;
                 Vector3 n = new(n2.X, 0, n2.Y);
@@ -1238,6 +1278,12 @@ public partial class CarSim
                     continue;
                 }
                 float pen = minD - dist;
+                // A car that came down onto a low or a movable body (the clearing above let it in) is deep inside it sideways: it is eased off the top, not thrown across the body's width in one step.
+                if (o.Height > 0f)
+                {
+                    float ob = float.IsNaN(o.Base) ? GroundHeightAt(o.Center) : o.Base;
+                    if (LowestY(cz) > ob + 0.5f * o.Height) pen = MathF.Min(pen, MaxTopPush);
+                }
                 Pos += n * pen;
                 c += n2 * pen;
                 if (vn >= 0) continue;

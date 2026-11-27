@@ -882,12 +882,16 @@ src/Tests/PhysicsTest.Messages.cs
 src/Tests/PhysicsTest.Messages.cs.uid
 src/Tests/PhysicsTest.MilitaryMotion.cs
 src/Tests/PhysicsTest.MilitaryMotion.cs.uid
+src/Tests/PhysicsTest.ModelBounds.cs
+src/Tests/PhysicsTest.ModelBounds.cs.uid
 src/Tests/PhysicsTest.ModelReview.cs
 src/Tests/PhysicsTest.ModelReview.cs.uid
 src/Tests/PhysicsTest.MoverContacts.cs
 src/Tests/PhysicsTest.MoverContacts.cs.uid
 src/Tests/PhysicsTest.NormCard.cs
 src/Tests/PhysicsTest.NormCard.cs.uid
+src/Tests/PhysicsTest.ObstacleHeight.cs
+src/Tests/PhysicsTest.ObstacleHeight.cs.uid
 src/Tests/PhysicsTest.OctaneTape.cs
 src/Tests/PhysicsTest.OctaneTape.cs.uid
 src/Tests/PhysicsTest.Overdrive.cs

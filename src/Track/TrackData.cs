@@ -36,8 +36,25 @@ public interface IGround
 /// and obstacles without an authored material. This does not affect physics.</summary>
 public enum ImpactMaterial : byte { Unknown, Metal, Wood, Stone, Snow, Ground, Soft }
 
+/// <summary>A circle on the ground the car collides with. Height: how far above Base it reaches (m); 0 means it is as tall as the car can meet (a tree, a house: taller than any jump), and then the car is never above it. Base: its lowest point in world Y (NaN: the ground at its centre; a thing that hangs or flies says it). A car whose tyres are above Base + Height, or whose roof is below Base, does not touch it (CarSim.VerticallyClear).</summary>
 public readonly record struct Obstacle(Vector2 Center, float Radius, Vector2 Velocity = default, bool Birch = false, float BreakAt = 0, bool Crumbles = false, float Loss = -1f,
-    ImpactMaterial Material = ImpactMaterial.Unknown, int Source = 0, int Part = 0);
+    ImpactMaterial Material = ImpactMaterial.Unknown, int Source = 0, int Part = 0, float Height = 0f, float Base = float.NaN);
+
+/// <summary>
+/// How far above the ground the moving things reach (m), the top of each model with its cab, stack and beacon as built at the world's scale (PhysicsTest ObstacleHeight measures the built models and fails when one is
+/// taller than its constant). Set on the circles each vehicle rewrites every tick; the obstacle's Base is the ground at its centre, so a car that is in the air above one clears it by its tyres' height above the ground there.
+/// A thing that no jump reaches (a house, a tree, a pole, a tower, an aircraft) says no height and is never cleared.
+/// </summary>
+public static class ObstacleHeights
+{
+    public const float Tractor = 3.5f, SlurryBody = 3.6f, SlurryTank = 3.0f, Bus = 3.2f, Plough = 5.5f, Mixer = 5.5f, Btr = 4.2f, Tank = 4.3f, Kozlik = 4.1f, Person = 3.1f, Horse = 3.0f;
+    // The second round (Codex, 2026-11-28): the rest of the active and the parked-but-solid bodies a jump can clear, each from its built model (PhysicsTest ObstacleHeightActorsTest): a Hind or a MiK on the ground,
+    // the Buk's launchers, support and loader, the Lunokhod and the train, the camp gate, the fuel depot's tank, the hen coop, the speed trap's booth and sign.
+    public const float Hind = 6.0f, Jet = 4.5f, Dosimetrist = 3.5f, BukLauncher = 5.2f, BukSupport = 3.1f, BukLoader = 3.1f, Robot = 3.3f, Train = 4.6f, Gate = 1.8f, Depot = 5.0f, Coop = 2.8f, Booth = 4.2f, Sign = 2.8f;
+    // What is left without a height on purpose, and why: trees (the crown), poles, lamp posts, masts, the radar, towers, stacks and reactors (taller than 6 m, or a thin shaft with wires, a crown or an arm above it that
+    // a flying car would meet), and every house, barn, hall and silo (taller than any jump of the rally, and a roof that cannot carry a car: one that came down on it would sink through). What is not an obstacle at all
+    // is parked at (-1e4, -1e4) with the radius 0.1 (an actor that is away) and is never in reach.
+}
 
 /// <summary>About 2 m of dry-stone wall: points Seg..Seg+1 of fence run Run, owning obstacles [First, First + Count).</summary>
 public readonly record struct WallSegment(int Run, int Seg, int First, int Count);

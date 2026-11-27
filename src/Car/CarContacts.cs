@@ -26,10 +26,11 @@ public static class CarContacts
 
     static float Resolve(CarSim a, CarSim b, bool prediction)
     {
-        if (Math.Abs(a.Pos.Y-b.Pos.Y)>1.45f || a.Pos.DistanceSquaredTo(b.Pos)>36) return 0;
+        if (a.Pos.DistanceSquaredTo(b.Pos)>36) return 0;      // (the height is judged per pair of body circles below: the tyres and the roof of each, CarSim.VerticallyClear)
         float hit=0;
         foreach (float za in CarSim.CollisionCircleZ) foreach (float zb in CarSim.CollisionCircleZ)
         {
+            if (CarSim.VerticallyClear(a.LowestY(za),a.TopY(za),b.LowestY(zb),b.TopY(zb))) continue;      // one car wholly above the other (a jump over it): no contact
             Vector3 pa=a.Pos+a.Rot*new Vector3(0,0,za), pb=b.Pos+b.Rot*new Vector3(0,0,zb);
             var d=pa-pb; d.Y=0; float len=d.Length(), depth=2*CarSim.CollisionRadius-len;
             if (depth<=0) continue;

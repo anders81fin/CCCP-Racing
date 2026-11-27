@@ -57,7 +57,7 @@ public static class GrainDelivery
         for (int i = 0; i < count; i++)
         {
             float offset = count == 1 ? 0 : Mathf.Lerp(-length / 2f + r, length / 2f - r, i / (float)(count - 1));
-            t.Obstacles.Add(new Obstacle(c + along * offset, r));
+            t.Obstacles.Add(new Obstacle(c + along * offset, r, Height: ObstacleHeights.Tractor));
         }
     }
 

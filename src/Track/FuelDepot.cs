@@ -92,7 +92,7 @@ public partial class FuelDepot : Node3D
         ParkYaw = TrackData.YawFor((dir * 2f - left).Normalized());   // nose out towards the road
         Vector2 tank = layout.Tank;
         Obstacle = t.Obstacles.Count;
-        t.Obstacles.Add(new Obstacle(tank, TankRadius));
+        t.Obstacles.Add(new Obstacle(tank, TankRadius, Height: ObstacleHeights.Depot));
 
         // The tank on its legs, lengthwise along the road; a ladder, a red band and a star.
         float gy = t.MeshHeight(tank.X, tank.Y);

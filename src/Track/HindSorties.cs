@@ -276,11 +276,11 @@ public partial class HindSorties : Node3D
             Vector2 f = Heading(p);
             for (int k = 0; k < 3; k++)
                 _track.Obstacles[_obstacles + p.Slot * 5 + k] = new Obstacle(Flat(p.Pos) + f * (k - 1) * 3f,
-                    p.Phase == Phase.Wreck ? 2.5f : 2f, Flat(p.Velocity));
+                    p.Phase == Phase.Wreck ? 2.5f : 2f, Flat(p.Velocity), Height: ObstacleHeights.Hind);
             Vector2 side = new(-f.Y, f.X);
             for (int k = 0; k < 2; k++)
                 _track.Obstacles[_obstacles + p.Slot * 5 + 3 + k] = new Obstacle(Flat(p.Pos) + side * (k == 0 ? -3.5f : 3.5f),
-                    2f, Flat(p.Velocity));
+                    2f, Flat(p.Velocity), Height: ObstacleHeights.Hind);
         }
     }
 

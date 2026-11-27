@@ -101,10 +101,10 @@ public partial class SpeedTrap : Node3D
         _figureRest = _figure.Transform;
         _signRest = s.Transform;
         _officerObstacle = t.Obstacles.Count;
-        t.Obstacles.Add(new Obstacle(_officer, 0.35f * SizeScale, default, false, 0.5f, true, 2.5f));      // a man: 9 km/h off the car
-        t.Obstacles.Add(new Obstacle(booth, 1.2f));
+        t.Obstacles.Add(new Obstacle(_officer, 0.35f * SizeScale, default, false, 0.5f, true, 2.5f, Height: ObstacleHeights.Person));      // a man: 9 km/h off the car
+        t.Obstacles.Add(new Obstacle(booth, 1.2f, Height: ObstacleHeights.Booth));
         _signObstacle = t.Obstacles.Count;
-        t.Obstacles.Add(new Obstacle(sign, 0.12f, default, false, 0.5f, true, 0.8f));                     // a thin pole
+        t.Obstacles.Add(new Obstacle(sign, 0.12f, default, false, 0.5f, true, 0.8f, Height: ObstacleHeights.Sign));                     // a thin pole
         _officerDown.Bind(t, _officerObstacle);
         _signDown.Bind(t, _signObstacle);
         ResetGaze();

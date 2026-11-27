@@ -743,7 +743,7 @@ public partial class BalalaikaSorties : Node3D
         int slot = 0;
         void Put(Vector2 c, float r, Vector2 v)
         {
-            if (slot < ObstacleSlots) _t.Obstacles[_obsBase + slot++] = new Obstacle(c, r, v);
+            if (slot < ObstacleSlots) _t.Obstacles[_obsBase + slot++] = new Obstacle(c, r, v, Height: ObstacleHeights.Jet);
         }
         foreach (var j in _jets)
         {

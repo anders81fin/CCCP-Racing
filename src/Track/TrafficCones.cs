@@ -137,7 +137,8 @@ public partial class TrafficCones : Node3D
         var cp = car != null ? new Vector2(car.Pos.X, car.Pos.Z) : Vector2.Zero;
         foreach (var c in _cones)
         {
-            if (!c.Down && car != null && car.Speed > 1.5f && new Vector2(c.Pos.X, c.Pos.Z).DistanceTo(cp) < HitDist)
+            if (!c.Down && car != null && car.Speed > 1.5f && new Vector2(c.Pos.X, c.Pos.Z).DistanceTo(cp) < HitDist
+                && !CarSim.VerticallyClear(car.LowestAnyY(), car.TopAnyY(), _t.MeshHeight(c.Pos.X, c.Pos.Z), _t.MeshHeight(c.Pos.X, c.Pos.Z) + H))      // (a car in the air above the cone's top passes over it)
             {
                 // Off it goes, faster than the car, up and away from its path, tumbling.
                 var away = new Vector3(c.Pos.X - car.Pos.X, 0, c.Pos.Z - car.Pos.Z);

@@ -47,7 +47,7 @@ public partial class CampGate : Node3D
         Tape.Version(this, 1); Tape.Part(this, "root"); Tape.Part(_boom, "boom");      // the world tape: the boom is the only moving part
         _first = track.Obstacles.Count;
         for (float cx = _hinge.X + .6f; cx < anchor.X + BonusFieldCamp.GateHalfWidth - .6f; cx += 1.1f)
-            track.Obstacles.Add(new Obstacle(new Vector2(cx, _hinge.Z), .55f, default, false, BreakSpeed, true, PloughLoss));
+            track.Obstacles.Add(new Obstacle(new Vector2(cx, _hinge.Z), .55f, default, false, BreakSpeed, true, PloughLoss, Height: ObstacleHeights.Gate));
         _count = track.Obstacles.Count - _first;
     }
 

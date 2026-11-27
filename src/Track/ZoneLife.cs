@@ -344,7 +344,7 @@ public partial class ZoneLife : Node3D
         _dish.Rotation = new Vector3(0, _clock * 0.8f, 0);
         _robotProbe.Rotation = new Vector3(-.93f * probe, 0, 0);
         _surveyLamp.Visible = probe > .6f;
-        _t.Obstacles[_robotObs] = new Obstacle(p, 1.5f, moving ? dir * RobotSpeed : Vector2.Zero);
+        _t.Obstacles[_robotObs] = new Obstacle(p, 1.5f, moving ? dir * RobotSpeed : Vector2.Zero, Height: ObstacleHeights.Robot);
     }
 
     // ------------------------------------------------------------ the train
@@ -452,7 +452,7 @@ public partial class ZoneLife : Node3D
         for (int k = 0; k < _trainObs.Count; k++)
         {
             float z = _train.GlobalPosition.Z - 11.9f + k * 2.2f;
-            _t.Obstacles[_trainObs[k]] = new Obstacle(new Vector2(tr.X, z), 1.7f, v);
+            _t.Obstacles[_trainObs[k]] = new Obstacle(new Vector2(tr.X, z), 1.7f, v, Height: ObstacleHeights.Train);
         }
         // The crossing: lamps blink and the horn blows while the train is within 70 m of it.
         float toCross = MathF.Abs(_train.GlobalPosition.Z - tr.Cross);

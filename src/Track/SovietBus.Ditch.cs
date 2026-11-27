@@ -368,7 +368,7 @@ public partial class SovietBus
         Dent();
         _burnt = CreateBurntOverlay(_wreck);
         for (int k = 0; k < _wreckObs.Length; k++)
-            _t.Obstacles[_wreckObs[k]] = new Obstacle(_wreckPos + _wreckFwd * (-3.2f + k * 1.6f), BodyR, Material: ImpactMaterial.Metal);
+            _t.Obstacles[_wreckObs[k]] = new Obstacle(_wreckPos + _wreckFwd * (-3.2f + k * 1.6f), BodyR, Material: ImpactMaterial.Metal, Height: ObstacleHeights.Bus);
         foreach (int k in _obs) _t.Obstacles[k] = new Obstacle(Parked, 0.1f);
 
         (_model, _doorL, _doorR, _bumper) = (live, liveL, liveR, liveB);

@@ -108,7 +108,7 @@ public partial class KgbOfficers : Node3D
         {
             o.Yaw = o.RestYaw;
             o.Obstacle = t.Obstacles.Count;
-            t.Obstacles.Add(new Obstacle(o.Pos, Radius, default, false, 0.5f, true, 2.5f, Material: ImpactMaterial.Soft));     // knocked over, not a wall
+            t.Obstacles.Add(new Obstacle(o.Pos, Radius, default, false, 0.5f, true, 2.5f, Material: ImpactMaterial.Soft, Height: ObstacleHeights.Person));     // knocked over, not a wall
             o.Down.Bind(t, o.Obstacle);
         }
         if (_debug) GD.Print($"KGB clerk at {_clerk.Pos}, supervisor at {_boss.Pos}");

@@ -14,6 +14,8 @@ namespace CCCPRacing.Track;
 /// </summary>
 public partial class WoodFences : Node3D
 {
+    /// <summary>The top of a post above the ground (m): a car in the air higher than this passes over the fence.</summary>
+    public const float FenceTop = 1.3f;
     const float SpeedKeep = 0.9f;          // car keeps this share of its speed per span broken
     const float MaxDebris = 160;
 
@@ -160,7 +162,7 @@ public partial class WoodFences : Node3D
         foreach (float cz in new[] { -1.3f, 0f, 1.3f })
         {
             Vector3 c = car.Pos + car.Rot * new Vector3(0, 0, cz);
-            broke += Smash(new Vector2(c.X, c.Z), 0.95f, car.Vel);
+            broke += Smash(new Vector2(c.X, c.Z), 0.95f, car.Vel, car.LowestY(cz), car.TopY(cz));
         }
         if (broke == 0) return;
         // Rotten wood gives way, but every span still takes a bite out of the speed and shoves
@@ -172,7 +174,10 @@ public partial class WoodFences : Node3D
     }
 
     /// <summary>Breaks every intact span within radius of the point; returns how many.</summary>
-    public int Smash(Vector2 p, float radius, Vector3 vel)
+    public int Smash(Vector2 p, float radius, Vector3 vel) => Smash(p, radius, vel, float.NaN, float.NaN);
+
+    /// <summary>The same for a car's body circle whose tyres are at <paramref name="carLow"/> and roof at <paramref name="carTop"/> (world Y, NaN: unknown, nothing is cleared): a span the car is wholly above (the ground where the span stands, plus the top of the posts) stands.</summary>
+    public int Smash(Vector2 p, float radius, Vector3 vel, float carLow, float carTop)
     {
         if (_replaying) return 0;
         int broke = 0;
@@ -180,6 +185,11 @@ public partial class WoodFences : Node3D
         {
             if (s.Broken) continue;
             if (DistToSegment(p, s.A, s.B) > radius + 0.12f) continue;
+            if (!float.IsNaN(carLow))
+            {
+                Vector2 mid = (s.A + s.B) * 0.5f; float g = _t.MeshHeight(mid.X, mid.Y);
+                if (CarSim.VerticallyClear(carLow, carTop, g, g + FenceTop)) continue;
+            }
             Break(s, p, vel);
             broke++;
         }

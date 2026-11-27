@@ -196,7 +196,7 @@ public partial class PhysicsTest
         Check(gatedRise > 2.5f && smoothRise < 1.5f, "turbo sound: the flutter detector catches a gated vent (the old fluttering blow-off) and passes a smooth decay");
 
         // 1. no flutter in any lift, of any fuel; the vent fires once, when the pedal comes below 0.3 and not before.
-        foreach (var l in TurboLifts.Where(l => l.Grade == 2))
+        foreach (var l in TurboLifts.Where(l => l.Grade == 2 && !l.Five))      // (the Sputnik keeps its old fluttering blow-off, section 4)
             Check(N[l.Name].rerise < 1.5f, $"turbo sound: {l.Name}: the vent is one smooth decay with no flutter (re-rise {N[l.Name].rerise:F2})");
         {
             var fast = E["jet-fast"]; int pk = TurboPeakIndex(fast, from);
@@ -225,34 +225,23 @@ public partial class PhysicsTest
             Check(late < .75f * early && late > 0f, $"turbo sound: the whistle falls in pitch after the lift ({early / 2f:F0} Hz to {late / 2f:F0} Hz, by the zero crossings)");
         }
 
-        // 4. the Sputnik: the intake side's vent is its own (shorter and duller than the jet fuel's), the wastegate is the exhaust side at full throttle and beats with the five's firings.
+        // 4. the Sputnik keeps its old, wild voice (the owner's order of 2026-11-27: the tidied one sounded like a tame cow): no separate vent or wastegate voices, the whistle follows the boost, and a lift
+        // blows off with the old flutter, "fh-ty-ty-ty", which the flutter detector (above) catches in the whole mix.
         {
             var s = T["sputnik-fast"]; var j = T["jet-fast"];
-            Check(N["sputnik-fast"].len <= .85f * fastLen && N["sputnik-fast"].len >= .12f, $"turbo sound: the Sputnik's vent is shorter than the jet fuel's ({N["sputnik-fast"].len * 1000f:F0} against {fastLen * 1000f:F0} ms)");
-            float cs = TurboCrossings(s.Vent, TurboLift.VentTimeOf(.10f), TurboLift.VentTimeOf(.10f) + .15f), cj = TurboCrossings(j.Vent, TurboLift.VentTimeOf(.10f), TurboLift.VentTimeOf(.10f) + .15f);
-            Check(cs < .85f * cj, $"turbo sound: the Sputnik's vent is duller than the jet fuel's ({cs:F0} against {cj:F0} crossings a second)");
-            float wgBefore = TurboRms(s.Wastegate, At - .4f, At), wgAfter = TurboRms(s.Wastegate, At + .3f, At + .6f);
-            Check(wgBefore > .003f && wgAfter < .05f * wgBefore, $"turbo sound: the Sputnik's wastegate is open at full throttle and shut at the lift (rms {wgBefore:F4} then {wgAfter:F4})");
-            Check(TurboRms(j.Wastegate, 0f, TurboLift.Length) == 0f, "turbo sound: the jet fuel has no wastegate voice");
-            Check(TurboRms(s.Vent, 0f, At) < 1e-6f, "turbo sound: the wastegate is not the vent (no vent voice while the pedal is down)");
-            float beatSputnik = TurboBeat(s.Wastegate, At - .4f, At);
-            var plain = new float[s.Wastegate.Length]; var rn = new Random(3); for (int i = 0; i < plain.Length; i++) plain[i] = (float)rn.NextDouble() * 2 - 1;
-            float beatNoise = TurboBeat(plain, 0f, 1f);
-            Check(beatSputnik > 2f * beatNoise && beatSputnik > .3f, $"turbo sound: the wastegate's rasp beats with the five's firings (variation {beatSputnik:F2}, steady noise {beatNoise:F2})");
-            Check(TurboRms(T["sputnik-slow"].Wastegate, At + .9f, At + 1.2f) < .05f * TurboRms(T["sputnik-slow"].Wastegate, At - .4f, At), "turbo sound: the wastegate is shut while the pedal is let up slowly too");
+            Check(TurboRms(s.Vent, 0f, TurboLift.Length) == 0f && TurboRms(s.Wastegate, 0f, TurboLift.Length) == 0f && TurboRms(j.Wastegate, 0f, TurboLift.Length) == 0f, "turbo sound: the Sputnik's old voice has no separate vent or wastegate (and the jet fuel no wastegate)");
+            float flutter = TurboReRise(TurboEnvelope(s.Mix.Zip(T["petrol-fast"].Mix, (a, b) => a - b).ToArray(), 10f), from);
+            Say($"TURBO sputnik old blow-off: re-rise of the difference to the petrol mix {flutter:F2}");
+            Check(flutter > 1.5f, $"turbo sound: the Sputnik's lift blows off with the old flutter (re-rise {flutter:F2})");
+            Check(TurboRms(s.Mix, At + .12f, At + .5f) > 1.05f * TurboRms(T["petrol-fast"].Mix, At + .12f, At + .5f), "turbo sound: the Sputnik's blow-off is louder than a petrol lift in the same window");
         }
 
-        // 5. anti-lag: the shaft is kept spinning and the whistle stays; the vent and the wastegate are not touched by it.
+        // 5. the anti-lag flag no longer holds a Sputnik shaft: the old voice ignores it (the bangs are the scene's); the bangs' beat is unchanged.
         {
-            var plain = T["sputnik-fast"]; var al = T["sputnik-antilag"]; float t = TurboLift.VentTimeOf(.10f);
-            Check(al.ShaftAt(t + 1.4f) >= .3f && plain.ShaftAt(t + 1.4f) <= .15f, $"turbo sound: with anti-lag the shaft keeps spinning ({al.ShaftAt(t + 1.4f):F2}), without it it has run down ({plain.ShaftAt(t + 1.4f):F2})");
-            float ca = TurboCrossings(al.Whistle, t + 1.3f, t + 1.4f), cp = TurboCrossings(plain.Whistle, t + 1.3f, t + 1.4f);
-            Check(ca > 1.3f * cp, $"turbo sound: the anti-lag whistle stays high ({ca / 2f:F0} Hz against {cp / 2f:F0} Hz)");
-            Check(al.Vent.SequenceEqual(plain.Vent) && al.Wastegate.SequenceEqual(plain.Wastegate), "turbo sound: anti-lag changes neither the vent nor the wastegate");
+            var plain = T["sputnik-fast"]; var al = T["sputnik-antilag"];
+            Check(al.Mix.SequenceEqual(plain.Mix), "turbo sound: the Sputnik's old voice ignores the anti-lag flag (the whistle follows the boost)");
             var jetAl = TurboRenderLift(TurboLifts.First(x => x.Name == "jet-fast"), tt => tt >= At);
             Check(jetAl.Shaft.SequenceEqual(T["jet-fast"].Shaft), "turbo sound: the jet fuel (four cylinders, no anti-lag) ignores the anti-lag flag");
-            var released = TurboRenderLift(TurboLifts.First(x => x.Name == "sputnik-antilag"), tt => tt >= At && tt < At + 1f);
-            Check(released.ShaftAt(At + 1f) >= .4f && released.ShaftAt(At + 2.5f) < .2f, $"turbo sound: when anti-lag stops (the pause, a collision, a replay) the shaft runs down again ({released.ShaftAt(At + 1f):F2} to {released.ShaftAt(At + 2.5f):F2})");
             var beats = AntiLagPattern.Beats;
             Check(beats.Length == 5 && beats.Max() >= 3f * beats.Min() && AntiLagPattern.Gap(4, 1f, 1f) < AntiLagPattern.Gap(4, 0f, 1f), "turbo sound: the anti-lag's bangs come in the five-cylinder's beat (four quick, one long) and faster at high revs");
         }

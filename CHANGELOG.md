@@ -3,6 +3,13 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.924
+
+- COLLISIONS: a car in the air now clears what is below it. Before, a long jump over the stone walls of the dacha yard still counted as a hit. The tyres and the roof of the car are compared with the bottom and the top of the other thing, and this goes for the stone walls and wooden fences, stumps, rocks, hay bales, sandbags and power cabinets, and also for tractors, the bus and its wreck, ploughs, mixers, tanks, BTRs, the Kozlik, people, horses, the Hind and the MiK on the ground, the Lunokhod and the train, the camp gate and more. Houses, trees, poles and towers stay as tall as before. A car that lands on top of a vehicle is eased off, not thrown. Cones, the bump over a fallen trunk, the replay of broken things and LAN cars follow the same rule
+- ILYICH: the stone wall round the church hairpin is moved closer to the church, and at the apex of the hairpin a little more
+- JET FUEL: the engine has 230 Nm before the turbo comes in and 300 Nm at full boost, as the fuel card says. Before it was 280 and 400. The Sputnik keeps its power
+- SPUTNIK: its old wild turbo voice is back, with the blow-off flutter and the lift pops. The tidy turbo sound stays with the Jet fuel
+
 ## 0.923
 
 - SOCIALIST RALLY: when only the last norm, the Stakhanovite one, is left, the radio changes to the song HE KATSOIVAT LANTEEN and plays it on repeat. It goes on until you change the song or switch the radio off, or the game ends with gold, the gulag or leaving the game. A radio that is off stays off

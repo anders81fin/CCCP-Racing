@@ -8,6 +8,11 @@ namespace CCCPRacing.Track;
 /// <summary>Turns a TrackDef into TrackData: rolling kolkhoz terrain with a road carved along a closed spline.</summary>
 public static partial class TrackBuilder
 {
+    /// <summary>The top of a dry-stone wall above the ground (m): the stones are 0.35-0.55 m, with a second course of 0.18-0.3 m on top. A car in the air above it passes over.</summary>
+    public const float StoneWallHeight = 0.9f;
+    // The tops of the low things a car can jump over (m above the ground), each at least the top of its model (PhysicsTest ObstacleHeight checks them against the built props): the rock's and the stump's are
+    // per metre of the prop's size. Everything taller than any jump (trees, poles, houses, towers) says no height and is never cleared.
+    public const float RockHeight = 0.95f, StumpHeight = 0.6f, HayHeight = 1.75f, PowerCabinetHeight = 1.5f, FieldFuelHeight = 1.5f, FieldGeneratorHeight = 2.3f, SandbagHeight = 1.35f;
     const float EdgeMargin = 34f;     // hills rise near map edges to hide the end of the world
     const float BlendOuter = 7f;      // distance beyond road edge where terrain is back to natural
 
@@ -796,7 +801,7 @@ public static partial class TrackBuilder
             foreach (var guard in PartyDacha.Guards)
             {
                 t.DachaGuardObstacles.Add(t.Obstacles.Count);
-                t.Obstacles.Add(new Obstacle(guard.At, KolkhozWorkers.BodyRadius, default, false, 0.5f, true, 2.5f, Material: ImpactMaterial.Soft));     // knocked over, not a wall (the estate is kept clear already)
+                t.Obstacles.Add(new Obstacle(guard.At, KolkhozWorkers.BodyRadius, default, false, 0.5f, true, 2.5f, Material: ImpactMaterial.Soft, Height: ObstacleHeights.Person));     // knocked over, not a wall (the estate is kept clear already)
             }
             // The paved car park and its surroundings stay free of trees and bushes.
             for (float fz = 188.5f; fz <= 199.5f; fz += 1.6f) for (float fx = 240f; fx <= 257f; fx += 1.6f) occupied.Add(new Vector2(fx, fz));
@@ -882,7 +887,7 @@ public static partial class TrackBuilder
         foreach (var worker in KolkhozWorkers.Layout(t))
         {
             t.WorkerObstacles.Add(t.Obstacles.Count);
-            t.Obstacles.Add(new Obstacle(worker.Position, KolkhozWorkers.BodyRadius, default, false, 0.5f, true, 2.5f, Material: ImpactMaterial.Soft));     // knocked over, not a wall
+            t.Obstacles.Add(new Obstacle(worker.Position, KolkhozWorkers.BodyRadius, default, false, 0.5f, true, 2.5f, Material: ImpactMaterial.Soft, Height: ObstacleHeights.Person));     // knocked over, not a wall
             occupied.Add(worker.Position);
         }
 
@@ -1154,7 +1159,7 @@ public static partial class TrackBuilder
                 if (run.Type != "stone") continue;
                 int steps = Math.Max(1, (int)MathF.Ceiling(a.DistanceTo(b) / 0.9f));
                 int first = t.Obstacles.Count, last = k + 2 == run.Points.Count ? steps : steps - 1;
-                for (int j = 0; j <= last; j++) t.Obstacles.Add(new Obstacle(a.Lerp(b, j / (float)steps), 0.45f, default, false, Breakables.WallBreak, true, Material: ImpactMaterial.Stone));
+                for (int j = 0; j <= last; j++) t.Obstacles.Add(new Obstacle(a.Lerp(b, j / (float)steps), 0.45f, default, false, Breakables.WallBreak, true, Material: ImpactMaterial.Stone, Height: StoneWallHeight));
                 t.WallSegments.Add(new WallSegment(r, k, first, t.Obstacles.Count - first));
             }
         }
@@ -1203,8 +1208,8 @@ public static partial class TrackBuilder
         {
             case "birch": t.Obstacles.Add(new Obstacle(p, size > 0 ? Props.TreeObstacleRadius(type, size) : 0.35f, default, true, Breakables.BreakSpeed(type, size))); break;
             case "spruce" or "pine" or "redpine": t.Obstacles.Add(new Obstacle(p, Props.TreeObstacleRadius(type, size > 0 ? size : 1f), default, false, Breakables.BreakSpeed(type, size))); break;
-            case "rock": if (size >= 0.8f) t.Obstacles.Add(new Obstacle(p, 0.42f * size, Material: ImpactMaterial.Stone)); break;     // (small stones are only seen, not hit)
-            case "stump": t.Obstacles.Add(new Obstacle(p, 0.38f * Math.Max(size, 0.7f), Material: ImpactMaterial.Wood)); break;
+            case "rock": if (size >= 0.8f) t.Obstacles.Add(new Obstacle(p, 0.42f * size, Material: ImpactMaterial.Stone, Height: RockHeight * size)); break;     // (small stones are only seen, not hit)
+            case "stump": t.Obstacles.Add(new Obstacle(p, 0.38f * Math.Max(size, 0.7f), Material: ImpactMaterial.Wood, Height: StumpHeight * Math.Max(size, 0.7f))); break;
             case "garden" or "henhouse" or "palacegarden":
                 foreach (var (lx, lz, r) in type == "garden" ? Garden.Circles() : type == "palacegarden" ? PalaceGarden.Circles() : Henhouse.Circles())
                     t.Obstacles.Add(new Obstacle(p + ax * lx + az * lz, r, Material: type == "palacegarden" ? ImpactMaterial.Stone : ImpactMaterial.Wood));
@@ -1215,9 +1220,9 @@ public static partial class TrackBuilder
                 break;
             case "streetlamp": t.Obstacles.Add(new Obstacle(p, 0.16f)); break;
             case "pondlamp": t.Obstacles.Add(new Obstacle(p, 0.14f)); break;
-            case "powercabinet": t.Obstacles.Add(new Obstacle(p, 0.65f)); break;
+            case "powercabinet": t.Obstacles.Add(new Obstacle(p, 0.65f, Height: PowerCabinetHeight)); break;
             case "pole": t.Obstacles.Add(new Obstacle(p, 0.2f, default, false, Breakables.PoleBreak)); break;
-            case "hay": t.Obstacles.Add(new Obstacle(p, 0.9f, default, false, 2f, true, 5f)); break;    // gives way: it tips over, the car ploughs on 18 km/h slower
+            case "hay": t.Obstacles.Add(new Obstacle(p, 0.9f, default, false, 2f, true, 5f, Height: HayHeight)); break;    // gives way: it tips over, the car ploughs on 18 km/h slower
             case "statue":
                 t.Obstacles.Add(new Obstacle(p, 1.7f * (t.Id == "ilyich" ? Village.MonumentScale : 1f)));
                 if (t.Id == "ilyich")
@@ -1291,15 +1296,15 @@ public static partial class TrackBuilder
             case "hangar": AddBox(t, p, rot, 18.5f, 22f); break;
             case "fieldtent": AddBox(t, p, rot, 6.2f, 8.8f); break;
             case "fieldtruck": AddBox(t, p, rot, 2.8f, 8.6f); break;
-            case "fieldfuel": AddBox(t, p, rot, 7.2f, 7f); break;
-            case "fieldgenerator": AddBox(t, p, rot, 2.8f, 2.3f); break;
+            case "fieldfuel": AddBox(t, p, rot, 7.2f, 7f, true, FieldFuelHeight); break;
+            case "fieldgenerator": AddBox(t, p, rot, 2.8f, 2.3f, true, FieldGeneratorHeight); break;
             case "fieldperimeter":
                 // Use the exact same road-cleared bag placements as the visible perimeter.
                 for (float x = -64; x <= 78; x += 2.5f)
                     for (float z = -31; z <= 28; z += 2.5f)
                         occupied.Add(p + ax * x + az * z);
                 foreach (var bag in BonusFieldCamp.PerimeterBags())
-                    t.Obstacles.Add(new Obstacle(p + ax * bag.Center.X + az * bag.Center.Y, 1.05f));
+                    t.Obstacles.Add(new Obstacle(p + ax * bag.Center.X + az * bag.Center.Y, 1.05f, Height: SandbagHeight));
                 foreach (float x in new[] { -BonusFieldCamp.GateHalfWidth, BonusFieldCamp.GateHalfWidth })
                     t.Obstacles.Add(new Obstacle(p + ax * x + az * BonusFieldCamp.GateZ, 0.8f));
                 foreach (Vector2 tower in BonusFieldCamp.PerimeterTowers)
@@ -1408,13 +1413,13 @@ public static partial class TrackBuilder
     /// A box as a row of circles along its length. A row alone covers a thin wall, but a wide box (a building) is left with open corners: the circles are as wide as the box, so its four corners lie outside
     /// them (the power plant's turbine hall could be driven through at the corners). A box three metres wide and deep or more therefore gets the ring of AddRing too (ring: false keeps the plain row).
     /// </summary>
-    internal static void AddBox(TrackData t, Vector2 c, float rot, float sizeX, float sizeZ, bool ring = true)
+    internal static void AddBox(TrackData t, Vector2 c, float rot, float sizeX, float sizeZ, bool ring = true, float height = 0f)
     {
-        AddRow(t, c, rot, sizeX, sizeZ);
-        if (sizeX >= 3f && sizeZ >= 3f && ring) AddRing(t, c, rot, sizeX, sizeZ);
+        AddRow(t, c, rot, sizeX, sizeZ, height);
+        if (sizeX >= 3f && sizeZ >= 3f && ring) AddRing(t, c, rot, sizeX, sizeZ, height);
     }
 
-    static void AddRing(TrackData t, Vector2 c, float rot, float sizeX, float sizeZ)
+    static void AddRing(TrackData t, Vector2 c, float rot, float sizeX, float sizeZ, float height = 0f)
     {
         Vector2 along = new(MathF.Sin(rot), MathF.Cos(rot)), across = new(along.Y, -along.X);
         float rho = MathF.Min(1.5f, sizeX * 0.5f), hx = sizeX * 0.5f - rho, hz = sizeZ * 0.5f - rho, step = rho * 1.2f;
@@ -1429,13 +1434,13 @@ public static partial class TrackBuilder
                 {
                     if (i == 0 && side == 1 || i == n && side == 1) continue;      // (the corners come once, with the long sides)
                     Vector2 p = side == 0 ? c + across * (sgn * hx) + along * u : c + along * (sgn * hz) + across * u;
-                    t.Obstacles.Add(new Obstacle(p, rho, Material: ImpactMaterial.Stone));
+                    t.Obstacles.Add(new Obstacle(p, rho, Material: ImpactMaterial.Stone, Height: height));
                 }
             }
         }
     }
 
-    static void AddRow(TrackData t, Vector2 c, float rot, float sizeX, float sizeZ)
+    static void AddRow(TrackData t, Vector2 c, float rot, float sizeX, float sizeZ, float height = 0f)
     {
         // Local +Z rotated by yaw 'rot' (Godot rotation around Y): (sin, cos).
         Vector2 along = new(MathF.Sin(rot), MathF.Cos(rot));
@@ -1444,7 +1449,7 @@ public static partial class TrackBuilder
         for (int i = 0; i < k; i++)
         {
             float o = k == 1 ? 0 : Mathf.Lerp(-sizeZ * 0.5f + r, sizeZ * 0.5f - r, i / (float)(k - 1));
-            t.Obstacles.Add(new Obstacle(c + along * o, r));
+            t.Obstacles.Add(new Obstacle(c + along * o, r, Height: height));
         }
     }
 }

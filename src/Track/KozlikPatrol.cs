@@ -557,7 +557,7 @@ public partial class KozlikPatrol : Node3D
         // the car held and shoved ahead must not be hit again, and again, while he signs.
         bool ghost = _mode == Mode.Autograph;
         for (int k = 0; k < _obs.Length; k++)
-            _t.Obstacles[_obs[k]] = ghost ? new Obstacle(new Vector2(-1e4f, -1e4f), 0.1f) : new Obstacle(pos + fwd * (k - 1) * (Wheelbase*.5f), ObsRadius, vel, Material: ImpactMaterial.Metal, Source: _source, Part: k);
+            _t.Obstacles[_obs[k]] = ghost ? new Obstacle(new Vector2(-1e4f, -1e4f), 0.1f) : new Obstacle(pos + fwd * (k - 1) * (Wheelbase*.5f), ObsRadius, vel, Material: ImpactMaterial.Metal, Source: _source, Part: k, Height: ObstacleHeights.Kozlik);
         // Not solid to the car, but a vehicle like any other to the traffic: the bus, the tractors, the ploughs, the BTRs and the tanks stop for it (MoverBlockers.Ghosts)
         if (ghost)
         {

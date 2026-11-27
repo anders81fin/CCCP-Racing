@@ -114,9 +114,12 @@
     { "type": "crest", "at": 960, "length": 48, "height": 1.1 }
   ],
   "fences": [
-    // The wall stands right at the road edge (0.7-0.9 m): a car meets the wall before the slope behind it (790-846 m: the grain store's east corners);
+    // The wall stands right at the road edge (0.9 m; round the grain store 1.4 m, moved out 0.7 m on 2026-11-27 to the owner's line in the top-down screenshot): a car meets the wall before the slope behind it (790-846 m: the grain store's east corners);
     // the opening at 853-858 m faces the grain store's northwest corner.
-    { "type": "stone", "from": 732, "to": 853, "side": "left", "offset": 0.9, "nearFrom": 790, "nearTo": 846, "nearOffset": 0.7, "levelVerge": true, "levelInside": -0.3, "levelEase": 0.9 },
+    // The apex of the hairpin (812-824 m) comes another 0.6 m closer to the church (the owner's second line, 2026-11-27): three runs that meet at 812 and 824 m, each with the same offset where it ends.
+    { "type": "stone", "from": 732, "to": 812, "side": "left", "offset": 0.9, "nearFrom": 790, "nearTo": 846, "nearOffset": 1.4, "levelVerge": true, "levelInside": -0.3, "levelEase": 0.9 },
+    { "type": "stone", "from": 812, "to": 824, "side": "left", "offset": 1.4, "nearFrom": 816, "nearTo": 820, "nearOffset": 2.0, "nearEase": 4, "levelVerge": true, "levelInside": -0.3, "levelEase": 0.9 },
+    { "type": "stone", "from": 824, "to": 853, "side": "left", "offset": 0.9, "nearFrom": 790, "nearTo": 846, "nearOffset": 1.4, "levelVerge": true, "levelInside": -0.3, "levelEase": 0.9 },
     { "type": "stone", "from": 858, "to": 875, "side": "left", "offset": 0.9 },
     { "type": "stonepost", "x": 50, "z": 185 },
     { "type": "stonepost", "x": 42, "z": 182 },

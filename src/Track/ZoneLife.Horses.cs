@@ -87,7 +87,7 @@ public partial class ZoneLife
             n.AddChild(Props.Part(Props.Box(0.52f, 0.5f, 0.56f), dun, new Vector3(0, 1.3f, 0.6f), new Vector3(10, 0, 0)));           // the croup, sloping down to the tail
             foreach (float sx in new[] { -0.2f, 0.2f })
                 n.AddChild(Props.Part(Props.Box(0.12f, 0.52f, 0.42f), dun * 0.9f, new Vector3(sx, 1.0f, 0.62f)));                    // the thigh
-            _t.Obstacles.Add(new Obstacle(home, 0.8f));
+            _t.Obstacles.Add(new Obstacle(home, 0.8f, Height: ObstacleHeights.Horse));
             _horses.Add(h);
         }
     }
@@ -306,7 +306,7 @@ public partial class ZoneLife
             if (HorseAvoidance && (h.Speed > 0f || h.Face != oldFace) && !HorseSweepFree(oldPos, oldFace, next, h.Face)) { h.Speed = 0f; h.Face = oldFace; next = oldPos; }
             h.Pos = next;
             Pose(h, dt);
-            _t.Obstacles[h.Obs] = new Obstacle(h.Pos + h.Face * 0.4f, 0.8f, h.Face * h.Speed);
+            _t.Obstacles[h.Obs] = new Obstacle(h.Pos + h.Face * 0.4f, 0.8f, h.Face * h.Speed, Height: ObstacleHeights.Horse);
         }
     }
 

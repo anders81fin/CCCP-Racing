@@ -647,7 +647,7 @@ public partial class Babushkas : Node3D
     bool TryHit(Walker w, CarSim car, Camera3D lens)
     {
         float ground = _t.MeshHeight(w.Pos.X, w.Pos.Y);
-        if (car.Pos.Y - ground > 2.5f) return false;       // jumped clean over her
+        if (CarSim.VerticallyClear(car.LowestAnyY(), car.TopAnyY(), ground, ground + ObstacleHeights.Person)) return false;       // jumped clean over her (the shared vertical rule: the tyres above her head)
         for (int ci = 0; ci < CarCircleZ.Length; ci++)
         {
             Vector3 rel = car.Rot * new Vector3(0, 0, CarCircleZ[ci]);
