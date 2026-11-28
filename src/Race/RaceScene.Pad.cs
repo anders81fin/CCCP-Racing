@@ -287,7 +287,7 @@ public partial class RaceScene
                     if (b == JoyButton.DpadLeft) { TitleSide(-1); return true; }
                     if (b == JoyButton.DpadRight) { TitleSide(1); return true; }
                 }
-                key = b == JoyButton.A || b == JoyButton.Start ? Key.Enter : b == JoyButton.Y ? Key.T : b == JoyButton.X && TrackCardBoardsOffered ? Key.L : DpadKey(b);   // Y: a track's tour, X: its leaderboards
+                key = b == JoyButton.A || b == JoyButton.Start ? Key.Enter : b == JoyButton.Y ? (_card is TitleCard.RallyFuel or TitleCard.LapsFuel ? Key.I : Key.T) : b == JoyButton.X && TrackCardBoardsOffered ? Key.L : DpadKey(b);   // Y: a track's tour, X: its leaderboards
                 if (b == JoyButton.Back && _card == TitleCard.None && !echo) { PadBackButtonOnTitle(); return true; }
                 if (b == JoyButton.B && _menuParent != null) key = Key.Escape;       // back one level (at the top Esc would quit the game)
                 break;
@@ -316,7 +316,7 @@ public partial class RaceScene
     void PadBackButtonOnTitle()
     {
         if (_menuParent == MenuItem.Office) { AskResignation(); return; }
-        OpenMenu(MenuItem.Office, _menuParent == MenuItem.Files ? MenuItem.Files : MenuItem.Quit);      // (PARTY OFFICE with RESIGN selected, as Esc on the top row; from the KGB FILES row it stays on KGB FILES)
+        OpenMenu(MenuItem.Office, MenuItem.Quit);      // (PARTY OFFICE with RESIGN selected, as Esc on the top row)
     }
 
     static Key DpadKey(JoyButton b) => b switch

@@ -300,6 +300,7 @@ public static class InputSetup
         Add("debug", Key.F9);              // the telemetry (debug) overlay; the LAB panel is F10
         Add("keys", Key.K);                // the key card
         Add("tour", Key.T);                // CHOOSE TRACK: the track's scenic tour
+        Add("info", Key.I);                // CHOOSE FUEL (the rally): the highlighted fuel's car tour, called INFO
         Add("track_boards", Key.L);        // CHOOSE TRACK: the highlighted track's leaderboards
         Add("open_tracks_folder", Key.O);  // CUSTOM TRACKS: the folder of the player's own tracks in the file manager
         Add("comments", Key.Tab);          // centre-screen comments on/off

@@ -32,7 +32,7 @@ public sealed class LanBoardManifest
     public int RowCount => Tracks.Sum(t => t.Sets.Sum(s => s.Rows.Count));
     public int RecordingCount => Tracks.Sum(t => t.Sets.Sum(s => s.Rows.Count(r => r.RecordingId != null)));
 
-    public static int Capacity(int set) => set == 1 ? Leaderboard.StakhanovTotalSize : Leaderboard.Size;
+    public static int Capacity(int set) => set == 1 ? Leaderboard.StakhanovTotalSize : Leaderboard.RallySize;
 
     public void Write(BinaryWriter w)
     {

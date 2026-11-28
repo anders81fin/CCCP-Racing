@@ -5,7 +5,7 @@
   // Bonus: keep the engine working on steep climbs and downshift for the mixed-surface bends; about 41/59/80/104/145 km/h.
   "gearbox": { "gears": [4.15, 2.9, 2.15, 1.65, 1.18], "finalDrive": 5.25, "shiftDown": 4300 },
   "name": "POLIGON 17",
-  // The plan: a lap under this time (seconds) within the lap budget clears the bonus track.
+  // The plan: a lap under this time (seconds) within the lap budget clears Poligon 17.
   "targetLap": 50.0,
   // Inland service bay, separate from the forward helicopter post.
   "depot": {"at": 632, "side": "left", "off": 7.5},
@@ -24,7 +24,7 @@
   "hillScale": 70.0,
   "birches": 170,
   // The big landforms on top of the noise hills (x right, z down; height at the crest, smoothly
-  // gone at radius). Bottom-left: the massif, the highest ground on the bonus track, which the west
+  // gone at radius). Bottom-left: the massif, the highest ground on Poligon 17, which the west
   // hairpin climbs over and the tanks exercise on. Right: a long north-south ridge crest with
   // the east road; its back (backRadius) drops steeply to the map
   // edge so the crest reads. "calm" smooths the noise hills away under them (road grades), and

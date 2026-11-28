@@ -66,7 +66,7 @@ public partial class RaceScene
         _labDirty = false;
     }
 
-    void LabSetMode(bool on)
+    void LabSetMode(bool on, bool quiet = false)
     {
         if (_lab == null || _labMode == on) return;
         _labMode = on;
@@ -82,7 +82,7 @@ public partial class RaceScene
             if (lc.Load(LabCfgPath) == Error.Ok) _lab.Load(lc);
             LabRunStarts();
         }
-        _hud.ShowAlways(on ? "LAB MODE ON" : "LAB MODE OFF", on ? (_labRun ? "THIS RUN IS NOW A LAB RUN" : "THE NEXT RUN IS A LAB RUN") : "THE NEXT RUN IS A NORMAL RUN", 2f, on ? Hud.Gold : Hud.Paper);
+        if (!quiet) _hud.ShowAlways(on ? "LAB MODE ON" : "LAB MODE OFF", on ? (_labRun ? "THIS RUN IS NOW A LAB RUN" : "THE NEXT RUN IS A LAB RUN") : "THE NEXT RUN IS A NORMAL RUN", 2f, on ? Hud.Gold : Hud.Paper);
     }
 
     /// <summary>At every start and restart: the run is a lab run or a normal one. A normal one drives the car's own defaults.</summary>

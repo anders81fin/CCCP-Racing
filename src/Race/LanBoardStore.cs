@@ -72,7 +72,7 @@ public sealed class LanBoardStore : ILanBoardStore
         float seed = -1;
         if (!Godot.FileAccess.FileExists(path) && IOFile.Exists(Real(paths.GhostForSet(set))))
             try { LapGhostBytes.Fingerprint(IOFile.ReadAllBytes(Real(paths.GhostForSet(set))), out _, out seed); } catch { seed = -1; }
-        return Leaderboard.Load(path, seed, set == 1 ? Leaderboard.StakhanovSize : Leaderboard.Size, fuelPartitions: set == 1);
+        return Leaderboard.Load(path, seed, set == 1 ? Leaderboard.StakhanovSize : Leaderboard.RallySize, fuelPartitions: set == 1);
     }
 
     // ------------------------------------------------------------ the offer

@@ -22,7 +22,7 @@ public partial class RaceScene
         if (!temp) return false;
         void Board(string track, int set, params (string name, float time, int power)[] rows)
         {
-            var b = new Leaderboard(set == 1 ? Leaderboard.StakhanovSize : Leaderboard.Size, set == 1) { Path = RecordStore.PathsOnly(_records.Dir, track).BoardForSet(set) };
+            var b = new Leaderboard(set == 1 ? Leaderboard.StakhanovSize : Leaderboard.RallySize, set == 1) { Path = RecordStore.PathsOnly(_records.Dir, track).BoardForSet(set) };
             foreach (var (name, time, power) in rows) b.Insert(name, time, "2026-11-07", power);
             b.Save();
         }
@@ -50,7 +50,7 @@ public partial class RaceScene
     string VtbShown() => string.Join(";", _hud.BoardFuels.Select(f => f.Fuel + ":" + VtbNames(f.Entries)));
 
     bool VtbOpen(int track, bool laps) => _showBoard && BoardScoped && _hud.Mode == HudMode.Board && _hud.BoardScoped && _hud.BoardStakhanov == laps
-        && _hud.BoardTrack == Tracks[track].name && _hud.BoardSelected == -1 && _hud.BoardReplayNotice == "" && _card == TitleCard.Track && _cardSel == track;
+        && _hud.BoardTrack == Tracks[track].name && _hud.BoardSelected >= 0 && _hud.BoardSelected == _boardReplaySelected && _hud.BoardReplayNotice != "" && _card == TitleCard.Track && _cardSel == track;
 
     /// <summary>Back on the same CHOOSE TRACK, highlight and mode, nothing chosen or started, the saved files and the car's fuel untouched.</summary>
     bool VtbBack(int track, MenuItem mode, Dictionary<string, string> files, int power, string rallyFile) => !_showBoard && !_boardScoped && _hud.Mode == HudMode.Title
@@ -78,6 +78,7 @@ public partial class RaceScene
         foreach (var x in VrShot($"trackcard-{tag}-footer-keys")) yield return x;
         var files = VrFiles(); int power = _power; string rallyFile = VwRallyFuelOnFile(); int officePage = _boardPage, officeTrack = _boardTrack;
         var fuelBefore = _rallyFuel;
+        if (!laps) _rallyFuel = FuelGrade.Petrol;      // (the rally's board is the chosen fuel's: PETROL has the fixture rows)
 
         // 1. SIBERIA (not the built track; locked on a fresh profile): only its own mode's boards
         foreach (var x in VtbTo(SIB, false)) yield return x;
@@ -107,8 +108,8 @@ public partial class RaceScene
         }
         else
         {
-            VwCheck(VtbShown() == "DIESEL:SRD1;PETROL:SRP1,SRP2,SRP3;JET FUEL:;SPUTNIK:SRS1,SRS2" && _hud.Board.Count == 0,
-                $"rally: SIBERIA's four fuel boards, three places each, empty JET FUEL empty; no KOLKHOZ, laps or other track rows ({VtbShown()})");
+            VwCheck(VtbShown() == "PETROL - TOP 10:SRP1,SRP2,SRP3,SRP4" && _hud.Board.Count == 0,
+                $"rally: SIBERIA's board of the chosen fuel (PETROL) with all four of its rows, up to ten; no other fuel, KOLKHOZ, laps or other track rows ({VtbShown()})");
             foreach (var x in VrShot("trackcard-rally-siberia")) yield return x;
         }
         // 2. nothing else reaches through: no other track or mode, row, replay, tour, fuel key or shortcut, no mouse row
@@ -166,10 +167,23 @@ public partial class RaceScene
         foreach (var x in VtbTo(0, false)) yield return x;
         foreach (var x in VrTap(Key.L)) yield return x;
         for (int i = 0; i < 4; i++) yield return null;
-        VwCheck(VtbOpen(0, laps) && (laps ? VtbShown() == "DIESEL - TOP 10:" : VtbShown() == "DIESEL:;PETROL:IRP1,IRP2;JET FUEL:;SPUTNIK:"), $"{tag}: KOLKHOZ (built) shows its own {(laps ? "laps" : "rally")} rows only ({VtbShown()})");
+        VwCheck(VtbOpen(0, laps) && (laps ? VtbShown() == "DIESEL - TOP 10:" : VtbShown() == "PETROL - TOP 10:IRP1,IRP2"), $"{tag}: KOLKHOZ (built) shows its own {(laps ? "laps" : "rally")} rows only ({VtbShown()})");
+        // the cursor: Up/Down move it (wrapping), Enter on a result with no recording says so and the board stays open (a result with one opens its replay: the office board's path)
+        int rowsNow = BoardReplayRows, sel0 = _boardReplaySelected;
+        foreach (var x in VrTap(Key.Down)) yield return x;
+        VwCheck(_boardReplaySelected == (sel0 + 1) % rowsNow && _hud.BoardSelected == _boardReplaySelected, $"{tag}: Down moves the cursor to the next result ({_boardReplaySelected} of {rowsNow})");
+        foreach (var x in VrTap(Key.Up)) yield return x;
+        foreach (var x in VrTap(Key.Up)) yield return x;
+        VwCheck(_boardReplaySelected == (sel0 + rowsNow - 1) % rowsNow, $"{tag}: Up wraps to the last result ({_boardReplaySelected})");
+        foreach (var x in VrTap(Key.Down)) yield return x;
+        var rowHere = BoardReplayRow();
+        VwCheck(rowHere.Entry == null || rowHere.Entry.RecordingId == null, $"{tag}: these in-memory test results carry no recording");
         foreach (var x in VrTap(Key.Enter)) yield return x;
+        for (int i = 0; i < 6; i++) yield return null;
+        VwCheck(VtbOpen(0, laps) && _hud.BoardReplayNotice == "NO RECORDING FOR THIS RESULT" && _replayViewer == null && _boardReplayOpen == null, $"{tag}: Enter on a result without a recording says so and the board stays open ('{_hud.BoardReplayNotice}')");
+        foreach (var x in VrTap(Key.Escape)) yield return x;
         for (int i = 0; i < 20; i++) yield return null;
-        VwCheck(VtbBack(0, mode, files, power, rallyFile), $"{tag}: Enter closes the boards back to CHOOSE TRACK on KOLKHOZ without choosing it ({_card}, sel {_cardSel})");
+        VwCheck(VtbBack(0, mode, files, power, rallyFile), $"{tag}: Esc closes the boards back to CHOOSE TRACK on KOLKHOZ without choosing it ({_card}, sel {_cardSel})");
         // 7. T TOUR still opens (the built track: no rebuild) and Esc closes it; L works again after it
         foreach (var x in VrTap(Key.T)) yield return x;
         for (int i = 0; i < 20; i++) yield return null;
@@ -183,7 +197,8 @@ public partial class RaceScene
         VwCheck(VtbOpen(0, laps), $"{tag}: L opens the boards again after the tour");
         foreach (var x in VrTap(Key.Escape)) yield return x;
         for (int i = 0; i < 10; i++) yield return null;
-        VwCheck(VtbBack(0, mode, files, power, rallyFile) && _rallyFuel == fuelBefore && _boardPage == officePage && _boardTrack == officeTrack,
+        VwCheck(VtbBack(0, mode, files, power, rallyFile) && _rallyFuel == (laps ? fuelBefore : FuelGrade.Petrol) && _boardPage == officePage && _boardTrack == officeTrack,
             $"{tag}: back on KOLKHOZ; the rally fuel, the car's power and the office board's own page/track are untouched (page {_boardPage}, track {_boardTrack})");
+        _rallyFuel = fuelBefore;
     }
 }

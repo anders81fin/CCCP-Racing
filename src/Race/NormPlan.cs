@@ -23,7 +23,7 @@ namespace CCCPRacing.Race;
 /// </summary>
 public class NormPlan
 {
-    /// <summary>The bonus track's original ladder, the default for a track without its own norms.</summary>
+    /// <summary>Poligon 17's original ladder, the default for a track without its own norms.</summary>
     public static readonly float[] DefaultLadder = { 75f, 72.5f, 70f, 67.5f, 65f, 62.5f, 60f, 57.5f, 55f, 52.5f };
     /// <summary>The ladder in seconds of the track built (UseTrack) and of the fuel (UseFuel); the last step is the Stakhanovite norm.</summary>
     public static float[] Ladder { get; private set; } = DefaultLadder;

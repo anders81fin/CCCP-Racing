@@ -42,6 +42,7 @@ public partial class RaceScene
         cfg.SetValue("cheats", "unlock_all", on);
         cfg.Save(_records.Dir + "settings.cfg");
         _cheatSaved = on;
+        if (!on && _labMode) LabSetMode(false, quiet: true);      // (LAB is shown in SETTINGS only with the code active: closing the code switches it off too, saved in settings.cfg)
         _hud.MenuNote(on ? "THE POLITBURO HAS REVIEWED YOUR FILE" : "YOUR FILE IS BACK IN THE ARCHIVE",
             on ? "EVERY FUEL AND EVERY ROAD IS OPEN, COMRADE" : "THE FUELS AND THE ROADS OPEN WITH MEDALS AGAIN", 4f);
     }

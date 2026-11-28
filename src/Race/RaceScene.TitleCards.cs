@@ -109,7 +109,7 @@ public partial class RaceScene
         if (TourInput()) return true;        // a track's tour is up (RaceScene.TrackPreview.cs)
         if (_card == TitleCard.Track && _trackFor != MenuItem.Lan && Input.IsActionJustPressed("tour")) { OpenTour(); return true; }
         if (TrackCardBoardsOffered && Input.IsActionJustPressed("track_boards")) { OpenTrackCardBoards(); return true; }      // L / X: the highlighted track's boards (RaceScene.TrackCardBoards.cs)
-        if (_card == TitleCard.RallyFuel && Input.IsActionJustPressed("tour")) { OpenCarTour(); return true; }      // the car of the highlighted fuel
+        if (_card is TitleCard.RallyFuel or TitleCard.LapsFuel && Input.IsActionJustPressed("info")) { OpenCarTour(); return true; }      // the car of the highlighted fuel (the Stakhanov laps' CHOOSE FUEL has the INFO too)
         // One step at a time: the track card has more than two.
         if (Input.IsActionJustPressed("steer_left")) _cardSel = Math.Max(0, _cardSel - 1);
         else if (Input.IsActionJustPressed("steer_right")) _cardSel = Math.Min(CardCount - 1, _cardSel + 1);
@@ -170,6 +170,16 @@ public partial class RaceScene
         else if (c == TitleCard.RallyFuel)
         {
             _rallyFuel = (FuelGrade)_cardSel; FuelGrades.Save(_records.Dir, _rallyFuel);
+            if (_rallyFuelFirst && !_campaign.FuelInfoSeen(_rallyFuel))
+            {
+                // The first time this fuel is chosen on this profile its INFO plays before CHOOSE TRACK; Esc skips it and the track card follows either way.
+                _campaign.MarkFuelInfoSeen(_rallyFuel);
+                _card = c;
+                _ctThenChoose = true;
+                OpenCarTour();
+                if (!_carTourOpen) { _ctThenChoose = false; ChooseTitleCard(); }      // (the tour could not open: straight on)
+                return;
+            }
             if (_rallyFuelFirst)
             {
                 // The car first, the track next.
@@ -291,6 +301,7 @@ public partial class RaceScene
         };
         _hud.CardNote = (_card == TitleCard.LapsFuel || _card == TitleCard.Custom && _customList.Count > 0)     // the laps' keys still switch the fuel on the move (RaceScene.cs PowerKey, RaceScene.Pad.cs PadPower): on a custom track too, with the fuels opened in the rally
             ? _padMode ? "D-PAD UP/DOWN SWITCHES FUEL WHILE DRIVING" : "KEYS 1-4 SWITCH FUEL WHILE DRIVING"
+            : _card == TitleCard.Track && _trackFor == MenuItem.Race && HiddenCamerasNote() is { } cameras ? cameras      // (the rally's track card: how many of the track's hidden cameras this file has found)
             : null;
         _hud.CardSelection = _cardSel;
         _hud.CustomRows = null;
@@ -302,7 +313,8 @@ public partial class RaceScene
         _hud.LapsRewardSource = _lapsRewardIndex >= 0 ? _lapsRewardSource : null;
         _hud.LapsRewardAge = _lapsRewardAge;
         _hud.CardTour = _card == TitleCard.Track && _trackFor != MenuItem.Lan && HasTour(Tracks[Math.Clamp(_cardSel, 0, Tracks.Length - 1)].id)
-            || _card == TitleCard.RallyFuel;
+            || _card is TitleCard.RallyFuel or TitleCard.LapsFuel;
+        _hud.CardInfo = _card is TitleCard.RallyFuel or TitleCard.LapsFuel;      // (the fuel card's car tour is called INFO, on I / the pad's Y)
         _hud.CardBoards = TrackCardBoardsOffered;
     }
 

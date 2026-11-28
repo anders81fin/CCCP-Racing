@@ -48,8 +48,8 @@ public partial class RaceScene
         // ---- ENTER opens the export card on the cut
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 10; i++) yield return null;
-        VwCheck(v.ExportCardOpen && v.ExportCardRows[0].Contains("THE CUT") && v.ExportCardRows[4].Contains("12.0") && v.ExportCardLines.Contains("60 FPS · NORMAL SPEED"),
-            $"ENTER opens the export card on THE CUT, 12 s, 60 FPS · NORMAL SPEED ({(v.ExportCardOpen ? v.ExportCardRows[0] + " / " + v.ExportCardRows[4] : "closed")})");
+        VwCheck(v.ExportCardOpen && v.ExportCardRows[0].Contains("THE CUT") && v.ExportCardRows[5].Contains("12.0") && v.ExportCardLines.Contains("60 FPS · NORMAL SPEED"),
+            $"ENTER opens the export card on THE CUT, 12 s, 60 FPS · NORMAL SPEED ({(v.ExportCardOpen ? v.ExportCardRows[0] + " / " + v.ExportCardRows[5] : "closed")})");
         foreach (var x in VrShot("makeclip-export")) yield return x;
         foreach (var x in VrTap(Key.Escape)) yield return x;
         for (int i = 0; i < 10; i++) yield return null;

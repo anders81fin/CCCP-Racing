@@ -80,8 +80,8 @@ public partial class Hud
             top + panel.Size.Y * 0.61f, Gold);
         float textY = top + panel.Size.Y * 0.70f;
         if (!opened)
-            DrawTypewriter("BONUS TRACK AUTHORIZED", cx, textY, Gold, age - 0.9f, RewardTypewriterRate, 1, HeadingShadow);
-        else PixelFont.DrawCentered(this, "BONUS TRACK UNLOCKED!", cx, textY, Gold, 1, HeadingShadow);
+            DrawTypewriter("POLIGON 17 AUTHORIZED", cx, textY, Gold, age - 0.9f, RewardTypewriterRate, 1, HeadingShadow);
+        else PixelFont.DrawCentered(this, "POLIGON 17 UNLOCKED!", cx, textY, Gold, 1, HeadingShadow);
         PixelFont.DrawCentered(this, "POLIGON 17", cx, top + panel.Size.Y * 0.79f, opened ? Gold : Grey, 2, HeadingShadow);
         PixelFont.DrawCentered(this, _lapsRewardRally ? "SOCIALIST RALLY" : "STAKHANOV LAPS", cx,
             panel.End.Y - 15, Paper);

@@ -119,9 +119,48 @@ public partial class RaceScene
         foreach (var x in VrShot("export-1-edit-panel")) yield return x;
         var ov = s.OverlayView;
         foreach (var x in ToExportRow(s, exportRow)) yield return x;
-        foreach (var x in VrTap(Key.Enter)) yield return x;
+        // Enter opens the card and the pad's d-pad DOWN arrives in the same frame, before the card has drawn once (the Steam Deck's first frame of a screen can last seconds): the press is read, not lost
+        _vwDrv.SetControl(true);
+        Input.ParseInputEvent(VwKey(Key.Enter, true, 0)); Input.ParseInputEvent(VwKey(Key.Enter, false, 0));
+        Input.ParseInputEvent(VwPadB(JoyButton.DpadDown, true, _driver.Device));
+        yield return null; yield return null;
+        Input.ParseInputEvent(VwPadB(JoyButton.DpadDown, false, _driver.Device));
         for (int i = 0; i < 6; i++) yield return null;
-        VwCheck(s.ExportOpen && ov.ExportRows.Length >= 7, "the export card is up: " + string.Join(" | ", ov.ExportRows));
+        _vwDrv.SetControl(false);
+        VwCheck(s.ExportOpen && ov.ExportRows.Length >= 9 && ov.ExportSelected == 1, $"the export card is up and a pad press in its first frame was read (selected row {ov.ExportSelected}): " + string.Join(" | ", ov.ExportRows));
+        // ---- PRESET: WHATSAPP 720P SMALL, YOUTUBE 1080P HIGH, CUSTOM; SIZE and QUALITY stay on their own rows and can be changed by hand; the pad's B leaves
+        {
+            bool Is(string preset, string size, string quality) => ov.ExportRows[1] == $"PRESET  < {preset} >" && ov.ExportRows[2] == $"SIZE  < {size} >" && ov.ExportRows[3] == $"QUALITY  < {quality} >";
+            VwCheck(ov.ExportRows[1].StartsWith("PRESET") && ov.ExportRows[2].StartsWith("SIZE") && ov.ExportRows[3].StartsWith("QUALITY") && Is("YOUTUBE", "1080P", "HIGH"), "the card shows PRESET, SIZE and QUALITY, the defaults 1080P HIGH on YOUTUBE: " + string.Join(" | ", ov.ExportRows[1..4]));
+            foreach (var x in VrPad(JoyButton.DpadRight)) yield return x;
+            VwCheck(Is("CUSTOM", "1080P", "HIGH"), "pad right: CUSTOM changes no value: " + string.Join(" | ", ov.ExportRows[1..4]));
+            foreach (var x in VrPad(JoyButton.DpadRight)) yield return x;
+            VwCheck(Is("WHATSAPP", "720P", "SMALL"), "pad right: WHATSAPP sets 720P and SMALL: " + string.Join(" | ", ov.ExportRows[1..4]));
+            foreach (var x in VrShot("export-preset-whatsapp")) yield return x;
+            foreach (var x in VrPad(JoyButton.DpadRight)) yield return x;
+            VwCheck(Is("YOUTUBE", "1080P", "HIGH"), "pad right: YOUTUBE sets 1080P and HIGH: " + string.Join(" | ", ov.ExportRows[1..4]));
+            foreach (var x in VrPad(JoyButton.DpadLeft)) yield return x;
+            foreach (var x in VrPad(JoyButton.DpadLeft)) yield return x;
+            VwCheck(Is("CUSTOM", "720P", "SMALL"), "pad left twice: YOUTUBE -> WHATSAPP -> CUSTOM, which keeps WHATSAPP's 720P SMALL: " + string.Join(" | ", ov.ExportRows[1..4]));
+            foreach (var x in VrPad(JoyButton.DpadRight)) yield return x;      // WHATSAPP again (720P SMALL)
+            foreach (var x in VrPad(JoyButton.DpadDown)) yield return x; foreach (var x in VrPad(JoyButton.DpadRight)) yield return x;      // SIZE by hand: 540P
+            VwCheck(Is("CUSTOM", "540P", "SMALL"), "a hand change of SIZE shows CUSTOM and leaves QUALITY: " + string.Join(" | ", ov.ExportRows[1..4]));
+            foreach (var x in VrPad(JoyButton.DpadRight)) yield return x;      // 1080P
+            foreach (var x in VrPad(JoyButton.DpadDown)) yield return x; foreach (var x in VrPad(JoyButton.DpadRight)) yield return x;      // QUALITY by hand: HIGH
+            VwCheck(Is("CUSTOM", "1080P", "HIGH"), "values that equal YOUTUBE set by hand still show CUSTOM: " + string.Join(" | ", ov.ExportRows[1..4]));
+            foreach (var x in VrShot("export-preset-custom")) yield return x;
+            foreach (var x in VrPad(JoyButton.DpadUp)) yield return x; foreach (var x in VrPad(JoyButton.DpadUp)) yield return x;      // PRESET
+            foreach (var x in VrTap(Key.Right)) yield return x; foreach (var x in VrTap(Key.Right)) yield return x;      // (keys too) CUSTOM -> WHATSAPP -> YOUTUBE
+            VwCheck(Is("YOUTUBE", "1080P", "HIGH"), "keys right twice: WHATSAPP, then YOUTUBE: " + string.Join(" | ", ov.ExportRows[1..4]));
+            foreach (var x in VrPad(JoyButton.B)) yield return x;
+            for (int i = 0; i < 6; i++) yield return null;
+            VwCheck(!s.ExportOpen, "the pad's B leaves the export card");
+            foreach (var x in VrTap(Key.V)) yield return x;
+            foreach (var x in ToExportRow(s, exportRow)) yield return x;
+            foreach (var x in VrTap(Key.Enter)) yield return x;
+            for (int i = 0; i < 6; i++) yield return null;
+            VwCheck(s.ExportOpen && ov.ExportRows.Length >= 9, "the card opens again (the settings are kept for the next export: YOUTUBE 1080P HIGH) " + string.Join(" | ", ov.ExportRows[1..4]));
+        }
         float modalClock = v.ViewerClock, modalSpeed = v.ViewerSpeed;
         bool modalPaused = v.ViewerPaused;
         foreach (var key in new[] { Key.Right, Key.Left, Key.Down, Key.Right, Key.Left, Key.Up, Key.Comma, Key.Period })
@@ -155,9 +194,9 @@ public partial class RaceScene
         foreach (var x in VrShot("export-2-card-whole")) yield return x;
         foreach (var x in VrTap(Key.Right)) yield return x;      // SPAN: THE CUT
         VwCheck(ov.ExportRows[0].Contains("THE CUT"), "SPAN offers THE CUT because a cut is on: " + ov.ExportRows[0]);
-        foreach (var x in VrTap(Key.Down)) yield return x; foreach (var x in VrTap(Key.Right)) yield return x; foreach (var x in VrTap(Key.Right)) yield return x;      // SIZE: 540P
-        VwCheck(ov.ExportRows[1].Contains("540"), "SIZE 540P: " + ov.ExportRows[1]);
-        VwCheck(ov.ExportRows[4].Contains("240 FRAMES"), "LENGTH shows 4 s = 240 frames: " + ov.ExportRows[4]);
+        foreach (var x in VrTap(Key.Down)) yield return x; foreach (var x in VrTap(Key.Down)) yield return x; foreach (var x in VrTap(Key.Right)) yield return x; foreach (var x in VrTap(Key.Right)) yield return x;      // SIZE: 540P
+        VwCheck(ov.ExportRows[2].Contains("540") && ov.ExportRows[1].Contains("CUSTOM"), "SIZE 540P, and the preset shows CUSTOM: " + ov.ExportRows[2] + " / " + ov.ExportRows[1]);
+        VwCheck(ov.ExportRows[5].Contains("240 FRAMES"), "LENGTH shows 4 s = 240 frames: " + ov.ExportRows[5]);
         foreach (var x in VrShot("export-3-card-cut")) yield return x;
         for (int i = 0; i < 4; i++) foreach (var x in VrTap(Key.Down)) yield return x;      // START EXPORT
         foreach (var x in VrTap(Key.Enter)) yield return x;
@@ -199,7 +238,7 @@ public partial class RaceScene
         foreach (var x in VrTap(Key.Enter)) yield return x;
         VwCheck(s.ExportOpen, "the export card opened for the second export (the selection was moved to the EXPORT row, not assumed)");
         if (!s.ExportOpen) { s.Close(); yield break; }
-        for (int i = 0; i < 5; i++) foreach (var x in VrTap(Key.Down)) yield return x;
+        for (int i = 0; i < 6; i++) foreach (var x in VrTap(Key.Down)) yield return x;      // (SPAN, PRESET, SIZE, QUALITY, AUDIO, LENGTH, then START)
         foreach (var x in VrTap(Key.Enter)) yield return x;      // START (whole lap, 1080p: long enough to cancel)
         var wall = System.Diagnostics.Stopwatch.StartNew();
         while (ov.ExportFraction < 0.02f && wall.Elapsed.TotalSeconds < 240 && s.ExportOpen) yield return null;

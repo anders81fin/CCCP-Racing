@@ -43,6 +43,22 @@ public sealed class CameraDiscoveries
         }
         return _owned.Add(Key(track, view));
     }
+    /// <summary>The cameras a track hides: its abandoned cameras (Track.CameraSecrets), and on Ilyich the bonnet one on the duck's back.</summary>
+    public static int HiddenOn(string track) => Track.CameraSecrets.Layout(track).Count + (track == "ilyich" ? 1 : 0);
+
+    /// <summary>How many of the track's hidden cameras this file has found (all of them under the Konami code, as Has says).</summary>
+    public int FoundOn(string track)
+    {
+        int found = 0;
+        foreach (var view in new[] { GameplayView.Bonnet, GameplayView.Cinematic, GameplayView.RoadAligned })
+        {
+            bool hidden = view == GameplayView.Bonnet ? track == "ilyich" || System.Linq.Enumerable.Any(Track.CameraSecrets.Layout(track), s => s.View == view)
+                : System.Linq.Enumerable.Any(Track.CameraSecrets.Layout(track), s => s.View == view);
+            if (hidden && Has(track, view)) found++;
+        }
+        return found;
+    }
+
     public bool HasAlternative(string track) => Has(track, GameplayView.Cinematic) || Has(track, GameplayView.Bonnet)
         || !AlwaysOpen(track, GameplayView.RoadAligned) && Has(track, GameplayView.RoadAligned);
     public GameplayView Next(string track, GameplayView current) => Step(track, current, 1);

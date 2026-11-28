@@ -11,7 +11,7 @@ namespace CCCPRacing.Tests;
 public partial class PhysicsTest
 {
     /// <summary>
-    /// The bonus track's tanks crush the car they roll onto (the owner's order of 2026-11-26): a hull rolling into the car, at CrushSpeed or more along its push, raises CarCrushed; a car that drives into a standing tank,
+    /// Poligon 17's tanks crush the car they roll onto (the owner's order of 2026-11-26): a hull rolling into the car, at CrushSpeed or more along its push, raises CarCrushed; a car that drives into a standing tank,
     /// or scrapes along a moving one, or a tank that rolls away, only collides. The hulls' circles carry their source ids and the car notes the contacts (the same contact record the duty officer's ram reads).
     /// </summary>
     void TankCrushTest()

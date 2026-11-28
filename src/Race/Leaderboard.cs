@@ -16,7 +16,10 @@ namespace CCCPRacing.Race;
 /// </summary>
 public class Leaderboard
 {
+    /// <summary>The places the office board draws for each rally fuel (the rally boards keep RallySize; the screen has room for this many of four).</summary>
     public const int Size = 3;
+    /// <summary>The places a rally board keeps per fuel and track (2026-11-28; it was Size): CHOOSE TRACK's leaderboards show them all for the chosen fuel.</summary>
+    public const int RallySize = 10;
     public const int StakhanovSize = 10;
     public const int StakhanovTotalSize = StakhanovSize * (Training.LapsCount + 1); // four fuels and an unclassified legacy bucket
     public int Capacity { get; }

@@ -51,7 +51,7 @@ public partial class PhysicsTest
 
     int _vfiShutdown;
 
-    /// <summary>The bonus track (a tank battle at about 48 s of the autopilot's lap) destroys the car in a real rally; a training run shrugs the hit off, so the lap can be driven and archived.</summary>
+    /// <summary>Poligon 17 (a tank battle at about 48 s of the autopilot's lap) destroys the car in a real rally; a training run shrugs the hit off, so the lap can be driven and archived.</summary>
     static string[] VfiTrackExtra(string track) => track == "bonus" ? new[] { "--training" } : Array.Empty<string>();
 
     TapeChild VfiRun(string label, string dir, string[] args, Dictionary<string, string> env = null, int timeout = 900)

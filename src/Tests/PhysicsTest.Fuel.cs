@@ -90,7 +90,7 @@ public partial class PhysicsTest
             && plan.Left == NormPlan.WindowLaps - 2, "towed to the depot: -1 lap, and the void lap uses one more");
     }
 
-    /// <summary>Autopilot laps on the bonus track: litres per flying lap (laps 2-3) and the lap time.</summary>
+    /// <summary>Autopilot laps on Poligon 17: litres per flying lap (laps 2-3) and the lap time.</summary>
     static float LitresPerLap(TrackData track, float aggression, out float lapTime)
     {
         var car = new CarSim(new CarParams(), track) { Obstacles = track.Obstacles, WorldMax = track.WorldSize - 4 };

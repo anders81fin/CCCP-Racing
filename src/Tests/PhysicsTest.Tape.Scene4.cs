@@ -12,7 +12,7 @@ namespace CCCPRacing.Tests;
 // Phase 2 of the world tape (T4a): the dynamic vehicles (the Hinds of the Bonus exercise and the battery's missiles) made and freed during a lap.
 //   tape 18 (--tape-tests): the instance machinery on the fake world: a lap that starts with live instances, seek equals sequential apply, a seek into an
 //     instance's life, ten wraps without a duplicate or a leak, the release, the allocation per sample with instances alive, an unknown kind.
-//   scene 11 (--tape-scene-tests): the real game on the Bonus track, one headless child at a time: two laps (the second a record that starts with the first
+//   scene 11 (--tape-scene-tests): the real game on Poligon 17, one headless child at a time: two laps (the second a record that starts with the first
 //     one's Hinds alive), the title replay in the same scene and in a reloaded one, ten wraps, a trip into a race and a preview, corrupt and foreign tapes,
 //     and the recording-on versus recording-off Hind sorties.
 

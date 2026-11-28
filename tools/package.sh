@@ -7,6 +7,11 @@ cd "$(dirname "$0")/.." || exit 1
 V=$(sed -n 's/^config\/version="\(.*\)"/\1/p' project.godot)
 LEGAL="LICENSE COPYING CC-BY-SA-4.0.txt CREDITS.md THIRD-PARTY-LICENSES.md third-party"
 EXTRAS="$LEGAL steam-artwork"
+# The custom track guide, its field reference and the two examples travel with every package (folder custom-tracks/).
+PACK=build/custom-tracks-pack
+rm -rf "$PACK"; mkdir -p "$PACK/custom-tracks"
+cp docs/public/custom-tracks.md docs/public/custom-tracks-reference.md "$PACK/custom-tracks/"
+cp -r docs/public/examples "$PACK/custom-tracks/"
 [ $# -eq 0 ] && set -- linux windows windows-d3d12 macos
 
 # Keep old exports out of Godot's resource scan while rebuilding packages.
@@ -102,8 +107,10 @@ EOF
         # whole app in its temporary directory, which may have a small quota.
         (cd "$dir" && zip -qry "$zipfile" "$out" MACOS-README.txt)
         zip -qr "$zipfile" $EXTRAS -x 'steam-artwork/.gdignore'
+        (cd "$PACK" && zip -qr "$zipfile" custom-tracks)
     else
         for f in $EXTRAS; do cp -r "$f" "$dir/"; done
+        cp -r "$PACK/custom-tracks" "$dir/"
         (cd "$dir" && zip -qr "$zipfile" . -x 'steam-artwork/.gdignore')
     fi
     echo "built $zipfile"

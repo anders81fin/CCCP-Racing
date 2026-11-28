@@ -462,7 +462,7 @@ void fragment() {
 /// <summary>
 /// How dry the Poligon's grass is drawn, tile by tile (0: the grass as authored, 1: the full dry yellow-green). The whole map's grass leans a little to dry; the worn verge on the LEFT of the start straight
 /// (the left in the direction of driving, from a little behind the line to some metres past it, out to a score of metres from the road) most of all; the amount is broken up by a smooth noise and a per-tile hash so it
-/// never forms a clean patch. Only Grass tiles of the bonus track: the roads, the other surfaces and every other track are 0.
+/// never forms a clean patch. Only Grass tiles of Poligon 17: the roads, the other surfaces and every other track are 0.
 /// </summary>
 public sealed class DryGrassMap
 {

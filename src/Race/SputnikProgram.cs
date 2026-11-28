@@ -6,7 +6,7 @@ namespace CCCPRacing.Race;
 
 /// <summary>
 /// The SPUTNIK test pilots' programme (the owner's order of 2026-11-22): six permanent recognitions for the best rally medals a profile has won on the SPUTNIK fuel, track by track (a gold counts as a silver).
-/// The three plan tracks are ILYICH, ATOMGRAD and SIBERIA; the fourth is the bonus track POLIGON 17. Pure rules, no game state: the campaign's Sputnik medals go in, the recognitions earned come out.
+/// The three plan tracks are ILYICH, ATOMGRAD and SIBERIA; the fourth is POLIGON 17. Pure rules, no game state: the campaign's Sputnik medals go in, the recognitions earned come out.
 /// </summary>
 public enum SputnikAward { TestPilot, Third, Second, First, Champion, Chief }
 

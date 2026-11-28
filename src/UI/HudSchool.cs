@@ -56,6 +56,8 @@ public partial class Hud
     public string CardNote;
     /// <summary>The highlighted track has a scenic tour (T / Y opens it).</summary>
     public bool CardTour;
+    /// <summary>The card's tour key is the fuel card's INFO (I, the pad's Y), not the track card's T TOUR.</summary>
+    public bool CardInfo;
     /// <summary>The track card offers the highlighted track's leaderboards (L / X).</summary>
     public bool CardBoards;
     /// <summary>The keys line the card drew last (for the windowed tests).</summary>
@@ -348,7 +350,7 @@ public partial class Hud
     float _cardTop;
 
     /// <summary>The key line under a title card (the card test measures it: RaceScene.ViewerWindowedTitleSettings.cs).</summary>
-    internal string CardKeysLine() => string.Join("   ", new[] { "< > CHOOSE", P("ENTER OK", "A OK"), CardTour ? P("T TOUR", "Y TOUR") : null, CardBoards ? P("L LEADERBOARDS", "X LEADERBOARDS") : null, P("ESC BACK", "B BACK") }.Where(k => k != null));
+    internal string CardKeysLine() => string.Join("   ", new[] { "< > CHOOSE", P("ENTER OK", "A OK"), CardTour ? (CardInfo ? P("I INFO", "Y INFO") : P("T TOUR", "Y TOUR")) : null, CardBoards ? P("L LEADERBOARDS", "X LEADERBOARDS") : null, P("ESC BACK", "B BACK") }.Where(k => k != null));
 
 
     /// <summary>
@@ -369,8 +371,8 @@ public partial class Hud
         float opts = Opts();
         if (opts > s.X - 48 && scale == 2) { scale = 1; pad = 28; opts = Opts(); }
         int titleScale = compact ? 1 : 2;
-        // The keys line: T TOUR and L LEADERBOARDS (the pad's Y and X) in gold where the card offers them.
-        string tour = P("T TOUR", "Y TOUR"), boards = P("L LEADERBOARDS", "X LEADERBOARDS");
+        // The keys line: T TOUR (the fuel card: I INFO) and L LEADERBOARDS (the pad's Y and X) in gold where the card offers them.
+        string tour = CardInfo ? P("I INFO", "Y INFO") : P("T TOUR", "Y TOUR"), boards = P("L LEADERBOARDS", "X LEADERBOARDS");
         string keys = CardKeysLine();
         float w = Math.Min(s.X - 8, Math.Max(Math.Max(PixelFont.Measure(CardTitle, titleScale), opts), Math.Max(PixelFont.Measure(CardSub ?? ""), PixelFont.Measure(CardNote ?? ""))) + 40);
         if (CardBoards) w = Math.Min(s.X - 8, Math.Max(w, PixelFont.Measure(keys) + 16));      // (the longer keys line stays inside the card)

@@ -16,7 +16,7 @@ namespace CCCPRacing.Track;
 /// </summary>
 public partial class Babushkas : Node3D
 {
-    /// <summary>Soldiers instead of grandmothers (the bonus track's <see cref="Troopers"/>): their model, shouts and sway.</summary>
+    /// <summary>Soldiers instead of grandmothers (Poligon 17's <see cref="Troopers"/>): their model, shouts and sway.</summary>
     protected virtual bool Troops => false;
 
     const float TriggerDistance = 12f;

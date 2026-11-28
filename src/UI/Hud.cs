@@ -453,7 +453,7 @@ public partial class Hud : Control
         float rowW = dateX + 10 * 6;     // the rows, centred in a panel as wide for both boards
         bool fuels = (!BoardStakhanov || BoardScoped) && BoardFuels.Length > 0;      // (the scoped Stakhanov board: its one fuel as a group)
         int groups = fuels ? BoardFuels.Length : 1;
-        int places = BoardStakhanov ? Race.Leaderboard.StakhanovSize : Race.Leaderboard.Size;
+        int places = BoardStakhanov || BoardScoped ? Race.Leaderboard.StakhanovSize : Race.Leaderboard.Size;      // (the scoped boards show one fuel's ten)
         float w = Math.Max(320, rowW + 16), h = 38 + groups * (places * RowH + (fuels ? 13 : 0)) + 40;
         var r = new Rect2(Mathf.Floor(cx - w / 2), Mathf.Floor(Math.Max(4, (s.Y - h) / 2 - 6)), w, h);
         Panel(r, 0.85f);
@@ -500,7 +500,8 @@ public partial class Hud : Control
         }
         if (BoardScoped)
         {
-            if (BoardStakhanov) PixelFont.DrawCentered(this, Pad ? "D-PAD < > FUEL" : "< > FUEL", cx, r.End.Y - 22, Gold);
+            PixelFont.DrawCentered(this, BoardStakhanov ? (Pad ? "D-PAD SELECT/FUEL" : "< > FUEL   UP/DOWN SELECT") : (Pad ? "D-PAD SELECT" : "UP/DOWN SELECT"), cx, r.End.Y - 32, Grey);
+            PixelFont.DrawCentered(this, string.IsNullOrEmpty(BoardReplayNotice) ? "ENTER REPLAY" : BoardReplayNotice, cx, r.End.Y - 22, Gold);
             PixelFont.DrawCentered(this, Pad ? "B BACK" : "ESC BACK", cx, r.End.Y - 12, Grey);
             return;
         }

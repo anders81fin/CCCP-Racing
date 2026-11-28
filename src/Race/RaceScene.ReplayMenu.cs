@@ -130,7 +130,7 @@ public partial class RaceScene
         _replayLooking = false;
         bool err = keepSelection && old != null && old.NoticeIsError;
         if (rows.Length == 0 && notice == "") notice = "NO LAPS RECORDED YET. DRIVE A LAP FIRST.";      // (the same words in the Office)
-        _hud.ReplayList = new ReplayListView { Heading = _replayOrigin == ReplayOrigin.Office ? "RECORDINGS" : "REPLAY", Rows = rows, Selected = Math.Clamp(keepSelection && old != null ? old.Selected : 0, 0, Math.Max(0, rows.Length - 1)), Notice = notice, NoticeIsError = err };
+        _hud.ReplayList = new ReplayListView { Heading = RecordingsHeading(), Rows = rows, Selected = Math.Clamp(keepSelection && old != null ? old.Selected : 0, 0, Math.Max(0, rows.Length - 1)), Notice = notice, NoticeIsError = err };
     }
 
     void ReplayNotice(string text, bool error)

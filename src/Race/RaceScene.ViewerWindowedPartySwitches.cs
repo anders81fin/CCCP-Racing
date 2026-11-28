@@ -96,7 +96,11 @@ public partial class RaceScene
         foreach (var x in VrTap(radio ? Key.Right : Key.Left)) yield return x;
         foreach (var x in VrTap(Key.Escape)) yield return x;
 
-        // LAB is last: enabling it intentionally makes this disposable run unranked.
+        // LAB is last: enabling it intentionally makes this disposable run unranked. Its rows are in SETTINGS only with the Konami code active.
+        bool cheatWas = _cheatSaved ?? false;
+        VwCheck(!CheatUnlock && !_hud.SettingsRowIds.Contains(SettingsRowId.Lab) && !_hud.SettingsRowIds.Contains(SettingsRowId.LabTune), "SETTINGS has no LAB rows without the Konami code");
+        _cheatSaved = true; SyncSettingsHud();      // (in memory only: nothing is written)
+        VwCheck(_hud.SettingsRowIds.Contains(SettingsRowId.Lab), "SETTINGS shows LAB MODE with the Konami code active");
         foreach (var x in SettingsTo(SettingsRowId.Lab)) yield return x;
         bool lab = _labMode;
         foreach (bool on in new[] { false, false, true, true })
@@ -108,6 +112,14 @@ public partial class RaceScene
         foreach (var x in VrPad(lab ? JoyButton.DpadRight : JoyButton.DpadLeft)) yield return x;
         var cfg = new ConfigFile(); cfg.Load(_records.Dir + "settings.cfg");
         VwCheck(cfg.GetValue("lab", "enabled", !lab).AsBool() == lab, "LAB MODE preference is saved and restored");
+        // closing the code switches LAB MODE off too (and saves it); the row is gone with the code
+        LabSetMode(true, quiet: true);
+        VwCheck(_labMode, "LAB MODE is on before the code is closed");
+        SetCheatUnlock(false);
+        SyncSettingsHud();
+        var cfg2 = new ConfigFile(); cfg2.Load(_records.Dir + "settings.cfg");
+        VwCheck(!_labMode && !cfg2.GetValue("lab", "enabled", true).AsBool() && !_hud.SettingsRowIds.Contains(SettingsRowId.Lab), "closing the Konami code switches LAB MODE off, saved, and its rows leave SETTINGS");
+        _cheatSaved = cheatWas; SyncSettingsHud();
         VwCheck(_state == State.Paused && _lapClock == clock, "all switches leave the drive paused and its clock untouched");
         foreach (var x in VrPad(JoyButton.B)) yield return x;
         foreach (var x in VrPad(JoyButton.B)) yield return x;

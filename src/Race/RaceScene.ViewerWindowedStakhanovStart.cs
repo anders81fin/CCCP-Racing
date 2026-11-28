@@ -40,7 +40,7 @@ public partial class RaceScene
         VwCheck(_menuParent == MenuItem.Single && _menu == MenuItem.Training, $"STAKHANOV LAPS is selected ({(pad ? "pad" : "keyboard")})");
     }
 
-    bool VwFuelCardUp(bool pad) => _card == TitleCard.LapsFuel && _hud.CardTitle == "CHOOSE FUEL" && _hud.CardOptions.SequenceEqual(FuelGrades.Names) && !_hud.CardTour && !_hud.CardBoards
+    bool VwFuelCardUp(bool pad) => _card == TitleCard.LapsFuel && _hud.CardTitle == "CHOOSE FUEL" && _hud.CardOptions.SequenceEqual(FuelGrades.Names) && _hud.CardTour && _hud.CardInfo && !_hud.CardBoards
         && _hud.CardNote == (pad ? "D-PAD UP/DOWN SWITCHES FUEL WHILE DRIVING" : "KEYS 1-4 SWITCH FUEL WHILE DRIVING");
 
     bool VwNothingStarted() => _state == State.Title && TrackLoadingScreen.Active == null && _lapsFuelStart == null;
@@ -82,8 +82,15 @@ public partial class RaceScene
         foreach (var x in VwToStakhanov(false)) yield return x;
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
-        // 1. a fresh profile: CHOOSE FUEL comes first (since 2026-11-19 like the rally); only DIESEL is open (PETROL needs a silver on the bonus track on DIESEL), the card opens on it
-        VwCheck(VwFuelCardUp(false), $"CHOOSE FUEL comes first with the four fuels and the keyboard's hint, no tour ({_card}, '{_hud.CardTitle}', '{_hud.CardNote}', tour {_hud.CardTour})");
+        // 1. a fresh profile: CHOOSE FUEL comes first (since 2026-11-19 like the rally); only DIESEL is open (PETROL needs a silver on Poligon 17 on DIESEL), the card opens on it
+        VwCheck(VwFuelCardUp(false), $"CHOOSE FUEL comes first with the four fuels and the keyboard's hint and I INFO ({_card}, '{_hud.CardTitle}', '{_hud.CardNote}', tour {_hud.CardTour})");
+        VwCheck(_hud.CardKeysLine().Contains("I INFO"), $"the key line offers I INFO ('{_hud.CardKeysLine()}')");
+        foreach (var x in VrTap(Key.I)) yield return x;
+        for (int i = 0; i < 6; i++) yield return null;
+        VwCheck(_carTourOpen && CarTourActive && _card == TitleCard.LapsFuel && !_ctThenChoose, "I opens the fuel's INFO on the Stakhanov laps' CHOOSE FUEL (it only shows, nothing is chosen)");
+        foreach (var x in VrTap(Key.Escape)) yield return x;
+        for (int i = 0; i < 6; i++) yield return null;
+        VwCheck(!_carTourOpen && VwFuelCardUp(false), "Esc skips it back to CHOOSE FUEL");
         VwCheck(_cardSel == (int)FuelGrade.Diesel && FuelLocked(FuelGrade.Petrol) && _hud.CardSub == FuelGrades.CardLine((int)FuelGrade.Diesel),
             $"a fresh profile: the card opens on the open DIESEL with its line ('{_hud.CardSub}')");
         foreach (var x in VrShot("stakhanov-1-choose-fuel-keys")) yield return x;

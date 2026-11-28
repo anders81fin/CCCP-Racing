@@ -22,11 +22,29 @@ public partial class RaceScene
     string _boardReplayOpenTrack, _boardReplayOpenId;
     static readonly int[] RallyBoardSets = { 2, 0, 3, 4 };      // (the board lists DIESEL, PETROL, JET FUEL, SPUTNIK: the same order as RaceScene.cs' BoardFuels)
 
+    /// <summary>The track whose board is open: the track card's highlighted one for the scoped boards, else the office board's.</summary>
+    string BoardReplayTrackId => (_boardScoped ? Tracks[_boardScopeTrack] : Tracks[_boardTrack]).id;
+    /// <summary>How many rows the open board lets the cursor visit (the scoped Stakhanov board: its one fuel's top ten; the rally's: four boards of ten).</summary>
+    int BoardReplayRows => _boardScoped ? Leaderboard.StakhanovSize : _boardPage == 1 ? Leaderboard.StakhanovSize : Leaderboard.Size * 4;
+
     (Leaderboard.Entry Entry, int Set) BoardReplayRow()
     {
-        string track = Tracks[_boardTrack].id;
-        int capacity = _boardPage == 1 ? Leaderboard.StakhanovSize : Leaderboard.Size;
-        int set = _boardPage == 1 ? 1 : RallyBoardSets[Math.Clamp(_boardReplaySelected / capacity, 0, 3)];
+        string track = BoardReplayTrackId;
+        if (_boardScoped && _boardScopeLaps)
+        {
+            int power = Training.PercentForKey((int)_boardScopeFuel + 1);
+            var rows = BoardFor(track, 1).Where(e => e.Power == power).Take(Leaderboard.StakhanovSize).ToList();      // (the same ten the scoped board draws)
+            return (_boardReplaySelected >= 0 && _boardReplaySelected < rows.Count ? rows[_boardReplaySelected] : null, 1);
+        }
+        if (_boardScoped)
+        {
+            int rallySet = RecordStore.SetOf(_rallyFuel);      // (the scoped rally board: the chosen fuel's ten)
+            var rallyRows = BoardFor(track, rallySet).Take(Leaderboard.RallySize).ToList();
+            return (_boardReplaySelected >= 0 && _boardReplaySelected < rallyRows.Count ? rallyRows[_boardReplaySelected] : null, rallySet);
+        }
+        bool stakhanov = _boardPage == 1;
+        int capacity = stakhanov ? Leaderboard.StakhanovSize : Leaderboard.Size;
+        int set = stakhanov ? 1 : RallyBoardSets[Math.Clamp(_boardReplaySelected / capacity, 0, 3)];
         var entries = BoardFor(track, set);
         int index = _boardReplaySelected % capacity;
         return (index >= 0 && index < entries.Count ? entries[index] : null, set);
@@ -49,7 +67,7 @@ public partial class RaceScene
         if (Engine.GetProcessFrames() <= _overlayFrame) return true;
         if (e is InputEventJoypadButton { Pressed: true } pad) PadSeen(pad.Device, true);
         else if (e is InputEventKey { Pressed: true } physical && physical.Device != PadKeyDevice) _padMode = false;
-        int rows = _boardPage == 1 ? Leaderboard.StakhanovSize : Leaderboard.Size * 4;
+        int rows = BoardReplayRows;
         if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true })
         {
             int row = _hud.BoardRowAt(_hud.GetLocalMousePosition());
@@ -90,7 +108,7 @@ public partial class RaceScene
         if (_boardReplayOpen != null) return;
         var (entry, set) = BoardReplayRow();
         if (entry?.RecordingId == null) { BoardReplayNotice("NO RECORDING FOR THIS RESULT"); return; }
-        string id = entry.RecordingId, track = Tracks[_boardTrack].id;
+        string id = entry.RecordingId, track = BoardReplayTrackId;
         _boardReplayOpenId = id; _boardReplayOpenTrack = track;
         var archive = LeaderboardLapArchive;
         _boardReplayOpen = Task.Run(() =>
@@ -118,7 +136,7 @@ public partial class RaceScene
         }
         if (_boardReplayOpen is not { IsCompleted: true } task) return;
         _boardReplayOpen = null;
-        if (!_showBoard || _boardScoped || Tracks[_boardTrack].id != _boardReplayOpenTrack || BoardReplayRow().Entry?.RecordingId != _boardReplayOpenId) return;
+        if (!_showBoard || BoardReplayTrackId != _boardReplayOpenTrack || BoardReplayRow().Entry?.RecordingId != _boardReplayOpenId) return;
         if (task.IsFaulted) { BoardReplayNotice("COULD NOT OPEN RECORDING"); return; }
         var (source, reason) = task.Result;
         if (source == null) { BoardReplayNotice((reason ?? "RECORDING NOT AVAILABLE").ToUpperInvariant()); return; }
@@ -127,7 +145,7 @@ public partial class RaceScene
         var info = archive.List().FirstOrDefault(x => x.Id == _boardReplayOpenId);
         Callable.From(() =>
         {
-            if (!_showBoard || _boardScoped || Tracks[_boardTrack].id != source.Meta.TrackId || BoardReplayRow().Entry?.RecordingId != source.Meta.Id) return;
+            if (!_showBoard || BoardReplayTrackId != source.Meta.TrackId || BoardReplayRow().Entry?.RecordingId != source.Meta.Id) return;
             var session = OpenReplayViewer(source, out string error);
             if (session == null) { BoardReplayNotice((error ?? "CANNOT OPEN RECORDING").ToUpperInvariant()); return; }
             session.SetEditContext(archive, info);

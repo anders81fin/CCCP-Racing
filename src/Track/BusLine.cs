@@ -177,7 +177,7 @@ public partial class DrunkMen : Node3D
         if (AircraftMechanic) { ResetMechanic(); BuildCot(); }
         if (MechanicPostPosition is Vector2 post0)
         {
-            // On the bonus track the symbol hangs over the mechanic's cot, not over the service spot.
+            // On Poligon 17 the symbol hangs over the mechanic's cot, not over the service spot.
             Vector2 service = AircraftMechanic ? LyingPos() : post0;
             AddChild(new MechanicMarker
             {

@@ -38,7 +38,7 @@ public partial class DrunkMen
     const float DoneAt = 8.0f, SipFrom = 8.4f, SipTo = 9.6f, SipLift = 0.5f;
     static readonly string[] WhackShouts = { "БАМ!", "ЭХ!", "ДАВАЙ!", "БАМ!", "ОП!", "БАМ!" };
 
-    /// <summary>Bonus track: a Hind stands on the mechanic's pad. Without one he sleeps on a camp cot at the pad's edge.</summary>
+    /// <summary>Poligon 17: a Hind stands on the mechanic's pad. Without one he sleeps on a camp cot at the pad's edge.</summary>
     public bool AircraftPresent;
     Node3D _cot;
 

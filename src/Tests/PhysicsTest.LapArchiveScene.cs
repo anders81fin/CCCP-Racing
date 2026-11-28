@@ -150,7 +150,7 @@ public partial class PhysicsTest
     readonly Dictionary<string, List<SceneLapCap>> _lapTrackCaps = new();
     void LapSceneTrack(string track)
     {
-        // lap 2 is driven slower (--tape-lap-speeds) so that it cannot be a record; the Bonus track needs the 0.8 autopilot of the other tape scenes (at full speed it does not finish a lap)
+        // lap 2 is driven slower (--tape-lap-speeds) so that it cannot be a record; Poligon 17 needs the 0.8 autopilot of the other tape scenes (at full speed it does not finish a lap)
         var args = new List<string> { "--start", "--autodrive", "--track=" + track, "--tape-quit-laps=2", "--tape-lap-speeds=1,0.7", "--lap-archive-retain-all" };
         if (track == "bonus") args.Add("--ap-speed=0.8");
         var c = LapRun("t-" + track, args.ToArray(), 600);

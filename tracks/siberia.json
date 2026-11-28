@@ -1,6 +1,6 @@
 {
   // SIBERIA IN WINTER - track 2 of the five-year plan (2026-10-06 layout draft for the map review).
-  // Driven anticlockwise, unlike Ilyich and the bonus track: left-handers rule. The start is in the
+  // Driven anticlockwise, unlike Ilyich and Poligon 17: left-handers rule. The start is in the
   // south valley; the start straight crosses the frozen river at once, a fast left sweep climbs to
   // the east hill, switchbacks go up it, over the top to the airbase, west along the runway, down
   // the west side, onto the frozen river for a long fast slide downstream, a hairpin back onto the
@@ -33,18 +33,12 @@
     { "x": 268, "z": 50, "x1": 268, "z1": 135, "height": 9, "radius": 75, "calm": 0.8 },
     { "x": 240, "z": 305, "x1": 60, "z1": 305, "height": -3, "radius": 45, "calm": 0.9 }
   ],
-  // The overhead (directed) view moves back (65 m, the height kept at 31 m) and looks flatter (34 degrees, standard 53), the car a little above the middle of the screen, on the frozen river (2026-11-19): it eases in from
-  // about (110, 150), is farthest at the middle of the river, about (150, 172)-(170, 190), and eases out again from there so that it is back to normal (z 220) well before the hairpin. The east hill's switchbacks
-  // (x 226 and beyond), the start straight and the bank after the hairpin are kept out.
-  "viewZones": [ { "x0": 150, "z0": 170, "x1": 170, "z1": 190, "ramp": 30, "rampEast": 45, "rampSouth": 30, "rampWest": 55, "rampNorth": 55, "height": 31, "back": 44, "pitch": 43.5 },
+  // The overhead (directed) view has two stretches of its own on the east hill and the runway; the descent after the runway and the frozen river down to the hairpin use the standard view (zones removed 2026-11-28).
+  "viewZones": [
     // The climb (2026-11-19; the view moved halfway back towards the standard one, 29 m / 28 m behind / 41 degrees, instead of 27 / 33 / 29, after play): from the fast left after the ice on the start straight, through the switchbacks of the east hill and over the top, the view comes a little lower (27 m, 33 m behind: close, the car stays large)
     // and looks flatter (29 degrees, standard 53), the car low on the screen (about 0.45 below the middle), so what is on the slope ahead shows. Kept out of the river's reach (x < 222); it holds over the top and through the last bend before the runway, and is eased out (z 66 to 46) as the road meets the runway.
     { "x0": 222, "z0": 66, "x1": 312, "z1": 270, "ramp": 30, "rampWest": 8, "rampNorth": 20, "rampEast": 10, "rampSouth": 12, "height": 29, "back": 28, "pitch": 41 },
-    // The descent after the runway (2026-11-19): the road drops about 9 m in 60 m in the bend on the west side, down to the ice. The view comes lower (24 m, 44 m behind) and looks flatter (36 degrees, standard 53),
-    // the car in the upper half of the screen (the road runs south, towards the camera) so the drop shows below it; runs on from the runway's view and into the ice's (the ramps overlap; the east ramp is long).
-    { "x0": 28, "z0": 50, "x1": 100, "z1": 146, "ramp": 20, "rampWest": 10, "rampNorth": 12, "rampEast": 60, "rampSouth": 40, "height": 24, "back": 44, "pitch": 36 },
-    // The runway and the base behind it (2026-11-19): the view stays low and flat from the last bend before the runway along it, so the airbase on the plateau north of the runway shows better, and runs straight into the descent's view
-    // at the runway's west end (the zones' eyes are blended by their weights, so the view never goes back to the standard one between them).
+    // The runway and the base behind it (2026-11-19): the view stays low and flat from the last bend before the runway along it, so the airbase on the plateau north of the runway shows better, and eases out at the runway's west end (the descent after it uses the standard view, 2026-11-28).
     { "x0": 90, "z0": 38, "x1": 250, "z1": 52, "ramp": 20, "rampWest": 30, "rampNorth": 10, "rampEast": 30, "rampSouth": 25, "height": 28, "back": 34, "pitch": 36 } ],
   "points": [
     // 1 the start straight in the south valley (the frozen river is crossed at ~120 m)

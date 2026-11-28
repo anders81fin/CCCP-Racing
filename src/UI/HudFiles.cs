@@ -6,7 +6,7 @@ namespace CCCPRacing.UI;
 public partial class Hud
 {
     /// <summary>A file's row: in use at all, the driver, each track's medal (0 none .. 3 gold), last played, the file in use.</summary>
-    public readonly record struct FileRow(bool Used, string Name, int[] Medals, string Played, bool InUse, int Cameras = 0);
+    public readonly record struct FileRow(bool Used, string Name, int[] Medals, string Played, bool InUse, int Recordings = -1);
 
     public FileRow[] Files = System.Array.Empty<FileRow>();
     public int FilesSelection;
@@ -48,7 +48,7 @@ public partial class Hud
             float mx = x0 + 16 + 13 * PixelFont.Advance;
             for (int k = 0; k < f.Medals.Length; k++)
                 DrawStar(new Vector2(mx + k * 10 + 3, y + 3), 1, f.Medals[k] switch { 3 => Gold, 2 => Silver, 1 => Bronze, _ => NoMedal });
-            if (f.Cameras > 0) PixelFont.Draw(this, "C:" + f.Cameras, new Vector2(mx + 48, y), sel ? Gold : Grey);
+            if (f.Recordings > 0) PixelFont.Draw(this, "R:" + f.Recordings, new Vector2(mx + 48, y), sel ? Gold : Grey);      // (how many recordings the driver has)
             PixelFont.Draw(this, f.Played, new Vector2(r.End.X - 14 - PixelFont.Measure(f.Played), y), sel ? Gold : Grey);
             if (f.InUse) PixelFont.Draw(this, "<", new Vector2(r.End.X - 10, y), Gold);
         }
@@ -57,7 +57,7 @@ public partial class Hud
             : FilesAtLaunch ? P("UP/DOWN CHOOSE  ENTER OPEN  DEL ERASE  ESC QUIT", "D-PAD CHOOSE  A OPEN  Y ERASE  B QUIT")
             : P("UP/DOWN CHOOSE  ENTER OPEN  DEL ERASE  ESC BACK", "D-PAD CHOOSE  A OPEN  Y ERASE  B BACK");
         if (!FilesErase && FilesSelection >= 0 && FilesSelection < Files.Length && Files[FilesSelection].Used)
-            PixelFont.DrawCentered(this, P("G  SPUTNIK GALLERY OF THIS DRIVER", "X  SPUTNIK GALLERY OF THIS DRIVER"), cx, r.End.Y - 26, Paper);
+            PixelFont.DrawCentered(this, P("G  SPUTNIK GALLERY   R  RECORDINGS", "X  SPUTNIK GALLERY   RB  RECORDINGS"), cx, r.End.Y - 26, Paper);
         if (!FilesErase || (int)(_clock * 2) % 2 == 0)
             PixelFont.DrawCentered(this, foot, cx, r.End.Y - 14, FilesErase ? Red : Grey);
         DrawMenuNote(cx, Mathf.Floor(r.GetCenter().Y - 12));      // FILE OPENED, ... WAS NEVER HERE: over the window's middle

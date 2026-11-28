@@ -45,6 +45,34 @@ public partial class RaceScene
 
     // ------------------------------------------------------------------ the Office list
 
+    int _recFileView;      // the KGB ARCHIVE's R: the personnel file (1..) whose recordings are listed instead of the one in use; 0 = the file in use
+
+    /// <summary>The list's heading: RECORDINGS, with the driver's name when another file's are looked at.</summary>
+    string RecordingsHeading()
+    {
+        if (_recFileView <= 0) return _replayOrigin == ReplayOrigin.Office ? "RECORDINGS" : "REPLAY";
+        string who = PlayerFiles.Read(_records.Dir, _recFileView).Name;
+        return "RECORDINGS - " + (who.Length > 0 ? who : Leaderboard.DefaultName);
+    }
+
+    /// <summary>R in the KGB ARCHIVE: the selected driver's recordings (the archive stays where it was; Esc comes back to it).</summary>
+    void OpenFileRecordings(int file)
+    {
+        // A driver with none: say so, stay in the archive.
+        int count = file >= 1 && file <= _fileRecordings.Length ? _fileRecordings[file - 1] : -1;
+        if (count < 0) count = LapArchive.For(WorldTapeFile.Real(PlayerFiles.Dir(_records.Dir, file) + "laps")).List().Count;      // (not counted yet: look now)
+        if (count == 0)
+        {
+            string who = PlayerFiles.Read(_records.Dir, file).Name;
+            _hud.MenuNote("NO RECORDINGS", $"{(who.Length > 0 ? who : Leaderboard.DefaultName)} HAS NONE SAVED", 3f);
+            return;
+        }
+        _showFiles = false; _filesErase = false; _galleryOpen = false; _hud.GalleryOn = false;
+        _recFileView = file;
+        _hud.Mode = HudMode.Title;      // (the list is drawn over the title: the archive card must go, or the screen stays as it was)
+        EnterRecordings();
+    }
+
     void EnterRecordings()
     {
         if (_state != State.Title || ViewerMode) return;
@@ -52,7 +80,7 @@ public partial class RaceScene
         _recordingsOpen = true;
         _replayKnownLaps = -1; _replayInfos = new();      // (the active personnel file's archive, looked at afresh: a switch of file never shows the other file's laps)
         _replayListTask = null;
-        _hud.ReplayList = new ReplayListView { Heading = "RECORDINGS", AllowKeep = true, Notice = "LOOKING AT THE ARCHIVE..." };
+        _hud.ReplayList = new ReplayListView { Heading = RecordingsHeading(), AllowKeep = true, Notice = "LOOKING AT THE ARCHIVE..." };
         _replayLooking = true;
         _hud.SetReplayListOpen(true);
         _overlayFrame = Engine.GetProcessFrames();
@@ -67,6 +95,7 @@ public partial class RaceScene
         _hud.SetReplayListOpen(false);
         _overlayExitFrame = Engine.GetProcessFrames();
         _replayOrigin = ReplayOrigin.PartyMeeting;
+        if (_recFileView > 0) { int back = _recFileView - 1; _recFileView = 0; EnterFiles(); _filesSel = back; FilesHud(); }      // (the list was opened from the KGB ARCHIVE: back to it, on that driver)
     }
 
     /// <summary>Every raw event while a list may be open: the name field first, K for KEEP in both origins, and the whole Office list. True when the event was consumed.</summary>

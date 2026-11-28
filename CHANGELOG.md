@@ -3,6 +3,19 @@
 What each version changed compared to the one before. The game shows this file from the
 title menu (CHANGELOG); keep to the pixel font: letters, digits and . , : ! ? - + = / % " ( ) < > # * ´
 
+## 0.925
+
+- LEADERBOARDS: on the CHOOSE TRACK card of the SOCIALIST RALLY and STAKHANOV LAPS you can now move along the results with the arrows or the d-pad and open a saved recording at that time with Enter or A, as in the PARTY OFFICE. The rally shows the ten best of the fuel you chose on that track. The rally boards now keep ten places, as the Stakhanov laps did
+- FUEL INFO: the fuel card has I INFO (a pad: Y) instead of T TOUR, and ESC SKIP leaves it. The first time you choose a fuel in the SOCIALIST RALLY on a player file, its info plays by itself before CHOOSE TRACK. The Stakhanov laps fuel card has I INFO too
+- CAMERA: after a fuel info or a fuel ceremony the race no longer starts with the wide lens of the title picture, which made the directed and classic cameras look farther away
+- SOCIALIST RALLY: the track card says HIDDEN CAMERAS x / y, how many of the hidden cameras of the track your file has found
+- KGB ARCHIVE: PARTY OFFICE > KGB FILES opens the archive directly. A row shows how many recordings the driver has instead of the camera count. R opens the recordings of the selected driver, or says that there are none. G is the SPUTNIK GALLERY. LEADERBOARDS is no longer in the archive row
+- MENUS: SETTINGS is only in the Party Meeting. SINGLE PLAYER always opens on SOCIALIST RALLY
+- LAB: the LAB rows in SETTINGS show only when the Konami code is on, and closing the code switches LAB off
+- EXPORT MP4: a PRESET row. WHATSAPP is 720P and SMALL, YOUTUBE is 1080P and HIGH, CUSTOM keeps your own values. SIZE and QUALITY can still be set by hand, and then the row shows CUSTOM
+- CUSTOM TRACKS: the guide, the field reference and the two example tracks now come in the folder custom-tracks of every package
+- ATOMGRAD, SIBERIA: the directed camera no longer pulls back on the plant straight of Atomgrad or on the descent from the runway and the ice road of Siberia
+
 ## 0.924
 
 - COLLISIONS: a car in the air now clears what is below it. Before, a long jump over the stone walls of the dacha yard still counted as a hit. The tyres and the roof of the car are compared with the bottom and the top of the other thing, and this goes for the stone walls and wooden fences, stumps, rocks, hay bales, sandbags and power cabinets, and also for tractors, the bus and its wreck, ploughs, mixers, tanks, BTRs, the Kozlik, people, horses, the Hind and the MiK on the ground, the Lunokhod and the train, the camp gate and more. Houses, trees, poles and towers stay as tall as before. A car that lands on top of a vehicle is eased off, not thrown. Cones, the bump over a fallen trunk, the replay of broken things and LAN cars follow the same rule

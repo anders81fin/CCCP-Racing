@@ -6,6 +6,9 @@ namespace CCCPRacing.Export;
 
 public enum ExportUiAction { Up, Down, Left, Right, Accept, Back }
 
+/// <summary>The export card's PRESET row: a shortcut for SIZE and QUALITY only (WHATSAPP 720P/SMALL, YOUTUBE 1080P/HIGH); CUSTOM leaves them as they are and is what the row shows once either is changed by hand.</summary>
+public enum ExportPreset { WhatsApp, YouTube, Custom }
+
 /// <summary>What the viewer that hosts the export UI knows (SP viewer or LAN viewer): re-read each time the settings card opens, so the CURRENT working state (saved or unsaved) is exported.</summary>
 public sealed record ExportContext
 {
@@ -32,7 +35,15 @@ public sealed class ExportUiController
     ExportContext _ctx; ExportJob _job; ExportControl _control; ExportProgress _last;
     // the settings (kept for the next export in this session)
     bool _whole = true; int _height = 1080; int _crf = 18; bool _audio = true;
+    ExportPreset _preset = ExportPreset.YouTube;      // (the defaults, 1080P and HIGH, are the YOUTUBE preset's values)
     static readonly int[] Heights = { 1080, 720, 540 };
+    static readonly ExportPreset[] Presets = { ExportPreset.WhatsApp, ExportPreset.YouTube, ExportPreset.Custom };
+    /// <summary>The card's rows in order; Handle and Change go by these, never by a number.</summary>
+    enum Row { Span, Preset, Size, Quality, Audio, Length, Start, Folder, Back }
+    public ExportPreset Preset => _preset;
+    public int Height => _height;
+    public int Crf => _crf;
+    static string PresetName(ExportPreset p) => p switch { ExportPreset.WhatsApp => "WHATSAPP", ExportPreset.YouTube => "YOUTUBE", _ => "CUSTOM" };
 
     public ExportUiController(Func<ExportContext> context, ExportEnvironment env, Action<string> openFolder = null) { _context = context; _env = env; _openFolder = openFolder; }
 
@@ -70,6 +81,7 @@ public sealed class ExportUiController
             return new[]
             {
                 _ctx.Cut == null ? "SPAN  WHOLE" : "SPAN  < " + (_whole ? "WHOLE" : "THE CUT") + " >",
+                $"PRESET  < {PresetName(_preset)} >",
                 $"SIZE  < {_height}P >", $"QUALITY  < {(_crf <= 18 ? "HIGH" : "SMALL")} >", $"AUDIO  < {(_audio ? "ON" : "OFF")} >",
                 $"LENGTH  {Fmt(b - a)}  ({(int)MathF.Round((b - a) * 60)} FRAMES AT 60)",
                 "START EXPORT", "OPEN FOLDER  " + Short(DestDir), "BACK",
@@ -135,15 +147,20 @@ public sealed class ExportUiController
 
     void Change(int step, bool accept)
     {
-        switch (_sel)
+        switch ((Row)_sel)
         {
-            case 0: if (_ctx.Cut != null) _whole = !_whole; break;
-            case 1: _height = Heights[(Array.IndexOf(Heights, _height) + step + Heights.Length) % Heights.Length]; break;
-            case 2: _crf = _crf <= 18 ? 23 : 18; break;
-            case 3: _audio = !_audio; break;
-            case 5: if (accept) Start(); break;
-            case 6: if (accept) { try { System.IO.Directory.CreateDirectory(DestDir); } catch { } _openFolder?.Invoke(DestDir); } break;
-            case 7: if (accept) _state = State.Closed; break;
+            case Row.Span: if (_ctx.Cut != null) _whole = !_whole; break;
+            case Row.Preset:
+                _preset = Presets[(Array.IndexOf(Presets, _preset) + step + Presets.Length) % Presets.Length];
+                if (_preset == ExportPreset.WhatsApp) { _height = 720; _crf = 23; }
+                else if (_preset == ExportPreset.YouTube) { _height = 1080; _crf = 18; }
+                break;      // (CUSTOM changes no value)
+            case Row.Size: _height = Heights[(Array.IndexOf(Heights, _height) + step + Heights.Length) % Heights.Length]; _preset = ExportPreset.Custom; break;
+            case Row.Quality: _crf = _crf <= 18 ? 23 : 18; _preset = ExportPreset.Custom; break;      // (a hand change shows CUSTOM even when the values happen to match a preset)
+            case Row.Audio: _audio = !_audio; break;
+            case Row.Start: if (accept) Start(); break;
+            case Row.Folder: if (accept) { try { System.IO.Directory.CreateDirectory(DestDir); } catch { } _openFolder?.Invoke(DestDir); } break;
+            case Row.Back: if (accept) _state = State.Closed; break;
         }
     }
 

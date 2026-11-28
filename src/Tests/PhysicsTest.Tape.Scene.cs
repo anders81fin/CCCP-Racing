@@ -423,11 +423,11 @@ public partial class PhysicsTest
                 return;
             }
             var (g, t, paired) = TapeSceneLoad(dir, "bonus", set);
-            TapeCheck(!c.TimedOut && c.Exit == 0 && !c.Crashed && g != null && t != null && paired, $"{label}: the bonus track's lap wrote a matching pair ({c.Seconds:F0} s)");
+            TapeCheck(!c.TimedOut && c.Exit == 0 && !c.Crashed && g != null && t != null && paired, $"{label}: Poligon 17's lap wrote a matching pair ({c.Seconds:F0} s)");
             var sv = c.Find($"World tape: set {set} lap");
             long mainMs = sv != null ? (long)TapeNum(sv, "main thread") : long.MaxValue;
             TapeInfo($"{label} (Bonus, BTR marked): {sv?.Trim()}; tape file {(t != null ? new FileInfo(TapeTapeFile(dir, "bonus", set)).Length / 1024 : 0)} KB");
-            TapeCheck(sv != null && mainMs < 50, $"{label}: the finish line costs the main thread {mainMs} ms on the Bonus track (the pair save runs on a worker; under 50 ms), and the quit that follows at once still left the matching pair on disk");
+            TapeCheck(sv != null && mainMs < 50, $"{label}: the finish line costs the main thread {mainMs} ms on Poligon 17 (the pair save runs on a worker; under 50 ms), and the quit that follows at once still left the matching pair on disk");
             TapeInfo($"{label} (Bonus): {c.Find("tape: lap 1 ")?.Trim()}");
             var r = TapeGame(dir, new[] { "--track=bonus", "--tape-debug", "--tape-wrap-every=4", "--tape-replay-quit=20" }.Concat(set == 1 ? new[] { "--training" } : Array.Empty<string>()).ToArray(), 200, env: new() { ["FORCEBOOT"] = "1" });
             var cov = r.Find($"replay of set {set} from tape");

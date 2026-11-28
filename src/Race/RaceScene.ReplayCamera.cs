@@ -33,6 +33,9 @@ public partial class RaceScene
         _cam.Pose(view.Eye, view.Target, _car.Pos, dt);
         return true;
     }
+    /// <summary>The lens the game really drives with. While the title's replay camera is on, _cam carries a broadcast shot's lens (wide, 77 degrees), and the lens the camera had before it is what the race needs: a presentation that saves the camera to put it back (a car tour, a fuel ceremony) must save this one, or the shot's lens becomes the race's.</summary>
+    (float Fov, float Near, float Far) BaseLens => _replayCameraActive ? (_replayOldFov, _replayOldNear, _replayOldFar) : (_cam.Fov, _cam.Near, _cam.Far);
+
     bool TitleCameraAllowed => _state == State.Title && !PresentationActive;
 
     void PrepareReplayCamera()

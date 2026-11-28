@@ -11,22 +11,22 @@ namespace CCCPRacing.Race;
 /// another track than the one built reloads the scene beneath the loading card after the time
 /// and light choices. The rally and LAN ask for their tracks too; LAN hosts use bronze unlocks,
 /// while joining drivers may select any track.
-/// The driving school starts on the bonus track. Records and ghosts are kept per track (RecordStore).
+/// The driving school starts on Poligon 17. Records and ghosts are kept per track (RecordStore).
 /// Test: --track=ID builds that track from the start.
 /// </summary>
 public partial class RaceScene
 {
     /// <summary>
     /// The tracks to choose from (tracks/ID.json): the five-year plan in order, each opened by a
-    /// rally medal on the one it requires (null: open), then the bonus track (Bonus), opened
+    /// rally medal on the one it requires (null: open), then Poligon 17 (Bonus), opened
     /// by a gold on any track. A bronze opens a plan track for STAKHANOV LAPS, the SOCIALIST
-    /// RALLY on it takes a silver (MedalToOpen); the bonus track opens for both at once.
+    /// RALLY on it takes a silver (MedalToOpen); Poligon 17 opens for both at once.
     /// </summary>
     static readonly (string id, string name, string requires)[] Tracks =
         { ("ilyich", "KOLKHOZ", null), ("atomgrad", "ATOMGRAD-4", "ilyich"), ("siberia", "SIBERIA", "atomgrad"), ("bonus", "POLIGON 17", Bonus) };      // (2026-11-11: Atomgrad before Siberia)
-    /// <summary>"requires" of the bonus track: a gold on any track.</summary>
+    /// <summary>"requires" of Poligon 17: a gold on any track.</summary>
     const string Bonus = "*";
-    /// <summary>The bonus track: the driving school starts here, open or not.</summary>
+    /// <summary>Poligon 17: the driving school starts here, open or not.</summary>
     const string TrainingTrack = "bonus";
 
     // Survive the reload: the track to build and what the title does once it is built.
@@ -37,7 +37,7 @@ public partial class RaceScene
     static bool _resumeReplay;     // the title's replay line switched tracks: select it again
 
     MenuItem _trackFor = MenuItem.Training;   // the mode the track card is for
-    bool _bonusOpened;                        // this run's gold opened the bonus track (the PLAN FULFILLED screen says so)
+    bool _bonusOpened;                        // this run's gold opened Poligon 17 (the PLAN FULFILLED screen says so)
     NormPlan.Medal _runMedal;                 // best medal earned in this run, even if the campaign already had it
     bool _rallyNextOpenedThisRun;
     Campaign _campaign = new(null);
@@ -50,7 +50,7 @@ public partial class RaceScene
     {
         string key = id + "_" + set;
         if (!_otherBoards.TryGetValue(key, out var b))
-            _otherBoards[key] = b = Leaderboard.Load(new RecordStore(_records.Dir, id, null).BoardForSet(set), capacity: set == 1 ? Leaderboard.StakhanovSize : Leaderboard.Size, fuelPartitions: set == 1);
+            _otherBoards[key] = b = Leaderboard.Load(new RecordStore(_records.Dir, id, null).BoardForSet(set), capacity: set == 1 ? Leaderboard.StakhanovSize : Leaderboard.RallySize, fuelPartitions: set == 1);
         return b;
     }
 
@@ -137,7 +137,7 @@ public partial class RaceScene
     bool Locked(int i, MenuItem? mode = null, bool anyFuel = false) => !(CheatUnlock && (mode ?? _trackFor) != MenuItem.Lan) && LockedByMedals(i, mode, anyFuel);      // (the LAN host's tracks follow his real medals)
 
     /// <summary>
-    /// The track is locked by the medals, whatever the cheat says (the unlocking ceremonies follow the real ones). The owner's rule of 2026-11-23, the bonus track excepted (it needs a gold on the fuel itself): a track opened by the medals of any fuel (the diesel's, say) is
+    /// The track is locked by the medals, whatever the cheat says (the unlocking ceremonies follow the real ones). The owner's rule of 2026-11-23, Poligon 17 excepted (it needs a gold on the fuel itself): a track opened by the medals of any fuel (the diesel's, say) is
     /// open on every fuel, as soon as that fuel itself has been opened (FuelOpenByMedals, which still counts the medals per fuel). The anyFuel flag is kept for the callers; it no longer changes the answer.
     /// </summary>
     bool LockedByMedals(int i, MenuItem? mode = null, bool anyFuel = false)
@@ -147,7 +147,7 @@ public partial class RaceScene
         NormPlan.Medal Medal(string id) => _campaign.Best(id);      // (a track opened on any fuel is open on every fuel; the fuel itself opens by its own medals, FuelOpenByMedals)
         if (Tracks[i].requires == Bonus)
         {
-            // The bonus track is the exception (the owner, 2026-11-23): it needs a gold on the fuel itself, the rally's chosen one, the laps' picked one (the LAN and the school count every fuel)
+            // Poligon 17 is the exception (the owner, 2026-11-23): it needs a gold on the fuel itself, the rally's chosen one, the laps' picked one (the LAN and the school count every fuel)
             FuelGrade? own = anyFuel ? null : mode == MenuItem.Race ? _rallyFuel : mode == MenuItem.Training && _lapsFuelPicked ? _lapsFuelPick : null;
             return !Tracks.Any(t => (own is FuelGrade f ? _campaign.BestOn(t.id, f) : _campaign.Best(t.id)) == NormPlan.Medal.Gold);
         }
@@ -160,7 +160,7 @@ public partial class RaceScene
     /// <summary>What opens a locked track for the track card's mode, for its notes.</summary>
     string Opens(int i)
     {
-        string fuel = Tracks[i].requires != Bonus ? "" : _trackFor == MenuItem.Race ? $" ON {FuelGrades.Names[(int)_rallyFuel]}" : _trackFor == MenuItem.Training && _lapsFuelPicked ? $" ON {FuelGrades.Names[(int)_lapsFuelPick]}" : "";      // (the medals count on any fuel, the bonus track's gold on its own)
+        string fuel = Tracks[i].requires != Bonus ? "" : _trackFor == MenuItem.Race ? $" ON {FuelGrades.Names[(int)_rallyFuel]}" : _trackFor == MenuItem.Training && _lapsFuelPicked ? $" ON {FuelGrades.Names[(int)_lapsFuelPick]}" : "";      // (the medals count on any fuel, Poligon 17's gold on its own)
         return Tracks[i].requires == Bonus ? "A GOLD ON ANY TRACK" + fuel : $"A {Campaign.Name(MedalToOpen(_trackFor))} ON {TrackName(Tracks[i].requires)}{fuel}";
     }
 
@@ -176,7 +176,7 @@ public partial class RaceScene
         foreach (string a in InstructionTrack == null ? OS.GetCmdlineUserArgs() : Array.Empty<string>())
         {
             if (a.StartsWith("--track=") && _resume == null && _loadingRunMode == null && _previewResume < 0 && !_lanWorldRebuild && _customLoadError == null) _trackId = TrackIds.FromCommandLine(a["--track=".Length..]);   // test: build this track
-            // The school and LAN flags skip the menu that would take them to the bonus track: build it at once.
+            // The school and LAN flags skip the menu that would take them to Poligon 17: build it at once.
             titleRec |= a.StartsWith("--title-rec=");
             training |= a.StartsWith("--school=") || a == "--lan-host" || a.StartsWith("--lan-join=");
         }
@@ -308,11 +308,21 @@ public partial class RaceScene
         AskOrRun(_trackFor);
     }
 
+    /// <summary>HIDDEN CAMERAS x / y for the highlighted rally track (x found by the file in use, y hidden in all); null on a locked track or one that hides none.</summary>
+    string HiddenCamerasNote()
+    {
+        int i = Math.Clamp(_cardSel, 0, Tracks.Length - 1);
+        if (Locked(i) || _cameraDiscoveries == null) return null;
+        string id = Tracks[i].id;
+        int total = CameraDiscoveries.HiddenOn(id);
+        return total > 0 ? $"HIDDEN CAMERAS {_cameraDiscoveries.FoundOn(id)} / {total}" : null;
+    }
+
     /// <summary>The track card's second line: the highlighted track's rally medal, or what opens it.</summary>
     string TrackCardSub()
     {
         int i = Math.Clamp(_cardSel, 0, Tracks.Length - 1);
-        if (Locked(i)) return $"LOCKED: {Opens(i)} OPENS IT";      // (the bonus track's too: no heading before the lock)
+        if (Locked(i)) return $"LOCKED: {Opens(i)} OPENS IT";      // (Poligon 17's too: no heading before the lock)
         if (_trackFor == MenuItem.Lan) return _lanTrackHosting == true
             ? "HOST A RACE ON A TRACK YOU HAVE OPENED"
             : "CHOOSE THE HOST'S TRACK - ALL TRACKS OPEN TO JOIN";
@@ -320,7 +330,6 @@ public partial class RaceScene
         gai = gai == "" ? "" : "   " + gai;
         // (the rally shows the medal of the chosen fuel, the laps the best of any)
         NormPlan.Medal shown = _trackFor == MenuItem.Race ? _campaign.BestOn(Tracks[i].requires == Bonus ? TrainingTrack : Tracks[i].id, _rallyFuel) : _campaign.Best(Tracks[i].requires == Bonus ? TrainingTrack : Tracks[i].id);
-        if (Tracks[i].requires == Bonus) return "BONUS TRACK. RALLY MEDAL: " + Campaign.Name(shown) + gai;
         return "RALLY MEDAL: " + Campaign.Name(shown) + gai;
     }
 

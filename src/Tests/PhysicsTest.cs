@@ -260,7 +260,7 @@ public partial class PhysicsTest : Node
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--atomgrad-landmark-tests"))
         { AtomgradLandmarkTest(); AtomgradPlantWallsTest(); BuildingBoxWallsTest(); AtomgradWashYardTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--export-card-tests"))
-        { ExportCardDefaultsTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
+        { ExportCardDefaultsTest(); ExportPresetTest(); GetTree().Quit(_failures == 0 ? 0 : 1); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--generator-ownership-tests"))
         { _ = RunGeneratorOwnership(); return; }
         if (Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--bonus-tree-tests"))
@@ -707,6 +707,7 @@ public partial class PhysicsTest : Node
         GaiStopTrafficTest();
         BonusTreeTest();
         ExportCardDefaultsTest();
+        ExportPresetTest();
         RoadWarningsTest();
         AtomgradLandmarkTest(); AtomgradPlantWallsTest(); BuildingBoxWallsTest(); AtomgradWashYardTest();
         PlayerFilesTest();
@@ -1316,7 +1317,7 @@ public partial class PhysicsTest : Node
 
     void TrackLaps()
     {
-        GD.Print("Autopilot on bonus track");
+        GD.Print("Autopilot on Poligon 17");
         var sw = System.Diagnostics.Stopwatch.StartNew();
         var def = TrackDef.Load("res://tracks/bonus.json");
         var track = TrackBuilder.Build(def);
@@ -1787,7 +1788,7 @@ public partial class PhysicsTest : Node
         string sb = TrackSignature.Compute(TrackBuilder.Build(TrackDef.Load("res://tracks/bonus.json")));
         GD.Print($"  signature {sa} (v0.2: {TrackSignature.LegacyBonus})");
         Check(sa == sb && sa.Length == 16, "same track builds to the same signature");
-        Check(sa != TrackSignature.LegacyBonus, "the reshaped bonus track differs from the v0.2 track");
+        Check(sa != TrackSignature.LegacyBonus, "the reshaped Poligon 17 differs from the v0.2 track");
         a.CenterH[500] += 0.2f;
         Check(TrackSignature.Compute(a) != sa, "a 20 cm change in one road height changes it");
         a.CenterH[500] -= 0.2f;

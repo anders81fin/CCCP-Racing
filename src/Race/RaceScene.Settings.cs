@@ -21,8 +21,8 @@ public partial class RaceScene
         get
         {
             var l = new List<SettingsRowId> { SettingsRowId.Sounds, SettingsRowId.Visuals };
-            if (_lab != null) l.Add(SettingsRowId.Lab);
-            if (_lab != null && _labMode && _labRun) l.Add(SettingsRowId.LabTune);
+            if (_lab != null && CheatUnlock) l.Add(SettingsRowId.Lab);      // (LAB is shown only with the Konami code active: the owner, 2026-11-28)
+            if (_lab != null && CheatUnlock && _labMode && _labRun) l.Add(SettingsRowId.LabTune);
             if (_hud.PadConnected) l.Add(SettingsRowId.Rumble);
             l.Add(SettingsRowId.Keys); l.Add(SettingsRowId.Back);
             return l;

@@ -16,6 +16,7 @@ public partial class RaceScene
 {
     bool _carTourOpen, _ctWait, _ctDamageWas;
     FuelGrade _carTourFuel;
+    bool _ctThenChoose;      // the tour opened by itself (a fuel chosen for the first time on this profile): its end or Esc goes on to CHOOSE TRACK
     CarTourScript _ct;
     float _ctVolumeWas, _ctT, _ctWaitT, _ctPowerWas, _ctTurboWas, _ctFov, _ctNear, _ctFar;
     ulong _ctOpenFrame, _ctReleaseFrame;
@@ -23,7 +24,7 @@ public partial class RaceScene
     string _ctCover;
 
     /// <summary>The tour is up (the title, the FUEL card, the tour open): the screen is the tour's.</summary>
-    public bool CarTourActive => _carTourOpen && _state == State.Title && _card == TitleCard.RallyFuel;
+    public bool CarTourActive => _carTourOpen && _state == State.Title && _card is TitleCard.RallyFuel or TitleCard.LapsFuel;
 
     /// <summary>Something presents on the whole screen: a track's tour or a car's.</summary>
     public bool PresentationActive => TrackPreviewActive || CarTourActive || CarOnShow;
@@ -38,7 +39,7 @@ public partial class RaceScene
         _ctWait = true; _ctWaitT = 0; _ctT = 0;
         _ctOpenFrame = Engine.GetProcessFrames();
         _ctPowerWas = _car.PowerScale; _ctTurboWas = _car.TurboGain;
-        _ctFov = _cam.Fov; _ctNear = _cam.Near; _ctFar = _cam.Far;
+        (_ctFov, _ctNear, _ctFar) = BaseLens;      // (not the title shot's lens: put back after the tour it would become the race's: RaceScene.ReplayCamera.cs)
         var damage = _carVis.Damage;
         _ctDamageWas = damage?.Enabled ?? false;
         if (damage != null) { damage.Reset(); damage.Enabled = false; }      // the car stays as it left the factory
@@ -61,6 +62,7 @@ public partial class RaceScene
     void CloseCarTour()
     {
         if (!_carTourOpen) return;
+        bool goOn = _ctThenChoose; _ctThenChoose = false;
         _carTourOpen = false;
         _ctWait = false;
         _car.PowerScale = _ctPowerWas; _car.TurboGain = _ctTurboWas;
@@ -79,6 +81,7 @@ public partial class RaceScene
         _hud.CarSpecAlpha = 0; _hud.CarTourCaption = null; _hud.CarRedline = 0;
         _overlayExitFrame = Engine.GetProcessFrames();
         if (OS.HasEnvironment("CARTOURDBG")) GD.Print("car tour: closed");
+        if (goOn && _card == TitleCard.RallyFuel && _state == State.Title) ChooseTitleCard();      // (the first INFO of a fuel: on to CHOOSE TRACK, as Enter on the card would)
     }
 
     /// <summary>The card's keys while the tour is up. Esc closes it; Enter races on this fuel if it is open (a locked fuel stays locked). True: the tour has the key.</summary>
@@ -89,16 +92,6 @@ public partial class RaceScene
         if (Input.IsActionJustPressed("pause")) { CloseCarTour(); return true; }
         if (_ctWait) return true;      // (any other key starts it: CarTourRawInput)
         if (Engine.GetProcessFrames() <= _ctReleaseFrame + 2) return true;
-        if (Input.IsActionJustPressed("start") && !Input.IsKeyPressed(Key.Alt)) CarTourEnter();
-        return true;
-    }
-
-    /// <summary>Enter in the tour: race on this fuel (true), unless it is locked (the same refusal as the card's: false, the tour goes on).</summary>
-    bool CarTourEnter()
-    {
-        if (FuelLocked(_carTourFuel)) return false;
-        CloseCarTour();
-        ChooseTitleCard();
         return true;
     }
 
@@ -274,8 +267,7 @@ public partial class RaceScene
         if (!Array.Exists(CmdArgs(), a => a == "--car-tour-check")) return;
         FuelGrade savedFuel = FuelGrades.Load(_records.Dir);
         bool locked = FuelLocked(_carTourFuel);
-        bool entered = locked && CarTourEnter();      // a locked fuel must refuse (an open one would start a run: not tried)
-        bool refused = locked && !entered && _carTourOpen && _card == TitleCard.RallyFuel;
+        bool refused = locked && _carTourOpen && _card == TitleCard.RallyFuel;      // (Enter does nothing in the tour: the tour is left with Esc, 2026-11-28)
         int archive = _lapArchiveUsed?.List().Count ?? -1;
         GD.Print($"CARTOURCHECK: fuel={_carTourFuel} locked={locked} enterRefused={refused} rallyFuel={_rallyFuel} savedFuel={savedFuel} card={_card} state={_state} archive={archive} "
             + $"damaged={_carVis.Damage?.IsDamaged} powerScale={_car.PowerScale:F2} turboGain={_car.TurboGain:F2} boost={_car.Boost:F2} volume={_snd.Volume:F2}");

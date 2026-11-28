@@ -87,6 +87,15 @@ public class Campaign
         if (_path != null) _cfg.Save(_path);
     }
 
+    /// <summary>The fuel's INFO (its car tour) was shown on this profile: the first time a fuel is chosen in the Socialist Rally it plays by itself before CHOOSE TRACK.</summary>
+    public bool FuelInfoSeen(FuelGrade fuel) => (bool)_cfg.GetValue("fuel_info_seen", fuel.ToString(), false);
+
+    public void MarkFuelInfoSeen(FuelGrade fuel)
+    {
+        _cfg.SetValue("fuel_info_seen", fuel.ToString(), true);
+        if (_path != null) _cfg.Save(_path);
+    }
+
     public bool LapsPresented(string track, bool rally = false) =>
         (bool)_cfg.GetValue(rally ? "rally_presented" : "laps_presented", track, false);
 

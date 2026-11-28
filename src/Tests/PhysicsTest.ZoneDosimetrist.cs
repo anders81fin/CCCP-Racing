@@ -237,9 +237,9 @@ public partial class PhysicsTest
         var env = new CCCPRacing.Export.ExportEnvironment("exe", null, "jobs", "dest", "profile", null, 1);
         var cut = new CCCPRacing.Export.ExportUiController(() => new CCCPRacing.Export.ExportContext { Source = new FakeExportSource(), Cut = (10f, 25f) }, env);
         cut.Open();
-        bool cutFirst = cut.Rows[0].Contains("THE CUT") && cut.Rows[4].Contains("0:15.0");
+        bool cutFirst = cut.Rows[0].Contains("THE CUT") && cut.Rows[5].Contains("0:15.0");
         cut.Handle(CCCPRacing.Export.ExportUiAction.Accept);      // (the first row is selected: Enter flips the span)
-        bool whole = cut.Rows[0].Contains("WHOLE") && cut.Rows[4].Contains("1:20.0");
+        bool whole = cut.Rows[0].Contains("WHOLE") && cut.Rows[5].Contains("1:20.0");
         cut.Handle(CCCPRacing.Export.ExportUiAction.Back);
         cut.Open();
         bool cutAgain = cut.Rows[0].Contains("THE CUT");
@@ -248,5 +248,39 @@ public partial class PhysicsTest
         bool wholeNoCut = plain.Rows[0] == "SPAN  WHOLE";
         bool note = plain.Lines.Contains("60 FPS · NORMAL SPEED") && cut.Lines.Contains("60 FPS · NORMAL SPEED");
         Check(cutFirst && whole && cutAgain && wholeNoCut && note, $"export card: an active cut is offered first ({cutFirst}), WHOLE is one key away ({whole}) and not remembered ({cutAgain}), no cut means WHOLE ({wholeNoCut}), and the card says 60 FPS · NORMAL SPEED ({note})");
+    }
+
+    /// <summary>The export card's PRESET row: defaults 1080P HIGH (the YOUTUBE preset), WHATSAPP 720P SMALL, YOUTUBE 1080P HIGH, CUSTOM changes nothing, a hand change of SIZE or QUALITY shows CUSTOM even when the values match a preset, SIZE and QUALITY stay in their own rows.</summary>
+    void ExportPresetTest()
+    {
+        var env = new CCCPRacing.Export.ExportEnvironment("exe", null, "jobs", "dest", "profile", null, 1);
+        var card = new CCCPRacing.Export.ExportUiController(() => new CCCPRacing.Export.ExportContext { Source = new FakeExportSource(), Cut = null }, env);
+        var A = CCCPRacing.Export.ExportUiAction.Accept; var D = CCCPRacing.Export.ExportUiAction.Down; var U = CCCPRacing.Export.ExportUiAction.Up;
+        var R = CCCPRacing.Export.ExportUiAction.Right; var L = CCCPRacing.Export.ExportUiAction.Left;
+        card.Open();
+        bool defaults = card.Rows[1] == "PRESET  < YOUTUBE >" && card.Rows[2] == "SIZE  < 1080P >" && card.Rows[3] == "QUALITY  < HIGH >" && card.Height == 1080 && card.Crf == 18;
+        card.Handle(D);      // PRESET
+        card.Handle(R);      // YOUTUBE -> CUSTOM: no value moves
+        bool customKeeps = card.Preset == CCCPRacing.Export.ExportPreset.Custom && card.Height == 1080 && card.Crf == 18 && card.Rows[1] == "PRESET  < CUSTOM >";
+        card.Handle(R);      // CUSTOM -> WHATSAPP
+        bool whatsapp = card.Rows[1] == "PRESET  < WHATSAPP >" && card.Rows[2] == "SIZE  < 720P >" && card.Rows[3] == "QUALITY  < SMALL >" && card.Height == 720 && card.Crf == 23;
+        card.Handle(R);      // -> YOUTUBE
+        bool youtube = card.Rows[1] == "PRESET  < YOUTUBE >" && card.Height == 1080 && card.Crf == 18;
+        card.Handle(A);      // Enter steps on too (YOUTUBE -> CUSTOM) and leaves the values
+        bool enterCustom = card.Preset == CCCPRacing.Export.ExportPreset.Custom && card.Height == 1080 && card.Crf == 18;
+        card.Handle(R);      // CUSTOM -> WHATSAPP
+        card.Handle(D);      // SIZE
+        card.Handle(R);      // 720 -> 540 by hand
+        bool handSize = card.Rows[1] == "PRESET  < CUSTOM >" && card.Rows[2] == "SIZE  < 540P >" && card.Crf == 23;
+        card.Handle(R);      // 540 -> 1080 (wraps): the values are now 1080P and SMALL ...
+        card.Handle(D);      // QUALITY
+        card.Handle(R);      // ... and HIGH by hand: 1080P HIGH, exactly the YOUTUBE preset's values
+        bool matchesButCustom = card.Height == 1080 && card.Crf == 18 && card.Preset == CCCPRacing.Export.ExportPreset.Custom && card.Rows[1] == "PRESET  < CUSTOM >";
+        card.Handle(U); card.Handle(U); card.Handle(L);      // PRESET, back from CUSTOM to YOUTUBE (applies 1080P HIGH)
+        card.Handle(L);      // -> WHATSAPP
+        card.Handle(D); card.Handle(D); card.Handle(R);      // QUALITY by hand: SMALL -> HIGH while SIZE stays 720
+        bool separate = card.Height == 720 && card.Crf == 18 && card.Preset == CCCPRacing.Export.ExportPreset.Custom;
+        Check(defaults && customKeeps && whatsapp && youtube && enterCustom && handSize && matchesButCustom && separate,
+            $"export presets: defaults 1080P HIGH on YOUTUBE ({defaults}), CUSTOM keeps the values ({customKeeps}), WHATSAPP 720P SMALL ({whatsapp}), YOUTUBE 1080P HIGH ({youtube}), Enter steps the row ({enterCustom}), a hand SIZE shows CUSTOM ({handSize}), values equal to a preset by hand still show CUSTOM ({matchesButCustom}), SIZE and QUALITY adjust separately ({separate})");
     }
 }

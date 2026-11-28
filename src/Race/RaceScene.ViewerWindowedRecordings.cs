@@ -39,20 +39,21 @@ public partial class RaceScene
         return d;
     }
 
+    /// <summary>The title's PARTY OFFICE > KGB FILES (the archive itself) and R on the driver in use: that driver's RECORDINGS list (the office list of before).</summary>
     IEnumerable VrToOfficeRecordings()
     {
         VwCheck(_state == State.Title, "the title is up");
-        for (int i = 0; i < 6 && _menuParent != null; i++) foreach (var x in VrTap(Key.Escape)) yield return x;
+        for (int i = 0; i < 6 && (_menuParent != null || _showFiles); i++) foreach (var x in VrTap(Key.Escape)) yield return x;
         for (int i = 0; i < 6 && _menu != MenuItem.Office; i++) foreach (var x in VrTap(Key.Right)) yield return x;
         VwCheck(_menu == MenuItem.Office, "the cursor is on PARTY OFFICE");
         foreach (var x in VrTap(Key.Enter)) yield return x;
         for (int i = 0; i < 6; i++) yield return null;
-        VwCheck(_menuParent == MenuItem.Office && _menu == MenuItem.Files && !_hud.MenuLabels.Contains("RECORDINGS"), "PARTY OFFICE opens on KGB FILES (RECORDINGS is not in its own row)");
+        VwCheck(_menuParent == MenuItem.Office && _menu == MenuItem.Files, "PARTY OFFICE opens on KGB FILES");
         foreach (var x in VrTap(Key.Enter)) yield return x;
-        for (int i = 0; i < 6; i++) yield return null;
-        for (int i = 0; i < 6 && _menu != MenuItem.Recordings; i++) foreach (var x in VrTap(Key.Right)) yield return x;
-        VwCheck(_menuParent == MenuItem.Files && _menu == MenuItem.Recordings && _hud.MenuLabels.Contains("RECORDINGS") && _hud.MenuHeader == "KGB FILES", "PARTY OFFICE > KGB FILES has RECORDINGS");
-        foreach (var x in VrTap(Key.Enter)) yield return x;
+        for (int i = 0; i < 8; i++) yield return null;
+        VwCheck(_showFiles && _filesSel == _file - 1, "KGB FILES is the archive, on the driver in use");
+        for (int i = 0; i < 120 && _fileRecordingsTask != null; i++) yield return null;
+        foreach (var x in VrTap(Key.R)) yield return x;
         foreach (var x in VrUntil(() => _recordingsOpen && _hud.ReplayListOpen && !_replayLooking, 60 * 10, "the RECORDINGS list is up")) yield return x;
     }
 
@@ -79,8 +80,27 @@ public partial class RaceScene
         for (int i = 0; i < 60; i++) yield return null;
         foreach (var x in VrToOfficeRecordings()) yield return x;
         var l = _hud.ReplayList;
-        VwCheck(l.Heading == "RECORDINGS" && l.Rows.Length == 3 && l.Rows.All(r => r.Detail.Contains("THIS SESSION") && !r.Detail.Contains("KEPT")), $"RECORDINGS lists the three laps as THIS SESSION ({l.Rows.Length})");
+        VwCheck(l.Heading.StartsWith("RECORDINGS") && l.Rows.Length == 3 && l.Rows.All(r => r.Detail.Contains("THIS SESSION") && !r.Detail.Contains("KEPT")), $"RECORDINGS lists the three laps as THIS SESSION ({l.Rows.Length})");
         foreach (var x in VrShot("rec-1-session")) yield return x;
+        // the KGB ARCHIVE's R: this driver's recordings, drawn over the title (the screen really changes); Esc is back in the archive on that driver
+        CloseRecordings();
+        for (int i = 0; i < 8; i++) yield return null;
+        EnterFiles();
+        for (int i = 0; i < 120 && _fileRecordingsTask != null; i++) yield return null;
+        _filesSel = _file - 1; FilesHud();
+        for (int i = 0; i < 4; i++) yield return null;
+        VwCheck(_hud.Files[_file - 1].Recordings == 3, $"the archive row counts the driver's three recordings ({_hud.Files[_file - 1].Recordings})");
+        foreach (var x in VrTap(Key.R)) yield return x;
+        foreach (var x in VrUntil(() => _recordingsOpen && !_replayLooking, 60 * 10, "R opens the recordings list")) yield return x;
+        VwCheck(_hud.Mode == HudMode.Title && _hud.ReplayListOpen && !_showFiles && _recFileView == _file && _hud.ReplayList.Rows.Length == 3 && _hud.ReplayList.Heading.StartsWith("RECORDINGS - "),
+            $"R shows the driver's three recordings over the title: mode {_hud.Mode}, list open {_hud.ReplayListOpen}, '{_hud.ReplayList.Heading}', rows {_hud.ReplayList.Rows.Length}");
+        foreach (var x in VrShot("rec-1b-from-files")) yield return x;
+        foreach (var x in VrTap(Key.Escape)) yield return x;
+        for (int i = 0; i < 8; i++) yield return null;
+        VwCheck(_showFiles && _hud.Mode == HudMode.Files && !_hud.ReplayListOpen && _recFileView == 0 && _filesSel == _file - 1, "Esc is back in the archive on that driver, the list gone");
+        CloseFiles();
+        for (int i = 0; i < 8; i++) yield return null;
+        foreach (var x in VrToOfficeRecordings()) yield return x;
         // KEEP with a typed name
         foreach (var x in VrTap(Key.K)) yield return x;
         VwCheck(_keepNameOpen, "K opens the name field");
@@ -156,7 +176,7 @@ public partial class RaceScene
         for (int i = 0; i < 20; i++) yield return null;
         var snap2 = (_menuParent, _menu, _rallyPhase, _lapsPhase, _rallyFuel, _trackId, _lastPlayed, _hud.ReplayList.Selected, _state);
         VwCheck(snap.Equals(snap2), $"the title came back as it was: {snap2}");
-        VwCheck(_recordingsOpen && _hud.ReplayListOpen && _menuParent == MenuItem.Files && _menu == MenuItem.Recordings && _card == TitleCard.None, "back in RECORDINGS under PARTY OFFICE > KGB FILES, no card");
+        VwCheck(_recordingsOpen && _hud.ReplayListOpen && _recFileView == _file && _card == TitleCard.None, "back in RECORDINGS under PARTY OFFICE > KGB FILES, no card");
         VwCheck(_state == State.Title && _countdown <= 0 && _hud.Mode == HudMode.Title, "no countdown or race started");
         VwCheck(Audio.AudioMix.SfxMuted == sfxBefore, "the title's sound-effect mute is given back after the viewer");
         bool audioSame = true; foreach (var (n, was) in audio) if (IsInstanceValid(n)) audioSame &= (n is AudioStreamPlayer a ? a.StreamPaused : ((AudioStreamPlayer3D)n).StreamPaused) == was;
@@ -182,9 +202,9 @@ public partial class RaceScene
         VwCheck(renamed.Length == 2 && _hud.ReplayList.Rows.Count(r => r.Detail.EndsWith(renamed)) == 1, $"exactly one row carries the new name '{renamed}'");
         foreach (var x in VrPad(JoyButton.B)) yield return x;
         for (int i = 0; i < 12; i++) yield return null;
-        VwCheck(!_recordingsOpen && _menuParent == MenuItem.Files && _menu == MenuItem.Recordings && _state == State.Title, "pad B leaves RECORDINGS for KGB FILES, on RECORDINGS");
+        VwCheck(!_recordingsOpen && _showFiles && _recFileView == 0 && _state == State.Title, "pad B leaves RECORDINGS for KGB FILES, on RECORDINGS");
         // a failing KEEP is visible and leaves the pair usable
-        foreach (var x in VrTap(Key.Enter)) yield return x;
+        foreach (var x in VrTap(Key.R)) yield return x;
         foreach (var x in VrUntil(() => _recordingsOpen && !_replayLooking, 60 * 10, "RECORDINGS again")) yield return x;
         var h0 = VrLapHashes();
         KeepFailForTest = "DISK FULL (TEST)";

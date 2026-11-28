@@ -96,7 +96,7 @@ public class TrackDef
     public List<PloughDef> Ploughs { get; set; } = new();
     /// <summary>A labour detail marching round the lap from the camp (null: none).</summary>
     public ColumnDef Column { get; set; }
-    /// <summary>The track's norm ladder and medals (Race.NormPlan.UseTrack); null: the bonus track's default ladder.</summary>
+    /// <summary>The track's norm ladder and medals (Race.NormPlan.UseTrack); null: Poligon 17's default ladder.</summary>
     public NormsDef Norms { get; set; }
     /// <summary>A drive-through barn over the start/finish line instead of the banner gate; null: the gate.</summary>
     public StartBarnDef StartBarn { get; set; }

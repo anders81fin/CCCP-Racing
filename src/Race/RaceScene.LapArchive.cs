@@ -22,8 +22,8 @@ public partial class RaceScene
     bool LapArchiveEligibleIn(State state) => !LapArchiveOff && _state == state && _run is RunMode.Rally or RunMode.Training && !InSchool && !InLanRace
         && !_tourCapture && !_cinematicTour && !_droneTour && !_previewMovie && !NoRecords;
 
-    /// <summary>The active personnel file's lap folder (retained laps live here); user:// or the test data dir, globalised.</summary>
-    string LapArchiveDir => WorldTapeFile.Real(FileDir + "laps");
+    /// <summary>The active personnel file's lap folder (retained laps live here; the KGB ARCHIVE's R looks into another file's: _recFileView); user:// or the test data dir, globalised.</summary>
+    string LapArchiveDir => WorldTapeFile.Real((_recFileView > 0 ? PlayerFiles.Dir(_records.Dir, _recFileView) : FileDir) + "laps");
 
     readonly System.Collections.Generic.Dictionary<string, LapArchive> _sessionLapArchives = new();
     readonly System.Collections.Generic.Dictionary<string, int> _sessionLapOrder = new();
@@ -63,6 +63,7 @@ public partial class RaceScene
     void LapArchiveTick()
     {
         LeaderboardReplayTick();
+        FileRecordingsTick();
         if (_lapArchiveUsed == null) return;
         foreach (var m in _lapArchiveUsed.DrainMessages()) GD.Print("lap archive: " + m);
     }

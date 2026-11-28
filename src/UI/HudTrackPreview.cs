@@ -63,7 +63,7 @@ public partial class Hud
         if (PreviewCardAlpha > 0) DrawPreviewCard(r);
         if (PreviewFullscreen && !PreviewMovie)
             PixelFont.DrawCentered(this, PreviewCardWaiting ? P("ESC BACK", "B BACK")
-                : CarTour ? (CarTourLocked ? P("ESC BACK   THIS FUEL IS LOCKED", "B BACK   THIS FUEL IS LOCKED") : P("ESC BACK   ENTER RACE ON THIS FUEL", "B BACK   A RACE ON THIS FUEL"))
+                : CarTour ? (CarTourLocked ? P("ESC SKIP   THIS FUEL IS LOCKED", "B SKIP   THIS FUEL IS LOCKED") : P("ESC SKIP", "B SKIP"))
                 : P("ESC BACK   ENTER RACE HERE", "B BACK   A RACE HERE"), s.X / 2, 7, Grey);
     }
 

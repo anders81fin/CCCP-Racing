@@ -31,9 +31,9 @@ public partial class RaceScene
         _archiveDone = true;
         var args = CmdArgs();
         if (args.Length > 0 && Array.IndexOf(args, "--archive") < 0) return;
-        var menu = _menu;
+        var (menu, parent) = (_menu, _menuParent);
         EnterFiles();
-        _menu = menu;           // the main menu comes up where it would have
+        (_menu, _menuParent) = (menu, parent);           // the main menu comes up where it would have
         _filesAtLaunch = true;
         _hud.BeginStartupBanner();
         FilesHud();
@@ -48,9 +48,10 @@ public partial class RaceScene
         _filesAtLaunch = false;
         _filesErase = false;
         _filesSel = _file - 1;
-        _menu = MenuItem.Personnel;     // (PARTY OFFICE > KGB FILES > PERSONNEL)
+        _menu = MenuItem.Files; _menuParent = MenuItem.Office;     // (PARTY OFFICE > KGB FILES: Esc stands on it again)
         _overlayFrame = Engine.GetProcessFrames();
         _hud.Mode = HudMode.Files;
+        CountFileRecordings();
         FilesHud();
     }
 
@@ -110,6 +111,7 @@ public partial class RaceScene
         }
         if (Is(Key.Up, Key.W, JoyButton.DpadUp)) _filesSel = (_filesSel + PlayerFiles.Count - 1) % PlayerFiles.Count;
         else if (Is(Key.Down, Key.S, JoyButton.DpadDown)) _filesSel = (_filesSel + 1) % PlayerFiles.Count;
+        else if (Is(Key.R, Key.R, JoyButton.RightShoulder) && sel.Used) { OpenFileRecordings(_filesSel + 1); return true; }      // that driver's recordings (RaceScene.Recordings.cs)
         else if (Is(Key.G, Key.G, JoyButton.X) && sel.Used) { GalleryOpen(_filesSel + 1); return true; }      // the gallery of the selected driver's Sputnik recognitions
         else if (Is(Key.Delete, Key.Delete, JoyButton.Y) && sel.Used) _filesErase = true;
         else if (back && _filesAtLaunch) AskResignation();      // at launch the archive is the top: Esc resigns (RaceScene.Resign.cs)
@@ -134,7 +136,33 @@ public partial class RaceScene
         return true;
     }
 
-    /// <summary>The files card's rows: number, name, each plan track's medal, last played.</summary>
+    readonly int[] _fileRecordings = { -1, -1, -1, -1, -1 };      // each file's recordings (the lap archive's list), -1 until counted
+    System.Threading.Tasks.Task<int[]> _fileRecordingsTask;
+
+    /// <summary>The recordings of every personnel file, counted off the main thread (an archive's first look scans its folder); the card shows them as they arrive.</summary>
+    void CountFileRecordings()
+    {
+        for (int i = 0; i < _fileRecordings.Length; i++) _fileRecordings[i] = -1;
+        string root = _records.Dir;
+        _fileRecordingsTask = System.Threading.Tasks.Task.Run(() =>
+        {
+            var n = new int[PlayerFiles.Count];
+            for (int i = 0; i < n.Length; i++)
+                n[i] = PlayerFiles.Read(root, i + 1).Used ? Replay.LapArchive.For(WorldTapeFile.Real(PlayerFiles.Dir(root, i + 1) + "laps")).List().Count : 0;
+            return n;
+        });
+    }
+
+    void FileRecordingsTick()
+    {
+        if (_fileRecordingsTask is not { IsCompleted: true } t) return;
+        _fileRecordingsTask = null;
+        if (t.IsFaulted) return;
+        for (int i = 0; i < _fileRecordings.Length; i++) _fileRecordings[i] = t.Result[i];
+        if (_showFiles) FilesHud();
+    }
+
+    /// <summary>The files card's rows: number, name, each plan track's medal, recordings, last played.</summary>
     void FilesHud()
     {
         var rows = new Hud.FileRow[PlayerFiles.Count];
@@ -143,7 +171,7 @@ public partial class RaceScene
             var f = PlayerFiles.Read(_records.Dir, i + 1);
             var medals = Array.ConvertAll(Tracks, t => f.Medals.TryGetValue(t.id, out var m) ? (int)m : 0);
             string played = f.Played > 0 ? Time.GetDatetimeStringFromUnixTime(f.Played, true)[..10] : "";
-            rows[i] = new Hud.FileRow(f.Used, f.Name, medals, played, i + 1 == _file, f.Cameras);
+            rows[i] = new Hud.FileRow(f.Used, f.Name, medals, played, i + 1 == _file, _fileRecordings[i]);
         }
         _hud.Files = rows;
         _hud.FilesAtLaunch = _filesAtLaunch;
@@ -184,7 +212,7 @@ public partial class RaceScene
             if (!_noRecord) _ghosts[m] = Ghost.Load(_records.GhostForSet(m), _params, _track);
             _bestLaps[m] = _ghosts[m]?.LapTime ?? -1;
             _tapes[m] = LoadTapeSlot(m);      // RaceScene.Tape.cs: the tape beside the ghost, if it is whole
-            _boards[m] = Leaderboard.Load(m == 0 ? rallyBoard : _records.BoardForSet(m), _bestLaps[m], m == 1 ? Leaderboard.StakhanovSize : Leaderboard.Size, fuelPartitions: m == 1);
+            _boards[m] = Leaderboard.Load(m == 0 ? rallyBoard : _records.BoardForSet(m), _bestLaps[m], m == 1 ? Leaderboard.StakhanovSize : Leaderboard.RallySize, fuelPartitions: m == 1);
         }
         // The shipped demonstration stays separate from all player records and racing ghosts.
         const string demo = "res://assets/replays/ilyich-stakhanov-petrol";

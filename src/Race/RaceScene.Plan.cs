@@ -328,7 +328,7 @@ public partial class RaceScene
         _hud.PlanLapTime = _planLap;
         _hud.PlanTrack = TrackName(_trackId);
         _hud.PlanMedal = Campaign.Name(NormPlan.Medal.Gold);     // the track is named over the title
-        _hud.PlanNext = _bonusOpened ? "BONUS TRACK OPEN"
+        _hud.PlanNext = _bonusOpened ? "POLIGON 17 OPEN"
             : NextTrack(_trackId) is { } nx ? $"NEXT: {TrackName(nx)} - NOW OPEN" : "NEXT: KOLKHOZ NO.8";
         _hud.EndWrecks = _wrecks;
         _snd.Volume = 0f;

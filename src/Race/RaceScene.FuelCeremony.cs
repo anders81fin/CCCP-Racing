@@ -98,7 +98,7 @@ public partial class RaceScene
     {
         _fcSetup = true;
         _fcPowerWas = _car.PowerScale; _fcTurboWas = _car.TurboGain;
-        _fcFov = _cam.Fov; _fcNear = _cam.Near; _fcFar = _cam.Far;
+        (_fcFov, _fcNear, _fcFar) = BaseLens;      // (the real lens, not the title shot's: RaceScene.ReplayCamera.cs)
         var damage = _carVis.Damage;
         _fcDamageWas = damage?.Enabled ?? false;
         if (damage != null) { damage.Reset(); damage.Enabled = false; }

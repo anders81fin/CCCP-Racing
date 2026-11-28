@@ -3,7 +3,7 @@
 Rally-Sport-inspired time trial on a Soviet kolkhoz. Power: ACCORDING TO PLAN. Suspension: NYET.
 
 Source code: [anders81fin/CCCP-Racing](https://github.com/anders81fin/CCCP-Racing).
-Source for version **0.924**: [v0.924](https://github.com/anders81fin/CCCP-Racing/tree/v0.924).
+Source for version **0.925**: [v0.925](https://github.com/anders81fin/CCCP-Racing/tree/v0.925).
 GitHub account: [anders81fin](https://github.com/anders81fin).
 
 Source code is offered under **GPL-3.0-or-later** and game models, images, track
@@ -109,14 +109,14 @@ with its MiKs, the labour camp, snowploughs) and BONUS
 the next track for STAKHANOV LAPS, its SOCIALIST RALLY takes a silver. The track card in STAKHANOV LAPS and
 the rally chooses, opening on the first track, a locked one in black and white (LAN votes among the host's available tracks). The DRIVING SCHOOL (SINGLE PLAYER) teaches car control on Ilyich's Lamp: the clutch start,
 steering, brakes, the slide techniques, R. Each track has its own rally school, offered before a
-rally there, with only what is new on it (Ilyich's Lamp and the bonus track so far); Stakhanov laps have none. The title's LEADERBOARD and record-lap replay cover every track. Medals per
+rally there, with only what is new on it (Ilyich's Lamp and Poligon 17 so far); Stakhanov laps have none. The title's LEADERBOARD and record-lap replay cover every track. Medals per
 track in user://campaign.cfg (bronze 4 norms, silver 7, gold the plan). In the rally a lap strictly under the bronze norm's time takes a run straight to the bronze (4 norms, never
 more than the bronze for one lap), then a lap strictly under the silver norm's time straight to the silver (7); every other lap under the norm beats one norm, so 8, 9 and the gold come one a lap.
 A jump uses one real lap and gives one norm's window (five laps and the laps saved, at most 10); a void or unranked lap never moves on, and a medal from an earlier rally does not skip the steps. The GAI speed trap's
 records in user://speedtrap.cfg. In the rally the Kozlik's bear may wait in ambush past the radar
 and chase a speeder (once a lap); caught, both stop and he asks for an autograph.
 
-The plan (SOCIALIST RALLY): the liaison officer's lap-time norms, per track (bonus track 1:15 down to
+The plan (SOCIALIST RALLY): the liaison officer's lap-time norms, per track (Poligon 17 1:15 down to
 0:52.50, Ilyich's Lamp 1:20 down to 0:57.50, Siberia 2:00 down to 1:27, Atomgrad-4 1:07 down to 0:48.50), five laps for each (the bronze and silver times jump ahead, see above; at night the climate change allowance eases the
 norm, the medal times too). Stop cards after every lap, at 25 % fuel or engine and when a revenge begins explain what
 to do. The rally ghost drives the session's best lap. Day and night come round every 12 laps in
@@ -126,7 +126,7 @@ The rally's FUEL is chosen after the track: DIESEL (a tractor engine of its own:
 redline with four close gears, a duller knocking voice; drinks 0.6 times as much), PETROL (200 Nm, a 1050 kg car, a 7000 rpm redline, five gears, as the game has always been) or
 JET FUEL (280 Nm and an 80s turbo that lifts it to 400 Nm, a 1000 kg CCCP red car; drinks 1.7 times as much) or SPUTNIK (the jet fuel's engine
 on all four wheels, 40 % of the force to the front and 60 % to the rear, 900 kg, a white car; drinks 1.9 times as much). PETROL opens with a silver on the
-bonus track in the rally on DIESEL, JET FUEL with a silver there on PETROL and SPUTNIK with a silver there on JET FUEL. The norms are set at each fuel's pace
+Poligon 17 in the rally on DIESEL, JET FUEL with a silver there on PETROL and SPUTNIK with a silver there on JET FUEL. The norms are set at each fuel's pace
 (the ladder times 1.02 for diesel, 0.97 for jet fuel and 0.95 for the Sputnik, per track in `tracks/ID.json` "norms"), and each fuel has its own record
 lap, ghost, board and medals (a medal on any fuel opens the next track). Note that the top speed is about the same on all three (155-159 km/h):
 the fuels differ in how the car pulls out of corners (the diesel with torque from the bottom, the jet fuel with power).
@@ -141,7 +141,7 @@ The small board at the top right shows places 1, 2, 3 and 10. PARTY MEETING > LE
 Left/Right browses the other fuels without changing the car or track, and Esc (pad: B) returns to the paused meeting.
 Existing known-fuel results are retained; unknown legacy results stay unclassified. The first upgraded save preserves the original
 Stakhanov board as `leaderboard_<track>_stakhanov.cfg.before-fuel-top10`. LAN sharing includes all fuel boards in the lobby.
-T (a pad: Y) on the rally's FUEL card plays the car of the highlighted fuel as a CAR TOUR (RaceScene.CarTour.cs, the scripts in CarTourScript.cs): a black card, close-ups with a dry caption each, the engine revved and lifted so that its voice, whistle, pops and smoke are heard, and a card of its data. A locked fuel's tour can be watched but cannot start a run; nothing is raced or recorded. Test hooks: `--car-tour=diesel|petrol|rocket|sputnik` (with `--car-tour-nocard`, `--car-tour-at=SECONDS` and `--car-tour-check`).
+I INFO (a pad: Y) on the rally's FUEL card plays the car of the highlighted fuel as a CAR TOUR (RaceScene.CarTour.cs, the scripts in CarTourScript.cs): a black card, close-ups with a dry caption each, the engine revved and lifted so that its voice, whistle, pops and smoke are heard, and a card of its data. A locked fuel's tour can be watched; Esc (a pad: B) skips it back to the card and no key starts a run from it; nothing is raced or recorded. Test hooks: `--car-tour=diesel|petrol|rocket|sputnik` (with `--car-tour-nocard`, `--car-tour-at=SECONDS` and `--car-tour-check`).
 Beat the last norm and you move on (the next track is under construction); run out of laps, kill the engine
 (it has health: crashes hurt it, smoke at 25 %, oil at 0 %) or get the car destroyed
 (tank shell, missile, a crashing MiK-21) and the truck takes you to the gulag. Training laps

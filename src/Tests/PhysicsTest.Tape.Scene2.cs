@@ -10,7 +10,7 @@ namespace CCCPRacing.Tests;
 // --tape-scene-tests, part 2 (T1b): the phase-1 actors of every track family are marked, so one real lap per family is recorded in a headless child
 // game (its own temporary --data-dir) and the numbers are judged: how many actors and parts the index holds, the tape's size, the cost per sample,
 // the finish-line cost on the main thread (under 50 ms), and that a second process (another seed) covers exactly the actors that were recorded. One trace comparison
-// on the Bonus track (the busiest world): recording on and off leave the simulation bit for bit alike.
+// on Poligon 17 (the busiest world): recording on and off leave the simulation bit for bit alike.
 public partial class PhysicsTest
 {
     static readonly string[] TapeFamilies = { "ilyich", "siberia", "atomgrad", "bonus" };
@@ -71,7 +71,7 @@ public partial class PhysicsTest
         finally { TapeSceneRm(dir); }
     }
 
-    // ---- the Bonus track (the busiest): the car and world trace is identical with recording on and off over a lap boundary ----
+    // ---- Poligon 17 (the busiest): the car and world trace is identical with recording on and off over a lap boundary ----
     void TapeScene2Trace()
     {
         var tr = new string[2]; var dirs = new[] { TapeSceneDir("bon"), TapeSceneDir("boff") };

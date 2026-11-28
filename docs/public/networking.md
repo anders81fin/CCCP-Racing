@@ -1,6 +1,6 @@
 # LAN multiplayer
 
-Up to six players race on Ilyich, Siberia, Atomgrad or the bonus track. All
+Up to six players race on Ilyich, Siberia, Atomgrad or Poligon 17. All
 participants need the same game version and LAN protocol: the join handshake
 compares the full version string plus the protocol (currently 17), so a host and
 a client of different releases are refused with VERSION MISMATCH. Every player sends what the campaign has opened (tracks and

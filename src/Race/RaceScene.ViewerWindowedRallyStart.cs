@@ -32,7 +32,12 @@ public partial class RaceScene
         VwCheck(_card == TitleCard.RallyFuel && _rallyFuelFirst, "CHOOSE FUEL comes first");
         foreach (var x in VrTap(Key.Enter)) yield return x;      // the fuel
         for (int i = 0; i < 6; i++) yield return null;
-        VwCheck(_card == TitleCard.Track, "then the track card");
+        VwLog("cam-lens", ("where", "tour-open-or-skipped"), ("tour", _carTourOpen), ("fov", _cam.Fov), ("near", _cam.Near), ("far", _cam.Far));
+        if (!resume) VwCheck(_carTourOpen && _card == TitleCard.RallyFuel && _ctThenChoose, "the first time this fuel is chosen on the profile its INFO plays before the track card");
+        if (_carTourOpen) { foreach (var x in VrTap(Key.Escape)) yield return x; for (int i = 0; i < 6; i++) yield return null; }      // (Esc skips it: on to the track card)
+        VwLog("cam-lens", ("where", "track-card"), ("fov", _cam.Fov), ("near", _cam.Near), ("far", _cam.Far));
+        VwCheck(_card == TitleCard.Track && !_carTourOpen, "then the track card");
+        VwCheck(_hud.CardNote == $"HIDDEN CAMERAS {_cameraDiscoveries.FoundOn(Tracks[_cardSel].id)} / {CameraDiscoveries.HiddenOn(Tracks[_cardSel].id)}" && CameraDiscoveries.HiddenOn(Tracks[_cardSel].id) == 3, $"the rally's track card says how many hidden cameras were found ('{_hud.CardNote}')");
         if (!resume) foreach (var x in VtbTrackCardBoards(false)) yield return x;      // L LEADERBOARDS on the card (RaceScene.ViewerWindowedTrackBoards.cs), back on KOLKHOZ
         foreach (var x in VrTap(Key.Enter)) yield return x;      // the track
         for (int i = 0; i < 6; i++) yield return null;
@@ -71,6 +76,17 @@ public partial class RaceScene
         VwLog("rally-start", ("resume", resume), ("frames", frames), ("modal_seen", modal), ("countdown_seen", countdown), ("racing", racing), ("norm_step", _norms.Step), ("norm_left", _norms.Left), ("used", _norms.Used));
         VwCheck(!modal, "no NORMS AND MEDALS table was shown before the countdown");
         VwCheck(countdown && racing, $"the countdown ran and the race started ({frames} frames)");
+        // the overhead camera stands at its usual distance after the fuel's INFO tour and the card chain (a bug report: the directed and classic views were zoomed very close to the car on KOLKHOZ)
+        VwLog("cam-lens", ("where", "race-start"), ("fov", _cam.Fov), ("near", _cam.Near), ("far", _cam.Far));
+        VwCheck(Math.Abs(_cam.Fov - 45f) < 0.5f && _cam.Near > 0.4f, $"the race drives with the game's own lens, not a title shot's or a tour's (fov {_cam.Fov:F1}, near {_cam.Near:F2})");
+        float camDist = 0;
+        foreach (int wait in new[] { 0, 30, 60, 120, 240 })
+        {
+            for (int i = 0; i < wait; i++) yield return null;
+            camDist = (_cam.GlobalPosition - _car.Pos).Length();
+            VwLog("camera-after-start", ("after_frames", wait), ("distance", camDist), ("fov", _cam.Fov), ("near", _cam.Near), ("speed_kmh", _car.Vel.Length() * 3.6f), ("directed", CCCPRacing.Camera.ChaseCamera.DirectedLead));
+        }
+        VwCheck(camDist > 25f, $"the camera is at its usual distance after the start (distance {camDist:F1} m, fov {_cam.Fov:F1})");
         if (resume)
         {
             VwCheck(_norms.Step == 3 && _norms.Left == 1 && _norms.Used == 9, $"the saved rally's progress is restored, one lap paid for the break (2 saved) (step {_norms.Step}, {_norms.Left} laps left, {_norms.Used} used)");

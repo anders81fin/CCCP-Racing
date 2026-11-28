@@ -7,9 +7,10 @@ namespace CCCPRacing.Race;
 
 /// <summary>
 /// CHOOSE TRACK's L LEADERBOARDS (the pad's X) for SOCIALIST RALLY and STAKHANOV LAPS: the highlighted card's track and the
-/// card's mode only, read only. The rally shows its four fuel boards; the Stakhanov laps browse one fuel's top ten at a time
-/// (Left/Right). No other track or mode, no replays, no page fallback: an empty board stays empty. Esc, B or Enter closes it
-/// back to the same card, track and mode; nothing is chosen, started, saved or switched on the car.
+/// card's mode only, read only. The rally shows the chosen fuel's ten best on the highlighted track; the Stakhanov laps browse one fuel's top ten at a time
+/// (Left/Right). No other track or mode and no page fallback: an empty board stays empty. Up/Down (the d-pad) select a result and
+/// Enter (A, a click) opens its recording as a replay when it has one, as on the office board (RaceScene.LeaderboardReplay.cs);
+/// Esc or B closes it back to the same card, track and mode; nothing is chosen, started, saved or switched on the car.
 /// The unrestricted PARTY OFFICE board (EnterBoard, RaceScene.LeaderboardReplay.cs) is untouched by it.
 /// </summary>
 public partial class RaceScene
@@ -31,6 +32,7 @@ public partial class RaceScene
         _boardScopeLaps = _trackFor == MenuItem.Training;
         _boardScopeFuel = FuelGrade.Diesel;      // every opening starts Diesel → Petrol → Jet Fuel → Sputnik; never selects the driving fuel
         _boardScoped = _showBoard = true;
+        _boardReplaySelected = 0; _boardReplayNoticeUntil = 0;
         _overlayFrame = Engine.GetProcessFrames();
         _hud.Mode = HudMode.Board;
         if (CardDbg) GD.Print($"track card boards: {Tracks[_boardScopeTrack].id}, {(_boardScopeLaps ? "stakhanov " + _boardScopeFuel : "rally")}");
@@ -51,15 +53,27 @@ public partial class RaceScene
         if (e is InputEventJoypadButton or InputEventJoypadMotion) { PadRawInput(e); return true; }
         if (e is InputEventKey { Pressed: true } physical && physical.Device != PadKeyDevice) _padMode = false;
         if (Engine.GetProcessFrames() <= _overlayFrame) return true;
-        if (e is not InputEventKey { Pressed: true, Echo: false } k) return true;
+        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true })
+        {
+            int row = _hud.BoardRowAt(_hud.GetLocalMousePosition());
+            if (row >= 0 && row < BoardReplayRows) { _boardReplaySelected = row; _boardReplayNoticeUntil = 0; OpenBoardReplay(); }
+            return true;
+        }
+        if (e is not InputEventKey { Pressed: true } k) return true;
+        int rows = BoardReplayRows;
         switch (k.Keycode)
         {
-            case Key.Escape or Key.Backspace or Key.Enter or Key.KpEnter:
-                CloseTrackCardBoards(); break;
-            case Key.Left or Key.Right when _boardScopeLaps:
+            case Key.Escape or Key.Backspace:
+                if (!k.Echo) CloseTrackCardBoards(); break;
+            case Key.Enter or Key.KpEnter:
+                if (!k.Echo) OpenBoardReplay(); break;
+            case Key.Up: _boardReplayNoticeUntil = 0; _boardReplaySelected = (_boardReplaySelected + rows - 1) % rows; break;
+            case Key.Down: _boardReplayNoticeUntil = 0; _boardReplaySelected = (_boardReplaySelected + 1) % rows; break;
+            case Key.Left or Key.Right when _boardScopeLaps && !k.Echo:
+                _boardReplayNoticeUntil = 0; _boardReplaySelected = 0;
                 _boardScopeFuel = (FuelGrade)(((int)_boardScopeFuel + (k.Keycode == Key.Left ? Training.LapsCount - 1 : 1)) % Training.LapsCount); break;
         }
-        // No other track, mode, replay, mouse row or gameplay shortcut from here.
+        // No other track, mode or gameplay shortcut from here.
         return true;
     }
 
@@ -70,8 +84,8 @@ public partial class RaceScene
         bool built = id == _trackId;
         _hud.BoardScoped = true;
         _hud.BoardStakhanov = _boardScopeLaps;
-        _hud.BoardSelected = -1;
-        _hud.BoardReplayNotice = "";
+        _hud.BoardSelected = _boardReplaySelected;
+        _hud.BoardReplayNotice = BoardReplayStatus();
         _hud.BoardTrack = TrackName(id);
         if (_boardScopeLaps)
         {
@@ -88,14 +102,17 @@ public partial class RaceScene
         }
         else
         {
+            int set = RecordStore.SetOf(_rallyFuel);      // the rally's chosen fuel only: its ten best on this track
+            var all = BoardFor(id, set);
+            var rows = all.Take(Leaderboard.RallySize).ToArray();
+            int hl = built && _boardHighlights[set] >= 0 && _boardHighlights[set] < rows.Length ? _boardHighlights[set] : -1;
+            string fuel = FuelGrades.Names[(int)_rallyFuel];
             _hud.Board = Array.Empty<Leaderboard.Entry>();
             _hud.BoardHighlight = -1;
-            _hud.BoardFuel = "";
+            _hud.BoardFuel = fuel;
             _hud.BoardSpeed = "";
-            _hud.BoardFuels = new[] { 2, 0, 3, 4 }.Select(f => new Hud.FuelBoard(
-                f switch { 2 => "DIESEL", 3 => "JET FUEL", 4 => "SPUTNIK", _ => "PETROL" }, BoardFor(id, f),
-                built ? _boardHighlights[f] : -1,
-                SpeedText(f switch { 2 => "rally_diesel", 3 => "rally_rocket", 4 => "rally_sputnik", _ => "rally" }, id))).ToArray();
+            _hud.BoardFuels = new[] { new Hud.FuelBoard(fuel + " - TOP " + Leaderboard.RallySize, rows, hl,
+                SpeedText(set switch { 2 => "rally_diesel", 3 => "rally_rocket", 4 => "rally_sputnik", _ => "rally" }, id)) };
         }
     }
 }
